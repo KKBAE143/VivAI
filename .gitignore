@@ -1,98 +1,56 @@
-# Prerequisites
-*.d
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# Object files
-*.o
-*.ko
-*.obj
-*.elf
+node_modules
+dist
+dist-ssr
+.output
+.vinxi
+.tanstack/**
+.nitro
+*.local
 
-# Env files
-.env
+# Wrangler / Cloudflare
+.wrangler/
+.dev.vars
 
-# Precompiled Headers
-*.gch
-*.pch
-
-# Libraries
-*.lib
-*.a
-*.la
-*.lo
-
-# Shared objects (inc. Windows DLLs)
-*.dll
-*.so
-*.so.*
-*.dylib
-
-# Executables
-*.exe
-*.out
-*.app
-*.i*86
-*.x86_64
-*.hex
-
-# Debug files
-*.dSYM/
-*.su
-
-# Mac files
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
 .DS_Store
-.DS_STORE
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
-# Old HG stuff
-.hg
-.hgignore
-.hgtags
-
-.git
-__pycache__
-.ipynb_checkpoints
-*/__pycache__
-*/.ipynb_checkpoints
-.local
-.jupyter
-.ipython
-*/.terraform
-terraform.*
-.terraform.*
-shinobi-dvr/*
-.vscode/
-
-# mypy
-.mypy_cache/*
-
-# Distribution / packaging
+# Python (backend/)
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.so
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-pip-wheel-metadata/
-share/python-wheels/
 *.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+.eggs/
 
-# Output from various tools
-examples/output
-tests/output
-docs-build
-site
+# Backend env / secrets
+.env
+!.env.example
+backend/.env
+backend/.venv/
+venv/
+.venv/
 
-# Local or WIP files
-local/
-
-vision-agent-benchmark/
-*/node_modules
+# Generated / cache
+.routeTree.gen.ts.bak
+.output/
+.wrangler/
+.nitro/
