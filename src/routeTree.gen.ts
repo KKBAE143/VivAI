@@ -9,13 +9,10 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TemplatesRouteImport } from './routes/templates'
 import { Route as TeamsRouteImport } from './routes/teams'
-import { Route as StudyRouteImport } from './routes/study'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ReadinessRouteImport } from './routes/readiness'
-import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as ProgressRouteImport } from './routes/progress'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PitchDrillRouteImport } from './routes/pitch-drill'
@@ -24,17 +21,20 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as FilesRouteImport } from './routes/files'
-import { Route as AiVivaRouteImport } from './routes/ai-viva'
-import { Route as AiPresentationRouteImport } from './routes/ai-presentation'
 import { Route as AiRouteImport } from './routes/ai'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TemplatesIndexRouteImport } from './routes/templates/index'
+import { Route as StudyIndexRouteImport } from './routes/study/index'
+import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
+import { Route as AiVivaIndexRouteImport } from './routes/ai-viva/index'
+import { Route as AiPresentationIndexRouteImport } from './routes/ai-presentation/index'
 import { Route as AdvancedIndexRouteImport } from './routes/advanced/index'
-import { Route as TemplatesSlugRouteImport } from './routes/templates.$slug'
-import { Route as StudyReviewRouteImport } from './routes/study.review'
-import { Route as StudyIdRouteImport } from './routes/study.$id'
-import { Route as ProjectsNewRouteImport } from './routes/projects.new'
-import { Route as ProjectsIdRouteImport } from './routes/projects.$id'
-import { Route as AiVivaNewRouteImport } from './routes/ai-viva.new'
+import { Route as TemplatesSlugRouteImport } from './routes/templates/$slug'
+import { Route as StudyReviewRouteImport } from './routes/study/review'
+import { Route as StudyIdRouteImport } from './routes/study/$id'
+import { Route as ProjectsNewRouteImport } from './routes/projects/new'
+import { Route as ProjectsIdRouteImport } from './routes/projects/$id'
+import { Route as AiVivaNewRouteImport } from './routes/ai-viva/new'
 import { Route as AdvancedWeaknessHeatmapRouteImport } from './routes/advanced/weakness-heatmap'
 import { Route as AdvancedVivaTeamRouteImport } from './routes/advanced/viva-team'
 import { Route as AdvancedVivaCodeAwareRouteImport } from './routes/advanced/viva-code-aware'
@@ -42,22 +42,12 @@ import { Route as AdvancedSentimentAnalysisRouteImport } from './routes/advanced
 import { Route as AdvancedPresentationBridgeRouteImport } from './routes/advanced/presentation-bridge'
 import { Route as AdvancedFacultySimRouteImport } from './routes/advanced/faculty-sim'
 import { Route as AdvancedCollegePredictorRouteImport } from './routes/advanced/college-predictor'
-import { Route as AiVivaSessionIdRouteImport } from './routes/ai-viva.session.$id'
-import { Route as AiPresentationSessionIdRouteImport } from './routes/ai-presentation.session.$id'
+import { Route as AiVivaSessionIdRouteImport } from './routes/ai-viva/session.$id'
+import { Route as AiPresentationSessionIdRouteImport } from './routes/ai-presentation/session.$id'
 
-const TemplatesRoute = TemplatesRouteImport.update({
-  id: '/templates',
-  path: '/templates',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const TeamsRoute = TeamsRouteImport.update({
   id: '/teams',
   path: '/teams',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const StudyRoute = StudyRouteImport.update({
-  id: '/study',
-  path: '/study',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignupRoute = SignupRouteImport.update({
@@ -73,11 +63,6 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const ReadinessRoute = ReadinessRouteImport.update({
   id: '/readiness',
   path: '/readiness',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProjectsRoute = ProjectsRouteImport.update({
-  id: '/projects',
-  path: '/projects',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProgressRoute = ProgressRouteImport.update({
@@ -120,16 +105,6 @@ const FilesRoute = FilesRouteImport.update({
   path: '/files',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AiVivaRoute = AiVivaRouteImport.update({
-  id: '/ai-viva',
-  path: '/ai-viva',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AiPresentationRoute = AiPresentationRouteImport.update({
-  id: '/ai-presentation',
-  path: '/ai-presentation',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AiRoute = AiRouteImport.update({
   id: '/ai',
   path: '/ai',
@@ -140,40 +115,65 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TemplatesIndexRoute = TemplatesIndexRouteImport.update({
+  id: '/templates/',
+  path: '/templates/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StudyIndexRoute = StudyIndexRouteImport.update({
+  id: '/study/',
+  path: '/study/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectsIndexRoute = ProjectsIndexRouteImport.update({
+  id: '/projects/',
+  path: '/projects/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AiVivaIndexRoute = AiVivaIndexRouteImport.update({
+  id: '/ai-viva/',
+  path: '/ai-viva/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AiPresentationIndexRoute = AiPresentationIndexRouteImport.update({
+  id: '/ai-presentation/',
+  path: '/ai-presentation/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdvancedIndexRoute = AdvancedIndexRouteImport.update({
   id: '/advanced/',
   path: '/advanced/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TemplatesSlugRoute = TemplatesSlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
-  getParentRoute: () => TemplatesRoute,
+  id: '/templates/$slug',
+  path: '/templates/$slug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const StudyReviewRoute = StudyReviewRouteImport.update({
-  id: '/review',
-  path: '/review',
-  getParentRoute: () => StudyRoute,
+  id: '/study/review',
+  path: '/study/review',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const StudyIdRoute = StudyIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => StudyRoute,
+  id: '/study/$id',
+  path: '/study/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ProjectsNewRoute = ProjectsNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => ProjectsRoute,
+  id: '/projects/new',
+  path: '/projects/new',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ProjectsIdRoute = ProjectsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => ProjectsRoute,
+  id: '/projects/$id',
+  path: '/projects/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AiVivaNewRoute = AiVivaNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => AiVivaRoute,
+  id: '/ai-viva/new',
+  path: '/ai-viva/new',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AdvancedWeaknessHeatmapRoute = AdvancedWeaknessHeatmapRouteImport.update({
   id: '/advanced/weakness-heatmap',
@@ -214,21 +214,19 @@ const AdvancedCollegePredictorRoute =
     getParentRoute: () => rootRouteImport,
   } as any)
 const AiVivaSessionIdRoute = AiVivaSessionIdRouteImport.update({
-  id: '/session/$id',
-  path: '/session/$id',
-  getParentRoute: () => AiVivaRoute,
+  id: '/ai-viva/session/$id',
+  path: '/ai-viva/session/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AiPresentationSessionIdRoute = AiPresentationSessionIdRouteImport.update({
-  id: '/session/$id',
-  path: '/session/$id',
-  getParentRoute: () => AiPresentationRoute,
+  id: '/ai-presentation/session/$id',
+  path: '/ai-presentation/session/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/ai': typeof AiRoute
-  '/ai-presentation': typeof AiPresentationRouteWithChildren
-  '/ai-viva': typeof AiVivaRouteWithChildren
   '/files': typeof FilesRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/leaderboard': typeof LeaderboardRoute
@@ -237,13 +235,10 @@ export interface FileRoutesByFullPath {
   '/pitch-drill': typeof PitchDrillRoute
   '/profile': typeof ProfileRoute
   '/progress': typeof ProgressRoute
-  '/projects': typeof ProjectsRouteWithChildren
   '/readiness': typeof ReadinessRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
-  '/study': typeof StudyRouteWithChildren
   '/teams': typeof TeamsRoute
-  '/templates': typeof TemplatesRouteWithChildren
   '/advanced/college-predictor': typeof AdvancedCollegePredictorRoute
   '/advanced/faculty-sim': typeof AdvancedFacultySimRoute
   '/advanced/presentation-bridge': typeof AdvancedPresentationBridgeRoute
@@ -258,14 +253,17 @@ export interface FileRoutesByFullPath {
   '/study/review': typeof StudyReviewRoute
   '/templates/$slug': typeof TemplatesSlugRoute
   '/advanced/': typeof AdvancedIndexRoute
+  '/ai-presentation/': typeof AiPresentationIndexRoute
+  '/ai-viva/': typeof AiVivaIndexRoute
+  '/projects/': typeof ProjectsIndexRoute
+  '/study/': typeof StudyIndexRoute
+  '/templates/': typeof TemplatesIndexRoute
   '/ai-presentation/session/$id': typeof AiPresentationSessionIdRoute
   '/ai-viva/session/$id': typeof AiVivaSessionIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ai': typeof AiRoute
-  '/ai-presentation': typeof AiPresentationRouteWithChildren
-  '/ai-viva': typeof AiVivaRouteWithChildren
   '/files': typeof FilesRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/leaderboard': typeof LeaderboardRoute
@@ -274,13 +272,10 @@ export interface FileRoutesByTo {
   '/pitch-drill': typeof PitchDrillRoute
   '/profile': typeof ProfileRoute
   '/progress': typeof ProgressRoute
-  '/projects': typeof ProjectsRouteWithChildren
   '/readiness': typeof ReadinessRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
-  '/study': typeof StudyRouteWithChildren
   '/teams': typeof TeamsRoute
-  '/templates': typeof TemplatesRouteWithChildren
   '/advanced/college-predictor': typeof AdvancedCollegePredictorRoute
   '/advanced/faculty-sim': typeof AdvancedFacultySimRoute
   '/advanced/presentation-bridge': typeof AdvancedPresentationBridgeRoute
@@ -295,6 +290,11 @@ export interface FileRoutesByTo {
   '/study/review': typeof StudyReviewRoute
   '/templates/$slug': typeof TemplatesSlugRoute
   '/advanced': typeof AdvancedIndexRoute
+  '/ai-presentation': typeof AiPresentationIndexRoute
+  '/ai-viva': typeof AiVivaIndexRoute
+  '/projects': typeof ProjectsIndexRoute
+  '/study': typeof StudyIndexRoute
+  '/templates': typeof TemplatesIndexRoute
   '/ai-presentation/session/$id': typeof AiPresentationSessionIdRoute
   '/ai-viva/session/$id': typeof AiVivaSessionIdRoute
 }
@@ -302,8 +302,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/ai': typeof AiRoute
-  '/ai-presentation': typeof AiPresentationRouteWithChildren
-  '/ai-viva': typeof AiVivaRouteWithChildren
   '/files': typeof FilesRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/leaderboard': typeof LeaderboardRoute
@@ -312,13 +310,10 @@ export interface FileRoutesById {
   '/pitch-drill': typeof PitchDrillRoute
   '/profile': typeof ProfileRoute
   '/progress': typeof ProgressRoute
-  '/projects': typeof ProjectsRouteWithChildren
   '/readiness': typeof ReadinessRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
-  '/study': typeof StudyRouteWithChildren
   '/teams': typeof TeamsRoute
-  '/templates': typeof TemplatesRouteWithChildren
   '/advanced/college-predictor': typeof AdvancedCollegePredictorRoute
   '/advanced/faculty-sim': typeof AdvancedFacultySimRoute
   '/advanced/presentation-bridge': typeof AdvancedPresentationBridgeRoute
@@ -333,6 +328,11 @@ export interface FileRoutesById {
   '/study/review': typeof StudyReviewRoute
   '/templates/$slug': typeof TemplatesSlugRoute
   '/advanced/': typeof AdvancedIndexRoute
+  '/ai-presentation/': typeof AiPresentationIndexRoute
+  '/ai-viva/': typeof AiVivaIndexRoute
+  '/projects/': typeof ProjectsIndexRoute
+  '/study/': typeof StudyIndexRoute
+  '/templates/': typeof TemplatesIndexRoute
   '/ai-presentation/session/$id': typeof AiPresentationSessionIdRoute
   '/ai-viva/session/$id': typeof AiVivaSessionIdRoute
 }
@@ -341,8 +341,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/ai'
-    | '/ai-presentation'
-    | '/ai-viva'
     | '/files'
     | '/forgot-password'
     | '/leaderboard'
@@ -351,13 +349,10 @@ export interface FileRouteTypes {
     | '/pitch-drill'
     | '/profile'
     | '/progress'
-    | '/projects'
     | '/readiness'
     | '/reset-password'
     | '/signup'
-    | '/study'
     | '/teams'
-    | '/templates'
     | '/advanced/college-predictor'
     | '/advanced/faculty-sim'
     | '/advanced/presentation-bridge'
@@ -372,14 +367,17 @@ export interface FileRouteTypes {
     | '/study/review'
     | '/templates/$slug'
     | '/advanced/'
+    | '/ai-presentation/'
+    | '/ai-viva/'
+    | '/projects/'
+    | '/study/'
+    | '/templates/'
     | '/ai-presentation/session/$id'
     | '/ai-viva/session/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/ai'
-    | '/ai-presentation'
-    | '/ai-viva'
     | '/files'
     | '/forgot-password'
     | '/leaderboard'
@@ -388,13 +386,10 @@ export interface FileRouteTypes {
     | '/pitch-drill'
     | '/profile'
     | '/progress'
-    | '/projects'
     | '/readiness'
     | '/reset-password'
     | '/signup'
-    | '/study'
     | '/teams'
-    | '/templates'
     | '/advanced/college-predictor'
     | '/advanced/faculty-sim'
     | '/advanced/presentation-bridge'
@@ -409,14 +404,17 @@ export interface FileRouteTypes {
     | '/study/review'
     | '/templates/$slug'
     | '/advanced'
+    | '/ai-presentation'
+    | '/ai-viva'
+    | '/projects'
+    | '/study'
+    | '/templates'
     | '/ai-presentation/session/$id'
     | '/ai-viva/session/$id'
   id:
     | '__root__'
     | '/'
     | '/ai'
-    | '/ai-presentation'
-    | '/ai-viva'
     | '/files'
     | '/forgot-password'
     | '/leaderboard'
@@ -425,13 +423,10 @@ export interface FileRouteTypes {
     | '/pitch-drill'
     | '/profile'
     | '/progress'
-    | '/projects'
     | '/readiness'
     | '/reset-password'
     | '/signup'
-    | '/study'
     | '/teams'
-    | '/templates'
     | '/advanced/college-predictor'
     | '/advanced/faculty-sim'
     | '/advanced/presentation-bridge'
@@ -446,6 +441,11 @@ export interface FileRouteTypes {
     | '/study/review'
     | '/templates/$slug'
     | '/advanced/'
+    | '/ai-presentation/'
+    | '/ai-viva/'
+    | '/projects/'
+    | '/study/'
+    | '/templates/'
     | '/ai-presentation/session/$id'
     | '/ai-viva/session/$id'
   fileRoutesById: FileRoutesById
@@ -453,8 +453,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AiRoute: typeof AiRoute
-  AiPresentationRoute: typeof AiPresentationRouteWithChildren
-  AiVivaRoute: typeof AiVivaRouteWithChildren
   FilesRoute: typeof FilesRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LeaderboardRoute: typeof LeaderboardRoute
@@ -463,13 +461,10 @@ export interface RootRouteChildren {
   PitchDrillRoute: typeof PitchDrillRoute
   ProfileRoute: typeof ProfileRoute
   ProgressRoute: typeof ProgressRoute
-  ProjectsRoute: typeof ProjectsRouteWithChildren
   ReadinessRoute: typeof ReadinessRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
-  StudyRoute: typeof StudyRouteWithChildren
   TeamsRoute: typeof TeamsRoute
-  TemplatesRoute: typeof TemplatesRouteWithChildren
   AdvancedCollegePredictorRoute: typeof AdvancedCollegePredictorRoute
   AdvancedFacultySimRoute: typeof AdvancedFacultySimRoute
   AdvancedPresentationBridgeRoute: typeof AdvancedPresentationBridgeRoute
@@ -477,30 +472,29 @@ export interface RootRouteChildren {
   AdvancedVivaCodeAwareRoute: typeof AdvancedVivaCodeAwareRoute
   AdvancedVivaTeamRoute: typeof AdvancedVivaTeamRoute
   AdvancedWeaknessHeatmapRoute: typeof AdvancedWeaknessHeatmapRoute
+  AiVivaNewRoute: typeof AiVivaNewRoute
+  ProjectsIdRoute: typeof ProjectsIdRoute
+  ProjectsNewRoute: typeof ProjectsNewRoute
+  StudyIdRoute: typeof StudyIdRoute
+  StudyReviewRoute: typeof StudyReviewRoute
+  TemplatesSlugRoute: typeof TemplatesSlugRoute
   AdvancedIndexRoute: typeof AdvancedIndexRoute
+  AiPresentationIndexRoute: typeof AiPresentationIndexRoute
+  AiVivaIndexRoute: typeof AiVivaIndexRoute
+  ProjectsIndexRoute: typeof ProjectsIndexRoute
+  StudyIndexRoute: typeof StudyIndexRoute
+  TemplatesIndexRoute: typeof TemplatesIndexRoute
+  AiPresentationSessionIdRoute: typeof AiPresentationSessionIdRoute
+  AiVivaSessionIdRoute: typeof AiVivaSessionIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/templates': {
-      id: '/templates'
-      path: '/templates'
-      fullPath: '/templates'
-      preLoaderRoute: typeof TemplatesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/teams': {
       id: '/teams'
       path: '/teams'
       fullPath: '/teams'
       preLoaderRoute: typeof TeamsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/study': {
-      id: '/study'
-      path: '/study'
-      fullPath: '/study'
-      preLoaderRoute: typeof StudyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/signup': {
@@ -522,13 +516,6 @@ declare module '@tanstack/react-router' {
       path: '/readiness'
       fullPath: '/readiness'
       preLoaderRoute: typeof ReadinessRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/projects': {
-      id: '/projects'
-      path: '/projects'
-      fullPath: '/projects'
-      preLoaderRoute: typeof ProjectsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/progress': {
@@ -587,20 +574,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FilesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/ai-viva': {
-      id: '/ai-viva'
-      path: '/ai-viva'
-      fullPath: '/ai-viva'
-      preLoaderRoute: typeof AiVivaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ai-presentation': {
-      id: '/ai-presentation'
-      path: '/ai-presentation'
-      fullPath: '/ai-presentation'
-      preLoaderRoute: typeof AiPresentationRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/ai': {
       id: '/ai'
       path: '/ai'
@@ -615,6 +588,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/templates/': {
+      id: '/templates/'
+      path: '/templates'
+      fullPath: '/templates/'
+      preLoaderRoute: typeof TemplatesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/study/': {
+      id: '/study/'
+      path: '/study'
+      fullPath: '/study/'
+      preLoaderRoute: typeof StudyIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects/': {
+      id: '/projects/'
+      path: '/projects'
+      fullPath: '/projects/'
+      preLoaderRoute: typeof ProjectsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ai-viva/': {
+      id: '/ai-viva/'
+      path: '/ai-viva'
+      fullPath: '/ai-viva/'
+      preLoaderRoute: typeof AiVivaIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ai-presentation/': {
+      id: '/ai-presentation/'
+      path: '/ai-presentation'
+      fullPath: '/ai-presentation/'
+      preLoaderRoute: typeof AiPresentationIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/advanced/': {
       id: '/advanced/'
       path: '/advanced'
@@ -624,45 +632,45 @@ declare module '@tanstack/react-router' {
     }
     '/templates/$slug': {
       id: '/templates/$slug'
-      path: '/$slug'
+      path: '/templates/$slug'
       fullPath: '/templates/$slug'
       preLoaderRoute: typeof TemplatesSlugRouteImport
-      parentRoute: typeof TemplatesRoute
+      parentRoute: typeof rootRouteImport
     }
     '/study/review': {
       id: '/study/review'
-      path: '/review'
+      path: '/study/review'
       fullPath: '/study/review'
       preLoaderRoute: typeof StudyReviewRouteImport
-      parentRoute: typeof StudyRoute
+      parentRoute: typeof rootRouteImport
     }
     '/study/$id': {
       id: '/study/$id'
-      path: '/$id'
+      path: '/study/$id'
       fullPath: '/study/$id'
       preLoaderRoute: typeof StudyIdRouteImport
-      parentRoute: typeof StudyRoute
+      parentRoute: typeof rootRouteImport
     }
     '/projects/new': {
       id: '/projects/new'
-      path: '/new'
+      path: '/projects/new'
       fullPath: '/projects/new'
       preLoaderRoute: typeof ProjectsNewRouteImport
-      parentRoute: typeof ProjectsRoute
+      parentRoute: typeof rootRouteImport
     }
     '/projects/$id': {
       id: '/projects/$id'
-      path: '/$id'
+      path: '/projects/$id'
       fullPath: '/projects/$id'
       preLoaderRoute: typeof ProjectsIdRouteImport
-      parentRoute: typeof ProjectsRoute
+      parentRoute: typeof rootRouteImport
     }
     '/ai-viva/new': {
       id: '/ai-viva/new'
-      path: '/new'
+      path: '/ai-viva/new'
       fullPath: '/ai-viva/new'
       preLoaderRoute: typeof AiVivaNewRouteImport
-      parentRoute: typeof AiVivaRoute
+      parentRoute: typeof rootRouteImport
     }
     '/advanced/weakness-heatmap': {
       id: '/advanced/weakness-heatmap'
@@ -715,89 +723,24 @@ declare module '@tanstack/react-router' {
     }
     '/ai-viva/session/$id': {
       id: '/ai-viva/session/$id'
-      path: '/session/$id'
+      path: '/ai-viva/session/$id'
       fullPath: '/ai-viva/session/$id'
       preLoaderRoute: typeof AiVivaSessionIdRouteImport
-      parentRoute: typeof AiVivaRoute
+      parentRoute: typeof rootRouteImport
     }
     '/ai-presentation/session/$id': {
       id: '/ai-presentation/session/$id'
-      path: '/session/$id'
+      path: '/ai-presentation/session/$id'
       fullPath: '/ai-presentation/session/$id'
       preLoaderRoute: typeof AiPresentationSessionIdRouteImport
-      parentRoute: typeof AiPresentationRoute
+      parentRoute: typeof rootRouteImport
     }
   }
 }
 
-interface AiPresentationRouteChildren {
-  AiPresentationSessionIdRoute: typeof AiPresentationSessionIdRoute
-}
-
-const AiPresentationRouteChildren: AiPresentationRouteChildren = {
-  AiPresentationSessionIdRoute: AiPresentationSessionIdRoute,
-}
-
-const AiPresentationRouteWithChildren = AiPresentationRoute._addFileChildren(
-  AiPresentationRouteChildren,
-)
-
-interface AiVivaRouteChildren {
-  AiVivaNewRoute: typeof AiVivaNewRoute
-  AiVivaSessionIdRoute: typeof AiVivaSessionIdRoute
-}
-
-const AiVivaRouteChildren: AiVivaRouteChildren = {
-  AiVivaNewRoute: AiVivaNewRoute,
-  AiVivaSessionIdRoute: AiVivaSessionIdRoute,
-}
-
-const AiVivaRouteWithChildren =
-  AiVivaRoute._addFileChildren(AiVivaRouteChildren)
-
-interface ProjectsRouteChildren {
-  ProjectsIdRoute: typeof ProjectsIdRoute
-  ProjectsNewRoute: typeof ProjectsNewRoute
-}
-
-const ProjectsRouteChildren: ProjectsRouteChildren = {
-  ProjectsIdRoute: ProjectsIdRoute,
-  ProjectsNewRoute: ProjectsNewRoute,
-}
-
-const ProjectsRouteWithChildren = ProjectsRoute._addFileChildren(
-  ProjectsRouteChildren,
-)
-
-interface StudyRouteChildren {
-  StudyIdRoute: typeof StudyIdRoute
-  StudyReviewRoute: typeof StudyReviewRoute
-}
-
-const StudyRouteChildren: StudyRouteChildren = {
-  StudyIdRoute: StudyIdRoute,
-  StudyReviewRoute: StudyReviewRoute,
-}
-
-const StudyRouteWithChildren = StudyRoute._addFileChildren(StudyRouteChildren)
-
-interface TemplatesRouteChildren {
-  TemplatesSlugRoute: typeof TemplatesSlugRoute
-}
-
-const TemplatesRouteChildren: TemplatesRouteChildren = {
-  TemplatesSlugRoute: TemplatesSlugRoute,
-}
-
-const TemplatesRouteWithChildren = TemplatesRoute._addFileChildren(
-  TemplatesRouteChildren,
-)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AiRoute: AiRoute,
-  AiPresentationRoute: AiPresentationRouteWithChildren,
-  AiVivaRoute: AiVivaRouteWithChildren,
   FilesRoute: FilesRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LeaderboardRoute: LeaderboardRoute,
@@ -806,13 +749,10 @@ const rootRouteChildren: RootRouteChildren = {
   PitchDrillRoute: PitchDrillRoute,
   ProfileRoute: ProfileRoute,
   ProgressRoute: ProgressRoute,
-  ProjectsRoute: ProjectsRouteWithChildren,
   ReadinessRoute: ReadinessRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
-  StudyRoute: StudyRouteWithChildren,
   TeamsRoute: TeamsRoute,
-  TemplatesRoute: TemplatesRouteWithChildren,
   AdvancedCollegePredictorRoute: AdvancedCollegePredictorRoute,
   AdvancedFacultySimRoute: AdvancedFacultySimRoute,
   AdvancedPresentationBridgeRoute: AdvancedPresentationBridgeRoute,
@@ -820,7 +760,20 @@ const rootRouteChildren: RootRouteChildren = {
   AdvancedVivaCodeAwareRoute: AdvancedVivaCodeAwareRoute,
   AdvancedVivaTeamRoute: AdvancedVivaTeamRoute,
   AdvancedWeaknessHeatmapRoute: AdvancedWeaknessHeatmapRoute,
+  AiVivaNewRoute: AiVivaNewRoute,
+  ProjectsIdRoute: ProjectsIdRoute,
+  ProjectsNewRoute: ProjectsNewRoute,
+  StudyIdRoute: StudyIdRoute,
+  StudyReviewRoute: StudyReviewRoute,
+  TemplatesSlugRoute: TemplatesSlugRoute,
   AdvancedIndexRoute: AdvancedIndexRoute,
+  AiPresentationIndexRoute: AiPresentationIndexRoute,
+  AiVivaIndexRoute: AiVivaIndexRoute,
+  ProjectsIndexRoute: ProjectsIndexRoute,
+  StudyIndexRoute: StudyIndexRoute,
+  TemplatesIndexRoute: TemplatesIndexRoute,
+  AiPresentationSessionIdRoute: AiPresentationSessionIdRoute,
+  AiVivaSessionIdRoute: AiVivaSessionIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

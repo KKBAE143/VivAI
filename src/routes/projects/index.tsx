@@ -8,7 +8,7 @@ import { TableSkeleton } from "@/components/loading-skeleton";
 import { useRequireAuth } from "@/lib/auth-context";
 import { useProjects } from "@/lib/hooks";
 
-export const Route = createFileRoute("/projects")({
+export const Route = createFileRoute("/projects/")({
   head: () => ({
     meta: [
       { title: "My Projects — CollgePro Navigator" },

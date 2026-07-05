@@ -3,7 +3,7 @@ import { BookOpen, GraduationCap, Sparkles, Mic, ChevronRight, type LucideIcon }
 import { AppShell, Card, PageHeader, Badge } from "@/components/app-shell";
 import { useTemplates } from "@/lib/hooks";
 
-export const Route = createFileRoute("/templates")({
+export const Route = createFileRoute("/templates/")({
   head: () => ({
     meta: [
       { title: "Templates & Guidelines — CollgePro Navigator" },
