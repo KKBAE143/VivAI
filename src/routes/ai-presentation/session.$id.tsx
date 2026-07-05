@@ -203,7 +203,7 @@ function PresentationSession() {
       subtitle="Share your screen and present — the examiner is watching live."
       defaultLanguage={language}
       showPersona
-      allowScreen
+      sources={["screen"]}
       onEnded={() => {
         setJustEnded(true);
         void refetch();

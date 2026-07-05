@@ -122,6 +122,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
   const userBufRef = useRef("");
   const aiBufRef = useRef("");
   const speakingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const endedReceivedRef = useRef(false);
 
   useEffect(() => {
     micMutedRef.current = micMuted;
@@ -242,6 +243,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
           break;
         }
         case "ended":
+          endedReceivedRef.current = true;
           setSummary((msg.summary as LiveSummary) ?? null);
           setStatus("ended");
           break;
@@ -366,7 +368,15 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
         setStatus("error");
       };
       ws.onclose = () => {
-        setStatus((s) => (s === "ended" || s === "error" ? s : "ended"));
+        // Only treat a close as a clean end if the server actually sent the
+        // final "ended" summary. A silent close means something failed —
+        // never fabricate a completed 0% session out of it.
+        setStatus((s) => {
+          if (s === "ended" || s === "error") return s;
+          if (endedReceivedRef.current) return "ended";
+          setError((prev) => prev || "The connection closed before the session finished. Please retry.");
+          return "error";
+        });
       };
     },
     [mode, sessionId, language, persona, projectId, handleMessage, sendFrame],
@@ -419,6 +429,26 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
 
   const toggleMic = useCallback(() => setMicMuted((m) => !m), []);
 
+  /** Fully reset the hook so the session can be retried from pre-flight. */
+  const reset = useCallback(() => {
+    cleanup();
+    try {
+      wsRef.current?.close();
+    } catch {
+      /* noop */
+    }
+    wsRef.current = null;
+    endedReceivedRef.current = false;
+    setStatus("idle");
+    setError("");
+    setCaptions([]);
+    setEvents([]);
+    setLiveUserText("");
+    setLiveAiText("");
+    setSummary(null);
+    setMicMuted(false);
+  }, [cleanup]);
+
   const pushText = useCallback((text: string) => {
     const ws = wsRef.current;
     if (ws && ws.readyState === WebSocket.OPEN && text.trim()) {
@@ -451,6 +481,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     summary,
     start,
     stop,
+    reset,
     toggleMic,
     pushText,
   };

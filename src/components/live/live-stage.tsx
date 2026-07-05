@@ -25,6 +25,8 @@ interface LiveStageProps {
   title: string;
   subtitle?: string;
   onEnd: () => void;
+  /** Called when the student wants to retry after a connection failure. */
+  onRetry?: () => void;
 }
 
 const EVENT_META = {
@@ -33,7 +35,7 @@ const EVENT_META = {
   score: { icon: Award, tone: "text-success", label: "Score" },
 } as const;
 
-export function LiveStage({ live, videoStream, title, subtitle, onEnd }: LiveStageProps) {
+export function LiveStage({ live, videoStream, title, subtitle, onEnd, onRetry }: LiveStageProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const transcriptRef = useRef<HTMLDivElement | null>(null);
   const [text, setText] = useState("");
@@ -211,10 +213,24 @@ export function LiveStage({ live, videoStream, title, subtitle, onEnd }: LiveSta
             </div>
           </div>
 
-          {live.status === "error" && live.error && (
-            <p className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {live.error}
-            </p>
+          {live.status === "error" && (
+            <div className="rounded-xl bg-destructive/10 px-4 py-4">
+              <p className="text-sm font-medium text-destructive">
+                {live.error || "The live connection failed."}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Nothing was recorded — your session isn&apos;t marked as completed. You can retry
+                right away.
+              </p>
+              {onRetry && (
+                <button
+                  onClick={onRetry}
+                  className="mt-3 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+                >
+                  Retry session
+                </button>
+              )}
+            </div>
           )}
         </main>
 

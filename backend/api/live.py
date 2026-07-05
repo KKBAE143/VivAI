@@ -123,6 +123,22 @@ class LivePersistence:
         return None
 
     # -- finalize ----------------------------------------------------------- #
+    @property
+    def has_activity(self) -> bool:
+        """True once the student and AI actually interacted."""
+        return bool(self.transcript or self.questions or self.flags)
+
+    def revert_status(self) -> None:
+        """Put the session back to Pending so the student can retry (no fake 0% report)."""
+        sb = get_supabase()
+        try:
+            if self.mode == "viva":
+                sb.table("viva_sessions").update({"status": "Pending"}).eq("id", self.session_id).execute()
+            elif self.mode == "presentation":
+                sb.table("presentation_sessions").update({"status": "Pending"}).eq("id", self.session_id).execute()
+        except Exception as exc:
+            print(f"[live] revert error ({self.mode}): {exc}")
+
     def _avg_score(self) -> int:
         scored = [q["score"] for q in self.questions if q.get("score") is not None]
         return round(sum(scored) / len(scored)) if scored else 0
@@ -282,8 +298,9 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
     persist = LivePersistence(mode, session_id, user["id"], project_id)
     config = live_service.build_config(mode, persona, language, project_context, subject)
 
+    errored = False
     try:
-        async with live_service.connect(config) as session:
+        async with live_service.connect_with_fallback(config) as session:
             await websocket.send_json({"type": "ready"})
 
             async def client_to_gemini():
@@ -355,16 +372,32 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
     except WebSocketDisconnect:
         pass
     except Exception as exc:
+        errored = True
         print(f"[live] session error: {exc}")
         try:
             await websocket.send_json({
                 "type": "error",
-                "message": "The live AI engine is temporarily unavailable. Please try again, or use the classic mode.",
+                "message": f"Live AI engine error: {exc}. Check that GEMINI_API_KEY is set and google-genai>=2.10 is installed, then retry.",
             })
         except Exception:
             pass
 
-    # Finalize + report back (best effort).
+    # Finalize + report back. Never fake a completed 0% session:
+    # - on engine error, put the session back to Pending and DON'T send "ended"
+    # - on a clean end with zero interaction, also revert instead of completing
+    if errored or not persist.has_activity:
+        await asyncio.to_thread(persist.revert_status)
+        try:
+            if not errored:
+                await websocket.send_json({
+                    "type": "error",
+                    "message": "The session ended before any conversation happened, so nothing was recorded. Please try again.",
+                })
+            await websocket.close()
+        except Exception:
+            pass
+        return
+
     summary = await asyncio.to_thread(persist.finalize)
     try:
         await websocket.send_json({"type": "ended", "summary": summary})

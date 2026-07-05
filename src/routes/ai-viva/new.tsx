@@ -53,8 +53,18 @@ function NewViva() {
   const toggleFocus = (area: string) =>
     setFocusAreas((prev) => (prev.includes(area) ? prev.filter((a) => a !== area) : [...prev, area]));
 
+  // The form is dynamic: a Project viva is about defending YOUR project, so it
+  // needs a project (and no subject focus areas). Subject/General vivas are
+  // topic-driven, so they need focus areas instead of a project.
+  const isProjectViva = sessionType === "Project";
+  const canStart = isProjectViva ? Boolean(projectId) : true;
+
   const handleStart = async () => {
     setError("");
+    if (isProjectViva && !projectId) {
+      setError("Pick the project you'll defend, or switch to a Subject/General viva.");
+      return;
+    }
     try {
       const res = await mutate.mutateAsync({
         session_type: sessionType,

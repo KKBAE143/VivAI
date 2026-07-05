@@ -126,7 +126,7 @@ function VivaSession() {
       subtitle={`Difficulty: ${difficulty} · Speak naturally — the examiner is listening.`}
       defaultLanguage={language}
       showPersona
-      allowScreen
+      sources={["camera", "none"]}
       onEnded={() => {
         setJustEnded(true);
         void refetch();

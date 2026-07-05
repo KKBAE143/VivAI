@@ -16,6 +16,8 @@ Design goals:
 """
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
+
 from google import genai
 from google.genai import types
 
@@ -194,3 +196,43 @@ def build_config(
 def connect(config: types.LiveConnectConfig, model: str | None = None):
     """Return the async context manager for a Live session."""
     return get_client().aio.live.connect(model=model or live_model(), config=config)
+
+
+def _model_candidates() -> list[str]:
+    """Configured model first, then known-good fallbacks (deduped)."""
+    candidates = [live_model(), *LIVE_MODELS]
+    seen: set[str] = set()
+    ordered = []
+    for m in candidates:
+        if m and m not in seen:
+            seen.add(m)
+            ordered.append(m)
+    return ordered
+
+
+@asynccontextmanager
+async def connect_with_fallback(config: types.LiveConnectConfig):
+    """Try each candidate Live model until one connects.
+
+    Model availability changes while the Live API is in preview; a retired or
+    region-restricted model must not kill the whole feature.
+    """
+    last_exc: Exception | None = None
+    for model in _model_candidates():
+        connected = False
+        try:
+            async with get_client().aio.live.connect(model=model, config=config) as session:
+                connected = True
+                print(f"[live] connected with model {model}")
+                yield session
+                return
+        except Exception as exc:
+            if connected:
+                # Failure AFTER a successful connect (mid-session) — surface it,
+                # don't silently restart on another model.
+                raise
+            print(f"[live] model {model} failed to connect: {exc}")
+            last_exc = exc
+    raise RuntimeError(
+        f"No Gemini Live model is available for this API key. Last error: {last_exc}"
+    )
