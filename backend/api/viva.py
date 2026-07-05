@@ -4,10 +4,11 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from ai import viva_core
+from ai import delivery_metrics, prompts, viva_core
 from core.database import get_supabase
 from core.deps import get_current_user
 from models.schemas import AnswerSubmit, VivaSessionCreate
+from services import gamification_service
 from services.activity_service import log_activity
 
 router = APIRouter(prefix="/api/viva", tags=["viva"])
@@ -34,12 +35,16 @@ def _project_context(project_id: str | None) -> str:
     return viva_core.build_project_context(res.data[0] if res.data else None)
 
 
+def _persona_prompt(session: dict) -> str:
+    return prompts.PERSONA_INSTRUCTIONS.get(session.get("persona") or "balanced", prompts.VIVA_EXAMINER)
+
+
 def _ask_next(session: dict, difficulty: str) -> dict:
     questions = _questions(session["id"])
     history = [q["question_text"] for q in questions]
     generated = viva_core.generate_question(
         session.get("subject"), _project_context(session.get("project_id")),
-        difficulty, session["language"], history,
+        difficulty, session["language"], history, system_prompt=_persona_prompt(session),
     )
     row = get_supabase().table("viva_questions").insert(
         {
@@ -54,29 +59,63 @@ def _ask_next(session: dict, difficulty: str) -> dict:
     return {"question_id": row["id"], "question_number": row["question_number"], "question": row["question_text"], "topic": row["topic"]}
 
 
+def _pending(session_id: str) -> list[dict]:
+    return [q for q in _questions(session_id) if q["answer_text"] is None and q["score"] is None]
+
+
 def _current_question(session_id: str) -> dict:
-    questions = _questions(session_id)
-    pending = [q for q in questions if q["answer_text"] is None and q["score"] is None]
+    pending = _pending(session_id)
     if not pending:
         raise HTTPException(status_code=400, detail="No open question; call /start or /answer first")
-    return pending[-1]
+    # First unanswered (works for both dynamic single-question flow and preloaded banks).
+    return pending[0]
+
+
+def _serve(q: dict) -> dict:
+    """Format an existing (preloaded) question row like _ask_next output."""
+    return {
+        "question_id": q["id"],
+        "question_number": q["question_number"],
+        "question": q["question_text"],
+        "topic": q.get("topic"),
+    }
+
+
+def _is_bank_session(session: dict) -> bool:
+    return (session.get("source") or "") == "question_bank"
+
+
+def _delivery_scorecard(session_id: str) -> dict:
+    """Speaking-delivery metrics computed from the answered questions."""
+    answers = [
+        {"text": q.get("answer_text") or "", "seconds": q.get("time_taken_seconds")}
+        for q in _questions(session_id)
+        if q.get("answer_text") and q.get("answer_text") != "(skipped)"
+    ]
+    return delivery_metrics.aggregate(answers)
 
 
 @router.post("/sessions", status_code=201)
 def create_session(body: VivaSessionCreate, user=Depends(get_current_user)):
     if body.session_type not in ("Subject", "Project", "General"):
         raise HTTPException(status_code=400, detail="Invalid session_type")
-    res = get_supabase().table("viva_sessions").insert(
-        {
-            "profile_id": user["id"],
-            "project_id": body.project_id,
-            "session_type": body.session_type,
-            "subject": body.subject,
-            "duration_minutes": body.duration_minutes,
-            "difficulty": body.difficulty,
-            "language": body.language,
-        }
-    ).execute()
+    persona = body.persona if body.persona in prompts.PERSONA_INSTRUCTIONS else "balanced"
+    payload = {
+        "profile_id": user["id"],
+        "project_id": body.project_id,
+        "session_type": body.session_type,
+        "subject": body.subject,
+        "duration_minutes": body.duration_minutes,
+        "difficulty": body.difficulty,
+        "language": body.language,
+        "persona": persona,
+    }
+    try:
+        res = get_supabase().table("viva_sessions").insert(payload).execute()
+    except Exception:
+        # persona column not present yet (migration not applied) — retry without it.
+        payload.pop("persona", None)
+        res = get_supabase().table("viva_sessions").insert(payload).execute()
     return res.data[0]
 
 
@@ -104,6 +143,11 @@ def start_session(session_id: str, user=Depends(get_current_user)):
     if session["status"] == "Completed":
         raise HTTPException(status_code=400, detail="Session already completed")
     get_supabase().table("viva_sessions").update({"status": "In Progress"}).eq("id", session_id).execute()
+    # Bank-seeded sessions already have their questions loaded — serve the first.
+    if _is_bank_session(session):
+        pending = _pending(session_id)
+        if pending:
+            return _serve(pending[0])
     difficulty = "Easy" if session["difficulty"] == "Adaptive" else session["difficulty"]
     return _ask_next(session, difficulty)
 
@@ -114,7 +158,8 @@ def submit_answer(session_id: str, body: AnswerSubmit, user=Depends(get_current_
     session = _get_session(session_id, user["id"])
     question = _current_question(session_id)
     evaluation = viva_core.evaluate_answer(
-        question["question_text"], question.get("expected_answer"), body.answer, session["language"]
+        question["question_text"], question.get("expected_answer"), body.answer, session["language"],
+        system_prompt=_persona_prompt(session),
     )
     sb.table("viva_questions").update(
         {
@@ -127,11 +172,18 @@ def submit_answer(session_id: str, body: AnswerSubmit, user=Depends(get_current_
     sb.table("viva_sessions").update(
         {"answered_questions": session["answered_questions"] + 1}
     ).eq("id", session_id).execute()
+    # Bank-seeded sessions: advance through preloaded questions, don't generate.
+    if _is_bank_session(session):
+        remaining = _pending(session_id)
+        next_q = _serve(remaining[0]) if remaining else None
+        return {"evaluation": evaluation, "next_question": next_q, "difficulty": session["difficulty"]}
     difficulty = session["difficulty"]
     if difficulty == "Adaptive":
-        difficulty = viva_core.next_difficulty("Medium", evaluation.get("correct", evaluation["score"] >= 60))
+        answered = [q for q in _questions(session_id) if q.get("score") is not None]
+        correct_history = [(q.get("score") or 0) >= 60 for q in answered]
+        difficulty = viva_core.compute_adaptive_difficulty(correct_history)
     next_q = _ask_next(session, difficulty)
-    return {"evaluation": evaluation, "next_question": next_q}
+    return {"evaluation": evaluation, "next_question": next_q, "difficulty": difficulty}
 
 
 @router.post("/sessions/{session_id}/skip")
@@ -166,6 +218,8 @@ def end_session(session_id: str, user=Depends(get_current_user)):
         }
     ).eq("id", session_id).execute()
     log_activity(user["id"], "viva_completed", f"Completed viva ({summary['overall_score']}%)", session.get("project_id"), "viva_session", session_id)
+    gamification_service.award_xp(user["id"], "viva_completed")
+    summary["delivery"] = _delivery_scorecard(session_id)
     return summary
 
 
@@ -173,6 +227,12 @@ def end_session(session_id: str, user=Depends(get_current_user)):
 def transcript(session_id: str, user=Depends(get_current_user)):
     _get_session(session_id, user["id"])
     return _questions(session_id)
+
+
+@router.get("/sessions/{session_id}/delivery")
+def delivery(session_id: str, user=Depends(get_current_user)):
+    _get_session(session_id, user["id"])
+    return _delivery_scorecard(session_id)
 
 
 @router.get("/stats")

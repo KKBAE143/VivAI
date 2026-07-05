@@ -39,10 +39,30 @@ SLIDE_FEEDBACK = """You are a presentation coach for B.Tech project presentation
 Analyze this slide image. Consider clarity, structure, visual density, and technical depth.
 Return STRICT JSON: {{"clarity_score": <0-100>, "feedback": "3-4 sentences of specific feedback", "topics": {{"<topic on slide>": <understanding score 0-100>}}, "suggestions": ["...", "..."]}}"""
 
-PRESENTATION_SUMMARY = """Create a final presentation feedback report from these per-slide analyses:
-{slides}
+PRESENTATION_QUESTION_GEN = """You are a faculty examiner evaluating a live B.Tech project presentation.
+Project context: {project_context}
+Slides analyzed so far (JSON): {slides}
+Questions already asked (do NOT repeat): {covered}
+Language: {language}
 
-Return STRICT JSON: {{"clarity_score": <0-100>, "confidence_score": <0-100>, "coverage_score": <0-100>, "overall_score": <0-100>, "summary": "4-5 sentence report", "gaps": ["weak topic 1", "weak topic 2"]}}"""
+Ask ONE probing follow-up question a real faculty member would ask about THIS presentation, grounded in the actual slide content and project. Prefer topics that appear weak, unexplained, or technically shallow.
+Return STRICT JSON: {{"question": "...", "topic": "short topic label", "expected_answer": "concise model answer"}}"""
+
+PRESENTATION_ANSWER_EVAL = """Evaluate the student's spoken answer during a presentation viva.
+Question: {question}
+Expected answer: {expected}
+Student's answer: {answer}
+Language: {language}
+
+Score on correctness, clarity and confidence (0-100 overall).
+Return STRICT JSON: {{"score": <0-100>, "feedback": "2-3 sentence feedback in {language}", "correct": true/false}}"""
+
+PRESENTATION_SUMMARY = """Create a final presentation feedback report.
+Per-slide analyses (JSON): {slides}
+Examiner Q&A transcript with the student's answers and scores (JSON): {qa}
+
+Weigh both the slides and how well the student handled the questions.
+Return STRICT JSON: {{"clarity_score": <0-100>, "confidence_score": <0-100>, "coverage_score": <0-100>, "overall_score": <0-100>, "summary": "4-5 sentence report", "gaps": ["weak topic 1", "weak topic 2"], "qa_feedback": "2-3 sentences on how the student handled the questions"}}"""
 
 CODE_ANALYSIS = """You are a senior engineer reviewing a B.Tech student's project codebase before their viva.
 Codebase digest:
@@ -90,3 +110,46 @@ Return STRICT JSON: {{"confidence": <0-100>, "eye_contact": <0-100>, "energy": <
 TOPIC_CLASSIFY = """Classify each viva question into a short canonical topic label (2-4 words).
 Questions: {questions}
 Return STRICT JSON: {{"<question index>": "<topic>"}}"""
+
+# ---------- Study: doc-grounded question banks & flashcards ----------
+STUDY_QUESTION_BANK = """You are a B.Tech faculty member preparing a viva question bank from a student's own project report/notes.
+Source material:
+{source}
+
+Generate {count} exam-quality viva questions that a real examiner would ask about THIS material, spanning easy, medium and hard.
+Return STRICT JSON: {{"questions": [{{"question": "...", "answer": "concise model answer", "topic": "short topic label", "difficulty": "Easy|Medium|Hard"}}]}}"""
+
+STUDY_FLASHCARDS = """You are creating spaced-repetition study flashcards from a student's own project report/notes.
+Source material:
+{source}
+
+Generate {count} atomic flashcards (one fact/concept each) covering the key concepts, definitions, and technical decisions.
+Return STRICT JSON: {{"cards": [{{"front": "question or term", "back": "concise answer/definition", "topic": "short topic label"}}]}}"""
+
+# ---------- Readiness: 90-second pitch drill ----------
+PITCH_EVAL = """You are a viva examiner judging a student's 90-second project "elevator pitch".
+Project context: {project_context}
+Target duration: {target_seconds} seconds. Actual spoken duration: {actual_seconds} seconds.
+Transcript of what the student said:
+{transcript}
+
+Judge whether the pitch clearly conveys: problem, approach/solution, tech, and impact/result — within the time budget.
+Return STRICT JSON: {{"clarity_score": <0-100>, "structure_score": <0-100>, "timing_score": <0-100>, "overall_score": <0-100>, "covered": ["problem", "approach", "tech", "impact"], "missing": ["..."], "feedback": "3-4 sentence coach feedback", "improved_pitch": "a tightened 90-second version they could say"}}"""
+
+# ---------- Examiner personas / difficulty modes ----------
+PERSONA_INSTRUCTIONS = {
+    "friendly": (
+        "You are a warm, encouraging examiner. You ask fair questions, offer gentle nudges when the "
+        "student struggles, and keep a supportive tone. You still respond with strict JSON when asked to."
+    ),
+    "balanced": VIVA_EXAMINER,
+    "strict": (
+        "You are a strict, no-nonsense examiner. You ask precise, probing questions, expect exact answers, "
+        "and do not give hints. You push follow-ups on any vague reasoning. You respond with strict JSON when asked to."
+    ),
+    "hostile": (
+        "You are a tough, skeptical external examiner who challenges every claim, interrupts hand-waving, "
+        "and demands rigorous justification with rapid-fire follow-ups. You remain professional but intimidating. "
+        "You respond with strict JSON when asked to."
+    ),
+}

@@ -1,12 +1,31 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Search, Filter, Plus } from "lucide-react";
+import { Search, Filter, Plus, TrendingUp, Trophy } from "lucide-react";
 import { useState } from "react";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { AppShell, Card, PageHeader, Badge } from "@/components/app-shell";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 import { TableSkeleton } from "@/components/loading-skeleton";
+import { GamificationStrip } from "@/components/gamification-strip";
+import { AchievementsCard } from "@/components/achievements-card";
 import { useRequireAuth } from "@/lib/auth-context";
-import { useCreateTask, useProjects, useTasks, useUpdateTaskStatus } from "@/lib/hooks";
+import {
+  useCreateTask,
+  useLeaderboard,
+  useProjects,
+  useTasks,
+  useTrends,
+  useUpdateTaskStatus,
+  type ApiRecord,
+} from "@/lib/hooks";
 
 export const Route = createFileRoute("/progress")({
   head: () => ({
@@ -29,6 +48,8 @@ function Progress() {
   const { data: tasks, isLoading, error, refetch } = useTasks(projectId || undefined);
   const updateStatus = useUpdateTaskStatus();
   const createTask = useCreateTask();
+  const trendsQuery = useTrends();
+  const leaderboardQuery = useLeaderboard();
 
   const [filter, setFilter] = useState<(typeof STATUS_FILTERS)[number]>("All");
   const [search, setSearch] = useState("");
@@ -74,6 +95,7 @@ function Progress() {
           </button>
         }
       />
+      <GamificationStrip />
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[
           { l: "Completed", v: String(done), t: "tasks done", tone: "success" },
@@ -216,6 +238,141 @@ function Progress() {
           </div>
         )}
       </Card>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <TrendsCard query={trendsQuery} />
+        <LeaderboardCard query={leaderboardQuery} />
+      </div>
+      <AchievementsCard />
     </AppShell>
+  );
+}
+
+type QueryLike<T> = {
+  data: T | undefined;
+  isLoading: boolean;
+  error: unknown;
+};
+
+function TrendsCard({ query }: { query: QueryLike<ApiRecord[]> }) {
+  const data = (query.data ?? []).map((d) => ({
+    week: String(d.week ?? "").replace(/^\d{4}-/, ""),
+    avg_score: Number(d.avg_score ?? 0),
+    sessions: Number(d.sessions ?? 0),
+  }));
+
+  return (
+    <Card>
+      <div className="flex items-center gap-2">
+        <TrendingUp className="h-4 w-4 text-primary" />
+        <h3 className="text-base font-semibold">Viva score trend</h3>
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">Average score across your completed viva sessions, by week.</p>
+      {query.isLoading ? (
+        <div className="mt-4">
+          <TableSkeleton rows={3} />
+        </div>
+      ) : data.length === 0 ? (
+        <EmptyState
+          title="No trend data yet"
+          description="Complete a few AI viva sessions to see your progress over time."
+        />
+      ) : (
+        <div className="mt-4 h-56">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+              <defs>
+                <linearGradient id="scoreFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--color-primary)" stopOpacity={0.35} />
+                  <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+              <XAxis dataKey="week" tick={{ fontSize: 11 }} stroke="var(--color-muted-foreground)" />
+              <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} stroke="var(--color-muted-foreground)" />
+              <Tooltip
+                contentStyle={{
+                  borderRadius: 12,
+                  border: "1px solid var(--color-border)",
+                  background: "var(--color-card)",
+                  fontSize: 12,
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey="avg_score"
+                name="Avg score"
+                stroke="var(--color-primary)"
+                strokeWidth={2}
+                fill="url(#scoreFill)"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function LeaderboardCard({ query }: { query: QueryLike<ApiRecord[]> }) {
+  const rows = query.data ?? [];
+
+  return (
+    <Card>
+      <div className="flex items-center gap-2">
+        <Trophy className="h-4 w-4 text-warning" />
+        <h3 className="text-base font-semibold">College leaderboard</h3>
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">Top students at your college, ranked by XP earned.</p>
+      {query.isLoading ? (
+        <div className="mt-4">
+          <TableSkeleton rows={4} />
+        </div>
+      ) : rows.length === 0 ? (
+        <EmptyState
+          title="No rankings yet"
+          description="Once you and your peers start practicing, the leaderboard fills in here."
+        />
+      ) : (
+        <div className="mt-4 space-y-2">
+          {rows.map((r, i) => {
+            const isMe = Boolean(r.is_me);
+            const xp = Number(r.xp ?? 0);
+            const streak = Number(r.current_streak ?? 0);
+            return (
+              <div
+                key={String(r.id ?? i)}
+                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm ${
+                  isMe ? "bg-primary-soft" : "bg-secondary"
+                }`}
+              >
+                <span
+                  className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-bold ${
+                    i === 0
+                      ? "bg-warning text-background"
+                      : i < 3
+                        ? "bg-foreground text-background"
+                        : "bg-card text-muted-foreground"
+                  }`}
+                >
+                  {i + 1}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-medium">
+                    {String(r.full_name ?? "Student")}
+                    {isMe && <span className="ml-1 text-xs text-primary">(You)</span>}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {String(r.branch ?? "—")}
+                    {streak > 0 && ` · ${streak}d streak`}
+                  </div>
+                </div>
+                <span className="shrink-0 font-bold">{xp.toLocaleString()} XP</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </Card>
   );
 }

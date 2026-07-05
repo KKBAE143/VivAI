@@ -52,6 +52,25 @@ def get_team(team_id: str, user=Depends(get_current_user)):
     return res.data[0]
 
 
+@router.put("/{team_id}")
+def rename_team(team_id: str, body: TeamCreate, user=Depends(get_current_user)):
+    member = _membership(team_id, user["id"])
+    if not member or member["role"] != "Lead":
+        raise HTTPException(status_code=403, detail="Only the team lead can edit the team")
+    res = get_supabase().table("teams").update({"name": body.name}).eq("id", team_id).execute()
+    return res.data[0] if res.data else {}
+
+
+@router.delete("/{team_id}", status_code=204)
+def delete_team(team_id: str, user=Depends(get_current_user)):
+    member = _membership(team_id, user["id"])
+    if not member or member["role"] != "Lead":
+        raise HTTPException(status_code=403, detail="Only the team lead can delete the team")
+    sb = get_supabase()
+    sb.table("team_members").delete().eq("team_id", team_id).execute()
+    sb.table("teams").delete().eq("id", team_id).execute()
+
+
 @router.post("/{team_id}/invite")
 def invite_member(team_id: str, body: InviteRequest, user=Depends(get_current_user)):
     member = _membership(team_id, user["id"])
@@ -60,6 +79,21 @@ def invite_member(team_id: str, body: InviteRequest, user=Depends(get_current_us
     team = get_supabase().table("teams").select("invite_code, name").eq("id", team_id).execute().data[0]
     # MVP: share the invite code with the invitee (email delivery can be added later).
     return {"invite_code": team["invite_code"], "team_name": team["name"], "invited_email": body.email}
+
+
+@router.post("/join")
+def join_by_code(body: JoinRequest, user=Depends(get_current_user)):
+    """Join a team using only the invite code (no team id required)."""
+    sb = get_supabase()
+    res = sb.table("teams").select("*").eq("invite_code", body.code).execute()
+    if not res.data:
+        raise HTTPException(status_code=400, detail="Invalid invite code")
+    team = res.data[0]
+    if _membership(team["id"], user["id"]):
+        return {"ok": True, "already_member": True, "team_id": team["id"]}
+    sb.table("team_members").insert({"team_id": team["id"], "profile_id": user["id"]}).execute()
+    log_activity(user["id"], "team_joined", f"Joined team '{team['name']}'", None, "team", team["id"])
+    return {"ok": True, "team_id": team["id"]}
 
 
 @router.post("/{team_id}/join")

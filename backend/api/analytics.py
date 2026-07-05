@@ -67,25 +67,47 @@ def leaderboard(user=Depends(get_current_user)):
     college = (user.get("profile") or {}).get("college_name")
     if not college:
         return []
-    profiles = sb.table("profiles").select("id, full_name, branch").eq("college_name", college).execute().data
+    # Try the gamification-aware selection first; fall back if columns don't exist yet.
+    try:
+        profiles = (
+            sb.table("profiles")
+            .select("id, full_name, branch, year, xp, current_streak")
+            .eq("college_name", college).execute().data
+        )
+        has_xp = True
+    except Exception:
+        profiles = sb.table("profiles").select("id, full_name, branch").eq("college_name", college).execute().data
+        has_xp = False
+
     ids = [p["id"] for p in profiles]
     sessions = (
         sb.table("viva_sessions").select("profile_id, score")
         .in_("profile_id", ids).eq("status", "Completed").not_.is_("score", "null").execute().data
+        if ids else []
     )
     scores: dict[str, list[int]] = defaultdict(list)
     for s in sessions:
-        scores[s["profile_id"]].append(s["score"])
-    board = [
-        {
-            "profile_id": p["id"],
-            "name": p["full_name"],
-            "branch": p["branch"],
-            "sessions": len(scores.get(p["id"], [])),
-            "avg_score": round(sum(scores[p["id"]]) / len(scores[p["id"]]), 1) if scores.get(p["id"]) else 0,
+        if s.get("score") is not None:
+            scores[s["profile_id"]].append(s["score"])
+
+    board = []
+    for p in profiles:
+        sess = scores.get(p["id"], [])
+        xp = int(p.get("xp") or 0) if has_xp else 0
+        # Only include students who have any activity (XP or completed sessions).
+        if xp == 0 and not sess:
+            continue
+        board.append({
+            "id": p["id"],
+            "full_name": p["full_name"],
+            "branch": p.get("branch"),
+            "year": p.get("year"),
+            "xp": xp,
+            "current_streak": int(p.get("current_streak") or 0) if has_xp else 0,
+            "sessions": len(sess),
+            "avg_score": round(sum(sess) / len(sess), 1) if sess else 0,
             "is_me": p["id"] == user["id"],
-        }
-        for p in profiles
-        if scores.get(p["id"])
-    ]
-    return sorted(board, key=lambda b: b["avg_score"], reverse=True)[:20]
+        })
+    # Rank by XP when available, else by average score.
+    board.sort(key=lambda b: (b["xp"], b["avg_score"]), reverse=True)
+    return board[:20]

@@ -1,6 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { GraduationCap, FolderKanban, Target, ChevronRight, ChevronLeft, Check } from "lucide-react";
+import { useRequireAuth } from "@/lib/auth-context";
+import { useCompleteOnboarding, useCreateProject } from "@/lib/hooks";
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({
@@ -31,22 +33,51 @@ const goalOptions = [
   "Improve teamwork",
 ];
 
+const typeLabels: Record<string, string> = {
+  pbl: "PBL",
+  major: "Major",
+  mini: "Mini",
+  research: "Major",
+};
+
 function Onboarding() {
+  useRequireAuth();
   const navigate = useNavigate();
+  const completeOnboarding = useCompleteOnboarding();
+  const createProject = useCreateProject();
   const [step, setStep] = useState(0);
   const [branch, setBranch] = useState("CSE");
   const [year, setYear] = useState("3rd Year");
   const [type, setType] = useState("pbl");
   const [goals, setGoals] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   const toggleGoal = (g: string) =>
     setGoals((prev) => (prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]));
 
-  const finish = () => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("cpn:onboarding", JSON.stringify({ branch, year, type, goals }));
+  const finish = async () => {
+    setSaving(true);
+    setError("");
+    try {
+      await completeOnboarding.mutateAsync({ branch, year, goals });
+      // Seed the student's first project from their selected project type.
+      const label = projectTypes.find((p) => p.id === type)?.title ?? "Project";
+      try {
+        await createProject.mutateAsync({
+          title: `My First ${label}`,
+          type: typeLabels[type] ?? "PBL",
+          subject: branch,
+          description: goals.length ? `Goals: ${goals.join(", ")}` : undefined,
+        });
+      } catch {
+        // Project seeding is best-effort; onboarding still completes.
+      }
+      navigate({ to: "/" });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not save your setup. Please try again.");
+      setSaving(false);
     }
-    navigate({ to: "/" });
   };
 
   return (
@@ -187,13 +218,15 @@ function Onboarding() {
               </button>
             ) : (
               <button
-                onClick={finish}
-                className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"
+                onClick={() => void finish()}
+                disabled={saving}
+                className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
               >
-                Finish setup <Check className="h-4 w-4" />
+                {saving ? "Saving…" : "Finish setup"} <Check className="h-4 w-4" />
               </button>
             )}
           </div>
+          {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
         </div>
       </div>
     </div>

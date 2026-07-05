@@ -30,7 +30,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const handleAuth = async () => {
       let currentToken = getToken();
 
-      if (typeof window !== "undefined") {
+      // On the password-recovery route, leave the hash token untouched so the
+      // reset-password page can consume it instead of logging the user in.
+      const isRecoveryRoute =
+        typeof window !== "undefined" && window.location.pathname.startsWith("/reset-password");
+
+      if (typeof window !== "undefined" && !isRecoveryRoute) {
         // 1. Check if there is an access_token in the URL hash (from Supabase OAuth redirect)
         if (window.location.hash) {
           try {

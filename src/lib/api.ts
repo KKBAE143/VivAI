@@ -50,7 +50,17 @@ export async function api<T = unknown>(path: string, options: ApiOptions = {}): 
     payload = JSON.stringify(body);
   }
 
-  const res = await fetch(`${API_URL}${path}`, { method, headers, body: payload, signal });
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, { method, headers, body: payload, signal });
+  } catch (err) {
+    // Re-throw genuine aborts so React Query can treat them as cancellations.
+    if (err instanceof DOMException && err.name === "AbortError") throw err;
+    throw new ApiError(
+      0,
+      `Cannot reach the server at ${API_URL}. Make sure the backend is running and VITE_API_URL points to it.`,
+    );
+  }
 
   if (!res.ok) {
     let message = `Request failed (${res.status})`;
