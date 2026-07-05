@@ -8,6 +8,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, Mic, MonitorUp, Volume2, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { LIVE_LANGUAGES } from "@/lib/languages";
 
 export type VideoSource = "screen" | "camera" | "none";
 
@@ -40,7 +41,7 @@ const MODE_SOURCES: Record<string, VideoSource[]> = {
   pitch: ["none"],
 };
 
-const LANGUAGES = ["English", "Hindi", "Hinglish"];
+const LANGUAGES = LIVE_LANGUAGES;
 const PERSONAS = [
   { id: "friendly", label: "Friendly" },
   { id: "balanced", label: "Balanced" },

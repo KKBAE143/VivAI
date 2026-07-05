@@ -355,6 +355,7 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
     )
 
     errored = False
+    end_requested = asyncio.Event()
     try:
         async with live_service.connect_with_fallback(config) as session:
             await websocket.send_json({"type": "ready"})
@@ -425,13 +426,29 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                         if tc and tc.function_calls:
                             responses = []
                             for fc in tc.function_calls:
+                                if fc.name == "end_session":
+                                    # The examiner has decided the session is over.
+                                    # Acknowledge, flag for finalize, and stop receiving.
+                                    end_requested.set()
+                                    responses.append(
+                                        types.FunctionResponse(id=fc.id, name=fc.name, response={"status": "ok"})
+                                    )
+                                    continue
                                 event = persist.on_tool(fc.name, dict(fc.args or {}))
                                 if event:
                                     await websocket.send_json(event)
                                 responses.append(
                                     types.FunctionResponse(id=fc.id, name=fc.name, response={"status": "ok"})
                                 )
-                            await session.send_tool_response(function_responses=responses)
+                            try:
+                                await session.send_tool_response(function_responses=responses)
+                            except Exception:
+                                pass
+                            if end_requested.is_set():
+                                # Give the final closing audio a moment to flush to
+                                # the browser, then end the receive loop.
+                                await asyncio.sleep(0.5)
+                                return
                     # If a turn yielded nothing, the connection is gone — stop.
                     if not got_turn:
                         break

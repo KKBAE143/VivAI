@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AppShell, Card, PageHeader } from "@/components/app-shell";
 import { useRequireAuth } from "@/lib/auth-context";
 import { useCreateVivaSession, useProjects } from "@/lib/hooks";
+import { LIVE_LANGUAGES } from "@/lib/languages";
 
 export const Route = createFileRoute("/ai-viva/new")({
   head: () => ({ meta: [{ title: "Configure Mock Viva — CollgePro Navigator" }] }),
@@ -255,8 +256,8 @@ function NewViva() {
           </Section>
         )}
         <Section title="Language">
-          <div className="flex gap-2">
-            {["English", "Hindi", "Hinglish"].map((l) => (
+          <div className="flex flex-wrap gap-2">
+            {LIVE_LANGUAGES.map((l) => (
               <button
                 key={l}
                 onClick={() => setLanguage(l)}

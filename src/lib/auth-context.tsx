@@ -8,14 +8,14 @@ import {
   type ReactNode,
 } from "react";
 
-import { api, getToken, setToken } from "./api";
+import { api, getToken, setToken, setTokens, setRefreshToken, AUTH_LOGOUT_EVENT } from "./api";
 
 interface AuthContextValue {
   token: string | null;
   isAuthenticated: boolean;
   /** True until the token has been read from localStorage on the client. */
   isLoading: boolean;
-  login: (token: string) => void;
+  login: (token: string, refreshToken?: string | null) => void;
   logout: () => void;
 }
 
@@ -44,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const accessToken = params.get("access_token");
             if (accessToken) {
               currentToken = accessToken;
-              setToken(accessToken);
+              setTokens(accessToken, params.get("refresh_token"));
               // Clean the hash from the URL
               window.history.replaceState(null, "", window.location.pathname + window.location.search);
             }
@@ -59,12 +59,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (code) {
           try {
             const verifier = window.localStorage.getItem("supabase_code_verifier") || "";
-            const res = await api<{ access_token: string }>(
+            const res = await api<{ access_token: string; refresh_token?: string }>(
               `/api/auth/callback?code=${encodeURIComponent(code)}&code_verifier=${encodeURIComponent(verifier)}`
             );
             if (res.access_token) {
               currentToken = res.access_token;
-              setToken(res.access_token);
+              setTokens(res.access_token, res.refresh_token ?? null);
               // Clean the code and verifier
               window.localStorage.removeItem("supabase_code_verifier");
               urlParams.delete("code");
@@ -85,14 +85,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void handleAuth();
   }, []);
 
-  const login = useCallback((newToken: string) => {
-    setToken(newToken);
+  const login = useCallback((newToken: string, refreshToken?: string | null) => {
+    setTokens(newToken, refreshToken);
     setTokenState(newToken);
   }, []);
 
   const logout = useCallback(() => {
     setToken(null);
+    setRefreshToken(null);
     setTokenState(null);
+  }, []);
+
+  // The api layer emits this when a session can no longer be refreshed
+  // (expired / revoked). Clear local state so the app redirects to /login.
+  useEffect(() => {
+    const onForcedLogout = () => setTokenState(null);
+    window.addEventListener(AUTH_LOGOUT_EVENT, onForcedLogout);
+    return () => window.removeEventListener(AUTH_LOGOUT_EVENT, onForcedLogout);
   }, []);
 
   return (

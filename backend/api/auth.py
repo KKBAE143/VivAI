@@ -11,6 +11,7 @@ from models.schemas import (
     LoginRequest,
     OnboardingComplete,
     ProfileUpdate,
+    RefreshRequest,
     ResetPasswordRequest,
     SignupRequest,
 )
@@ -106,6 +107,26 @@ def login(body: LoginRequest):
             "email": res.user.email,
             "profile": prof.data[0] if prof.data else None,
         },
+    }
+
+
+@router.post("/refresh")
+def refresh(body: RefreshRequest):
+    """Exchange a refresh token for a fresh access token.
+
+    Supabase access tokens (the JWT we store client-side) expire after ~1 hour.
+    Without this, users get silently logged out mid-session ("Not
+    Authenticated"). The client calls this when it sees a 401 and retries.
+    """
+    try:
+        res = _auth_client().auth.refresh_session(body.refresh_token)
+    except Exception:
+        raise HTTPException(status_code=401, detail="Session expired. Please sign in again.")
+    if not getattr(res, "session", None):
+        raise HTTPException(status_code=401, detail="Session expired. Please sign in again.")
+    return {
+        "access_token": res.session.access_token,
+        "refresh_token": res.session.refresh_token,
     }
 
 
