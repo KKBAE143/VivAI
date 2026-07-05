@@ -125,6 +125,11 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
   const aiBufRef = useRef("");
   const speakingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const endedReceivedRef = useRef(false);
+  // The mic is "gated" (not streamed) until the AI finishes its opening
+  // greeting. Streaming ambient noise during the greeting makes the Live model
+  // treat it as a turn and greet a second time, and can destabilize the socket.
+  const micGateOpenRef = useRef(false);
+  const gateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     micMutedRef.current = micMuted;
@@ -225,6 +230,15 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
           commitAi();
           break;
         case "turn_complete":
+          // The AI just finished a turn (the opening greeting on the first one)
+          // — now it's safe to start streaming the student's mic.
+          if (!micGateOpenRef.current) {
+            micGateOpenRef.current = true;
+            if (gateTimerRef.current) {
+              clearTimeout(gateTimerRef.current);
+              gateTimerRef.current = null;
+            }
+          }
           commitUser();
           commitAi();
           break;
@@ -287,6 +301,15 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
       setEvents([]);
       setSummary(null);
 
+      // Keep the mic gated until the AI's opening greeting completes. Safety
+      // net: open it after 12s in case no turn_complete ever arrives, so the
+      // student can always speak.
+      micGateOpenRef.current = false;
+      if (gateTimerRef.current) clearTimeout(gateTimerRef.current);
+      gateTimerRef.current = setTimeout(() => {
+        micGateOpenRef.current = true;
+      }, 12000);
+
       const token = getToken();
       if (!token) {
         setError("You are not signed in.");
@@ -329,7 +352,14 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
         const inRate = ctx.sampleRate;
         node.port.onmessage = (e: MessageEvent) => {
           const ws = wsRef.current;
-          if (!ws || ws.readyState !== WebSocket.OPEN || micMutedRef.current) return;
+          // Hold audio until the greeting finishes (gate) and while muted.
+          if (
+            !ws ||
+            ws.readyState !== WebSocket.OPEN ||
+            micMutedRef.current ||
+            !micGateOpenRef.current
+          )
+            return;
           const pcm = floatToPCM16(e.data as Float32Array, inRate);
           ws.send(pcm);
         };
@@ -392,6 +422,11 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     if (frameTimerRef.current) clearInterval(frameTimerRef.current);
     frameTimerRef.current = null;
     if (speakingTimerRef.current) clearTimeout(speakingTimerRef.current);
+    if (gateTimerRef.current) {
+      clearTimeout(gateTimerRef.current);
+      gateTimerRef.current = null;
+    }
+    micGateOpenRef.current = false;
     stopPlayback();
     try {
       workletNodeRef.current?.disconnect();

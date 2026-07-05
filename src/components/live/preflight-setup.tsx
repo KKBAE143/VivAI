@@ -30,12 +30,13 @@ interface PreflightSetupProps {
 }
 
 /**
- * Mode-specific capture sources — a live presentation is screen-only, a viva
- * is a face-to-face conversation (camera or audio), a pitch is voice-only.
+ * Mode-specific capture sources. A viva is a purely SPOKEN oral exam — no
+ * screen, no camera. Only the AI Presentation shares a screen; the pitch drill
+ * is voice-only.
  */
 const MODE_SOURCES: Record<string, VideoSource[]> = {
   presentation: ["screen"],
-  viva: ["camera", "none"],
+  viva: ["none"],
   pitch: ["none"],
 };
 
@@ -54,7 +55,7 @@ const MODE_COPY: Record<string, { title: string; hint: string }> = {
   },
   viva: {
     title: "Get ready for your viva",
-    hint: "The examiner will talk with you in real time. Share your screen or code if you want it reviewed live.",
+    hint: "This is a spoken oral exam — no screen needed. The examiner will greet you, ask questions out loud, and you answer by speaking. Just talk naturally.",
   },
   pitch: {
     title: "Get ready to pitch",

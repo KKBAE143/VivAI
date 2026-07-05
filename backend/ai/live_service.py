@@ -103,7 +103,20 @@ def build_system_instruction(
 ) -> str:
     tone = _PERSONA_TONE.get(persona, _PERSONA_TONE["balanced"])
     playbook = _MODE_PLAYBOOK.get(mode, _MODE_PLAYBOOK["viva"])
-    ctx = project_context.strip() or "No specific project was provided; ask the student to briefly introduce their work in their first answer, then examine them on it and on core engineering fundamentals."
+    if project_context.strip():
+        ctx = project_context.strip()
+    elif subject:
+        ctx = f"No project was provided. Examine the student specifically on this subject/topic: {subject}. Ask concrete, progressively harder questions on it."
+    else:
+        # General viva with nothing configured: gather the input conversationally
+        # instead of assuming there's a project to defend.
+        ctx = (
+            "No project or subject was provided. This is a GENERAL technical interview. "
+            "Do NOT ask about 'your project'. Instead, your FIRST spoken question must ask the "
+            "student which branch and year they are in and which subject or topics they want to be "
+            "examined on. Then run the viva strictly on the subject they name, starting with "
+            "fundamentals and going deeper based on their answers."
+        )
     subject_line = f"SUBJECT FOCUS (weight your questions toward this): {subject}.\n\n" if subject else ""
     return f"""You are VivAI, an advanced real-time voice examiner and coach for Indian B.Tech students in 2026. You sound like a real human professor — natural pacing, warmth, and authority — never a robotic read-aloud.
 
