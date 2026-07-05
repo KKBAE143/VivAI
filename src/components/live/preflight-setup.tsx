@@ -24,10 +24,20 @@ interface PreflightSetupProps {
   defaultPersona?: string;
   /** Show the examiner persona picker (viva). */
   showPersona?: boolean;
-  /** Allow screen sharing as a source (presentation / project viva). */
-  allowScreen?: boolean;
+  /** Override the video sources offered. Defaults are mode-specific. */
+  sources?: VideoSource[];
   onReady: (result: PreflightResult) => void;
 }
+
+/**
+ * Mode-specific capture sources — a live presentation is screen-only, a viva
+ * is a face-to-face conversation (camera or audio), a pitch is voice-only.
+ */
+const MODE_SOURCES: Record<string, VideoSource[]> = {
+  presentation: ["screen"],
+  viva: ["camera", "none"],
+  pitch: ["none"],
+};
 
 const LANGUAGES = ["English", "Hindi", "Hinglish"];
 const PERSONAS = [
@@ -57,12 +67,13 @@ export function PreflightSetup({
   defaultLanguage = "English",
   defaultPersona = "balanced",
   showPersona = false,
-  allowScreen = true,
+  sources: sourcesProp,
   onReady,
 }: PreflightSetupProps) {
+  const availableSources = sourcesProp ?? MODE_SOURCES[mode] ?? ["none"];
   const [language, setLanguage] = useState(defaultLanguage);
   const [persona, setPersona] = useState(defaultPersona);
-  const [source, setSource] = useState<VideoSource>(allowScreen ? "screen" : "none");
+  const [source, setSource] = useState<VideoSource>(availableSources[0]);
   const [micReady, setMicReady] = useState(false);
   const [micError, setMicError] = useState("");
   const [level, setLevel] = useState(0);
@@ -150,11 +161,14 @@ export function PreflightSetup({
   }, [source, language, persona, onReady]);
 
   const copy = MODE_COPY[mode] ?? MODE_COPY.viva;
-  const sources: { id: VideoSource; label: string; icon: typeof MonitorUp; show: boolean }[] = [
-    { id: "screen", label: "Share screen", icon: MonitorUp, show: allowScreen && screenSupported },
-    { id: "camera", label: "Camera", icon: Camera, show: true },
-    { id: "none", label: "Audio only", icon: Mic, show: true },
+  const ALL_SOURCES: { id: VideoSource; label: string; icon: typeof MonitorUp }[] = [
+    { id: "screen", label: "Share screen", icon: MonitorUp },
+    { id: "camera", label: "Camera", icon: Camera },
+    { id: "none", label: "Audio only", icon: Mic },
   ];
+  const sources = ALL_SOURCES.filter(
+    (s) => availableSources.includes(s.id) && (s.id !== "screen" || screenSupported),
+  );
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
@@ -162,15 +176,16 @@ export function PreflightSetup({
         <h2 className="text-xl font-bold tracking-tight text-balance">{copy.title}</h2>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{copy.hint}</p>
 
-        {/* Video source */}
-        <div className="mt-6">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            What should the AI see?
-          </h3>
-          <div className="mt-3 grid grid-cols-3 gap-3">
-            {sources
-              .filter((s) => s.show)
-              .map((s) => {
+        {/* Video source — only shown when the mode offers a real choice */}
+        {sources.length > 1 ? (
+          <div className="mt-6">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              What should the AI see?
+            </h3>
+            <div
+              className={`mt-3 grid gap-3 ${sources.length === 3 ? "grid-cols-3" : "grid-cols-2"}`}
+            >
+              {sources.map((s) => {
                 const active = source === s.id;
                 const Icon = s.icon;
                 return (
@@ -188,8 +203,26 @@ export function PreflightSetup({
                   </button>
                 );
               })}
+            </div>
           </div>
-        </div>
+        ) : (
+          sources.length === 1 && (
+            <div className="mt-6 flex items-center gap-3 rounded-xl bg-secondary px-4 py-3">
+              {(() => {
+                const Icon = sources[0].icon;
+                return <Icon className="h-5 w-5 shrink-0 text-primary" />;
+              })()}
+              <p className="text-sm text-muted-foreground">
+                {sources[0].id === "screen" &&
+                  "This session uses screen sharing — you'll pick the window/tab when you go live."}
+                {sources[0].id === "none" &&
+                  "This session is voice-only. Just speak — no screen or camera needed."}
+                {sources[0].id === "camera" &&
+                  "This session uses your camera so the examiner can see you."}
+              </p>
+            </div>
+          )
+        )}
 
         {/* Mic check */}
         <div className="mt-6">

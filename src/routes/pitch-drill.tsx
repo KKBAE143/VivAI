@@ -111,7 +111,7 @@ function PitchDrillPage() {
         title="Live Pitch Coach"
         subtitle="Deliver your 90-second pitch — your coach reacts and coaches you in real time."
         defaultLanguage="English"
-        allowScreen={false}
+        sources={["none"]}
         onEnded={() => setLiveActive(false)}
       />
     );

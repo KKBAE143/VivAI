@@ -5,7 +5,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLiveSession, type LiveMode, type LiveSummary } from "@/lib/useLiveSession";
-import { PreflightSetup, type PreflightResult } from "./preflight-setup";
+import { PreflightSetup, type PreflightResult, type VideoSource } from "./preflight-setup";
 import { LiveStage } from "./live-stage";
 
 interface LiveSessionRunnerProps {
@@ -17,7 +17,8 @@ interface LiveSessionRunnerProps {
   defaultLanguage?: string;
   defaultPersona?: string;
   showPersona?: boolean;
-  allowScreen?: boolean;
+  /** Override the capture sources offered (defaults are mode-specific). */
+  sources?: VideoSource[];
   /** Called once the live session ends (persisted). Parent shows the report. */
   onEnded: (summary: LiveSummary | null) => void;
 }
@@ -31,7 +32,7 @@ export function LiveSessionRunner({
   defaultLanguage = "English",
   defaultPersona = "balanced",
   showPersona = false,
-  allowScreen = true,
+  sources,
   onEnded,
 }: LiveSessionRunnerProps) {
   const [phase, setPhase] = useState<"setup" | "live">("setup");
@@ -59,19 +60,28 @@ export function LiveSessionRunner({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
-  // When the session ends, tear down media tracks and notify the parent once.
+  // When the session ends cleanly, tear down media tracks and notify the parent once.
+  // Errors do NOT complete the session — the student stays here and can retry.
   useEffect(() => {
-    if (
-      (live.status === "ended" || live.status === "error") &&
-      !endedRef.current &&
-      phase === "live"
-    ) {
+    if (live.status === "ended" && !endedRef.current && phase === "live") {
       endedRef.current = true;
       micStreamRef.current?.getTracks().forEach((t) => t.stop());
       videoStream?.getTracks().forEach((t) => t.stop());
       onEnded(live.summary);
     }
+    if (live.status === "error" && phase === "live") {
+      // Free the devices; the retry flow re-acquires them in pre-flight.
+      micStreamRef.current?.getTracks().forEach((t) => t.stop());
+      micStreamRef.current = null;
+      videoStream?.getTracks().forEach((t) => t.stop());
+    }
   }, [live.status, live.summary, phase, videoStream, onEnded]);
+
+  const handleRetry = useCallback(() => {
+    setVideoStream(null);
+    live.reset();
+    setPhase("setup");
+  }, [live]);
 
   const handleEnd = useCallback(() => {
     if (!window.confirm("End this session? You'll see your full report next.")) return;
@@ -85,7 +95,7 @@ export function LiveSessionRunner({
         defaultLanguage={defaultLanguage}
         defaultPersona={defaultPersona}
         showPersona={showPersona}
-        allowScreen={allowScreen}
+        sources={sources}
         onReady={handleReady}
       />
     );
@@ -98,6 +108,7 @@ export function LiveSessionRunner({
       title={title}
       subtitle={subtitle}
       onEnd={handleEnd}
+      onRetry={handleRetry}
     />
   );
 }

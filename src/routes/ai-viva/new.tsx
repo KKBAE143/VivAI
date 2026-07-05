@@ -51,10 +51,22 @@ function NewViva() {
   const navigate = useNavigate();
 
   const toggleFocus = (area: string) =>
-    setFocusAreas((prev) => (prev.includes(area) ? prev.filter((a) => a !== area) : [...prev, area]));
+    setFocusAreas((prev) =>
+      prev.includes(area) ? prev.filter((a) => a !== area) : [...prev, area],
+    );
+
+  // The form is dynamic: a Project viva is about defending YOUR project, so it
+  // needs a project (and no subject focus areas). Subject/General vivas are
+  // topic-driven, so they need focus areas instead of a project.
+  const isProjectViva = sessionType === "Project";
+  const canStart = isProjectViva ? Boolean(projectId) : true;
 
   const handleStart = async () => {
     setError("");
+    if (isProjectViva && !projectId) {
+      setError("Pick the project you'll defend, or switch to a Subject/General viva.");
+      return;
+    }
     try {
       const res = await mutate.mutateAsync({
         session_type: sessionType,
@@ -62,8 +74,8 @@ function NewViva() {
         difficulty,
         persona,
         language,
-        project_id: projectId || undefined,
-        subject: focusAreas.length ? focusAreas.join(", ") : undefined,
+        project_id: isProjectViva ? projectId : undefined,
+        subject: !isProjectViva && focusAreas.length ? focusAreas.join(", ") : undefined,
       });
       navigate({ to: "/ai-viva/session/$id", params: { id: String(res.id) } });
     } catch (e) {
@@ -74,7 +86,10 @@ function NewViva() {
   return (
     <AppShell>
       <div className="flex items-center gap-3">
-        <Link to="/ai-viva" className="grid h-9 w-9 place-items-center rounded-xl bg-card shadow-[var(--shadow-card)]">
+        <Link
+          to="/ai-viva"
+          className="grid h-9 w-9 place-items-center rounded-xl bg-card shadow-[var(--shadow-card)]"
+        >
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <PageHeader title="New Mock Viva" subtitle="Configure your session and start practicing." />
@@ -142,34 +157,59 @@ function NewViva() {
             })}
           </div>
         </Section>
-        <Section title="Project">
-          <select
-            value={projectId}
-            onChange={(e) => setProjectId(e.target.value)}
-            className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm"
-          >
-            <option value="">No project (subject / general practice)</option>
-            {(projects ?? []).map((p) => (
-              <option key={String(p.id)} value={String(p.id)}>{String(p.title)}</option>
-            ))}
-          </select>
-        </Section>
-        <Section title="Focus Areas">
-          <div className="flex flex-wrap gap-2">
-            {FOCUS_AREAS.map((t) => {
-              const active = focusAreas.includes(t);
-              return (
-                <button
-                  key={t}
-                  onClick={() => toggleFocus(t)}
-                  className={`rounded-full px-3 py-1 text-xs font-medium ${active ? "bg-primary-soft text-accent-foreground" : "bg-secondary text-muted-foreground"}`}
+        {isProjectViva ? (
+          <Section title="Which project will you defend?">
+            <select
+              value={projectId}
+              onChange={(e) => setProjectId(e.target.value)}
+              className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm"
+            >
+              <option value="">Select your project…</option>
+              {(projects ?? []).map((p) => (
+                <option key={String(p.id)} value={String(p.id)}>
+                  {String(p.title)}
+                </option>
+              ))}
+            </select>
+            {(projects ?? []).length === 0 ? (
+              <p className="mt-2 text-xs text-muted-foreground">
+                You have no projects yet.{" "}
+                <Link
+                  to="/projects/new"
+                  className="font-medium text-primary underline-offset-2 hover:underline"
                 >
-                  {t} {active && "×"}
-                </button>
-              );
-            })}
-          </div>
-        </Section>
+                  Add a project
+                </Link>{" "}
+                first, or switch to a Subject/General viva.
+              </p>
+            ) : (
+              <p className="mt-2 text-xs text-muted-foreground">
+                The examiner will ask questions grounded in this project&apos;s stack and
+                description.
+              </p>
+            )}
+          </Section>
+        ) : (
+          <Section title={sessionType === "Subject" ? "Subject Focus Areas" : "Topic Focus Areas"}>
+            <div className="flex flex-wrap gap-2">
+              {FOCUS_AREAS.map((t) => {
+                const active = focusAreas.includes(t);
+                return (
+                  <button
+                    key={t}
+                    onClick={() => toggleFocus(t)}
+                    className={`rounded-full px-3 py-1 text-xs font-medium ${active ? "bg-primary-soft text-accent-foreground" : "bg-secondary text-muted-foreground"}`}
+                  >
+                    {t} {active && "×"}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Pick at least one area so the examiner knows what to quiz you on.
+            </p>
+          </Section>
+        )}
         <Section title="Language">
           <div className="flex gap-2">
             {["English", "Hindi", "Hinglish"].map((l) => (
@@ -185,11 +225,13 @@ function NewViva() {
         </Section>
         {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
         <div className="mt-6 flex flex-wrap justify-end gap-3">
-          <Link to="/ai-viva" className="rounded-xl bg-secondary px-4 py-3 text-sm font-medium">Cancel</Link>
+          <Link to="/ai-viva" className="rounded-xl bg-secondary px-4 py-3 text-sm font-medium">
+            Cancel
+          </Link>
           <button
-            disabled={mutate.isPending}
+            disabled={mutate.isPending || !canStart}
             onClick={() => void handleStart()}
-            className="flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground"
+            className="flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Mic className="h-4 w-4" /> {mutate.isPending ? "Creating…" : "Begin Mock Viva"}
           </button>
