@@ -39,10 +39,30 @@ SLIDE_FEEDBACK = """You are a presentation coach for B.Tech project presentation
 Analyze this slide image. Consider clarity, structure, visual density, and technical depth.
 Return STRICT JSON: {{"clarity_score": <0-100>, "feedback": "3-4 sentences of specific feedback", "topics": {{"<topic on slide>": <understanding score 0-100>}}, "suggestions": ["...", "..."]}}"""
 
-PRESENTATION_SUMMARY = """Create a final presentation feedback report from these per-slide analyses:
-{slides}
+PRESENTATION_QUESTION_GEN = """You are a faculty examiner evaluating a live B.Tech project presentation.
+Project context: {project_context}
+Slides analyzed so far (JSON): {slides}
+Questions already asked (do NOT repeat): {covered}
+Language: {language}
 
-Return STRICT JSON: {{"clarity_score": <0-100>, "confidence_score": <0-100>, "coverage_score": <0-100>, "overall_score": <0-100>, "summary": "4-5 sentence report", "gaps": ["weak topic 1", "weak topic 2"]}}"""
+Ask ONE probing follow-up question a real faculty member would ask about THIS presentation, grounded in the actual slide content and project. Prefer topics that appear weak, unexplained, or technically shallow.
+Return STRICT JSON: {{"question": "...", "topic": "short topic label", "expected_answer": "concise model answer"}}"""
+
+PRESENTATION_ANSWER_EVAL = """Evaluate the student's spoken answer during a presentation viva.
+Question: {question}
+Expected answer: {expected}
+Student's answer: {answer}
+Language: {language}
+
+Score on correctness, clarity and confidence (0-100 overall).
+Return STRICT JSON: {{"score": <0-100>, "feedback": "2-3 sentence feedback in {language}", "correct": true/false}}"""
+
+PRESENTATION_SUMMARY = """Create a final presentation feedback report.
+Per-slide analyses (JSON): {slides}
+Examiner Q&A transcript with the student's answers and scores (JSON): {qa}
+
+Weigh both the slides and how well the student handled the questions.
+Return STRICT JSON: {{"clarity_score": <0-100>, "confidence_score": <0-100>, "coverage_score": <0-100>, "overall_score": <0-100>, "summary": "4-5 sentence report", "gaps": ["weak topic 1", "weak topic 2"], "qa_feedback": "2-3 sentences on how the student handled the questions"}}"""
 
 CODE_ANALYSIS = """You are a senior engineer reviewing a B.Tech student's project codebase before their viva.
 Codebase digest:

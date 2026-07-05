@@ -64,6 +64,20 @@ def next_difficulty(current: str, last_correct: bool) -> str:
     return order[idx]
 
 
+def compute_adaptive_difficulty(correct_history: list[bool]) -> str:
+    """Recompute the current adaptive difficulty from the full answered history.
+
+    Starts at Easy (matching /start) and walks each answered question, stepping up
+    on a correct answer and down on a wrong one. This is deterministic and needs no
+    extra columns, fixing the bug where difficulty was pinned to 'Medium'.
+    """
+    order = ["Easy", "Medium", "Hard"]
+    idx = 0
+    for correct in correct_history:
+        idx = min(idx + 1, 2) if correct else max(idx - 1, 0)
+    return order[idx]
+
+
 def session_summary(questions: list[dict]) -> dict:
     transcript = "\n".join(
         f"Q{q['question_number']}: {q['question_text']} | topic={q.get('topic')} | score={q.get('score')}"

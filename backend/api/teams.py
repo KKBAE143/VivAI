@@ -62,6 +62,21 @@ def invite_member(team_id: str, body: InviteRequest, user=Depends(get_current_us
     return {"invite_code": team["invite_code"], "team_name": team["name"], "invited_email": body.email}
 
 
+@router.post("/join")
+def join_by_code(body: JoinRequest, user=Depends(get_current_user)):
+    """Join a team using only the invite code (no team id required)."""
+    sb = get_supabase()
+    res = sb.table("teams").select("*").eq("invite_code", body.code).execute()
+    if not res.data:
+        raise HTTPException(status_code=400, detail="Invalid invite code")
+    team = res.data[0]
+    if _membership(team["id"], user["id"]):
+        return {"ok": True, "already_member": True, "team_id": team["id"]}
+    sb.table("team_members").insert({"team_id": team["id"], "profile_id": user["id"]}).execute()
+    log_activity(user["id"], "team_joined", f"Joined team '{team['name']}'", None, "team", team["id"])
+    return {"ok": True, "team_id": team["id"]}
+
+
 @router.post("/{team_id}/join")
 def join_team(team_id: str, body: JoinRequest, user=Depends(get_current_user)):
     sb = get_supabase()

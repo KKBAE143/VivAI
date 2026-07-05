@@ -34,6 +34,33 @@ export function useCodeUpload() {
   });
 }
 
+export function useLinkGithub() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { github_url: string; project_id?: string | null; name?: string }) =>
+      api<ApiRecord>("/api/advanced/code-aware/link-github", { body }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["code-snapshots"] }),
+  });
+}
+
+export function useAnalyzeSnapshot() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (snapshotId: string) =>
+      api<ApiRecord>(`/api/advanced/code-aware/analyze?snapshot_id=${encodeURIComponent(snapshotId)}`, {
+        method: "POST",
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["code-snapshots"] }),
+  });
+}
+
+export function useCreateCodeSession() {
+  return useMutation({
+    mutationFn: (body: { snapshot_id: string; project_id?: string | null; duration_minutes?: number; language?: string }) =>
+      api<ApiRecord>("/api/advanced/code-aware/session", { body }),
+  });
+}
+
 // ---------- B. Presentation -> Viva Bridge ----------
 
 export function useBridgeGaps(presentationId: string) {
@@ -48,7 +75,68 @@ export function useBridgeHistory() {
   return useAuthedQuery<ApiRecord[]>(["bridge-history"], "/api/advanced/bridge/history");
 }
 
+export function useGenerateBridgeQuestions() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (presentationId: string) =>
+      api<ApiRecord>(`/api/advanced/bridge/${presentationId}/generate-questions`, { method: "POST" }),
+    onSuccess: (_data, presentationId) => {
+      queryClient.invalidateQueries({ queryKey: ["bridge-gaps", presentationId] });
+      queryClient.invalidateQueries({ queryKey: ["bridge-history"] });
+    },
+  });
+}
+
+export function useLaunchBridgeViva() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (presentationId: string) =>
+      api<ApiRecord>(`/api/advanced/bridge/${presentationId}/launch-viva`, { method: "POST" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["viva-sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["bridge-history"] });
+    },
+  });
+}
+
 // ---------- C. Team Viva Mode (WebSocket) ----------
+
+export function useCreateTeamViva() {
+  return useMutation({
+    mutationFn: (body: { team_id: string; project_id?: string | null; subject?: string | null }) =>
+      api<ApiRecord>("/api/advanced/team-viva/sessions", { body }),
+  });
+}
+
+export function useTeamVivaSession(sessionId: string, poll = false) {
+  const { isAuthenticated } = useAuth();
+  return useQuery<ApiRecord>({
+    queryKey: ["team-viva-session", sessionId],
+    queryFn: () => api<ApiRecord>(`/api/advanced/team-viva/sessions/${sessionId}`),
+    enabled: Boolean(sessionId) && isAuthenticated,
+    refetchInterval: poll ? 5_000 : undefined,
+  });
+}
+
+export function useEndTeamViva() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (sessionId: string) =>
+      api<ApiRecord>(`/api/advanced/team-viva/${sessionId}/end`, { method: "POST" }),
+    onSuccess: (_data, sessionId) => {
+      queryClient.invalidateQueries({ queryKey: ["team-viva-session", sessionId] });
+      queryClient.invalidateQueries({ queryKey: ["team-viva-report", sessionId] });
+    },
+  });
+}
+
+export function useTeamVivaReport(sessionId: string, enabled = true) {
+  return useAuthedQuery<ApiRecord>(
+    ["team-viva-report", sessionId],
+    `/api/advanced/team-viva/${sessionId}/report`,
+    enabled && Boolean(sessionId),
+  );
+}
 
 export type TeamVivaMessage = { type: string } & Record<string, unknown>;
 
@@ -100,6 +188,33 @@ export function useFacultyProfiles(search?: string) {
   );
 }
 
+export function useFacultyProfile(profileId: string) {
+  return useAuthedQuery<ApiRecord>(
+    ["faculty-profile", profileId],
+    `/api/advanced/faculty-sim/profiles/${profileId}`,
+    Boolean(profileId),
+  );
+}
+
+export function useCreateFacultyProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: ApiRecord) => api<ApiRecord>("/api/advanced/faculty-sim/profiles", { body }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["faculty-profiles"] }),
+  });
+}
+
+export function useCreateFacultySession() {
+  return useMutation({
+    mutationFn: ({ facultyId, ...body }: { facultyId: string } & ApiRecord) =>
+      api<ApiRecord>(`/api/advanced/faculty-sim/${facultyId}/session`, { body }),
+  });
+}
+
+export function useFacultyMySessions() {
+  return useAuthedQuery<ApiRecord[]>(["faculty-my-sessions"], "/api/advanced/faculty-sim/my-sessions");
+}
+
 // ---------- E. Weakness Heatmap ----------
 
 export interface HeatmapCell {
@@ -136,7 +251,41 @@ export function usePredictorRisk() {
   return useAuthedQuery<ApiRecord[]>(["predictor-risk"], "/api/advanced/predictor/my-risk");
 }
 
+export function usePredictorRecent(subject: string) {
+  return useAuthedQuery<ApiRecord[]>(
+    ["predictor-recent", subject],
+    `/api/advanced/predictor/recent-questions/${encodeURIComponent(subject)}`,
+    Boolean(subject),
+  );
+}
+
 // ---------- G. Real-Time Sentiment (WebSocket) ----------
+
+export function useCreateSentimentSession() {
+  return useMutation({
+    mutationFn: (body: { project_id?: string | null; duration_minutes?: number }) =>
+      api<ApiRecord>("/api/advanced/sentiment/session", { body }),
+  });
+}
+
+export function useEndSentimentSession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (sessionId: string) =>
+      api<ApiRecord>(`/api/advanced/sentiment/${sessionId}/end`, { method: "POST" }),
+    onSuccess: (_data, sessionId) => {
+      queryClient.invalidateQueries({ queryKey: ["sentiment-report", sessionId] });
+    },
+  });
+}
+
+export function useSentimentReport(sessionId: string, enabled = true) {
+  return useAuthedQuery<ApiRecord>(
+    ["sentiment-report", sessionId],
+    `/api/advanced/sentiment/${sessionId}/report`,
+    enabled && Boolean(sessionId),
+  );
+}
 
 export function useSentimentSocket(sessionId: string | null) {
   const [metrics, setMetrics] = useState<ApiRecord | null>(null);

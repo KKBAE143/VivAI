@@ -129,9 +129,11 @@ def submit_answer(session_id: str, body: AnswerSubmit, user=Depends(get_current_
     ).eq("id", session_id).execute()
     difficulty = session["difficulty"]
     if difficulty == "Adaptive":
-        difficulty = viva_core.next_difficulty("Medium", evaluation.get("correct", evaluation["score"] >= 60))
+        answered = [q for q in _questions(session_id) if q.get("score") is not None]
+        correct_history = [(q.get("score") or 0) >= 60 for q in answered]
+        difficulty = viva_core.compute_adaptive_difficulty(correct_history)
     next_q = _ask_next(session, difficulty)
-    return {"evaluation": evaluation, "next_question": next_q}
+    return {"evaluation": evaluation, "next_question": next_q, "difficulty": difficulty}
 
 
 @router.post("/sessions/{session_id}/skip")

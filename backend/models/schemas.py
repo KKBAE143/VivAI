@@ -136,6 +136,11 @@ class AskRequest(BaseModel):
     question: str
 
 
+class PresentationAnswer(BaseModel):
+    answer: str
+    time_taken_seconds: int | None = None
+
+
 # ---------- Advanced ----------
 class CodeAwareSessionCreate(BaseModel):
     snapshot_id: str

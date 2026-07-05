@@ -99,10 +99,51 @@ export function useCreateProject() {
   });
 }
 
+export function useUpdateProject() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: string } & ApiRecord) =>
+      api<ApiRecord>(`/api/projects/${id}`, { method: "PUT", body }),
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["project", vars.id] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+  });
+}
+
+export function useDeleteProject() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api(`/api/projects/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+  });
+}
+
+export function useUpdateProgress() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, progress }: { id: string; progress: number }) =>
+      api<ApiRecord>(`/api/projects/${id}/progress`, { method: "PUT", body: { progress } }),
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["project", vars.id] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+  });
+}
+
 // ---------- Teams ----------
 
 export function useTeams() {
   return useAuthedQuery<ApiRecord[]>(["teams"], "/api/teams");
+}
+
+export function useTeam(id: string) {
+  return useAuthedQuery<ApiRecord>(["team", id], `/api/teams/${id}`, Boolean(id));
 }
 
 export function useCreateTeam() {
@@ -111,6 +152,49 @@ export function useCreateTeam() {
     mutationFn: (body: { name: string; project_id?: string | null }) =>
       api<ApiRecord>("/api/teams", { body }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["teams"] }),
+  });
+}
+
+export function useInviteMember() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ teamId, email }: { teamId: string; email: string }) =>
+      api<ApiRecord>(`/api/teams/${teamId}/invite`, { body: { email } }),
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["team", vars.teamId] });
+      queryClient.invalidateQueries({ queryKey: ["teams"] });
+    },
+  });
+}
+
+export function useJoinTeam() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (code: string) => api<ApiRecord>("/api/teams/join", { body: { code } }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["teams"] }),
+  });
+}
+
+export function useRemoveMember() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ teamId, profileId }: { teamId: string; profileId: string }) =>
+      api(`/api/teams/${teamId}/members/${profileId}`, { method: "DELETE" }),
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["team", vars.teamId] });
+      queryClient.invalidateQueries({ queryKey: ["teams"] });
+    },
+  });
+}
+
+export function useUpdateMemberRole() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ teamId, profileId, role }: { teamId: string; profileId: string; role: string }) =>
+      api<ApiRecord>(`/api/teams/${teamId}/members/${profileId}/role`, { method: "PUT", body: { role } }),
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["team", vars.teamId] });
+    },
   });
 }
 
@@ -149,10 +233,45 @@ export function useUpdateTaskStatus() {
   });
 }
 
+export function useUpdateTask() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ taskId, ...body }: { taskId: string } & ApiRecord) =>
+      api<ApiRecord>(`/api/tasks/${taskId}`, { method: "PUT", body }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+  });
+}
+
+export function useDeleteTask() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (taskId: string) => api(`/api/tasks/${taskId}`, { method: "DELETE" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+  });
+}
+
 // ---------- Files ----------
 
 export function useFiles() {
   return useAuthedQuery<ApiRecord[]>(["files"], "/api/files");
+}
+
+export function useProjectFiles(projectId?: string) {
+  return useAuthedQuery<ApiRecord[]>(
+    ["project-files", projectId ?? ""],
+    `/api/projects/${projectId}/files`,
+    Boolean(projectId),
+  );
+}
+
+export function useFile(fileId: string) {
+  return useAuthedQuery<ApiRecord>(["file", fileId], `/api/files/${fileId}`, Boolean(fileId));
 }
 
 export function useUploadFile() {
@@ -164,7 +283,10 @@ export function useUploadFile() {
       if (projectId) form.append("project_id", projectId);
       return api<ApiRecord>("/api/files/upload", { body: form });
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["files"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["files"] });
+      queryClient.invalidateQueries({ queryKey: ["project-files"] });
+    },
   });
 }
 
@@ -172,8 +294,57 @@ export function useDeleteFile() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (fileId: string) => api(`/api/files/${fileId}`, { method: "DELETE" }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["files"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["files"] });
+      queryClient.invalidateQueries({ queryKey: ["project-files"] });
+    },
   });
+}
+
+// ---------- Templates ----------
+
+export interface TemplateSummary {
+  slug: string;
+  title: string;
+  category: string;
+  summary: string;
+}
+
+export function useTemplates() {
+  return useAuthedQuery<TemplateSummary[]>(["templates"], "/api/templates");
+}
+
+export function useTemplate(slug: string) {
+  return useAuthedQuery<ApiRecord>(["template", slug], `/api/templates/${slug}`, Boolean(slug));
+}
+
+// ---------- Onboarding ----------
+
+export function useOnboardingStatus() {
+  return useAuthedQuery<{ complete: boolean }>(["onboarding-status"], "/api/onboarding/status");
+}
+
+export function useCompleteOnboarding() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { branch?: string | null; year?: string | null; goals?: string[] }) =>
+      api<ApiRecord>("/api/onboarding/complete", { body }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["onboarding-status"] });
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+      queryClient.invalidateQueries({ queryKey: ["me"] });
+    },
+  });
+}
+
+// ---------- Analytics: trends & leaderboard ----------
+
+export function useTrends() {
+  return useAuthedQuery<ApiRecord[]>(["trends"], "/api/analytics/trends");
+}
+
+export function useLeaderboard() {
+  return useAuthedQuery<ApiRecord[]>(["leaderboard"], "/api/analytics/leaderboard");
 }
 
 // ---------- AI Viva ----------
@@ -283,6 +454,38 @@ export function useAskPresentation() {
   return useMutation({
     mutationFn: ({ id, question }: { id: string; question: string }) =>
       api<PresentationAskResponse>(`/api/presentation/sessions/${id}/ask`, { body: { question } }),
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["presentation-session", vars.id] });
+    },
+  });
+}
+
+export interface PresentationQuestionResponse {
+  question: string;
+  topic?: string | null;
+  index: number;
+}
+
+export function useAskPresentationQuestion() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<PresentationQuestionResponse>(`/api/presentation/sessions/${id}/question`, { method: "POST" }),
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: ["presentation-session", id] });
+    },
+  });
+}
+
+export interface PresentationAnswerResponse {
+  evaluation: { score: number; feedback?: string; correct?: boolean };
+}
+
+export function useAnswerPresentationQuestion() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, answer }: { id: string; answer: string }) =>
+      api<PresentationAnswerResponse>(`/api/presentation/sessions/${id}/answer`, { body: { answer } }),
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ["presentation-session", vars.id] });
     },
