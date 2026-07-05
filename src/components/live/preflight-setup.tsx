@@ -182,7 +182,9 @@ export function PreflightSetup({
             <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               What should the AI see?
             </h3>
-            <div className={`mt-3 grid gap-3 ${sources.length === 3 ? "grid-cols-3" : "grid-cols-2"}`}>
+            <div
+              className={`mt-3 grid gap-3 ${sources.length === 3 ? "grid-cols-3" : "grid-cols-2"}`}
+            >
               {sources.map((s) => {
                 const active = source === s.id;
                 const Icon = s.icon;
@@ -211,9 +213,12 @@ export function PreflightSetup({
                 return <Icon className="h-5 w-5 shrink-0 text-primary" />;
               })()}
               <p className="text-sm text-muted-foreground">
-                {sources[0].id === "screen" && "This session uses screen sharing — you'll pick the window/tab when you go live."}
-                {sources[0].id === "none" && "This session is voice-only. Just speak — no screen or camera needed."}
-                {sources[0].id === "camera" && "This session uses your camera so the examiner can see you."}
+                {sources[0].id === "screen" &&
+                  "This session uses screen sharing — you'll pick the window/tab when you go live."}
+                {sources[0].id === "none" &&
+                  "This session is voice-only. Just speak — no screen or camera needed."}
+                {sources[0].id === "camera" &&
+                  "This session uses your camera so the examiner can see you."}
               </p>
             </div>
           )

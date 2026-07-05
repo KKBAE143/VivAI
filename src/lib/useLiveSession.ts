@@ -374,7 +374,9 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
         setStatus((s) => {
           if (s === "ended" || s === "error") return s;
           if (endedReceivedRef.current) return "ended";
-          setError((prev) => prev || "The connection closed before the session finished. Please retry.");
+          setError(
+            (prev) => prev || "The connection closed before the session finished. Please retry.",
+          );
           return "error";
         });
       };
