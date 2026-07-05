@@ -4,10 +4,11 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
-from ai import gemini_service, prompts
+from ai import delivery_metrics, gemini_service, prompts
 from core.database import get_supabase
 from core.deps import get_current_user
 from models.schemas import AskRequest, PresentationAnswer, PresentationSessionCreate
+from services import gamification_service
 from services.activity_service import log_activity
 
 router = APIRouter(prefix="/api/presentation", tags=["presentation"])
@@ -229,13 +230,19 @@ def end_session(session_id: str, user=Depends(get_current_user)):
         "gaps": report.get("gaps", []),
         "qa_feedback": report.get("qa_feedback"),
     }
+    delivery = delivery_metrics.aggregate(
+        [{"text": q.get("answer") or "", "seconds": q.get("time_taken_seconds")} for q in exam_qa]
+    )
+    state["report"]["delivery"] = delivery
     updates["topic_scores"] = state
     get_supabase().table("presentation_sessions").update(updates).eq("id", session_id).execute()
     log_activity(user["id"], "presentation_completed", f"Completed presentation practice ({updates['overall_score']}%)", session.get("project_id"), "presentation_session", session_id)
+    gamification_service.award_xp(user["id"], "presentation_completed")
     return {
         **updates,
         "gaps": report.get("gaps", []),
         "topics": state.get("topics", {}),
         "qa": exam_qa,
         "qa_feedback": report.get("qa_feedback"),
+        "delivery": delivery,
     }

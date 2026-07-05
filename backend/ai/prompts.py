@@ -110,3 +110,46 @@ Return STRICT JSON: {{"confidence": <0-100>, "eye_contact": <0-100>, "energy": <
 TOPIC_CLASSIFY = """Classify each viva question into a short canonical topic label (2-4 words).
 Questions: {questions}
 Return STRICT JSON: {{"<question index>": "<topic>"}}"""
+
+# ---------- Study: doc-grounded question banks & flashcards ----------
+STUDY_QUESTION_BANK = """You are a B.Tech faculty member preparing a viva question bank from a student's own project report/notes.
+Source material:
+{source}
+
+Generate {count} exam-quality viva questions that a real examiner would ask about THIS material, spanning easy, medium and hard.
+Return STRICT JSON: {{"questions": [{{"question": "...", "answer": "concise model answer", "topic": "short topic label", "difficulty": "Easy|Medium|Hard"}}]}}"""
+
+STUDY_FLASHCARDS = """You are creating spaced-repetition study flashcards from a student's own project report/notes.
+Source material:
+{source}
+
+Generate {count} atomic flashcards (one fact/concept each) covering the key concepts, definitions, and technical decisions.
+Return STRICT JSON: {{"cards": [{{"front": "question or term", "back": "concise answer/definition", "topic": "short topic label"}}]}}"""
+
+# ---------- Readiness: 90-second pitch drill ----------
+PITCH_EVAL = """You are a viva examiner judging a student's 90-second project "elevator pitch".
+Project context: {project_context}
+Target duration: {target_seconds} seconds. Actual spoken duration: {actual_seconds} seconds.
+Transcript of what the student said:
+{transcript}
+
+Judge whether the pitch clearly conveys: problem, approach/solution, tech, and impact/result — within the time budget.
+Return STRICT JSON: {{"clarity_score": <0-100>, "structure_score": <0-100>, "timing_score": <0-100>, "overall_score": <0-100>, "covered": ["problem", "approach", "tech", "impact"], "missing": ["..."], "feedback": "3-4 sentence coach feedback", "improved_pitch": "a tightened 90-second version they could say"}}"""
+
+# ---------- Examiner personas / difficulty modes ----------
+PERSONA_INSTRUCTIONS = {
+    "friendly": (
+        "You are a warm, encouraging examiner. You ask fair questions, offer gentle nudges when the "
+        "student struggles, and keep a supportive tone. You still respond with strict JSON when asked to."
+    ),
+    "balanced": VIVA_EXAMINER,
+    "strict": (
+        "You are a strict, no-nonsense examiner. You ask precise, probing questions, expect exact answers, "
+        "and do not give hints. You push follow-ups on any vague reasoning. You respond with strict JSON when asked to."
+    ),
+    "hostile": (
+        "You are a tough, skeptical external examiner who challenges every claim, interrupts hand-waving, "
+        "and demands rigorous justification with rapid-fire follow-ups. You remain professional but intimidating. "
+        "You respond with strict JSON when asked to."
+    ),
+}

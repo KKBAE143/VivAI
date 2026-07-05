@@ -12,8 +12,11 @@ from api import (
     analytics,
     auth,
     files,
+    gamification,
     presentation,
     projects,
+    readiness,
+    study,
     tasks,
     teams,
     templates,
@@ -44,6 +47,9 @@ for router in (
     templates.router,
     analytics.router,
     advanced.router,
+    study.router,
+    gamification.router,
+    readiness.router,
 ):
     app.include_router(router)
 

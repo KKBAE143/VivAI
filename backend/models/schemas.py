@@ -118,6 +118,7 @@ class VivaSessionCreate(BaseModel):
     duration_minutes: int = 15
     difficulty: str = "Medium"
     language: str = "English"
+    persona: str = "balanced"  # friendly | balanced | strict | hostile
 
 
 class AnswerSubmit(BaseModel):
@@ -185,3 +186,29 @@ class FacultySimEnd(BaseModel):
 class SentimentSessionCreate(BaseModel):
     project_id: str | None = None
     duration_minutes: int = 10
+
+
+# ---------- Study: question banks & flashcards ----------
+class QuestionBankCreate(BaseModel):
+    title: str
+    source_text: str | None = None
+    file_id: str | None = None
+    project_id: str | None = None
+    count: int = Field(default=12, ge=4, le=30)
+
+
+class FlashcardReview(BaseModel):
+    quality: int = Field(ge=0, le=5)
+
+
+class BankToVivaRequest(BaseModel):
+    language: str = "English"
+    difficulty: str = "Medium"
+
+
+# ---------- Readiness: pitch drill ----------
+class PitchDrillSubmit(BaseModel):
+    project_id: str | None = None
+    target_seconds: int = Field(default=90, ge=30, le=180)
+    transcript: str
+    actual_seconds: int = Field(ge=1)
