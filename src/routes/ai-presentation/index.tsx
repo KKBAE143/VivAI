@@ -11,7 +11,10 @@ export const Route = createFileRoute("/ai-presentation/")({
   head: () => ({
     meta: [
       { title: "AI Presentation Mock — CollgePro Navigator" },
-      { name: "description", content: "Present to AI, share your screen, and get faculty-style real-time feedback." },
+      {
+        name: "description",
+        content: "Present to AI, share your screen, and get faculty-style real-time feedback.",
+      },
     ],
   }),
   component: AIPresentation,
@@ -29,6 +32,7 @@ function AIPresentation() {
   const [projectId, setProjectId] = useState("");
   const [type, setType] = useState<string>(SESSION_TYPES[0]);
   const [duration, setDuration] = useState<number>(10);
+  const [topic, setTopic] = useState("");
   const [error, setError] = useState("");
 
   const begin = async () => {
@@ -38,6 +42,7 @@ function AIPresentation() {
         project_id: projectId || null,
         session_type: type,
         duration_minutes: duration,
+        subject: topic.trim() || null,
       });
       navigate({ to: "/ai-presentation/session/$id", params: { id: String(res.id) } });
     } catch (e) {
@@ -47,13 +52,21 @@ function AIPresentation() {
 
   return (
     <AppShell>
-      <PageHeader title="AI Presentation Mock" subtitle="Present to AI faculty, share your screen, get instant feedback." />
+      <PageHeader
+        title="AI Presentation Mock"
+        subtitle="Present to AI faculty, share your screen, get instant feedback."
+      />
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
         <Card className="lg:col-span-7 bg-primary text-primary-foreground">
-          <Badge tone="muted"><span className="text-primary">Live Screen Review</span></Badge>
-          <h2 className="mt-5 text-2xl font-bold tracking-tight">Defend like it's the real review</h2>
+          <Badge tone="muted">
+            <span className="text-primary">Live Screen Review</span>
+          </Badge>
+          <h2 className="mt-5 text-2xl font-bold tracking-tight">
+            Defend like it's the real review
+          </h2>
           <p className="mt-2 max-w-md text-sm text-primary-foreground/85">
-            Share your screen, present your slides, and AI faculty asks follow-ups, scores clarity, and flags missing topics.
+            Share your screen, present your slides, and AI faculty asks follow-ups, scores clarity,
+            and flags missing topics.
           </p>
           <div className="mt-6 flex flex-wrap gap-2">
             <button
@@ -77,7 +90,9 @@ function AIPresentation() {
               >
                 <option value="">No project</option>
                 {(projects ?? []).map((p) => (
-                  <option key={String(p.id)} value={String(p.id)}>{String(p.title)}</option>
+                  <option key={String(p.id)} value={String(p.id)}>
+                    {String(p.title)}
+                  </option>
                 ))}
               </select>
             </div>
@@ -101,13 +116,28 @@ function AIPresentation() {
                 className="rounded-lg bg-card px-2 py-1 text-sm font-semibold focus:outline-none"
               >
                 {DURATIONS.map((d) => (
-                  <option key={d} value={d}>{d} minutes</option>
+                  <option key={d} value={d}>
+                    {d} minutes
+                  </option>
                 ))}
               </select>
             </div>
             <div className="flex items-center justify-between rounded-xl bg-secondary px-4 py-3">
               <span className="text-xs text-muted-foreground">Recording</span>
               <span className="text-sm font-semibold">Enabled</span>
+            </div>
+            <div className="rounded-xl bg-secondary px-4 py-3">
+              <label className="text-xs text-muted-foreground">Topic / focus (optional)</label>
+              <textarea
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                rows={2}
+                placeholder="e.g. IoT-based smart irrigation — focus on the sensor architecture and cloud pipeline."
+                className="mt-2 w-full resize-none rounded-lg bg-card px-3 py-2 text-sm leading-relaxed focus:outline-none"
+              />
+              <p className="mt-1.5 text-[11px] text-muted-foreground">
+                Tell the panel what you&apos;re presenting so their questions stay on point.
+              </p>
             </div>
           </div>
           {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
@@ -127,11 +157,18 @@ function AIPresentation() {
           <p className="mt-4 text-sm text-muted-foreground">Loading sessions…</p>
         ) : sessionsQuery.error ? (
           <ErrorState
-            message={sessionsQuery.error instanceof Error ? sessionsQuery.error.message : "Could not load sessions"}
+            message={
+              sessionsQuery.error instanceof Error
+                ? sessionsQuery.error.message
+                : "Could not load sessions"
+            }
             onRetry={() => void sessionsQuery.refetch()}
           />
         ) : (sessionsQuery.data ?? []).length === 0 ? (
-          <EmptyState title="No sessions yet" description="Start your first AI presentation practice above." />
+          <EmptyState
+            title="No sessions yet"
+            description="Start your first AI presentation practice above."
+          />
         ) : (
           <div className="mt-4 grid gap-3 md:grid-cols-3">
             {(sessionsQuery.data ?? []).map((s) => {
@@ -149,8 +186,12 @@ function AIPresentation() {
                     <MonitorSmartphone className="h-5 w-5 text-muted-foreground" />
                     <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
                   </div>
-                  <div className="mt-3 font-semibold">{String(s.session_type ?? "Presentation")}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">{String(s.created_at ?? "").slice(0, 10)}</div>
+                  <div className="mt-3 font-semibold">
+                    {String(s.session_type ?? "Presentation")}
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {String(s.created_at ?? "").slice(0, 10)}
+                  </div>
                   <div className="mt-3 flex items-center justify-between">
                     {score !== null ? (
                       <Badge tone={score >= 80 ? "success" : "warning"}>{score}%</Badge>
@@ -161,7 +202,9 @@ function AIPresentation() {
                       {completed ? "Review" : status === "In Progress" ? "Resume" : "Open"}
                     </span>
                   </div>
-                  <div className="mt-1 text-[11px] text-muted-foreground">{String(s.duration_minutes ?? "—")} min</div>
+                  <div className="mt-1 text-[11px] text-muted-foreground">
+                    {String(s.duration_minutes ?? "—")} min
+                  </div>
                 </Link>
               );
             })}

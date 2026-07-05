@@ -46,9 +46,11 @@ function PresentationSession() {
           slides?: SlideEntry[];
           topics?: Record<string, number>;
           qa?: QaEntry[];
+          subject?: string | null;
           report?: { gaps?: string[]; qa_feedback?: string | null };
         }
       | undefined) ?? {};
+  const subject = state.subject ?? null;
   const slides: SlideEntry[] = state.slides ?? [];
   const qa: QaEntry[] = state.qa ?? [];
   const examQuestions = qa.filter((x) => x.kind === "exam_q");
@@ -199,6 +201,7 @@ function PresentationSession() {
       mode="presentation"
       sessionId={id}
       projectId={projectId}
+      subject={subject}
       title={`${title} Presentation`}
       subtitle="Share your screen and present — the examiner is watching live."
       defaultLanguage={language}

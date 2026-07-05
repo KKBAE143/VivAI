@@ -122,6 +122,7 @@ function VivaSession() {
       mode="viva"
       sessionId={id}
       projectId={projectId}
+      subject={session?.subject ? String(session.subject) : null}
       title={title}
       subtitle={`Difficulty: ${difficulty} · Speak naturally — the examiner is listening.`}
       defaultLanguage={language}

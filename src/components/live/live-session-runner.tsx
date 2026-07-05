@@ -12,6 +12,8 @@ interface LiveSessionRunnerProps {
   mode: LiveMode;
   sessionId: string;
   projectId?: string | null;
+  /** Free-text subject / topic / focus, forwarded to the live examiner. */
+  subject?: string | null;
   title: string;
   subtitle?: string;
   defaultLanguage?: string;
@@ -27,6 +29,7 @@ export function LiveSessionRunner({
   mode,
   sessionId,
   projectId,
+  subject,
   title,
   subtitle,
   defaultLanguage = "English",
@@ -42,7 +45,7 @@ export function LiveSessionRunner({
   const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
   const endedRef = useRef(false);
 
-  const live = useLiveSession({ mode, sessionId, language, persona, projectId });
+  const live = useLiveSession({ mode, sessionId, language, persona, projectId, subject });
 
   const handleReady = useCallback((result: PreflightResult) => {
     micStreamRef.current = result.micStream;

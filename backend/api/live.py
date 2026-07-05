@@ -66,11 +66,21 @@ def _project_context(project_id: str | None) -> str:
 class LivePersistence:
     """Collects transcript, flags, questions and scores during a live session."""
 
-    def __init__(self, mode: str, session_id: str, user_id: str, project_id: str | None):
+    def __init__(
+        self,
+        mode: str,
+        session_id: str,
+        user_id: str,
+        project_id: str | None,
+        project_context: str = "",
+        subject: str | None = None,
+    ):
         self.mode = mode
         self.session_id = session_id
         self.user_id = user_id
         self.project_id = project_id
+        self.project_context = project_context
+        self.subject = subject
         self.transcript: list[dict] = []
         self.flags: list[dict] = []
         self.questions: list[dict] = []  # {question, topic, answer, score, feedback}
@@ -125,8 +135,9 @@ class LivePersistence:
     # -- finalize ----------------------------------------------------------- #
     @property
     def has_activity(self) -> bool:
-        """True once the student and AI actually interacted."""
-        return bool(self.transcript or self.questions or self.flags)
+        """True only once the STUDENT actually spoke — an AI-only monologue
+        (e.g. the student's mic never worked) must not become a graded report."""
+        return any(t.get("role") == "student" and t.get("text") for t in self.transcript)
 
     def revert_status(self) -> None:
         """Put the session back to Pending so the student can retry (no fake 0% report)."""
@@ -144,14 +155,40 @@ class LivePersistence:
         return round(sum(scored) / len(scored)) if scored else 0
 
     def finalize(self) -> dict:
-        """Persist to the same tables the report pages read. Runs in a worker thread."""
+        """Persist to the same tables the report pages read. Runs in a worker thread.
+
+        The report is built primarily from a post-session analysis of the full
+        transcript (reliable), falling back to any questions the live model
+        logged via tools during the conversation.
+        """
         sb = get_supabase()
-        overall = self._avg_score()
+
+        analysis = {}
+        try:
+            analysis = live_service.analyze_transcript(
+                self.mode, self.transcript, self.project_context, self.subject
+            )
+        except Exception as exc:
+            print(f"[live] transcript analysis failed: {exc}")
+
+        analyzed_q = analysis.get("questions") if isinstance(analysis, dict) else None
+        if analyzed_q:
+            self.questions = analyzed_q  # prefer the graded transcript Q&A
+        overall = analysis.get("overall_score") if isinstance(analysis, dict) else None
+        if not overall:
+            overall = self._avg_score()
+        overall = max(0, min(100, int(overall or 0)))
+        summary_text = (analysis.get("summary") if isinstance(analysis, dict) else "") or (
+            f"Live {self.mode} completed with {len(self.questions)} questions."
+        )
         summary = {
             "overall_score": overall,
             "questions": self.questions,
             "flags": self.flags,
             "transcript": self.transcript,
+            "summary": summary_text,
+            "strengths": analysis.get("strengths", []) if isinstance(analysis, dict) else [],
+            "weaknesses": analysis.get("weaknesses", []) if isinstance(analysis, dict) else [],
         }
         try:
             if self.mode == "viva":
@@ -170,6 +207,12 @@ class LivePersistence:
                     "score": overall,
                     "answered_questions": len([q for q in self.questions if q.get("score") is not None]),
                     "total_questions": len(self.questions),
+                    "context": {
+                        "summary": summary_text,
+                        "strengths": summary.get("strengths", []),
+                        "weaknesses": summary.get("weaknesses", []),
+                        "transcript": self.transcript,
+                    },
                     "completed_at": datetime.now(timezone.utc).isoformat(),
                 }).eq("id", self.session_id).execute()
                 log_activity(self.user_id, "viva_completed", f"Completed live viva ({overall}%)",
@@ -198,7 +241,7 @@ class LivePersistence:
                     "confidence_score": overall,
                     "coverage_score": overall,
                     "overall_score": overall,
-                    "feedback_summary": f"Live presentation completed with {len(self.questions)} examiner questions.",
+                    "feedback_summary": summary_text,
                     "topic_scores": state,
                     "completed_at": datetime.now(timezone.utc).isoformat(),
                 }).eq("id", self.session_id).execute()
@@ -254,6 +297,7 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
     language = params.get("language", "English")
     persona = params.get("persona", "balanced")
     project_id_param = params.get("project_id")
+    subject_param = (params.get("subject") or "").strip() or None
 
     user = _user_from_token(token)
     if not user:
@@ -287,21 +331,40 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                 raise ValueError("Session not found")
             row = res.data[0]
             project_id = row.get("project_id") or project_id
+            # Presentation stores its free-text topic inside topic_scores JSONB.
+            subject = ((row.get("topic_scores") or {}).get("subject")) or subject
             sb.table("presentation_sessions").update({"status": "In Progress"}).eq("id", session_id).execute()
-        # pitch: stateless, project_id comes from the query param
+        # pitch: stateless, project_id + subject come from the query params
     except Exception as exc:
         await websocket.send_json({"type": "error", "message": f"Could not load session: {exc}"})
         await websocket.close(code=4404)
         return
 
+    # A subject explicitly sent by the client always wins (lets the student
+    # personalize the session at launch time); otherwise fall back to stored.
+    subject = subject_param or subject
+
     project_context = await asyncio.to_thread(_project_context, project_id)
-    persist = LivePersistence(mode, session_id, user["id"], project_id)
+    persist = LivePersistence(mode, session_id, user["id"], project_id, project_context, subject)
     config = live_service.build_config(mode, persona, language, project_context, subject)
 
     errored = False
     try:
         async with live_service.connect_with_fallback(config) as session:
             await websocket.send_json({"type": "ready"})
+
+            # Make the AI speak FIRST. Live models stay silent until they receive
+            # a turn, so we send a short trigger to force the opening greeting.
+            try:
+                await session.send_client_content(
+                    turns=types.Content(
+                        role="user",
+                        parts=[types.Part(text=live_service.greeting_trigger(mode))],
+                    ),
+                    turn_complete=True,
+                )
+            except Exception as exc:
+                print(f"[live] greeting trigger failed: {exc}")
 
             async def client_to_gemini():
                 while True:

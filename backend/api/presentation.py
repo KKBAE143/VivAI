@@ -64,7 +64,7 @@ def create_session(body: PresentationSessionCreate, user=Depends(get_current_use
             "project_id": body.project_id,
             "session_type": body.session_type,
             "duration_minutes": body.duration_minutes,
-            "topic_scores": {"slides": [], "topics": {}},
+            "topic_scores": {"slides": [], "topics": {}, "subject": (body.subject or "").strip() or None},
         }
     ).execute()
     return res.data[0]

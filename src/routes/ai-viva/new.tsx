@@ -26,7 +26,22 @@ const DURATIONS = [
   { minutes: 30, label: "Deep · 30 min" },
 ] as const;
 
-const FOCUS_AREAS = ["Algorithms", "Database", "Networking", "OOP", "Machine Learning"];
+// Optional quick-add suggestions across common B.Tech branches. These only
+// help the student fill the free-text field faster — they can type anything.
+const SUBJECT_SUGGESTIONS = [
+  "Data Structures & Algorithms",
+  "DBMS",
+  "Operating Systems",
+  "Computer Networks",
+  "OOP",
+  "Machine Learning",
+  "Digital Signal Processing",
+  "Microprocessors",
+  "Thermodynamics",
+  "Structural Analysis",
+  "Power Systems",
+  "Control Systems",
+];
 
 const PERSONAS = [
   { value: "friendly", t: "Friendly", d: "Encouraging, gentle follow-ups" },
@@ -45,26 +60,39 @@ function NewViva() {
   const [persona, setPersona] = useState("balanced");
   const [projectId, setProjectId] = useState(initialProjectId ?? "");
   const [language, setLanguage] = useState("English");
-  const [focusAreas, setFocusAreas] = useState<string[]>([]);
+  const [subject, setSubject] = useState("");
   const [error, setError] = useState("");
   const mutate = useCreateVivaSession();
   const navigate = useNavigate();
 
-  const toggleFocus = (area: string) =>
-    setFocusAreas((prev) =>
-      prev.includes(area) ? prev.filter((a) => a !== area) : [...prev, area],
-    );
+  const addSuggestion = (s: string) =>
+    setSubject((prev) => {
+      const parts = prev
+        .split(",")
+        .map((p) => p.trim())
+        .filter(Boolean);
+      if (parts.some((p) => p.toLowerCase() === s.toLowerCase())) return prev;
+      return [...parts, s].join(", ");
+    });
 
-  // The form is dynamic: a Project viva is about defending YOUR project, so it
-  // needs a project (and no subject focus areas). Subject/General vivas are
-  // topic-driven, so they need focus areas instead of a project.
+  // The form is dynamic: a Project viva defends YOUR project, so it needs a
+  // project (no subject). Subject vivas need a subject/topic. General is open.
   const isProjectViva = sessionType === "Project";
-  const canStart = isProjectViva ? Boolean(projectId) : true;
+  const isSubjectViva = sessionType === "Subject";
+  const canStart = isProjectViva
+    ? Boolean(projectId)
+    : isSubjectViva
+      ? Boolean(subject.trim())
+      : true;
 
   const handleStart = async () => {
     setError("");
     if (isProjectViva && !projectId) {
       setError("Pick the project you'll defend, or switch to a Subject/General viva.");
+      return;
+    }
+    if (isSubjectViva && !subject.trim()) {
+      setError("Enter your subject, branch or the exact topics you want to be examined on.");
       return;
     }
     try {
@@ -75,7 +103,7 @@ function NewViva() {
         persona,
         language,
         project_id: isProjectViva ? projectId : undefined,
-        subject: !isProjectViva && focusAreas.length ? focusAreas.join(", ") : undefined,
+        subject: !isProjectViva && subject.trim() ? subject.trim() : undefined,
       });
       navigate({ to: "/ai-viva/session/$id", params: { id: String(res.id) } });
     } catch (e) {
@@ -190,24 +218,40 @@ function NewViva() {
             )}
           </Section>
         ) : (
-          <Section title={sessionType === "Subject" ? "Subject Focus Areas" : "Topic Focus Areas"}>
-            <div className="flex flex-wrap gap-2">
-              {FOCUS_AREAS.map((t) => {
-                const active = focusAreas.includes(t);
-                return (
-                  <button
-                    key={t}
-                    onClick={() => toggleFocus(t)}
-                    className={`rounded-full px-3 py-1 text-xs font-medium ${active ? "bg-primary-soft text-accent-foreground" : "bg-secondary text-muted-foreground"}`}
-                  >
-                    {t} {active && "×"}
-                  </button>
-                );
-              })}
-            </div>
+          <Section
+            title={
+              isSubjectViva
+                ? "Your subject, branch & topics"
+                : "Focus (branch / subject / topics — optional)"
+            }
+          >
+            <textarea
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              rows={3}
+              placeholder={
+                isSubjectViva
+                  ? "e.g. ECE — Digital Signal Processing. Focus on FIR/IIR filters, z-transform and sampling."
+                  : "e.g. CSE 3rd year — go deep on DBMS and Operating Systems. Leave blank for a general technical interview."
+              }
+              className="w-full resize-none rounded-xl border border-border bg-card px-4 py-3 text-sm leading-relaxed focus:border-primary focus:outline-none"
+            />
             <p className="mt-2 text-xs text-muted-foreground">
-              Pick at least one area so the examiner knows what to quiz you on.
+              Type your exact branch, subject and topics — the examiner tailors every question to
+              this. Quick add:
             </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {SUBJECT_SUGGESTIONS.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => addSuggestion(s)}
+                  className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-primary-soft hover:text-accent-foreground"
+                >
+                  + {s}
+                </button>
+              ))}
+            </div>
           </Section>
         )}
         <Section title="Language">
