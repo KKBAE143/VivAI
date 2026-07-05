@@ -1,22 +1,83 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, Download, Share2, Check, X } from "lucide-react";
+import { ArrowLeft, Download, Check } from "lucide-react";
+import { useMemo, useState } from "react";
 import { AppShell, Card, Badge } from "@/components/app-shell";
+import { useTemplate } from "@/lib/hooks";
 
 export const Route = createFileRoute("/templates/$slug")({
   head: () => ({ meta: [{ title: "Guide — CollgePro Navigator" }] }),
   component: TemplateDetail,
 });
 
-const titles: Record<string, string> = {
-  pbl: "Project Based Learning (PBL)",
-  "major-project": "Major Project — Final Year",
-  "mini-project": "Mini Project",
-  viva: "Viva Preparation",
-};
+/** Minimal, safe markdown renderer for the guide content (headings + bullet lists + paragraphs). */
+function renderContent(content: string) {
+  const lines = content.split("\n");
+  const blocks: React.ReactNode[] = [];
+  let list: string[] = [];
+
+  const flushList = (key: string) => {
+    if (list.length) {
+      blocks.push(
+        <ul key={key} className="ml-1 space-y-1.5">
+          {list.map((item, i) => (
+            <li key={i} className="flex gap-2 text-sm leading-relaxed text-muted-foreground">
+              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+              {item}
+            </li>
+          ))}
+        </ul>,
+      );
+      list = [];
+    }
+  };
+
+  lines.forEach((raw, idx) => {
+    const line = raw.trim();
+    if (!line) {
+      flushList(`ul-${idx}`);
+      return;
+    }
+    if (line.startsWith("- ")) {
+      list.push(line.slice(2));
+      return;
+    }
+    flushList(`ul-${idx}`);
+    if (line.startsWith("### ")) {
+      blocks.push(<h4 key={idx} className="text-base font-semibold">{line.slice(4)}</h4>);
+    } else if (line.startsWith("## ")) {
+      blocks.push(<h3 key={idx} className="mt-2 text-lg font-semibold">{line.slice(3)}</h3>);
+    } else if (line.startsWith("# ")) {
+      blocks.push(<h2 key={idx} className="text-xl font-bold">{line.slice(2)}</h2>);
+    } else {
+      blocks.push(<p key={idx} className="text-sm leading-relaxed text-muted-foreground">{line}</p>);
+    }
+  });
+  flushList("ul-final");
+  return blocks;
+}
 
 function TemplateDetail() {
   const { slug } = Route.useParams();
-  const title = titles[slug] ?? "Guide";
+  const { data: template, isLoading, isError } = useTemplate(slug);
+  const [checked, setChecked] = useState<Record<number, boolean>>({});
+
+  const checklist = useMemo(() => (template?.checklist as string[] | undefined) ?? [], [template]);
+  const doneCount = Object.values(checked).filter(Boolean).length;
+
+  const toggle = (i: number) => setChecked((prev) => ({ ...prev, [i]: !prev[i] }));
+
+  const downloadChecklist = () => {
+    const title = String(template?.title ?? "Checklist");
+    const body = checklist.map((c, i) => `[${checked[i] ? "x" : " "}] ${c}`).join("\n");
+    const blob = new Blob([`${title}\n\n${body}\n`], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${slug}-checklist.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <AppShell>
       <div className="flex items-center gap-3">
@@ -24,81 +85,80 @@ function TemplateDetail() {
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <div className="flex-1">
-          <Badge tone="primary">Beginner friendly</Badge>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">{title}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Complete guide · 8 min read</p>
+          {template?.category ? <Badge tone="primary">{String(template.category)}</Badge> : null}
+          <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
+            {isLoading ? "Loading…" : String(template?.title ?? "Guide")}
+          </h1>
+          {template?.summary ? (
+            <p className="mt-1 text-sm text-muted-foreground">{String(template.summary)}</p>
+          ) : null}
         </div>
-        <div className="hidden gap-2 sm:flex">
-          <button className="flex items-center gap-2 rounded-xl bg-secondary px-4 py-2.5 text-sm font-medium">
-            <Share2 className="h-4 w-4" /> Share
-          </button>
-          <button className="flex items-center gap-2 rounded-xl bg-foreground px-4 py-2.5 text-sm font-medium text-background">
+        {checklist.length > 0 && (
+          <button
+            onClick={downloadChecklist}
+            className="hidden items-center gap-2 rounded-xl bg-foreground px-4 py-2.5 text-sm font-medium text-background sm:flex"
+          >
             <Download className="h-4 w-4" /> Checklist
           </button>
-        </div>
+        )}
       </div>
-      <div className="grid gap-5 lg:grid-cols-[1fr_260px]">
+
+      {isError && (
+        <Card className="mt-6 text-sm text-destructive">This guide could not be found.</Card>
+      )}
+
+      <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_300px]">
         <div className="space-y-5">
           <Card>
-            <h2 className="text-lg font-semibold">What is it?</h2>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              PBL is a teaching method where you learn by working on a real-world project related to your current semester subject.
-              It's hands-on, team-based, and graded on innovation, implementation, presentation, and a final viva.
-            </p>
-          </Card>
-          <Card>
-            <h2 className="text-lg font-semibold">Procedure timeline</h2>
-            <ol className="mt-4 space-y-3">
-              {[
-                "Problem statement submission (Week 2-3)",
-                "Team formation (Week 3)",
-                "Literature review & planning (Week 4)",
-                "Implementation (Week 5-10)",
-                "Mid evaluation (Week 6-7)",
-                "Final review & demo (Week 11-12)",
-                "Submission (Week 12-13)",
-              ].map((s, i) => (
-                <li key={s} className="flex gap-3">
-                  <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary-soft text-xs font-semibold text-accent-foreground">
-                    {i + 1}
-                  </div>
-                  <div className="pt-0.5 text-sm">{s}</div>
-                </li>
-              ))}
-            </ol>
-          </Card>
-          <div className="grid gap-5 md:grid-cols-2">
-            <Card>
-              <h3 className="text-base font-semibold text-success">Do</h3>
-              <ul className="mt-3 space-y-2 text-sm">
-                {["Start early — week 2 if possible", "Distribute work evenly across the team", "Document everything from day one", "Practice your viva with AI mock"].map((t) => (
-                  <li key={t} className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" /> {t}</li>
+            {isLoading ? (
+              <div className="space-y-3">
+                {[0, 1, 2, 3].map((i) => (
+                  <div key={i} className="h-4 animate-pulse rounded bg-secondary" />
                 ))}
-              </ul>
-            </Card>
-            <Card>
-              <h3 className="text-base font-semibold text-destructive">Don't</h3>
-              <ul className="mt-3 space-y-2 text-sm">
-                {["Copy-paste from internet sources", "Leave everything for the last week", "Ignore team communication", "Skip the mid-evaluation prep"].map((t) => (
-                  <li key={t} className="flex gap-2"><X className="mt-0.5 h-4 w-4 shrink-0 text-destructive" /> {t}</li>
-                ))}
-              </ul>
-            </Card>
-          </div>
+              </div>
+            ) : (
+              <div className="space-y-3">{renderContent(String(template?.content ?? ""))}</div>
+            )}
+          </Card>
         </div>
+
         <aside className="space-y-5">
-          <Card>
-            <h3 className="text-sm font-semibold">On this page</h3>
-            <ul className="mt-3 space-y-2 text-sm">
-              {["What is it?", "Procedure timeline", "Do's and Don'ts", "Evaluation criteria", "Common questions"].map((s) => (
-                <li key={s}><a href="#" className="text-muted-foreground hover:text-foreground">{s}</a></li>
-              ))}
-            </ul>
-          </Card>
+          {checklist.length > 0 && (
+            <Card>
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold">Checklist</h3>
+                <span className="text-xs text-muted-foreground">
+                  {doneCount}/{checklist.length}
+                </span>
+              </div>
+              <div className="mt-3 space-y-2">
+                {checklist.map((item, i) => (
+                  <button
+                    key={i}
+                    onClick={() => toggle(i)}
+                    className="flex w-full items-start gap-2.5 text-left text-sm"
+                  >
+                    <span
+                      className={`mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded border ${
+                        checked[i] ? "border-primary bg-primary text-primary-foreground" : "border-border"
+                      }`}
+                    >
+                      {checked[i] && <Check className="h-3 w-3" />}
+                    </span>
+                    <span className={checked[i] ? "text-muted-foreground line-through" : ""}>{item}</span>
+                  </button>
+                ))}
+              </div>
+            </Card>
+          )}
+
           <Card className="bg-primary text-primary-foreground">
             <h3 className="text-base font-semibold">Ready to practice?</h3>
-            <p className="mt-1 text-xs text-primary-foreground/85">Run an AI mock viva for this guide.</p>
-            <Link to="/ai-viva/new" className="mt-4 block rounded-xl bg-primary-foreground px-4 py-2.5 text-center text-sm font-semibold text-primary">
+            <p className="mt-1 text-xs text-primary-foreground/85">Run an AI mock viva to test yourself on this guide.</p>
+            <Link
+              to="/ai-viva/new"
+              className="mt-4 block rounded-xl bg-primary-foreground px-4 py-2.5 text-center text-sm font-semibold text-primary"
+            >
               Start Mock Viva
             </Link>
           </Card>

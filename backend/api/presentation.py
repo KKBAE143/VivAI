@@ -223,6 +223,13 @@ def end_session(session_id: str, user=Depends(get_current_user)):
         "feedback_summary": report.get("summary", "Session completed."),
         "completed_at": datetime.now(timezone.utc).isoformat(),
     }
+    # Persist the report extras inside the JSON state so the report survives reloads
+    # (these fields have no dedicated DB columns).
+    state["report"] = {
+        "gaps": report.get("gaps", []),
+        "qa_feedback": report.get("qa_feedback"),
+    }
+    updates["topic_scores"] = state
     get_supabase().table("presentation_sessions").update(updates).eq("id", session_id).execute()
     log_activity(user["id"], "presentation_completed", f"Completed presentation practice ({updates['overall_score']}%)", session.get("project_id"), "presentation_session", session_id)
     return {

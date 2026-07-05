@@ -155,6 +155,26 @@ export function useCreateTeam() {
   });
 }
 
+export function useRenameTeam() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ teamId, name }: { teamId: string; name: string }) =>
+      api<ApiRecord>(`/api/teams/${teamId}`, { method: "PUT", body: { name } }),
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["team", vars.teamId] });
+      queryClient.invalidateQueries({ queryKey: ["teams"] });
+    },
+  });
+}
+
+export function useDeleteTeam() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (teamId: string) => api(`/api/teams/${teamId}`, { method: "DELETE" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["teams"] }),
+  });
+}
+
 export function useInviteMember() {
   const queryClient = useQueryClient();
   return useMutation({

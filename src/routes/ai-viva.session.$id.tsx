@@ -230,7 +230,7 @@ function VivaSession() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
                     <span>Q{Number(q.question_number ?? i + 1)}</span>
-                    {q.topic && <span className="rounded-full bg-secondary px-2 py-0.5">{String(q.topic)}</span>}
+                    {Boolean(q.topic) && <span className="rounded-full bg-secondary px-2 py-0.5">{String(q.topic)}</span>}
                   </div>
                   {score != null && (
                     <span className={`text-sm font-semibold ${score >= 60 ? "text-success" : "text-warning"}`}>
@@ -244,13 +244,13 @@ function VivaSession() {
                     <span className="text-muted-foreground">Your answer: </span>
                     {q.answer_text ? String(q.answer_text) : <span className="italic text-muted-foreground">No answer</span>}
                   </p>
-                  {q.feedback && (
+                  {Boolean(q.feedback) && (
                     <p className="rounded-xl bg-secondary p-3">
                       <span className="font-medium">Feedback: </span>
                       {String(q.feedback)}
                     </p>
                   )}
-                  {q.expected_answer && (
+                  {Boolean(q.expected_answer) && (
                     <p className="rounded-xl border border-border p-3">
                       <span className="font-medium">Model answer: </span>
                       {String(q.expected_answer)}

@@ -52,6 +52,25 @@ def get_team(team_id: str, user=Depends(get_current_user)):
     return res.data[0]
 
 
+@router.put("/{team_id}")
+def rename_team(team_id: str, body: TeamCreate, user=Depends(get_current_user)):
+    member = _membership(team_id, user["id"])
+    if not member or member["role"] != "Lead":
+        raise HTTPException(status_code=403, detail="Only the team lead can edit the team")
+    res = get_supabase().table("teams").update({"name": body.name}).eq("id", team_id).execute()
+    return res.data[0] if res.data else {}
+
+
+@router.delete("/{team_id}", status_code=204)
+def delete_team(team_id: str, user=Depends(get_current_user)):
+    member = _membership(team_id, user["id"])
+    if not member or member["role"] != "Lead":
+        raise HTTPException(status_code=403, detail="Only the team lead can delete the team")
+    sb = get_supabase()
+    sb.table("team_members").delete().eq("team_id", team_id).execute()
+    sb.table("teams").delete().eq("id", team_id).execute()
+
+
 @router.post("/{team_id}/invite")
 def invite_member(team_id: str, body: InviteRequest, user=Depends(get_current_user)):
     member = _membership(team_id, user["id"])

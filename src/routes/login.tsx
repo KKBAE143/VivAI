@@ -37,7 +37,13 @@ function Login() {
         body: { email, password },
       });
       login(res.access_token);
-      navigate({ to: "/" });
+      // Route first-time users through onboarding.
+      try {
+        const status = await api<{ complete: boolean }>("/api/onboarding/status");
+        navigate({ to: status.complete ? "/" : "/onboarding" });
+      } catch {
+        navigate({ to: "/" });
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Login failed");
     } finally {
