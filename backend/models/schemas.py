@@ -196,6 +196,7 @@ class SentimentSessionCreate(BaseModel):
 # ---------- Study: question banks & flashcards ----------
 class QuestionBankCreate(BaseModel):
     title: str
+    topic: str | None = None
     source_text: str | None = None
     file_id: str | None = None
     project_id: str | None = None

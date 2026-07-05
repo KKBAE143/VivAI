@@ -414,15 +414,24 @@ def team_viva_report(session_id: str, user=Depends(get_current_user)):
 # =====================================================
 # D. Faculty Simulation
 # =====================================================
+def _resolve_college(user: dict, override: str | None = None) -> str:
+    """Single source of truth for a user's faculty 'college' bucket.
+
+    Both create and list MUST use this so a newly added professor always shows
+    up in the list. Falls back to the profile college, then a stable default.
+    """
+    return (
+        (override or "")
+        or (user.get("profile") or {}).get("college_name")
+        or "My College"
+    ).strip() or "My College"
+
+
 @router.post("/faculty-sim/profiles", status_code=201)
 def faculty_create(body: FacultyProfileCreate, user=Depends(get_current_user)):
     # Fall back to the user's profile college, then a sensible default, so a
     # missing college never blocks adding a professor.
-    college = (
-        body.college_name
-        or (user.get("profile") or {}).get("college_name")
-        or "My College"
-    ).strip() or "My College"
+    college = _resolve_college(user, body.college_name)
     if not body.name or not body.name.strip():
         raise HTTPException(status_code=400, detail="Faculty name is required")
     record = {
@@ -452,13 +461,17 @@ def faculty_create(body: FacultyProfileCreate, user=Depends(get_current_user)):
 
 @router.get("/faculty-sim/profiles")
 def faculty_list(search: str | None = None, user=Depends(get_current_user)):
-    college = (user.get("profile") or {}).get("college_name")
-    q = get_supabase().table("faculty_profiles").select("*")
-    if college:
-        q = q.eq("college_name", college)
-    if search:
-        q = q.ilike("name", f"%{search}%")
-    return q.order("avg_rating", desc=True).execute().data
+    # Use the same college resolution as create so anything the user just added
+    # is guaranteed to appear here.
+    college = _resolve_college(user)
+    try:
+        q = get_supabase().table("faculty_profiles").select("*").eq("college_name", college)
+        if search:
+            q = q.ilike("name", f"%{search}%")
+        return q.order("avg_rating", desc=True).execute().data
+    except Exception as exc:
+        print(f"Warning: faculty_profiles table missing or query failed? {exc}")
+        return []
 
 
 @router.get("/faculty-sim/profiles/{profile_id}")

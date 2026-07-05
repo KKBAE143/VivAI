@@ -67,16 +67,36 @@ def _extract_json(text: str):
     return json.loads(match.group(0))
 
 
-def generate_json(prompt: str, system_instruction: str | None = None, default=None):
-    """Generate and parse a JSON response; return `default` on any failure."""
-    try:
-        return _extract_json(generate_text(prompt, system_instruction))
-    except Exception:
-        return default
+def generate_json(prompt: str, system_instruction: str | None = None, default=None, retries: int = 2):
+    """Generate and parse a JSON response.
+
+    Model output is non-deterministic and occasionally returns prose or a
+    truncated/invalid JSON blob. A single attempt made features like flashcard
+    generation flaky ("AI could not generate content"). We retry a couple of
+    times, nudging the model to emit strict JSON, before giving up.
+    """
+    last_err: Exception | None = None
+    for attempt in range(retries + 1):
+        try:
+            p = prompt if attempt == 0 else (
+                prompt + "\n\nIMPORTANT: Respond with ONLY valid JSON. No prose, no markdown fences."
+            )
+            return _extract_json(generate_text(p, system_instruction))
+        except Exception as exc:  # noqa: BLE001 — we intentionally retry on anything
+            last_err = exc
+    print(f"[v0] generate_json failed after {retries + 1} attempts: {last_err}")
+    return default
 
 
-def generate_json_with_image(prompt: str, image_data: bytes, mime_type: str, default=None):
-    try:
-        return _extract_json(generate_with_image(prompt, image_data, mime_type))
-    except Exception:
-        return default
+def generate_json_with_image(prompt: str, image_data: bytes, mime_type: str, default=None, retries: int = 2):
+    last_err: Exception | None = None
+    for attempt in range(retries + 1):
+        try:
+            p = prompt if attempt == 0 else (
+                prompt + "\n\nIMPORTANT: Respond with ONLY valid JSON. No prose, no markdown fences."
+            )
+            return _extract_json(generate_with_image(p, image_data, mime_type))
+        except Exception as exc:  # noqa: BLE001
+            last_err = exc
+    print(f"[v0] generate_json_with_image failed after {retries + 1} attempts: {last_err}")
+    return default

@@ -39,6 +39,7 @@ const MODE_SOURCES: Record<string, VideoSource[]> = {
   presentation: ["screen"],
   viva: ["none"],
   pitch: ["none"],
+  coach: ["camera"],
 };
 
 const LANGUAGES = LIVE_LANGUAGES;
@@ -61,6 +62,10 @@ const MODE_COPY: Record<string, { title: string; hint: string }> = {
   pitch: {
     title: "Get ready to pitch",
     hint: "You have ~90 seconds. Cover problem, solution, tech and impact. The coach listens and reacts live.",
+  },
+  coach: {
+    title: "Get ready to practice",
+    hint: "Turn on your camera so the AI coach can watch your delivery — eye contact, posture and confidence — while you speak. It role-plays your scenario and coaches you live.",
   },
 };
 
