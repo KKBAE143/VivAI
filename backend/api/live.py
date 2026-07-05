@@ -50,7 +50,11 @@ def _user_from_token(token: str) -> dict | None:
         return None
     if not user:
         return None
-    return {"id": user.id, "email": user.email}
+    meta = dict(getattr(user, "user_metadata", None) or {})
+    raw_name = (meta.get("full_name") or meta.get("name") or "").strip()
+    # Use just the first name so the examiner addresses them naturally.
+    first_name = raw_name.split()[0] if raw_name else ""
+    return {"id": user.id, "email": user.email, "name": first_name}
 
 
 def _project_context(project_id: str | None) -> str:
@@ -346,7 +350,9 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
 
     project_context = await asyncio.to_thread(_project_context, project_id)
     persist = LivePersistence(mode, session_id, user["id"], project_id, project_context, subject)
-    config = live_service.build_config(mode, persona, language, project_context, subject)
+    config = live_service.build_config(
+        mode, persona, language, project_context, subject, student_name=user.get("name")
+    )
 
     errored = False
     try:
@@ -391,34 +397,44 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                         break
 
             async def gemini_to_client():
-                async for response in session.receive():
-                    if getattr(response, "data", None):
-                        await websocket.send_bytes(response.data)
-                    sc = getattr(response, "server_content", None)
-                    if sc:
-                        it = getattr(sc, "input_transcription", None)
-                        if it and getattr(it, "text", None):
-                            persist.on_user_text(it.text)
-                            await websocket.send_json({"type": "user_transcript", "text": it.text})
-                        ot = getattr(sc, "output_transcription", None)
-                        if ot and getattr(ot, "text", None):
-                            persist.on_ai_text(ot.text)
-                            await websocket.send_json({"type": "ai_transcript", "text": ot.text})
-                        if getattr(sc, "interrupted", None):
-                            await websocket.send_json({"type": "interrupted"})
-                        if getattr(sc, "turn_complete", None):
-                            await websocket.send_json({"type": "turn_complete"})
-                    tc = getattr(response, "tool_call", None)
-                    if tc and tc.function_calls:
-                        responses = []
-                        for fc in tc.function_calls:
-                            event = persist.on_tool(fc.name, dict(fc.args or {}))
-                            if event:
-                                await websocket.send_json(event)
-                            responses.append(
-                                types.FunctionResponse(id=fc.id, name=fc.name, response={"status": "ok"})
-                            )
-                        await session.send_tool_response(function_responses=responses)
+                # IMPORTANT: `session.receive()` yields a SINGLE model turn and
+                # then ends (it breaks on turn_complete). We must re-enter it in
+                # an outer loop so the conversation continues across turns —
+                # otherwise the session dies right after the opening greeting.
+                while True:
+                    got_turn = False
+                    async for response in session.receive():
+                        got_turn = True
+                        if getattr(response, "data", None):
+                            await websocket.send_bytes(response.data)
+                        sc = getattr(response, "server_content", None)
+                        if sc:
+                            it = getattr(sc, "input_transcription", None)
+                            if it and getattr(it, "text", None):
+                                persist.on_user_text(it.text)
+                                await websocket.send_json({"type": "user_transcript", "text": it.text})
+                            ot = getattr(sc, "output_transcription", None)
+                            if ot and getattr(ot, "text", None):
+                                persist.on_ai_text(ot.text)
+                                await websocket.send_json({"type": "ai_transcript", "text": ot.text})
+                            if getattr(sc, "interrupted", None):
+                                await websocket.send_json({"type": "interrupted"})
+                            if getattr(sc, "turn_complete", None):
+                                await websocket.send_json({"type": "turn_complete"})
+                        tc = getattr(response, "tool_call", None)
+                        if tc and tc.function_calls:
+                            responses = []
+                            for fc in tc.function_calls:
+                                event = persist.on_tool(fc.name, dict(fc.args or {}))
+                                if event:
+                                    await websocket.send_json(event)
+                                responses.append(
+                                    types.FunctionResponse(id=fc.id, name=fc.name, response={"status": "ok"})
+                                )
+                            await session.send_tool_response(function_responses=responses)
+                    # If a turn yielded nothing, the connection is gone — stop.
+                    if not got_turn:
+                        break
 
             send_task = asyncio.create_task(client_to_gemini())
             recv_task = asyncio.create_task(gemini_to_client())

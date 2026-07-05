@@ -153,3 +153,27 @@
     color: var(--color-foreground);
   }
 }
+
+/* Live voice visualizer — an audio equalizer bar animation used on the
+   audio-only live session stage (Mock Viva / Pitch Drill). */
+@keyframes viv-eq {
+  0%,
+  100% {
+    transform: scaleY(0.25);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.viv-eq-bar {
+  transform-origin: center bottom;
+  animation: viv-eq 1s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .viv-eq-bar {
+    animation: none;
+    transform: scaleY(0.5);
+  }
+}
