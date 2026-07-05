@@ -20,7 +20,9 @@ function readRecoveryToken(): string {
 
 function ResetPassword() {
   const navigate = useNavigate();
-  const [accessToken, setAccessToken] = useState("");
+  // Read the recovery token during the first client render (before any other
+  // effect can strip the hash). Falls back to a post-mount read for hydration.
+  const [accessToken, setAccessToken] = useState(readRecoveryToken);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
@@ -28,13 +30,14 @@ function ResetPassword() {
   const [done, setDone] = useState(false);
 
   useEffect(() => {
-    const token = readRecoveryToken();
-    console.log("[v0] reset-password effect, token:", token);
-    setAccessToken(token);
-    if (token && window.location.hash) {
+    if (!accessToken) {
+      const token = readRecoveryToken();
+      if (token) setAccessToken(token);
+    }
+    if (window.location.hash) {
       window.history.replaceState(null, "", window.location.pathname);
     }
-  }, []);
+  }, [accessToken]);
 
   const handleSubmit = async () => {
     setError("");
