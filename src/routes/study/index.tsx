@@ -15,7 +15,7 @@ import {
   useFlashcardSummary,
 } from "@/lib/hooks-features";
 
-export const Route = createFileRoute("/study")({
+export const Route = createFileRoute("/study/")({
   head: () => ({ meta: [{ title: "Study Bank — VivAI" }] }),
   component: StudyPage,
 });

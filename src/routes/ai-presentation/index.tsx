@@ -7,7 +7,7 @@ import { ErrorState } from "@/components/error-state";
 import { useRequireAuth } from "@/lib/auth-context";
 import { useCreatePresentation, usePresentations, useProjects } from "@/lib/hooks";
 
-export const Route = createFileRoute("/ai-presentation")({
+export const Route = createFileRoute("/ai-presentation/")({
   head: () => ({
     meta: [
       { title: "AI Presentation Mock — CollgePro Navigator" },

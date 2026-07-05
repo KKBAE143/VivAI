@@ -8,7 +8,7 @@ import { CardSkeleton } from "@/components/loading-skeleton";
 import { useRequireAuth } from "@/lib/auth-context";
 import { useCreateVivaSession, useVivaSessions, useVivaStats } from "@/lib/hooks";
 
-export const Route = createFileRoute("/ai-viva")({
+export const Route = createFileRoute("/ai-viva/")({
   head: () => ({
     meta: [
       { title: "AI Mock Viva — CollgePro Navigator" },
