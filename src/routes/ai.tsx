@@ -11,6 +11,9 @@ import {
   Video,
   Sparkles,
   ArrowRight,
+  Layers,
+  Timer,
+  Gauge,
 } from "lucide-react";
 import { AppShell, Card, PageHeader, Badge } from "@/components/app-shell";
 
@@ -41,6 +44,12 @@ const hero = [
   },
 ] as const;
 
+const essentials = [
+  { to: "/study", title: "Study Bank & Flashcards", desc: "Turn your report into a viva question bank and spaced-repetition flashcards.", icon: Layers, tag: "New" },
+  { to: "/pitch-drill", title: "90-Second Pitch Drill", desc: "Nail the elevator pitch examiners ask for first. Timed, AI-scored.", icon: Timer, tag: "New" },
+  { to: "/readiness", title: "Defense Readiness", desc: "See how ready you are to defend, and exactly what to fix next.", icon: Gauge, tag: "New" },
+] as const;
+
 const tools = [
   { to: "/advanced/viva-code-aware", title: "Code-Aware Viva", desc: "AI reads your source code, asks implementation-specific questions.", icon: Code2, tag: "New" },
   { to: "/advanced/presentation-bridge", title: "Presentation → Viva Bridge", desc: "Turn weak presentation topics into targeted viva practice.", icon: GitMerge, tag: "New" },
@@ -55,7 +64,7 @@ function AIHub() {
   return (
     <AppShell>
       <PageHeader
-        title="AI Hub"
+        title="AI Tools"
         subtitle="Every AI feature that helps you learn, build, and defend your work — one tap away."
       />
 
@@ -86,6 +95,40 @@ function AIHub() {
           );
         })}
       </div>
+
+      <Card>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-semibold">Prep essentials</h3>
+            <p className="mt-1 text-xs text-muted-foreground">The everyday tools that get you defense-ready.</p>
+          </div>
+          <Badge tone="primary">3 new</Badge>
+        </div>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {essentials.map((t) => {
+            const I = t.icon;
+            return (
+              <Link
+                key={t.to}
+                to={t.to}
+                className="group block rounded-xl border border-border p-4 transition-colors hover:border-primary hover:bg-primary-soft/40"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary-soft text-accent-foreground">
+                    <I className="h-5 w-5" />
+                  </div>
+                  <Badge tone="success">{t.tag}</Badge>
+                </div>
+                <div className="mt-4 font-semibold">{t.title}</div>
+                <div className="mt-1 text-xs text-muted-foreground">{t.desc}</div>
+                <span className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-primary">
+                  Open <ArrowRight className="h-3.5 w-3.5" />
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </Card>
 
       <Card>
         <div className="flex items-center justify-between">

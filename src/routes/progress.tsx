@@ -14,6 +14,8 @@ import { AppShell, Card, PageHeader, Badge } from "@/components/app-shell";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 import { TableSkeleton } from "@/components/loading-skeleton";
+import { GamificationStrip } from "@/components/gamification-strip";
+import { AchievementsCard } from "@/components/achievements-card";
 import { useRequireAuth } from "@/lib/auth-context";
 import {
   useCreateTask,
@@ -93,6 +95,7 @@ function Progress() {
           </button>
         }
       />
+      <GamificationStrip />
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[
           { l: "Completed", v: String(done), t: "tasks done", tone: "success" },
@@ -240,6 +243,7 @@ function Progress() {
         <TrendsCard query={trendsQuery} />
         <LeaderboardCard query={leaderboardQuery} />
       </div>
+      <AchievementsCard />
     </AppShell>
   );
 }
@@ -319,7 +323,7 @@ function LeaderboardCard({ query }: { query: QueryLike<ApiRecord[]> }) {
         <Trophy className="h-4 w-4 text-warning" />
         <h3 className="text-base font-semibold">College leaderboard</h3>
       </div>
-      <p className="mt-1 text-xs text-muted-foreground">Top performers by average viva score at your college.</p>
+      <p className="mt-1 text-xs text-muted-foreground">Top students at your college, ranked by XP earned.</p>
       {query.isLoading ? (
         <div className="mt-4">
           <TableSkeleton rows={4} />
@@ -327,15 +331,17 @@ function LeaderboardCard({ query }: { query: QueryLike<ApiRecord[]> }) {
       ) : rows.length === 0 ? (
         <EmptyState
           title="No rankings yet"
-          description="Once you and your peers complete viva sessions, the leaderboard fills in here."
+          description="Once you and your peers start practicing, the leaderboard fills in here."
         />
       ) : (
         <div className="mt-4 space-y-2">
           {rows.map((r, i) => {
             const isMe = Boolean(r.is_me);
+            const xp = Number(r.xp ?? 0);
+            const streak = Number(r.current_streak ?? 0);
             return (
               <div
-                key={String(r.profile_id ?? i)}
+                key={String(r.id ?? i)}
                 className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm ${
                   isMe ? "bg-primary-soft" : "bg-secondary"
                 }`}
@@ -353,14 +359,15 @@ function LeaderboardCard({ query }: { query: QueryLike<ApiRecord[]> }) {
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="truncate font-medium">
-                    {String(r.name ?? "Student")}
+                    {String(r.full_name ?? "Student")}
                     {isMe && <span className="ml-1 text-xs text-primary">(You)</span>}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {String(r.branch ?? "—")} · {Number(r.sessions ?? 0)} sessions
+                    {String(r.branch ?? "—")}
+                    {streak > 0 && ` · ${streak}d streak`}
                   </div>
                 </div>
-                <span className="shrink-0 font-bold">{Number(r.avg_score ?? 0)}%</span>
+                <span className="shrink-0 font-bold">{xp.toLocaleString()} XP</span>
               </div>
             );
           })}
