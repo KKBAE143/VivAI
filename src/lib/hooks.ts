@@ -244,10 +244,11 @@ export function useCreateTask() {
 export function useUpdateTaskStatus() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ taskId, status }: { taskId: string; status: string }) =>
+    mutationFn: ({ taskId, status }: { taskId: string; status: string; projectId?: string }) =>
       api<ApiRecord>(`/api/tasks/${taskId}/status`, { method: "PUT", body: { status } }),
-    onSuccess: () => {
+    onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      if (vars.projectId) queryClient.invalidateQueries({ queryKey: ["project", vars.projectId] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
@@ -256,10 +257,11 @@ export function useUpdateTaskStatus() {
 export function useUpdateTask() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ taskId, ...body }: { taskId: string } & ApiRecord) =>
+    mutationFn: ({ taskId, projectId: _projectId, ...body }: { taskId: string; projectId?: string } & ApiRecord) =>
       api<ApiRecord>(`/api/tasks/${taskId}`, { method: "PUT", body }),
-    onSuccess: () => {
+    onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      if (vars.projectId) queryClient.invalidateQueries({ queryKey: ["project", vars.projectId] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
@@ -268,9 +270,11 @@ export function useUpdateTask() {
 export function useDeleteTask() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (taskId: string) => api(`/api/tasks/${taskId}`, { method: "DELETE" }),
-    onSuccess: () => {
+    mutationFn: ({ taskId }: { taskId: string; projectId?: string }) =>
+      api(`/api/tasks/${taskId}`, { method: "DELETE" }),
+    onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      if (vars.projectId) queryClient.invalidateQueries({ queryKey: ["project", vars.projectId] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
