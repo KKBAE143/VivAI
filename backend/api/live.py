@@ -297,6 +297,7 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
     language = params.get("language", "English")
     persona = params.get("persona", "balanced")
     project_id_param = params.get("project_id")
+    subject_param = (params.get("subject") or "").strip() or None
 
     user = _user_from_token(token)
     if not user:
@@ -330,12 +331,18 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                 raise ValueError("Session not found")
             row = res.data[0]
             project_id = row.get("project_id") or project_id
+            # Presentation stores its free-text topic inside topic_scores JSONB.
+            subject = ((row.get("topic_scores") or {}).get("subject")) or subject
             sb.table("presentation_sessions").update({"status": "In Progress"}).eq("id", session_id).execute()
-        # pitch: stateless, project_id comes from the query param
+        # pitch: stateless, project_id + subject come from the query params
     except Exception as exc:
         await websocket.send_json({"type": "error", "message": f"Could not load session: {exc}"})
         await websocket.close(code=4404)
         return
+
+    # A subject explicitly sent by the client always wins (lets the student
+    # personalize the session at launch time); otherwise fall back to stored.
+    subject = subject_param or subject
 
     project_context = await asyncio.to_thread(_project_context, project_id)
     persist = LivePersistence(mode, session_id, user["id"], project_id, project_context, subject)

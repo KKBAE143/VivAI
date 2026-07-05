@@ -131,6 +131,7 @@ class PresentationSessionCreate(BaseModel):
     project_id: str | None = None
     duration_minutes: int = 10
     session_type: str = "Project"
+    subject: str | None = None  # free-text topic / focus for the presentation
 
 
 class AskRequest(BaseModel):

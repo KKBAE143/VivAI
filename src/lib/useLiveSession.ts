@@ -50,6 +50,8 @@ export interface UseLiveSessionOptions {
   language?: string;
   persona?: string;
   projectId?: string | null;
+  /** Free-text subject / topic / focus so the examiner personalizes questions. */
+  subject?: string | null;
 }
 
 // ~1 frame per second keeps us within the Live API video budget.
@@ -96,7 +98,7 @@ let _eventSeq = 0;
 const nextId = () => `ev_${Date.now()}_${(_eventSeq += 1)}`;
 
 export function useLiveSession(opts: UseLiveSessionOptions) {
-  const { mode, sessionId, language = "English", persona = "balanced", projectId } = opts;
+  const { mode, sessionId, language = "English", persona = "balanced", projectId, subject } = opts;
 
   const [status, setStatus] = useState<LiveStatus>("idle");
   const [error, setError] = useState<string>("");
@@ -359,6 +361,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
       // Open the socket.
       const qs = new URLSearchParams({ token, language, persona });
       if (projectId) qs.set("project_id", projectId);
+      if (subject && subject.trim()) qs.set("subject", subject.trim());
       const ws = new WebSocket(wsUrl(`/ws/live/${mode}/${sessionId}?${qs.toString()}`));
       ws.binaryType = "arraybuffer";
       wsRef.current = ws;
@@ -381,7 +384,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
         });
       };
     },
-    [mode, sessionId, language, persona, projectId, handleMessage, sendFrame],
+    [mode, sessionId, language, persona, projectId, subject, handleMessage, sendFrame],
   );
 
   // ------------------------------ stop ---------------------------------- //

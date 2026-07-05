@@ -34,6 +34,7 @@ function PitchDrillPage() {
   const speech = useSpeechToText("English");
 
   const [projectId, setProjectId] = useState<string>("");
+  const [topic, setTopic] = useState<string>("");
   const [mode, setMode] = useState<"live" | "classic">("live");
   const [liveActive, setLiveActive] = useState(false);
   const [liveSessionId] = useState(() => `pitch-${Date.now()}`);
@@ -108,6 +109,7 @@ function PitchDrillPage() {
         mode="pitch"
         sessionId={liveSessionId}
         projectId={projectId || null}
+        subject={topic.trim() || null}
         title="Live Pitch Coach"
         subtitle="Deliver your 90-second pitch — your coach reacts and coaches you in real time."
         defaultLanguage="English"
@@ -188,6 +190,16 @@ function PitchDrillPage() {
                   </option>
                 ))}
               </select>
+              <label className="mt-4 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                What are you pitching? (optional)
+              </label>
+              <textarea
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                rows={2}
+                placeholder="e.g. An AI study-planner app for engineering students preparing for placements."
+                className="mt-2 w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm leading-relaxed focus:border-primary focus:outline-none"
+              />
               <p className="mt-3 text-xs text-muted-foreground">
                 Aim to cover:{" "}
                 <span className="font-medium text-foreground">problem, approach, tech, impact</span>
