@@ -91,7 +91,8 @@ export function PreflightSetup({
         micStreamRef.current = stream;
         setMicReady(true);
         const AudioCtor =
-          window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+          window.AudioContext ??
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
         const ctx = new AudioCtor();
         audioCtxRef.current = ctx;
         const src = ctx.createMediaStreamSource(stream);
@@ -108,7 +109,8 @@ export function PreflightSetup({
         };
         tick();
       } catch {
-        if (!cancelled) setMicError("We couldn't access your microphone. Check browser permissions and reload.");
+        if (!cancelled)
+          setMicError("We couldn't access your microphone. Check browser permissions and reload.");
       }
     })();
     return () => {
@@ -162,7 +164,9 @@ export function PreflightSetup({
 
         {/* Video source */}
         <div className="mt-6">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">What should the AI see?</h3>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            What should the AI see?
+          </h3>
           <div className="mt-3 grid grid-cols-3 gap-3">
             {sources
               .filter((s) => s.show)
@@ -189,7 +193,9 @@ export function PreflightSetup({
 
         {/* Mic check */}
         <div className="mt-6">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Microphone</h3>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Microphone
+          </h3>
           <div className="mt-3 flex items-center gap-3 rounded-xl bg-secondary px-4 py-3">
             {micError ? (
               <AlertCircle className="h-5 w-5 shrink-0 text-destructive" />
@@ -200,7 +206,11 @@ export function PreflightSetup({
             )}
             <div className="flex-1">
               <div className="text-sm font-medium">
-                {micError ? "Mic unavailable" : micReady ? "Mic connected — say something" : "Requesting mic…"}
+                {micError
+                  ? "Mic unavailable"
+                  : micReady
+                    ? "Mic connected — say something"
+                    : "Requesting mic…"}
               </div>
               <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-background">
                 <div
@@ -253,11 +263,16 @@ export function PreflightSetup({
           disabled={!micReady || starting}
           className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
         >
-          {starting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+          {starting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <CheckCircle2 className="h-4 w-4" />
+          )}
           {starting ? "Connecting…" : "Everything looks good — Go live"}
         </button>
         <p className="mt-3 text-center text-xs text-muted-foreground">
-          The AI will greet you and guide the session. Speak naturally — you can interrupt it any time.
+          The AI will greet you and guide the session. Speak naturally — you can interrupt it any
+          time.
         </p>
       </div>
     </div>

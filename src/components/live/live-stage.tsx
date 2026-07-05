@@ -47,13 +47,17 @@ export function LiveStage({ live, videoStream, title, subtitle, onEnd }: LiveSta
 
   // Autoscroll transcript.
   useEffect(() => {
-    transcriptRef.current?.scrollTo({ top: transcriptRef.current.scrollHeight, behavior: "smooth" });
+    transcriptRef.current?.scrollTo({
+      top: transcriptRef.current.scrollHeight,
+      behavior: "smooth",
+    });
   }, [live.captions, live.liveUserText, live.liveAiText]);
 
   const connecting = live.status === "connecting" || live.status === "idle";
 
   const statusPill = (() => {
-    if (live.status === "error") return { text: "Connection issue", cls: "bg-destructive/15 text-destructive" };
+    if (live.status === "error")
+      return { text: "Connection issue", cls: "bg-destructive/15 text-destructive" };
     if (connecting) return { text: "Connecting…", cls: "bg-secondary text-muted-foreground" };
     if (live.aiSpeaking) return { text: "AI speaking", cls: "bg-primary/15 text-primary" };
     return { text: "Listening", cls: "bg-success/15 text-success" };
@@ -74,7 +78,9 @@ export function LiveStage({ live, videoStream, title, subtitle, onEnd }: LiveSta
             <div className="text-xs text-muted-foreground">{subtitle}</div>
           </div>
           <div className="flex items-center gap-2">
-            <span className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${statusPill.cls}`}>
+            <span
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${statusPill.cls}`}
+            >
               <Radio className="h-3.5 w-3.5" /> {statusPill.text}
             </span>
             <button
@@ -101,7 +107,12 @@ export function LiveStage({ live, videoStream, title, subtitle, onEnd }: LiveSta
           {/* Video / stage */}
           <div className="relative overflow-hidden rounded-2xl border border-border bg-foreground/5">
             {videoStream ? (
-              <video ref={videoRef} muted playsInline className="aspect-video w-full bg-foreground/5" />
+              <video
+                ref={videoRef}
+                muted
+                playsInline
+                className="aspect-video w-full bg-foreground/5"
+              />
             ) : (
               <div className="grid aspect-video w-full place-items-center">
                 <div className="flex flex-col items-center gap-3 text-center">
@@ -110,7 +121,9 @@ export function LiveStage({ live, videoStream, title, subtitle, onEnd }: LiveSta
                       live.aiSpeaking ? "scale-110 bg-primary/20" : "bg-secondary"
                     }`}
                   >
-                    <Sparkles className={`h-9 w-9 ${live.aiSpeaking ? "text-primary" : "text-muted-foreground"}`} />
+                    <Sparkles
+                      className={`h-9 w-9 ${live.aiSpeaking ? "text-primary" : "text-muted-foreground"}`}
+                    />
                   </div>
                   <p className="text-sm text-muted-foreground">Audio-only session — just talk.</p>
                 </div>
@@ -125,7 +138,9 @@ export function LiveStage({ live, videoStream, title, subtitle, onEnd }: LiveSta
             )}
             {videoStream && (
               <span className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-background/80 px-3 py-1 text-xs font-semibold backdrop-blur">
-                <span className={`h-2 w-2 rounded-full ${connecting ? "bg-muted-foreground" : "bg-success"} ${!connecting ? "animate-pulse" : ""}`} />
+                <span
+                  className={`h-2 w-2 rounded-full ${connecting ? "bg-muted-foreground" : "bg-success"} ${!connecting ? "animate-pulse" : ""}`}
+                />
                 AI is watching
               </span>
             )}
@@ -133,7 +148,9 @@ export function LiveStage({ live, videoStream, title, subtitle, onEnd }: LiveSta
 
           {/* Live transcript */}
           <div className="rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Live conversation</h3>
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Live conversation
+            </h3>
             <div ref={transcriptRef} className="mt-3 max-h-72 space-y-3 overflow-y-auto pr-1">
               {live.captions.length === 0 && !live.liveAiText && !live.liveUserText ? (
                 <p className="py-6 text-center text-sm text-muted-foreground">
@@ -141,7 +158,10 @@ export function LiveStage({ live, videoStream, title, subtitle, onEnd }: LiveSta
                 </p>
               ) : null}
               {live.captions.map((c, i) => (
-                <div key={i} className={`flex ${c.role === "student" ? "justify-end" : "justify-start"}`}>
+                <div
+                  key={i}
+                  className={`flex ${c.role === "student" ? "justify-end" : "justify-start"}`}
+                >
                   <div
                     className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed ${
                       c.role === "student"
@@ -175,7 +195,8 @@ export function LiveStage({ live, videoStream, title, subtitle, onEnd }: LiveSta
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.nativeEvent.isComposing && e.keyCode !== 229) submitText();
+                  if (e.key === "Enter" && !e.nativeEvent.isComposing && e.keyCode !== 229)
+                    submitText();
                 }}
                 placeholder="Type instead of speaking…"
                 className="flex-1 rounded-xl bg-secondary px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
@@ -191,14 +212,18 @@ export function LiveStage({ live, videoStream, title, subtitle, onEnd }: LiveSta
           </div>
 
           {live.status === "error" && live.error && (
-            <p className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{live.error}</p>
+            <p className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {live.error}
+            </p>
           )}
         </main>
 
         {/* Live insights feed */}
         <aside className="space-y-3">
           <div className="rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Live feedback</h3>
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Live feedback
+            </h3>
             <div className="mt-3 space-y-2">
               {live.events.length === 0 ? (
                 <p className="py-4 text-center text-xs text-muted-foreground">
@@ -217,11 +242,17 @@ export function LiveStage({ live, videoStream, title, subtitle, onEnd }: LiveSta
                             {meta.label}
                           </span>
                           {ev.kind === "score" && ev.score != null && (
-                            <span className={`text-xs font-bold ${ev.score >= 60 ? "text-success" : "text-warning"}`}>
+                            <span
+                              className={`text-xs font-bold ${ev.score >= 60 ? "text-success" : "text-warning"}`}
+                            >
                               {ev.score}/100
                             </span>
                           )}
-                          {ev.topic && <span className="truncate text-[11px] text-muted-foreground">· {ev.topic}</span>}
+                          {ev.topic && (
+                            <span className="truncate text-[11px] text-muted-foreground">
+                              · {ev.topic}
+                            </span>
+                          )}
                         </div>
                         {ev.text && <p className="mt-0.5 text-sm leading-snug">{ev.text}</p>}
                       </div>

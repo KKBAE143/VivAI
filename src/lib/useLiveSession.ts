@@ -191,7 +191,10 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
         return;
       }
       if (raw.data instanceof Blob) {
-        raw.data.arrayBuffer().then(playChunk).catch(() => {});
+        raw.data
+          .arrayBuffer()
+          .then(playChunk)
+          .catch(() => {});
         return;
       }
       let msg: Record<string, unknown>;
@@ -289,7 +292,9 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
 
       // Playback context (resampled from 24kHz buffers).
       try {
-        const PlaybackCtx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        const PlaybackCtx =
+          window.AudioContext ??
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
         playbackCtxRef.current = new PlaybackCtx();
         await playbackCtxRef.current.resume().catch(() => {});
       } catch {
@@ -300,7 +305,9 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
 
       // Capture context — prefer a native 16kHz context, else downsample.
       try {
-        const CaptureCtx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        const CaptureCtx =
+          window.AudioContext ??
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
         let ctx: AudioContext;
         try {
           ctx = new CaptureCtx({ sampleRate: CAPTURE_SAMPLE_RATE });

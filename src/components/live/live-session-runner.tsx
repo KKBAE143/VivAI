@@ -61,7 +61,11 @@ export function LiveSessionRunner({
 
   // When the session ends, tear down media tracks and notify the parent once.
   useEffect(() => {
-    if ((live.status === "ended" || live.status === "error") && !endedRef.current && phase === "live") {
+    if (
+      (live.status === "ended" || live.status === "error") &&
+      !endedRef.current &&
+      phase === "live"
+    ) {
       endedRef.current = true;
       micStreamRef.current?.getTracks().forEach((t) => t.stop());
       videoStream?.getTracks().forEach((t) => t.stop());
@@ -87,5 +91,13 @@ export function LiveSessionRunner({
     );
   }
 
-  return <LiveStage live={live} videoStream={videoStream} title={title} subtitle={subtitle} onEnd={handleEnd} />;
+  return (
+    <LiveStage
+      live={live}
+      videoStream={videoStream}
+      title={title}
+      subtitle={subtitle}
+      onEnd={handleEnd}
+    />
+  );
 }
