@@ -91,6 +91,17 @@ SESSION FLOW (follow in order):
 3. After the pitch, fire 2-3 rapid investor questions (market, differentiation, feasibility, impact).
 4. Keep the energy high and turns short.
 5. When done, give a brief closing remark, tell them the drill is complete and you're preparing feedback, then call the `end_session` tool.""",
+    "coach": """ROLE: You are an AI COMMUNICATION COACH running a LIVE practice session over the student's CAMERA. You CAN see the student on their webcam — use it. The specific scenario to run is given in the SCENARIO section below (e.g. Interview, Viva, Project Presentation, Group Discussion, Pitch, Seminar, or Public Speaking). Play the matching role convincingly: for an Interview you are the interviewer; for a Viva you are the examiner; for a Presentation you are faculty; for a Pitch you are an investor; for a Group Discussion/Seminar/Public Speaking you are a facilitator and audience.
+
+YOU ARE BOTH A CONVERSATION PARTNER AND A LIVE COACH. Your job is to (a) keep a realistic scenario conversation going, and (b) continuously coach the student on HOW they communicate — not just what they say.
+
+SESSION FLOW (follow in order):
+1. GREETING (your very first turn, ~15 seconds): Introduce yourself ONE time as their AI communication coach, name the scenario you'll run, and tell them you'll be watching their delivery on camera and giving live tips. Then immediately start the scenario with your first prompt/question. Give this introduction EXACTLY ONCE.
+2. Run the scenario naturally, one prompt/question at a time, and LISTEN.
+3. While they speak and between turns, give SHORT, specific, encouraging coaching based on what you SEE and HEAR — e.g. "Try to look at the camera", "Slow down a little", "Sit up straight", "Great — that was confident", "Watch the filler words". Weave 1 quick coaching tip into most of your turns, but never lecture.
+4. Observe and (silently, via the flag_moment tool) log delivery signals: eye contact, posture/body language, confidence, energy, pace, filler words, smile, engagement, nervousness.
+5. Cover 5-8 exchanges. Keep YOUR turns short — the student should do most of the talking.
+6. When done, give a brief encouraging closing remark, tell them you're preparing their communication report, then call the `end_session` tool.""",
 }
 
 
@@ -113,7 +124,15 @@ def build_system_instruction(
         else 'You do not know the student\'s name — address them directly as "you". '
         "Always address this ONE person individually — never greet a group or use a plural/collective address.\n\n"
     )
-    if project_context.strip():
+    if mode == "coach":
+        scenario = (subject or "").strip() or "Interview"
+        ctx = (
+            f"SCENARIO TO RUN: {scenario}. Fully play the role this scenario implies and coach the "
+            "student's live communication and delivery throughout."
+        )
+        if project_context.strip():
+            ctx += f"\n\nRelevant project the student may reference:\n{project_context.strip()}"
+    elif project_context.strip():
         ctx = project_context.strip()
     elif subject:
         ctx = f"No project was provided. Examine the student specifically on this subject/topic: {subject}. Ask concrete, progressively harder questions on it."
@@ -144,7 +163,7 @@ CRITICAL RULES:
 - GREET EXACTLY ONCE. Deliver your introduction and opening a SINGLE time, then move on. NEVER repeat, restate or re-word your greeting/introduction, and never produce more than one opening in a row. If you have already introduced yourself, do not do it again.
 - Ask ONE question at a time and then LISTEN. Never dump multiple questions at once.
 - Keep each spoken turn short (2-4 sentences). This is a dialogue, not a monologue.
-- Stay strictly in your role for this mode. {"Do NOT mention screens or screen sharing." if mode != "presentation" else "Ground feedback in what is visible on the shared screen."}
+- Stay strictly in your role for this mode. {"Ground feedback in what is visible on the shared screen." if mode == "presentation" else "Coach on what you see of the student on their camera (eye contact, posture, expression) as well as what you hear." if mode == "coach" else "Do NOT mention screens or screen sharing."}
 - ENDING THE SESSION: When the session is genuinely complete (you have covered enough and delivered your brief closing remark), you MUST call the `end_session` tool exactly once. This is what generates the student's report — do NOT just fall silent and wait. Speak your one-line closing, then call `end_session`.
 
 STRUCTURED LOGGING (call these tools SILENTLY in the background — never read them aloud or mention JSON):
@@ -160,6 +179,7 @@ _GREETING_TRIGGER = {
     "viva": "The viva is now starting. Please greet me and ask your first question.",
     "presentation": "I'm about to start presenting. Please greet me and tell me when to begin.",
     "pitch": "I'm ready for the pitch drill. Please greet me and give me the challenge.",
+    "coach": "I'm ready to practice. Please greet me, tell me the scenario, and start.",
 }
 
 
@@ -283,6 +303,9 @@ def analyze_transcript(mode: str, transcript: list[dict], project_context: str, 
     if not convo:
         return {"questions": [], "overall_score": 0, "summary": "No conversation was recorded.", "strengths": [], "weaknesses": []}
 
+    if mode == "coach":
+        return _analyze_coach_transcript(convo, subject)
+
     role = {
         "viva": "an oral viva examination",
         "presentation": "a live project presentation review",
@@ -342,6 +365,71 @@ Rules: score answers on correctness, depth and clarity. If the student never rea
         "summary": str(result.get("summary", "")).strip() or "Session completed.",
         "strengths": result.get("strengths") or [],
         "weaknesses": result.get("weaknesses") or [],
+    }
+
+
+def _analyze_coach_transcript(convo: str, subject: str | None) -> dict:
+    """Grade a communication-coaching session and produce a delivery report.
+
+    Coach mode is about HOW the student communicated, so the report centers on
+    delivery scores (confidence, communication, clarity) rather than a Q&A grade.
+    The returned dict still fits the common summary shape used by finalize().
+    """
+    from ai import gemini_service
+
+    scenario = (subject or "a communication practice session").strip()
+    prompt = f"""You are an expert communication coach reviewing the transcript of a live practice session (scenario: {scenario}) between an AI COACH and a STUDENT.
+
+TRANSCRIPT:
+{convo}
+
+Based ONLY on the transcript, assess how the student COMMUNICATED (clarity, structure, confidence in wording, engagement, filler/hesitation, how well they answered). You cannot see video, so infer delivery from the words and the coach's spoken observations.
+Return STRICT JSON only, no prose, in exactly this shape:
+{{
+  "overall_score": 0-100,
+  "confidence_score": 0-100,
+  "communication_score": 0-100,
+  "clarity_score": 0-100,
+  "engagement_score": 0-100,
+  "strengths": ["..."],
+  "weaknesses": ["..."],
+  "recommendations": ["specific actionable tip", "..."],
+  "summary": "3-4 sentence coaching summary addressed to the student"
+}}
+Be honest and specific. If the student barely spoke, score low and say so."""
+
+    result = gemini_service.generate_json(prompt, default=None)
+    if not isinstance(result, dict):
+        return {
+            "questions": [], "overall_score": 0,
+            "summary": "Could not analyze the session automatically.",
+            "strengths": [], "weaknesses": [],
+        }
+
+    def _score(key: str) -> int:
+        try:
+            return max(0, min(100, int(result.get(key) or 0)))
+        except (ValueError, TypeError):
+            return 0
+
+    overall = _score("overall_score")
+    coach_metrics = {
+        "confidence": _score("confidence_score"),
+        "communication": _score("communication_score"),
+        "clarity": _score("clarity_score"),
+        "engagement": _score("engagement_score"),
+    }
+    if not overall:
+        vals = [v for v in coach_metrics.values() if v]
+        overall = round(sum(vals) / len(vals)) if vals else 0
+    return {
+        "questions": [],
+        "overall_score": overall,
+        "summary": str(result.get("summary", "")).strip() or "Communication session completed.",
+        "strengths": result.get("strengths") or [],
+        "weaknesses": result.get("weaknesses") or [],
+        "recommendations": result.get("recommendations") or [],
+        "coach_metrics": coach_metrics,
     }
 
 

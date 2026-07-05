@@ -20,7 +20,7 @@ export interface PreflightResult {
 }
 
 interface PreflightSetupProps {
-  mode: "viva" | "presentation" | "pitch";
+  mode: "viva" | "presentation" | "pitch" | "coach";
   defaultLanguage?: string;
   defaultPersona?: string;
   /** Show the examiner persona picker (viva). */

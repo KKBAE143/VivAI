@@ -416,20 +416,37 @@ def team_viva_report(session_id: str, user=Depends(get_current_user)):
 # =====================================================
 @router.post("/faculty-sim/profiles", status_code=201)
 def faculty_create(body: FacultyProfileCreate, user=Depends(get_current_user)):
-    college = body.college_name or (user.get("profile") or {}).get("college_name")
-    if not college:
-        raise HTTPException(status_code=400, detail="Set your college in your profile first")
-    res = get_supabase().table("faculty_profiles").upsert(
-        {
-            "college_name": college,
-            "name": body.name,
-            "subjects": body.subjects,
-            "style_tags": body.style_tags,
-            "known_patterns": body.known_patterns,
-            "difficulty_level": body.difficulty_level,
-        },
-        on_conflict="college_name,name",
-    ).execute()
+    # Fall back to the user's profile college, then a sensible default, so a
+    # missing college never blocks adding a professor.
+    college = (
+        body.college_name
+        or (user.get("profile") or {}).get("college_name")
+        or "My College"
+    ).strip() or "My College"
+    if not body.name or not body.name.strip():
+        raise HTTPException(status_code=400, detail="Faculty name is required")
+    record = {
+        "college_name": college,
+        "name": body.name.strip(),
+        "subjects": body.subjects,
+        "style_tags": body.style_tags,
+        "known_patterns": body.known_patterns,
+        "difficulty_level": body.difficulty_level,
+    }
+    sb = get_supabase()
+    try:
+        res = sb.table("faculty_profiles").upsert(
+            record, on_conflict="college_name,name"
+        ).execute()
+    except Exception as exc:
+        # If the unique constraint for upsert isn't present, fall back to insert.
+        print(f"faculty upsert failed, retrying as insert: {exc}")
+        try:
+            res = sb.table("faculty_profiles").insert(record).execute()
+        except Exception as exc2:
+            raise HTTPException(status_code=500, detail=f"Could not save faculty: {exc2}")
+    if not res.data:
+        raise HTTPException(status_code=500, detail="Could not save faculty profile")
     return res.data[0]
 
 

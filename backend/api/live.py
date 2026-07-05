@@ -194,6 +194,10 @@ class LivePersistence:
             "strengths": analysis.get("strengths", []) if isinstance(analysis, dict) else [],
             "weaknesses": analysis.get("weaknesses", []) if isinstance(analysis, dict) else [],
         }
+        if isinstance(analysis, dict) and self.mode == "coach":
+            # Delivery-focused fields for the communication coach report.
+            summary["coach_metrics"] = analysis.get("coach_metrics", {})
+            summary["recommendations"] = analysis.get("recommendations", [])
         try:
             if self.mode == "viva":
                 for i, q in enumerate(self.questions, start=1):
@@ -256,6 +260,15 @@ class LivePersistence:
             elif self.mode == "pitch":
                 log_activity(self.user_id, "pitch_completed", f"Completed a live pitch drill ({overall}%)", self.project_id)
                 gamification_service.award_xp(self.user_id, "pitch_completed")
+
+            elif self.mode == "coach":
+                # Stateless like pitch — the report is delivered inline via the
+                # "ended" summary. Just log the activity + award XP.
+                log_activity(self.user_id, "coach_completed", f"Completed a communication coaching session ({overall}%)", self.project_id)
+                try:
+                    gamification_service.award_xp(self.user_id, "pitch_completed")
+                except Exception:
+                    pass
         except Exception as exc:  # never let persistence crash the socket close
             print(f"[live] finalize error ({self.mode}): {exc}")
         return summary
@@ -309,7 +322,7 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
         await websocket.close(code=4401)
         return
 
-    if mode not in ("viva", "presentation", "pitch"):
+    if mode not in ("viva", "presentation", "pitch", "coach"):
         await websocket.send_json({"type": "error", "message": f"Unknown mode '{mode}'"})
         await websocket.close(code=4400)
         return
