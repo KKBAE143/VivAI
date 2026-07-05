@@ -44,7 +44,15 @@ function BankDetailPage() {
             </div>
             <button
               onClick={() =>
-                toViva.mutate({ id }, { onSuccess: () => navigate({ to: "/ai-viva" }) })
+                toViva.mutate(
+                  { id },
+                  {
+                    onSuccess: (session) => {
+                      const sid = String((session as ApiRecord)?.id ?? "");
+                      navigate(sid ? { to: "/ai-viva/session/$id", params: { id: sid } } : { to: "/ai-viva" });
+                    },
+                  },
+                )
               }
               disabled={toViva.isPending}
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
@@ -70,7 +78,7 @@ function QuestionRow({ index, q }: { index: number; q: ApiRecord }) {
     <Card className="!p-0">
       <button onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-3 p-4 text-left">
         <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-secondary text-xs font-bold">{index + 1}</span>
-        <span className="min-w-0 flex-1 text-sm font-medium">{String(q.question ?? q.text ?? "")}</span>
+        <span className="min-w-0 flex-1 text-sm font-medium">{String(q.question_text ?? q.question ?? q.text ?? "")}</span>
         <Badge tone={difficulty === "Hard" ? "destructive" : difficulty === "Easy" ? "success" : "warning"}>{difficulty}</Badge>
         <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
@@ -78,7 +86,7 @@ function QuestionRow({ index, q }: { index: number; q: ApiRecord }) {
         <div className="border-t border-border px-4 py-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Model answer</p>
           <p className="mt-2 text-sm leading-relaxed text-foreground">
-            {String(q.answer ?? q.model_answer ?? "No model answer available.")}
+            {String(q.expected_answer ?? q.answer ?? q.model_answer ?? "No model answer available.")}
           </p>
           {q.topic ? <p className="mt-3 text-xs text-muted-foreground">Topic: {String(q.topic)}</p> : null}
         </div>

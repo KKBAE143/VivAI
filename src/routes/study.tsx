@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Layers, Plus, Trash2, Loader2, BrainCircuit, Sparkles, GraduationCap, ArrowRight } from "lucide-react";
 
@@ -102,6 +102,17 @@ function FlashcardCard({ summary }: { summary?: { total: number; due: number; le
 function BankTile({ bank }: { bank: { id: string; title: string; question_count: number; card_count?: number } }) {
   const del = useDeleteBank();
   const toViva = useBankToViva();
+  const navigate = useNavigate();
+  const startViva = () =>
+    toViva.mutate(
+      { id: bank.id },
+      {
+        onSuccess: (session) => {
+          const sid = String((session as { id?: unknown })?.id ?? "");
+          navigate(sid ? { to: "/ai-viva/session/$id", params: { id: sid } } : { to: "/ai-viva" });
+        },
+      },
+    );
   return (
     <Card className="flex flex-col">
       <div className="flex items-start justify-between gap-2">
@@ -130,7 +141,7 @@ function BankTile({ bank }: { bank: { id: string; title: string; question_count:
           <Sparkles className="h-3.5 w-3.5" /> Open
         </Link>
         <button
-          onClick={() => toViva.mutate({ id: bank.id })}
+          onClick={startViva}
           disabled={toViva.isPending}
           className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-50"
         >
