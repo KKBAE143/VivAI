@@ -100,9 +100,19 @@ def build_system_instruction(
     language: str,
     project_context: str,
     subject: str | None = None,
+    student_name: str | None = None,
 ) -> str:
     tone = _PERSONA_TONE.get(persona, _PERSONA_TONE["balanced"])
     playbook = _MODE_PLAYBOOK.get(mode, _MODE_PLAYBOOK["viva"])
+    name = (student_name or "").strip()
+    name_line = (
+        f"STUDENT'S NAME: {name}. Greet them by their first name once at the start "
+        f'(e.g. "Hello {name}") and use it occasionally. Always address this ONE person '
+        "individually — never greet a group or use a plural/collective address.\n\n"
+        if name
+        else 'You do not know the student\'s name — address them directly as "you". '
+        "Always address this ONE person individually — never greet a group or use a plural/collective address.\n\n"
+    )
     if project_context.strip():
         ctx = project_context.strip()
     elif subject:
@@ -124,7 +134,7 @@ def build_system_instruction(
 
 PERSONALITY: {tone}
 
-LANGUAGE: Speak naturally in {language}. If the language is Hinglish, mix Hindi and English the way Indian faculty actually do. Keep sentences short and clear for text-to-speech.
+{name_line}LANGUAGE: Speak naturally in {language}. If the language is Hinglish, mix Hindi and English the way Indian faculty actually do. Keep sentences short and clear for text-to-speech.
 
 {subject_line}PROJECT CONTEXT (personalize every question with this — never ask generic questions when you have real details here):
 {ctx}
@@ -216,10 +226,13 @@ def build_config(
     language: str,
     project_context: str,
     subject: str | None = None,
+    student_name: str | None = None,
 ) -> types.LiveConnectConfig:
     settings = get_settings()
     voice = (settings.gemini_live_voice or DEFAULT_VOICE).strip() or DEFAULT_VOICE
-    system_instruction = build_system_instruction(mode, persona, language, project_context, subject)
+    system_instruction = build_system_instruction(
+        mode, persona, language, project_context, subject, student_name
+    )
     return types.LiveConnectConfig(
         response_modalities=["AUDIO"],
         media_resolution="MEDIA_RESOLUTION_MEDIUM",
