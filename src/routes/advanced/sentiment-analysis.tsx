@@ -92,7 +92,7 @@ function SentimentAnalysis() {
             <Meter label="Eye Contact" value={Number(metrics?.eye_contact ?? 0)} />
             <Meter label="Energy" value={Number(metrics?.energy ?? 0)} />
             <Meter label="Stress" value={Number(metrics?.stress ?? 0)} />
-            {metrics?.observation && <p className="text-xs text-muted-foreground">{String(metrics.observation)}</p>}
+            {Boolean(metrics?.observation) && <p className="text-xs text-muted-foreground">{String(metrics?.observation)}</p>}
           </div>
           {report && (
             <div className="mt-4 border-t pt-3 text-sm">

@@ -7,6 +7,9 @@ import { useCreateVivaSession, useProjects } from "@/lib/hooks";
 
 export const Route = createFileRoute("/ai-viva/new")({
   head: () => ({ meta: [{ title: "Configure Mock Viva — CollgePro Navigator" }] }),
+  validateSearch: (search: Record<string, unknown>): { projectId?: string } => ({
+    projectId: typeof search.projectId === "string" ? search.projectId : undefined,
+  }),
   component: NewViva,
 });
 
@@ -27,11 +30,12 @@ const FOCUS_AREAS = ["Algorithms", "Database", "Networking", "OOP", "Machine Lea
 
 function NewViva() {
   useRequireAuth();
+  const { projectId: initialProjectId } = Route.useSearch();
   const { data: projects } = useProjects();
   const [sessionType, setSessionType] = useState<string>("Project");
   const [duration, setDuration] = useState(20);
   const [difficulty, setDifficulty] = useState("Adaptive");
-  const [projectId, setProjectId] = useState("");
+  const [projectId, setProjectId] = useState(initialProjectId ?? "");
   const [language, setLanguage] = useState("English");
   const [focusAreas, setFocusAreas] = useState<string[]>([]);
   const [error, setError] = useState("");
