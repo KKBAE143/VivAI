@@ -13,6 +13,7 @@ from api import (
     auth,
     files,
     gamification,
+    live,
     presentation,
     projects,
     readiness,
@@ -50,6 +51,7 @@ for router in (
     study.router,
     gamification.router,
     readiness.router,
+    live.router,
 ):
     app.include_router(router)
 
