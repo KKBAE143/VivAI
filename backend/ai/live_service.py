@@ -13,6 +13,10 @@ Design goals:
 - Structured output alongside speech: tool/function calls (`flag_moment`,
   `record_question`, `score_response`) let us persist the same scores/questions
   the existing report pages already render.
+
+Live models tried in order of preference: gemini-3.1-flash-live-preview (newer,
+more powerful), gemini-2.5-flash-live-preview (flagship Live fallback). Override
+via GEMINI_LIVE_MODEL env var.
 """
 from __future__ import annotations
 
