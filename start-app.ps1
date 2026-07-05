@@ -108,8 +108,10 @@ if (-not $bun) {
 }
 Write-Host "  bun: $($bun.Source)" -ForegroundColor DarkGray
 
-$pyCmd = Get-PythonCmd
-if (-not $pyCmd) {
+# Wrap in @() so a single-element result (e.g. @("python")) is not unwrapped
+# by PowerShell into a scalar string (which would make $pyCmd[0] == "p").
+$pyCmd = @(Get-PythonCmd)
+if (-not $pyCmd -or $pyCmd.Count -eq 0) {
     Write-Host "  ERROR: Python 3 was not found (tried py, python, python3)." -ForegroundColor Red
     Write-Host "         Install Python 3.10+ from https://python.org then re-run." -ForegroundColor Red
     Read-Host "Press Enter to exit"
@@ -127,10 +129,11 @@ $VenvPython = Join-Path $VenvDir "Scripts\python.exe"
 if (-not (Test-Path $VenvPython)) {
     Write-Host "  Creating virtual environment (.venv)..."
     $pyExe  = $pyCmd[0]
-    $pyPre  = @()
-    if ($pyCmd.Length -gt 1) { $pyPre = $pyCmd[1..($pyCmd.Length - 1)] }
+    $pyArgs = @()
+    if ($pyCmd.Count -gt 1) { $pyArgs += $pyCmd[1..($pyCmd.Count - 1)] }
+    $pyArgs += @("-m", "venv", ".venv")
     Push-Location $BackendDir
-    & $pyExe @pyPre -m venv .venv
+    & $pyExe @pyArgs
     Pop-Location
 }
 
