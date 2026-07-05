@@ -33,10 +33,10 @@ function Login() {
     setLoading(true);
     setError("");
     try {
-      const res = await api<{ access_token: string }>("/api/auth/login", {
+      const res = await api<{ access_token: string; refresh_token?: string | null }>("/api/auth/login", {
         body: { email, password },
       });
-      login(res.access_token);
+      login(res.access_token, res.refresh_token ?? null);
       // Route first-time users through onboarding.
       try {
         const status = await api<{ complete: boolean }>("/api/onboarding/status");

@@ -83,9 +83,11 @@ def signup(body: SignupRequest):
         }
     ).execute()
     token = res.session.access_token if res.session else None
+    refresh = res.session.refresh_token if res.session else None
     return {
         "user_id": res.user.id,
         "access_token": token,
+        "refresh_token": refresh,
         "email_confirmation_required": token is None,
     }
 

@@ -89,6 +89,7 @@ export function useCreateBank() {
   return useMutation({
     mutationFn: (body: {
       title: string;
+      topic?: string;
       source_text?: string;
       file_id?: string;
       project_id?: string | null;

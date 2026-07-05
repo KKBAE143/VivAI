@@ -126,6 +126,21 @@ Source material:
 Generate {count} atomic flashcards (one fact/concept each) covering the key concepts, definitions, and technical decisions.
 Return STRICT JSON: {{"cards": [{{"front": "question or term", "back": "concise answer/definition", "topic": "short topic label"}}]}}"""
 
+# Topic-based generation (no source material required — use your own knowledge).
+STUDY_QUESTION_BANK_TOPIC = """You are a B.Tech faculty member preparing a viva question bank on a topic for a student.
+Topic: {topic}
+{notes}
+
+Using your own expert knowledge of this topic (and any optional notes above), generate {count} exam-quality viva questions a real examiner would ask, spanning easy, medium and hard.
+Return STRICT JSON: {{"questions": [{{"question": "...", "answer": "concise model answer", "topic": "short sub-topic label", "difficulty": "Easy|Medium|Hard"}}]}}"""
+
+STUDY_FLASHCARDS_TOPIC = """You are creating spaced-repetition study flashcards on a topic for a student.
+Topic: {topic}
+{notes}
+
+Using your own expert knowledge of this topic (and any optional notes above), generate {count} atomic flashcards (one fact/concept each) covering the key concepts, definitions, formulas and technical details a student must know.
+Return STRICT JSON: {{"cards": [{{"front": "question or term", "back": "concise answer/definition", "topic": "short sub-topic label"}}]}}"""
+
 # ---------- Readiness: 90-second pitch drill ----------
 PITCH_EVAL = """You are a viva examiner judging a student's 90-second project "elevator pitch".
 Project context: {project_context}

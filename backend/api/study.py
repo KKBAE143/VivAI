@@ -43,19 +43,26 @@ def list_banks(user=Depends(get_current_user)):
 @router.post("/banks", status_code=201)
 def create_bank(body: QuestionBankCreate, user=Depends(get_current_user)):
     uid = user["id"]
-    # Generate questions + flashcards, from either a file or pasted text.
+    # Generate questions + flashcards from whichever source is available.
+    # Priority: uploaded file → pasted notes → topic (AI's own knowledge).
+    topic = (body.topic or "").strip()
+    notes = (body.source_text or "").strip()
     if body.file_id:
         data, mime = _download_file_bytes(body.file_id, uid)
         generated = study_core.generate_from_image(data, mime, body.count)
         questions, cards = generated["questions"], generated["cards"]
-    elif body.source_text and body.source_text.strip():
-        questions = study_core.generate_question_bank(body.source_text, body.count)
-        cards = study_core.generate_flashcards(body.source_text, body.count)
+    elif topic:
+        # Topic-driven: notes are optional; the AI uses its own knowledge.
+        questions = study_core.generate_question_bank_from_topic(topic, notes, body.count)
+        cards = study_core.generate_flashcards_from_topic(topic, notes, body.count)
+    elif notes:
+        questions = study_core.generate_question_bank(notes, body.count)
+        cards = study_core.generate_flashcards(notes, body.count)
     else:
-        raise HTTPException(status_code=400, detail="Provide either source_text or file_id")
+        raise HTTPException(status_code=400, detail="Provide a topic, notes, or a file")
 
     if not questions and not cards:
-        raise HTTPException(status_code=502, detail="AI could not generate content from this source; try again")
+        raise HTTPException(status_code=502, detail="AI could not generate content; please try again")
 
     sb = get_supabase()
     bank = sb.table("question_banks").insert(
