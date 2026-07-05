@@ -13,6 +13,10 @@ Design goals:
 - Structured output alongside speech: tool/function calls (`flag_moment`,
   `record_question`, `score_response`) let us persist the same scores/questions
   the existing report pages already render.
+
+Live models tried in order of preference: gemini-3.1-flash-live-preview (newer,
+more powerful), gemini-2.5-flash-live-preview (flagship Live fallback). Override
+via GEMINI_LIVE_MODEL env var.
 """
 from __future__ import annotations
 
@@ -23,12 +27,11 @@ from google.genai import types
 
 from core.config import get_settings
 
-# Preview Live models, tried in order. Native-audio dialog models sound the most
-# human; the flash-live model is the broadly-available fallback on the free tier.
+# Preview Live models, tried in order. 3.1 Flash Live is the newest and most
+# powerful; 2.5 Flash Live is the flagships Live fallback.
 LIVE_MODELS = [
-    "gemini-2.0-flash-live-001",
-    "gemini-live-2.5-flash-preview",
-    "gemini-2.5-flash-preview-native-audio-dialog",
+    "gemini-3.1-flash-live-preview",
+    "gemini-2.5-flash-live-preview",
 ]
 
 # Gemini prebuilt voices (natural, not robotic). Overridable via settings.
