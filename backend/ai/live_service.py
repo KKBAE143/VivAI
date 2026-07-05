@@ -105,6 +105,49 @@ SESSION FLOW (follow in order):
 }
 
 
+# Blended (code-mixed) languages -> the two languages they mix.
+_BLENDED_LANGUAGES = {
+    "hinglish": "Hindi and English",
+    "tenglish": "Telugu and English",
+    "tanglish": "Tamil and English",
+}
+# Pure regional languages the model must actually speak (not silently fall back
+# to English). Technical terms stay in English, as is normal in Indian classes.
+_PURE_REGIONAL = {
+    "hindi", "telugu", "tamil", "kannada", "malayalam",
+    "marathi", "bengali", "gujarati", "punjabi",
+}
+
+
+def _language_directive(language: str) -> str:
+    """A forceful, unambiguous instruction for the requested language.
+
+    Live models default to English unless strongly and repeatedly told which
+    language to speak — especially for code-mixed blends like Tenglish, where
+    they otherwise drift into pure English. This is injected near the top of the
+    system prompt AND into the opening trigger.
+    """
+    key = (language or "English").strip().lower()
+    if key == "english":
+        return "Speak ONLY in clear, natural English for the ENTIRE session, starting from your very first greeting."
+    if key in _BLENDED_LANGUAGES:
+        pair = _BLENDED_LANGUAGES[key]
+        return (
+            f"Speak in {language.strip()} for the ENTIRE session, starting from your very first greeting. "
+            f"{language.strip()} means naturally CODE-MIXING {pair} within the same sentences, exactly the way "
+            f"Indian students and faculty actually talk. MOST of your sentences must contain words from BOTH "
+            f"{pair}. Do NOT speak only English, and do NOT speak only the regional language — you MUST blend "
+            f"them together. Keep technical/engineering terms in English."
+        )
+    if key in _PURE_REGIONAL:
+        return (
+            f"Speak PRIMARILY in {language.strip()} for the ENTIRE session, starting from your very first "
+            f"greeting. Use {language.strip()} for almost everything; keep ONLY standard technical/engineering "
+            f"terms in English (as is normal in Indian classrooms). Do NOT default to or drift into English."
+        )
+    return f"Speak naturally in {language.strip()} for the entire session, starting from your very first greeting."
+
+
 def build_system_instruction(
     mode: str,
     persona: str,
@@ -132,6 +175,13 @@ def build_system_instruction(
         )
         if project_context.strip():
             ctx += f"\n\nRelevant project the student may reference:\n{project_context.strip()}"
+        else:
+            ctx += (
+                "\n\nThe student has NOT provided any project, product or topic. Do NOT invent, assume or "
+                "name any project, product, company, feature or statistic. If the scenario needs a subject, "
+                "ASK the student what role, company or topic they want to practise and adapt to their answer — "
+                "never make one up."
+            )
     elif project_context.strip():
         ctx = project_context.strip()
     elif subject:
@@ -147,20 +197,23 @@ def build_system_instruction(
             "fundamentals and going deeper based on their answers."
         )
     subject_line = f"SUBJECT FOCUS (weight your questions toward this): {subject}.\n\n" if subject else ""
+    lang_directive = _language_directive(language)
     return f"""You are VivAI, an advanced real-time voice examiner and coach for Indian B.Tech students in 2026. You sound like a real human professor — natural pacing, warmth, and authority — never a robotic read-aloud.
+
+LANGUAGE (MOST IMPORTANT — obey for EVERY single turn, including the greeting): {lang_directive} Keep sentences short and clear for text-to-speech.
 
 {playbook}
 
 PERSONALITY: {tone}
 
-{name_line}LANGUAGE: Speak naturally in {language}. For blended options like Hinglish, Tenglish or Tanglish, mix that regional language with English exactly the way Indian faculty and students actually talk in class. For a pure regional language (e.g. Telugu, Tamil, Kannada, Malayalam, Marathi, Bengali, Gujarati, Punjabi), speak primarily in that language but keep standard technical/engineering terms in English, since that is how the subject is taught. Keep sentences short and clear for text-to-speech.
-
-{subject_line}PROJECT CONTEXT (personalize every question with this — never ask generic questions when you have real details here):
+{name_line}{subject_line}PROJECT CONTEXT (personalize every question with this — never ask generic questions when you have real details here):
 {ctx}
 
 CRITICAL RULES:
+- LANGUAGE: {lang_directive}
+- NEVER invent, assume or make up ANY facts about the student, their project, product, company, team, results, numbers or background. Use ONLY details explicitly given in PROJECT CONTEXT or SUBJECT above. If a detail was not provided, do NOT fabricate it (never invent a project name) — ask the student or keep it general.
 - SPEAK FIRST. Your very first turn is the greeting described above — begin talking the moment the session starts, without waiting for the student.
-- GREET EXACTLY ONCE. Deliver your introduction and opening a SINGLE time, then move on. NEVER repeat, restate or re-word your greeting/introduction, and never produce more than one opening in a row. If you have already introduced yourself, do not do it again.
+- GREET EXACTLY ONCE. Deliver your introduction and opening a SINGLE time, then move on. NEVER repeat, restate or re-word your greeting/introduction, and never produce more than one opening in a row. If you have already introduced yourself, do not do it again — just continue the conversation.
 - Ask ONE question at a time and then LISTEN. Never dump multiple questions at once.
 - Keep each spoken turn short (2-4 sentences). This is a dialogue, not a monologue.
 - Stay strictly in your role for this mode. {"Ground feedback in what is visible on the shared screen." if mode == "presentation" else "Coach on what you see of the student on their camera (eye contact, posture, expression) as well as what you hear." if mode == "coach" else "Do NOT mention screens or screen sharing."}
@@ -183,8 +236,11 @@ _GREETING_TRIGGER = {
 }
 
 
-def greeting_trigger(mode: str) -> str:
-    return _GREETING_TRIGGER.get(mode, _GREETING_TRIGGER["viva"])
+def greeting_trigger(mode: str, language: str = "English") -> str:
+    base = _GREETING_TRIGGER.get(mode, _GREETING_TRIGGER["viva"])
+    # Reinforce the language on the very first turn — this is where the model is
+    # most likely to default to English if not reminded.
+    return f"{base} Remember: {_language_directive(language)}"
 
 
 # --------------------------------------------------------------------------- #
@@ -272,7 +328,7 @@ def build_config(
     system_instruction = build_system_instruction(
         mode, persona, language, project_context, subject, student_name
     )
-    return types.LiveConnectConfig(
+    kwargs = dict(
         response_modalities=["AUDIO"],
         media_resolution="MEDIA_RESOLUTION_MEDIUM",
         speech_config=types.SpeechConfig(
@@ -285,6 +341,23 @@ def build_config(
         output_audio_transcription=types.AudioTranscriptionConfig(),
         tools=_tools(),
     )
+    # Make voice-activity detection less trigger-happy so background noise (or
+    # the student clearing their throat during the AI's opening greeting) does
+    # not get treated as a full turn — a common cause of the AI greeting twice.
+    # Wrapped defensively: config shape varies across google-genai versions.
+    try:
+        realtime_cfg = types.RealtimeInputConfig(
+            automatic_activity_detection=types.AutomaticActivityDetection(
+                start_of_speech_sensitivity=types.StartSensitivity.START_SENSITIVITY_LOW,
+                end_of_speech_sensitivity=types.EndSensitivity.END_SENSITIVITY_LOW,
+                prefix_padding_ms=300,
+                silence_duration_ms=900,
+            )
+        )
+        kwargs["realtime_input_config"] = realtime_cfg
+    except Exception as exc:  # noqa: BLE001 — optional tuning, never fatal
+        print(f"[live] VAD tuning unavailable, using defaults: {exc}")
+    return types.LiveConnectConfig(**kwargs)
 
 
 def analyze_transcript(mode: str, transcript: list[dict], project_context: str, subject: str | None) -> dict:
