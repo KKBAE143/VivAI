@@ -299,15 +299,6 @@ class LivePersistence:
             elif self.mode == "pitch":
                 log_activity(self.user_id, "pitch_completed", f"Completed a live pitch drill ({overall}%)", self.project_id)
                 gamification_service.award_xp(self.user_id, "pitch_completed")
-
-            elif self.mode == "coach":
-                # Stateless like pitch — the report is delivered inline via the
-                # "ended" summary. Just log the activity + award XP.
-                log_activity(self.user_id, "coach_completed", f"Completed a communication coaching session ({overall}%)", self.project_id)
-                try:
-                    gamification_service.award_xp(self.user_id, "pitch_completed")
-                except Exception:
-                    pass
         except Exception as exc:  # never let persistence crash the socket close
             print(f"[live] finalize error ({self.mode}): {exc}")
         return summary
@@ -419,7 +410,7 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                 await session.send_client_content(
                     turns=types.Content(
                         role="user",
-                        parts=[types.Part(text=live_service.greeting_trigger(mode))],
+                        parts=[types.Part(text=live_service.greeting_trigger(mode, language))],
                     ),
                     turn_complete=True,
                 )

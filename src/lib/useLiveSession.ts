@@ -306,14 +306,16 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
       setEvents([]);
       setSummary(null);
 
-      // Keep the mic gated until the AI's opening greeting completes. Safety
-      // net: open it after 12s in case no turn_complete ever arrives, so the
-      // student can always speak.
+      // Keep the mic gated until the AI's opening greeting completes (we open it
+      // on the first `turn_complete`). Streaming ambient noise DURING the
+      // greeting makes the Live model treat it as a turn and greet a second
+      // time. The safety net below only fires if `turn_complete` never arrives,
+      // so it's set well beyond a normal greeting to avoid opening mid-greeting.
       micGateOpenRef.current = false;
       if (gateTimerRef.current) clearTimeout(gateTimerRef.current);
       gateTimerRef.current = setTimeout(() => {
         micGateOpenRef.current = true;
-      }, 12000);
+      }, 30000);
 
       const token = getToken();
       if (!token) {
@@ -460,16 +462,22 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
         /* noop */
       }
     }
+    // Tear down capture/playback media immediately (student is done talking)…
     cleanup();
-    // Keep the socket briefly so the server can send the final summary.
-    setTimeout(() => {
+    // …but KEEP the socket open and listening so we still receive the server's
+    // final {"ended", summary} message. Building the report (transcript
+    // analysis) can take several seconds; the server closes the socket itself
+    // once it's done. Only force-close as a last-resort safety net well beyond
+    // the expected finalize time, so we never truncate the report.
+    if (gateTimerRef.current) clearTimeout(gateTimerRef.current);
+    gateTimerRef.current = setTimeout(() => {
       try {
         ws?.close();
       } catch {
         /* noop */
       }
       wsRef.current = null;
-    }, 1500);
+    }, 30000);
   }, [cleanup]);
 
   const toggleMic = useCallback(() => setMicMuted((m) => !m), []);

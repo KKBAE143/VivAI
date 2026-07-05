@@ -4,6 +4,7 @@
  * so all three get the same real-time, conversational experience.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Loader2 } from "lucide-react";
 import { useLiveSession, type LiveMode, type LiveSummary } from "@/lib/useLiveSession";
 import { PreflightSetup, type PreflightResult, type VideoSource } from "./preflight-setup";
 import { LiveStage } from "./live-stage";
@@ -41,6 +42,8 @@ export function LiveSessionRunner({
   const [phase, setPhase] = useState<"setup" | "live">("setup");
   const [language, setLanguage] = useState(defaultLanguage);
   const [persona, setPersona] = useState(defaultPersona);
+  const [confirmEnd, setConfirmEnd] = useState(false);
+  const [ending, setEnding] = useState(false);
   const micStreamRef = useRef<MediaStream | null>(null);
   const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
   const endedRef = useRef(false);
@@ -73,6 +76,8 @@ export function LiveSessionRunner({
       onEnded(live.summary);
     }
     if (live.status === "error" && phase === "live") {
+      // A failure cancels the "preparing report" state so the retry UI shows.
+      setEnding(false);
       // Free the devices; the retry flow re-acquires them in pre-flight.
       micStreamRef.current?.getTracks().forEach((t) => t.stop());
       micStreamRef.current = null;
@@ -81,13 +86,17 @@ export function LiveSessionRunner({
   }, [live.status, live.summary, phase, videoStream, onEnded]);
 
   const handleRetry = useCallback(() => {
+    setEnding(false);
     setVideoStream(null);
     live.reset();
     setPhase("setup");
   }, [live]);
 
-  const handleEnd = useCallback(() => {
-    if (!window.confirm("End this session? You'll see your full report next.")) return;
+  const handleEnd = useCallback(() => setConfirmEnd(true), []);
+
+  const confirmEndSession = useCallback(() => {
+    setConfirmEnd(false);
+    setEnding(true);
     live.stop();
   }, [live]);
 
@@ -105,13 +114,64 @@ export function LiveSessionRunner({
   }
 
   return (
-    <LiveStage
-      live={live}
-      videoStream={videoStream}
-      title={title}
-      subtitle={subtitle}
-      onEnd={handleEnd}
-      onRetry={handleRetry}
-    />
+    <>
+      <LiveStage
+        live={live}
+        videoStream={videoStream}
+        title={title}
+        subtitle={subtitle}
+        onEnd={handleEnd}
+        onRetry={handleRetry}
+      />
+      {ending && live.status !== "error" && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-background/80 p-4 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div>
+              <p className="text-base font-semibold text-foreground">Preparing your report…</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Analyzing your session. This takes a few seconds.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      {confirmEnd && (
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-background/70 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="end-session-title"
+          onClick={() => setConfirmEnd(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="end-session-title" className="text-lg font-semibold text-foreground">
+              End this session?
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              We&apos;ll wrap up and prepare your full report from the conversation so far. You
+              can&apos;t resume once it ends.
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setConfirmEnd(false)}
+                className="rounded-xl bg-secondary px-4 py-2.5 text-sm font-semibold text-secondary-foreground"
+              >
+                Keep going
+              </button>
+              <button
+                onClick={confirmEndSession}
+                className="rounded-xl bg-destructive px-4 py-2.5 text-sm font-semibold text-destructive-foreground"
+              >
+                End &amp; see report
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
