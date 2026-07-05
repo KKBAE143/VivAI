@@ -23,12 +23,12 @@ from google.genai import types
 
 from core.config import get_settings
 
-# Preview Live models, tried in order. Native-audio dialog models sound the most
-# human; the flash-live model is the broadly-available fallback on the free tier.
+# Current Live API models (2026), tried in order. gemini-3.1-flash-live-preview
+# is the recommended low-latency voice model; 2.5-flash-live-preview is the
+# fallback. Older *-native-audio-dialog / 2.0-flash-live names are deprecated.
 LIVE_MODELS = [
-    "gemini-2.0-flash-live-001",
-    "gemini-live-2.5-flash-preview",
-    "gemini-2.5-flash-preview-native-audio-dialog",
+    "gemini-3.1-flash-live-preview",
+    "gemini-2.5-flash-live-preview",
 ]
 
 # Gemini prebuilt voices (natural, not robotic). Overridable via settings.
@@ -59,20 +59,34 @@ _PERSONA_TONE = {
     "hostile": "Tough, skeptical external examiner. Challenge every claim with rapid-fire follow-ups, but stay professional.",
 }
 
-_MODE_BRIEF = {
-    "viva": (
-        "You are conducting a live oral VIVA examination on the student's project. "
-        "If the student shares their screen or code, watch it and ground your questions in what you actually see."
-    ),
-    "presentation": (
-        "You are a faculty examiner watching the student's LIVE project PRESENTATION via their shared screen. "
-        "React to each slide/section as a real professor would: acknowledge what works "
-        "('Nice — your Google auth flow is clean'), point out what could improve, and probe weak or hand-wavy claims."
-    ),
-    "pitch": (
-        "You are a startup-style coach running a rapid 90-second elevator PITCH drill. "
-        "Keep energy high, interrupt if they ramble, and push for problem/solution/tech/impact within the time budget."
-    ),
+# Each mode gets a fully self-contained playbook. Crucially, the VIVA is an ORAL
+# exam with NO screen — it must never ask the student to share their screen.
+_MODE_PLAYBOOK = {
+    "viva": """ROLE: You are conducting a live, spoken VIVA VOCE (oral examination). This is a face-to-face conversation.
+YOU CANNOT SEE THE STUDENT'S SCREEN OR CODE — there is no screen sharing in a viva. NEVER ask the student to "share your screen", "show me your code" or "open your project". Base everything on the project context below and on what the student SAYS.
+
+SESSION FLOW (follow in order):
+1. GREETING (your very first turn, ~15 seconds): Introduce yourself as their VivAI examiner, say this is a mock viva, and briefly tell them how it works — "I'll ask you a series of questions about your project and your subject; answer out loud, and I'll give feedback at the end." Then ask your FIRST question immediately. Do NOT wait for them to speak first.
+2. Ask ONE clear question at a time, grounded in their project/subject. Start easier, then go deeper based on their answers.
+3. After each answer: give a brief spoken reaction (1 sentence), then ask the next question or a follow-up if they were vague.
+4. Cover 5-8 questions total across different topics. Keep YOUR turns short — the student should do most of the talking.
+5. When you have asked enough, tell them the viva is complete and that you're preparing their feedback, then STOP talking.""",
+    "presentation": """ROLE: You are a faculty examiner watching the student's LIVE project PRESENTATION through their SHARED SCREEN. You CAN see their screen — react to what is actually visible.
+
+SESSION FLOW (follow in order):
+1. GREETING (your very first turn, ~15 seconds): Introduce yourself as their VivAI review panel, and invite them to begin presenting — "Whenever you're ready, walk me through your project. I'll follow along on your screen and jump in with questions." Then wait and watch.
+2. As they present, give SHORT live reactions to what you SEE on screen ("Good, that architecture diagram is clear", "I see you're using JWT here"). Don't stay silent for long.
+3. When they finish a section or pause, ASK PERMISSION before probing: "Can I ask you about this part?" then ask ONE focused question grounded in what's on screen.
+4. Cover the key parts of the demo (problem, solution, tech, results). Push on weak or hand-wavy claims.
+5. When the presentation is done, tell them it's complete and you're preparing feedback, then STOP talking.""",
+    "pitch": """ROLE: You are a sharp startup investor-coach running a rapid ELEVATOR PITCH drill. This is voice-only — you cannot see anything.
+
+SESSION FLOW (follow in order):
+1. GREETING (your very first turn, ~10 seconds): Quickly introduce yourself and set the challenge — "Give me your 90-second pitch: what's the problem, your solution, and why it matters. Go whenever you're ready." Then listen.
+2. Let them pitch. If they ramble or go over time, politely cut in and redirect.
+3. After the pitch, fire 2-3 rapid investor questions (market, differentiation, feasibility, impact).
+4. Keep the energy high and turns short.
+5. When done, tell them the drill is complete and you're preparing feedback, then STOP talking.""",
 }
 
 
@@ -84,33 +98,44 @@ def build_system_instruction(
     subject: str | None = None,
 ) -> str:
     tone = _PERSONA_TONE.get(persona, _PERSONA_TONE["balanced"])
-    brief = _MODE_BRIEF.get(mode, _MODE_BRIEF["viva"])
-    ctx = project_context.strip() or "No project details provided; ask the student to briefly introduce their work first."
-    subject_line = f"Subject focus: {subject}.\n" if subject else ""
-    return f"""You are VivAI, an advanced real-time examiner and coach for Indian B.Tech students in 2026.
+    playbook = _MODE_PLAYBOOK.get(mode, _MODE_PLAYBOOK["viva"])
+    ctx = project_context.strip() or "No specific project was provided; ask the student to briefly introduce their work in their first answer, then examine them on it and on core engineering fundamentals."
+    subject_line = f"SUBJECT FOCUS (weight your questions toward this): {subject}.\n\n" if subject else ""
+    return f"""You are VivAI, an advanced real-time voice examiner and coach for Indian B.Tech students in 2026. You sound like a real human professor — natural pacing, warmth, and authority — never a robotic read-aloud.
 
-{brief}
+{playbook}
 
 PERSONALITY: {tone}
-LANGUAGE: Speak naturally in {language} (you may use Hinglish if that is the chosen language). Sound like a real human professor — conversational, with natural pacing, not a robotic read-aloud.
 
-{subject_line}PROJECT CONTEXT (use this to personalize every question — never ask generic questions when you have this):
+LANGUAGE: Speak naturally in {language}. If the language is Hinglish, mix Hindi and English the way Indian faculty actually do. Keep sentences short and clear for text-to-speech.
+
+{subject_line}PROJECT CONTEXT (personalize every question with this — never ask generic questions when you have real details here):
 {ctx}
 
-HOW TO BEHAVE (very important):
-1. Start by warmly greeting the student and asking them to begin (or to start sharing/explaining). Keep it to 1-2 sentences.
-2. As they present or explain, give SHORT live reactions and commentary out loud ("Good, that works", "Interesting choice using X"). Do not stay silent.
-3. When the student pauses or finishes explaining a part, ASK PERMISSION before quizzing: e.g. "Can I ask you a question about this part?" Wait for them to agree before asking the actual question.
-4. Ask ONE focused, personalized question at a time, grounded in what you saw on screen or in their project. Then listen.
-5. If the student is vague, follow up. If they do well, acknowledge it and move on.
-6. Keep your spoken turns concise. This is a conversation, not a lecture. Let them do most of the talking.
+CRITICAL RULES:
+- SPEAK FIRST. Your very first turn is the greeting described above — begin talking the moment the session starts, without waiting for the student.
+- Ask ONE question at a time and then LISTEN. Never dump multiple questions at once.
+- Keep each spoken turn short (2-4 sentences). This is a dialogue, not a monologue.
+- Stay strictly in your role for this mode. {"Do NOT mention screens or screen sharing." if mode != "presentation" else "Ground feedback in what is visible on the shared screen."}
 
-STRUCTURED LOGGING (call these tools silently — do NOT read them aloud):
-- Call `flag_moment` whenever you notice something noteworthy on screen (a strength or an issue).
-- Call `record_question` every time you ask the student an actual exam question.
-- Call `score_response` after the student answers a question, with a 0-100 score and one line of feedback.
+STRUCTURED LOGGING (call these tools SILENTLY in the background — never read them aloud or mention JSON):
+- `record_question`: every time you ask the student a real exam question.
+- `score_response`: right after the student answers, with a 0-100 score and one line of feedback.
+- `flag_moment`: when you notice a clear strength or issue.
+Still, do not rely on tools for the conversation — just talk naturally; the logging is secondary."""
 
-Never mention these tools or JSON to the student. Just talk to them like a real examiner while logging in the background."""
+
+# Short user-role trigger that forces the model to produce its opening greeting
+# immediately (Live models stay silent until they receive a turn).
+_GREETING_TRIGGER = {
+    "viva": "The viva is now starting. Please greet me and ask your first question.",
+    "presentation": "I'm about to start presenting. Please greet me and tell me when to begin.",
+    "pitch": "I'm ready for the pitch drill. Please greet me and give me the challenge.",
+}
+
+
+def greeting_trigger(mode: str) -> str:
+    return _GREETING_TRIGGER.get(mode, _GREETING_TRIGGER["viva"])
 
 
 # --------------------------------------------------------------------------- #
@@ -191,6 +216,84 @@ def build_config(
         output_audio_transcription=types.AudioTranscriptionConfig(),
         tools=_tools(),
     )
+
+
+def analyze_transcript(mode: str, transcript: list[dict], project_context: str, subject: str | None) -> dict:
+    """Turn a raw spoken transcript into structured Q&A + scores + summary.
+
+    The Live model's mid-session tool calls are unreliable, so we ALWAYS post-
+    process the transcript with the text model at finalize time. This guarantees
+    the report pages have real questions, scores and feedback.
+    Returns {"questions": [...], "overall_score": int, "summary": str,
+             "strengths": [...], "weaknesses": [...]}.
+    """
+    from ai import gemini_service  # local import avoids a cycle
+
+    lines = [f"{t.get('role', 'student').upper()}: {t.get('text', '')}" for t in transcript if t.get("text")]
+    convo = "\n".join(lines).strip()
+    if not convo:
+        return {"questions": [], "overall_score": 0, "summary": "No conversation was recorded.", "strengths": [], "weaknesses": []}
+
+    role = {
+        "viva": "an oral viva examination",
+        "presentation": "a live project presentation review",
+        "pitch": "a startup pitch drill",
+    }.get(mode, "an oral examination")
+
+    prompt = f"""You are grading the transcript of {role} between an AI EXAMINER and a STUDENT.
+
+PROJECT CONTEXT: {project_context or 'Not provided'}
+{f'SUBJECT FOCUS: {subject}' if subject else ''}
+
+TRANSCRIPT:
+{convo}
+
+From this transcript, extract every real question the examiner asked and the student's answer to it, and grade each answer.
+Return STRICT JSON only, no prose, in exactly this shape:
+{{
+  "questions": [
+    {{"question": "...", "topic": "short topic", "answer": "what the student actually said (summarize if long)", "score": 0-100, "feedback": "one specific sentence"}}
+  ],
+  "overall_score": 0-100,
+  "strengths": ["..."],
+  "weaknesses": ["..."],
+  "summary": "2-3 sentence overall assessment addressed to the student"
+}}
+Rules: score answers on correctness, depth and clarity. If the student never really answered a question, give it a low score and say so. If no genuine Q&A happened, return an empty questions array and an honest summary. Do not invent content that isn't in the transcript."""
+
+    result = gemini_service.generate_json(prompt, default=None)
+    if not isinstance(result, dict):
+        return {"questions": [], "overall_score": 0, "summary": "Could not analyze the session automatically.", "strengths": [], "weaknesses": []}
+
+    questions = result.get("questions") or []
+    clean_q = []
+    for q in questions:
+        if not isinstance(q, dict):
+            continue
+        try:
+            score = max(0, min(100, int(q.get("score", 0) or 0)))
+        except (ValueError, TypeError):
+            score = 0
+        clean_q.append({
+            "question": str(q.get("question", "")).strip(),
+            "topic": q.get("topic"),
+            "answer": q.get("answer"),
+            "score": score,
+            "feedback": q.get("feedback"),
+        })
+    scored = [q["score"] for q in clean_q if q.get("score") is not None]
+    try:
+        overall = int(result.get("overall_score"))
+    except (ValueError, TypeError):
+        overall = round(sum(scored) / len(scored)) if scored else 0
+    overall = max(0, min(100, overall))
+    return {
+        "questions": clean_q,
+        "overall_score": overall,
+        "summary": str(result.get("summary", "")).strip() or "Session completed.",
+        "strengths": result.get("strengths") or [],
+        "weaknesses": result.get("weaknesses") or [],
+    }
 
 
 def connect(config: types.LiveConnectConfig, model: str | None = None):

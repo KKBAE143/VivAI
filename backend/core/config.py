@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     supabase_anon_key: str = ""
     gemini_api_key: str = ""
     # Gemini Live API (real-time audio/video). Preview models; override via env if needed.
-    gemini_live_model: str = "gemini-2.0-flash-live-001"
+    gemini_live_model: str = "gemini-3.1-flash-live-preview"
     gemini_live_voice: str = "Puck"
     storage_bucket: str = "uploads"
     cors_origins: str = "http://localhost:8080,http://localhost:5173"
