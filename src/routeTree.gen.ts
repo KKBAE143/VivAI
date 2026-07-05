@@ -11,13 +11,17 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TemplatesRouteImport } from './routes/templates'
 import { Route as TeamsRouteImport } from './routes/teams'
+import { Route as StudyRouteImport } from './routes/study'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as ReadinessRouteImport } from './routes/readiness'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as ProgressRouteImport } from './routes/progress'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as PitchDrillRouteImport } from './routes/pitch-drill'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as FilesRouteImport } from './routes/files'
 import { Route as AiVivaRouteImport } from './routes/ai-viva'
@@ -26,6 +30,8 @@ import { Route as AiRouteImport } from './routes/ai'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdvancedIndexRouteImport } from './routes/advanced/index'
 import { Route as TemplatesSlugRouteImport } from './routes/templates.$slug'
+import { Route as StudyReviewRouteImport } from './routes/study.review'
+import { Route as StudyIdRouteImport } from './routes/study.$id'
 import { Route as ProjectsNewRouteImport } from './routes/projects.new'
 import { Route as ProjectsIdRouteImport } from './routes/projects.$id'
 import { Route as AiVivaNewRouteImport } from './routes/ai-viva.new'
@@ -49,6 +55,11 @@ const TeamsRoute = TeamsRouteImport.update({
   path: '/teams',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StudyRoute = StudyRouteImport.update({
+  id: '/study',
+  path: '/study',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
@@ -57,6 +68,11 @@ const SignupRoute = SignupRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReadinessRoute = ReadinessRouteImport.update({
+  id: '/readiness',
+  path: '/readiness',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProjectsRoute = ProjectsRouteImport.update({
@@ -74,6 +90,11 @@ const ProfileRoute = ProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PitchDrillRoute = PitchDrillRouteImport.update({
+  id: '/pitch-drill',
+  path: '/pitch-drill',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
@@ -82,6 +103,11 @@ const OnboardingRoute = OnboardingRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeaderboardRoute = LeaderboardRouteImport.update({
+  id: '/leaderboard',
+  path: '/leaderboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
@@ -123,6 +149,16 @@ const TemplatesSlugRoute = TemplatesSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
   getParentRoute: () => TemplatesRoute,
+} as any)
+const StudyReviewRoute = StudyReviewRouteImport.update({
+  id: '/review',
+  path: '/review',
+  getParentRoute: () => StudyRoute,
+} as any)
+const StudyIdRoute = StudyIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => StudyRoute,
 } as any)
 const ProjectsNewRoute = ProjectsNewRouteImport.update({
   id: '/new',
@@ -195,13 +231,17 @@ export interface FileRoutesByFullPath {
   '/ai-viva': typeof AiVivaRouteWithChildren
   '/files': typeof FilesRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/leaderboard': typeof LeaderboardRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/pitch-drill': typeof PitchDrillRoute
   '/profile': typeof ProfileRoute
   '/progress': typeof ProgressRoute
   '/projects': typeof ProjectsRouteWithChildren
+  '/readiness': typeof ReadinessRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/study': typeof StudyRouteWithChildren
   '/teams': typeof TeamsRoute
   '/templates': typeof TemplatesRouteWithChildren
   '/advanced/college-predictor': typeof AdvancedCollegePredictorRoute
@@ -214,6 +254,8 @@ export interface FileRoutesByFullPath {
   '/ai-viva/new': typeof AiVivaNewRoute
   '/projects/$id': typeof ProjectsIdRoute
   '/projects/new': typeof ProjectsNewRoute
+  '/study/$id': typeof StudyIdRoute
+  '/study/review': typeof StudyReviewRoute
   '/templates/$slug': typeof TemplatesSlugRoute
   '/advanced/': typeof AdvancedIndexRoute
   '/ai-presentation/session/$id': typeof AiPresentationSessionIdRoute
@@ -226,13 +268,17 @@ export interface FileRoutesByTo {
   '/ai-viva': typeof AiVivaRouteWithChildren
   '/files': typeof FilesRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/leaderboard': typeof LeaderboardRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/pitch-drill': typeof PitchDrillRoute
   '/profile': typeof ProfileRoute
   '/progress': typeof ProgressRoute
   '/projects': typeof ProjectsRouteWithChildren
+  '/readiness': typeof ReadinessRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/study': typeof StudyRouteWithChildren
   '/teams': typeof TeamsRoute
   '/templates': typeof TemplatesRouteWithChildren
   '/advanced/college-predictor': typeof AdvancedCollegePredictorRoute
@@ -245,6 +291,8 @@ export interface FileRoutesByTo {
   '/ai-viva/new': typeof AiVivaNewRoute
   '/projects/$id': typeof ProjectsIdRoute
   '/projects/new': typeof ProjectsNewRoute
+  '/study/$id': typeof StudyIdRoute
+  '/study/review': typeof StudyReviewRoute
   '/templates/$slug': typeof TemplatesSlugRoute
   '/advanced': typeof AdvancedIndexRoute
   '/ai-presentation/session/$id': typeof AiPresentationSessionIdRoute
@@ -258,13 +306,17 @@ export interface FileRoutesById {
   '/ai-viva': typeof AiVivaRouteWithChildren
   '/files': typeof FilesRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/leaderboard': typeof LeaderboardRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/pitch-drill': typeof PitchDrillRoute
   '/profile': typeof ProfileRoute
   '/progress': typeof ProgressRoute
   '/projects': typeof ProjectsRouteWithChildren
+  '/readiness': typeof ReadinessRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/study': typeof StudyRouteWithChildren
   '/teams': typeof TeamsRoute
   '/templates': typeof TemplatesRouteWithChildren
   '/advanced/college-predictor': typeof AdvancedCollegePredictorRoute
@@ -277,6 +329,8 @@ export interface FileRoutesById {
   '/ai-viva/new': typeof AiVivaNewRoute
   '/projects/$id': typeof ProjectsIdRoute
   '/projects/new': typeof ProjectsNewRoute
+  '/study/$id': typeof StudyIdRoute
+  '/study/review': typeof StudyReviewRoute
   '/templates/$slug': typeof TemplatesSlugRoute
   '/advanced/': typeof AdvancedIndexRoute
   '/ai-presentation/session/$id': typeof AiPresentationSessionIdRoute
@@ -291,13 +345,17 @@ export interface FileRouteTypes {
     | '/ai-viva'
     | '/files'
     | '/forgot-password'
+    | '/leaderboard'
     | '/login'
     | '/onboarding'
+    | '/pitch-drill'
     | '/profile'
     | '/progress'
     | '/projects'
+    | '/readiness'
     | '/reset-password'
     | '/signup'
+    | '/study'
     | '/teams'
     | '/templates'
     | '/advanced/college-predictor'
@@ -310,6 +368,8 @@ export interface FileRouteTypes {
     | '/ai-viva/new'
     | '/projects/$id'
     | '/projects/new'
+    | '/study/$id'
+    | '/study/review'
     | '/templates/$slug'
     | '/advanced/'
     | '/ai-presentation/session/$id'
@@ -322,13 +382,17 @@ export interface FileRouteTypes {
     | '/ai-viva'
     | '/files'
     | '/forgot-password'
+    | '/leaderboard'
     | '/login'
     | '/onboarding'
+    | '/pitch-drill'
     | '/profile'
     | '/progress'
     | '/projects'
+    | '/readiness'
     | '/reset-password'
     | '/signup'
+    | '/study'
     | '/teams'
     | '/templates'
     | '/advanced/college-predictor'
@@ -341,6 +405,8 @@ export interface FileRouteTypes {
     | '/ai-viva/new'
     | '/projects/$id'
     | '/projects/new'
+    | '/study/$id'
+    | '/study/review'
     | '/templates/$slug'
     | '/advanced'
     | '/ai-presentation/session/$id'
@@ -353,13 +419,17 @@ export interface FileRouteTypes {
     | '/ai-viva'
     | '/files'
     | '/forgot-password'
+    | '/leaderboard'
     | '/login'
     | '/onboarding'
+    | '/pitch-drill'
     | '/profile'
     | '/progress'
     | '/projects'
+    | '/readiness'
     | '/reset-password'
     | '/signup'
+    | '/study'
     | '/teams'
     | '/templates'
     | '/advanced/college-predictor'
@@ -372,6 +442,8 @@ export interface FileRouteTypes {
     | '/ai-viva/new'
     | '/projects/$id'
     | '/projects/new'
+    | '/study/$id'
+    | '/study/review'
     | '/templates/$slug'
     | '/advanced/'
     | '/ai-presentation/session/$id'
@@ -385,13 +457,17 @@ export interface RootRouteChildren {
   AiVivaRoute: typeof AiVivaRouteWithChildren
   FilesRoute: typeof FilesRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
+  LeaderboardRoute: typeof LeaderboardRoute
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
+  PitchDrillRoute: typeof PitchDrillRoute
   ProfileRoute: typeof ProfileRoute
   ProgressRoute: typeof ProgressRoute
   ProjectsRoute: typeof ProjectsRouteWithChildren
+  ReadinessRoute: typeof ReadinessRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  StudyRoute: typeof StudyRouteWithChildren
   TeamsRoute: typeof TeamsRoute
   TemplatesRoute: typeof TemplatesRouteWithChildren
   AdvancedCollegePredictorRoute: typeof AdvancedCollegePredictorRoute
@@ -420,6 +496,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeamsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/study': {
+      id: '/study'
+      path: '/study'
+      fullPath: '/study'
+      preLoaderRoute: typeof StudyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
@@ -432,6 +515,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/readiness': {
+      id: '/readiness'
+      path: '/readiness'
+      fullPath: '/readiness'
+      preLoaderRoute: typeof ReadinessRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/projects': {
@@ -455,6 +545,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pitch-drill': {
+      id: '/pitch-drill'
+      path: '/pitch-drill'
+      fullPath: '/pitch-drill'
+      preLoaderRoute: typeof PitchDrillRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/onboarding': {
       id: '/onboarding'
       path: '/onboarding'
@@ -467,6 +564,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/leaderboard': {
+      id: '/leaderboard'
+      path: '/leaderboard'
+      fullPath: '/leaderboard'
+      preLoaderRoute: typeof LeaderboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/forgot-password': {
@@ -524,6 +628,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/templates/$slug'
       preLoaderRoute: typeof TemplatesSlugRouteImport
       parentRoute: typeof TemplatesRoute
+    }
+    '/study/review': {
+      id: '/study/review'
+      path: '/review'
+      fullPath: '/study/review'
+      preLoaderRoute: typeof StudyReviewRouteImport
+      parentRoute: typeof StudyRoute
+    }
+    '/study/$id': {
+      id: '/study/$id'
+      path: '/$id'
+      fullPath: '/study/$id'
+      preLoaderRoute: typeof StudyIdRouteImport
+      parentRoute: typeof StudyRoute
     }
     '/projects/new': {
       id: '/projects/new'
@@ -651,6 +769,18 @@ const ProjectsRouteWithChildren = ProjectsRoute._addFileChildren(
   ProjectsRouteChildren,
 )
 
+interface StudyRouteChildren {
+  StudyIdRoute: typeof StudyIdRoute
+  StudyReviewRoute: typeof StudyReviewRoute
+}
+
+const StudyRouteChildren: StudyRouteChildren = {
+  StudyIdRoute: StudyIdRoute,
+  StudyReviewRoute: StudyReviewRoute,
+}
+
+const StudyRouteWithChildren = StudyRoute._addFileChildren(StudyRouteChildren)
+
 interface TemplatesRouteChildren {
   TemplatesSlugRoute: typeof TemplatesSlugRoute
 }
@@ -670,13 +800,17 @@ const rootRouteChildren: RootRouteChildren = {
   AiVivaRoute: AiVivaRouteWithChildren,
   FilesRoute: FilesRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
+  LeaderboardRoute: LeaderboardRoute,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
+  PitchDrillRoute: PitchDrillRoute,
   ProfileRoute: ProfileRoute,
   ProgressRoute: ProgressRoute,
   ProjectsRoute: ProjectsRouteWithChildren,
+  ReadinessRoute: ReadinessRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  StudyRoute: StudyRouteWithChildren,
   TeamsRoute: TeamsRoute,
   TemplatesRoute: TemplatesRouteWithChildren,
   AdvancedCollegePredictorRoute: AdvancedCollegePredictorRoute,

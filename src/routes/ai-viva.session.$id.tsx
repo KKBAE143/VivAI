@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { useRequireAuth } from "@/lib/auth-context";
 import { useVivaSession, type ApiRecord } from "@/lib/hooks";
 import { useSpeechToText, useTextToSpeech } from "@/lib/speech";
+import { DeliveryPanel } from "@/components/delivery-panel";
 
 export const Route = createFileRoute("/ai-viva/session/$id")({
   head: () => ({ meta: [{ title: "Live Viva Session — CollgePro Navigator" }] }),
@@ -220,6 +221,7 @@ function VivaSession() {
           </div>
         </header>
         <div className="mx-auto max-w-4xl space-y-4 px-4 py-8">
+          <DeliveryPanel sessionId={id} />
           {allQuestions.length === 0 && (
             <p className="text-sm text-muted-foreground">No questions were recorded for this session.</p>
           )}

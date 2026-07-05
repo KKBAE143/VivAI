@@ -28,6 +28,13 @@ const DURATIONS = [
 
 const FOCUS_AREAS = ["Algorithms", "Database", "Networking", "OOP", "Machine Learning"];
 
+const PERSONAS = [
+  { value: "friendly", t: "Friendly", d: "Encouraging, gentle follow-ups" },
+  { value: "balanced", t: "Balanced", d: "Fair and realistic examiner" },
+  { value: "strict", t: "Strict", d: "Probing, expects precision" },
+  { value: "hostile", t: "Tough", d: "Aggressive cross-questioning" },
+] as const;
+
 function NewViva() {
   useRequireAuth();
   const { projectId: initialProjectId } = Route.useSearch();
@@ -35,6 +42,7 @@ function NewViva() {
   const [sessionType, setSessionType] = useState<string>("Project");
   const [duration, setDuration] = useState(20);
   const [difficulty, setDifficulty] = useState("Adaptive");
+  const [persona, setPersona] = useState("balanced");
   const [projectId, setProjectId] = useState(initialProjectId ?? "");
   const [language, setLanguage] = useState("English");
   const [focusAreas, setFocusAreas] = useState<string[]>([]);
@@ -52,6 +60,7 @@ function NewViva() {
         session_type: sessionType,
         duration_minutes: duration,
         difficulty,
+        persona,
         language,
         project_id: projectId || undefined,
         subject: focusAreas.length ? focusAreas.join(", ") : undefined,
@@ -114,6 +123,23 @@ function NewViva() {
                 {d}
               </button>
             ))}
+          </div>
+        </Section>
+        <Section title="Examiner Persona">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {PERSONAS.map((p) => {
+              const active = persona === p.value;
+              return (
+                <button
+                  key={p.value}
+                  onClick={() => setPersona(p.value)}
+                  className={`rounded-xl border p-3 text-left transition-colors ${active ? "border-primary bg-primary-soft" : "border-border hover:border-primary"}`}
+                >
+                  <div className="font-semibold">{p.t}</div>
+                  <div className="mt-0.5 text-xs text-muted-foreground">{p.d}</div>
+                </button>
+              );
+            })}
           </div>
         </Section>
         <Section title="Project">

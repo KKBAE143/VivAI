@@ -6,7 +6,6 @@ import {
   BrainCircuit,
   MonitorSmartphone,
   Users,
-  CheckSquare,
   FileText,
   Settings,
   Search,
@@ -17,24 +16,53 @@ import {
   Sparkles,
   Sun,
   Moon,
+  Layers,
+  Target,
+  Gauge,
+  Timer,
+  Trophy,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTheme } from "@/lib/theme";
 import { useAuth, useRequireAuth } from "@/lib/auth-context";
 import { useProfile } from "@/lib/hooks";
 
-const nav = [
-  { to: "/", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/ai", icon: Sparkles, label: "AI Hub" },
-  { to: "/templates", icon: BookOpen, label: "Templates" },
-  { to: "/projects", icon: FolderKanban, label: "Projects" },
-  { to: "/ai-viva", icon: BrainCircuit, label: "AI Viva" },
-  { to: "/ai-presentation", icon: MonitorSmartphone, label: "Presentation" },
-  { to: "/teams", icon: Users, label: "Teams" },
-  { to: "/progress", icon: CheckSquare, label: "Progress" },
-  { to: "/files", icon: FileText, label: "Files" },
-  { to: "/profile", icon: Settings, label: "Profile" },
-] as const;
+type NavItem = { to: string; icon: typeof LayoutDashboard; label: string };
+
+const navGroups: { heading: string; items: NavItem[] }[] = [
+  {
+    heading: "Overview",
+    items: [{ to: "/", icon: LayoutDashboard, label: "Dashboard" }],
+  },
+  {
+    heading: "Practice",
+    items: [
+      { to: "/ai-viva", icon: BrainCircuit, label: "Mock Viva" },
+      { to: "/ai-presentation", icon: MonitorSmartphone, label: "Presentation" },
+      { to: "/pitch-drill", icon: Timer, label: "Pitch Drill" },
+      { to: "/study", icon: Layers, label: "Study Bank" },
+      { to: "/ai", icon: Sparkles, label: "AI Tools" },
+    ],
+  },
+  {
+    heading: "Insights",
+    items: [
+      { to: "/readiness", icon: Gauge, label: "Readiness" },
+      { to: "/progress", icon: Target, label: "Progress" },
+      { to: "/leaderboard", icon: Trophy, label: "Leaderboard" },
+    ],
+  },
+  {
+    heading: "Workspace",
+    items: [
+      { to: "/projects", icon: FolderKanban, label: "Projects" },
+      { to: "/templates", icon: BookOpen, label: "Templates" },
+      { to: "/teams", icon: Users, label: "Teams" },
+      { to: "/files", icon: FileText, label: "Files" },
+      { to: "/profile", icon: Settings, label: "Profile" },
+    ],
+  },
+];
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { ready, isLoading } = useRequireAuth();
@@ -66,50 +94,54 @@ function Sidebar() {
   const navigate = useNavigate();
   const isActive = (to: string) => (to === "/" ? pathname === "/" : pathname.startsWith(to));
   return (
-    <aside className="sticky top-6 hidden h-[calc(100vh-3rem)] w-[72px] shrink-0 flex-col items-center justify-between rounded-3xl bg-card py-5 shadow-[var(--shadow-card)] lg:flex">
-      <div className="flex flex-col items-center gap-1">
-        <Link
-          to="/"
-          aria-label="Home"
-          className="mb-4 grid h-11 w-11 place-items-center rounded-2xl bg-primary text-primary-foreground"
-        >
-          <GraduationCap className="h-5 w-5" />
+    <aside className="sticky top-6 hidden h-[calc(100vh-3rem)] w-[236px] shrink-0 flex-col justify-between overflow-y-auto rounded-3xl bg-card px-3 py-5 shadow-[var(--shadow-card)] lg:flex">
+      <div>
+        <Link to="/" aria-label="Home" className="mb-6 flex items-center gap-2.5 px-2">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground">
+            <GraduationCap className="h-5 w-5" />
+          </span>
+          <span className="text-lg font-bold tracking-tight">VivAI</span>
         </Link>
-        {nav.map((item) => {
-          const Icon = item.icon;
-          const active = isActive(item.to);
-          return (
-            <Link
-              key={item.to}
-              to={item.to}
-              aria-label={item.label}
-              title={item.label}
-              className={`grid h-11 w-11 place-items-center rounded-xl transition-colors ${
-                active
-                  ? "bg-foreground text-background"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-              }`}
-            >
-              <Icon className="h-5 w-5" />
-            </Link>
-          );
-        })}
+        <nav className="flex flex-col gap-5">
+          {navGroups.map((group) => (
+            <div key={group.heading}>
+              <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                {group.heading}
+              </p>
+              <div className="flex flex-col gap-0.5">
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  const active = isActive(item.to);
+                  return (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+                        active
+                          ? "bg-foreground text-background"
+                          : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      }`}
+                    >
+                      <Icon className="h-[18px] w-[18px] shrink-0" />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </nav>
       </div>
-      <div className="flex flex-col items-center gap-1">
-        <button aria-label="Help" className="grid h-11 w-11 place-items-center rounded-xl text-muted-foreground hover:bg-secondary">
-          <HelpCircle className="h-5 w-5" />
-        </button>
-        <button
-          onClick={() => {
-            logout();
-            navigate({ to: "/login" });
-          }}
-          aria-label="Sign out"
-          className="grid h-11 w-11 place-items-center rounded-xl text-muted-foreground hover:bg-secondary"
-        >
-          <LogOut className="h-5 w-5" />
-        </button>
-      </div>
+      <button
+        onClick={() => {
+          logout();
+          navigate({ to: "/login" });
+        }}
+        className="mt-4 flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+      >
+        <LogOut className="h-[18px] w-[18px]" />
+        Sign out
+      </button>
     </aside>
   );
 }
@@ -131,34 +163,15 @@ function TopBar() {
   ]
     .filter(Boolean)
     .join(" · ");
-  const tabs = [
-    { label: "Overview", to: "/" },
-    { label: "Projects", to: "/projects" },
-    { label: "Viva", to: "/ai-viva" },
-    { label: "Teams", to: "/teams" },
-    { label: "Progress", to: "/progress" },
-  ];
+  const title = pageTitle(pathname);
   return (
     <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-2xl bg-card p-3 shadow-[var(--shadow-card)] sm:flex sm:justify-between">
       <div className="flex min-w-0 items-center gap-3">
         <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground lg:hidden">
           <GraduationCap className="h-5 w-5" />
         </div>
-        <div className="hidden items-center gap-1 rounded-full bg-secondary p-1 md:flex">
-          {tabs.map((t) => {
-            const active = t.to === "/" ? pathname === "/" : pathname.startsWith(t.to);
-            return (
-              <Link
-                key={t.to}
-                to={t.to}
-                className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                  active ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {t.label}
-              </Link>
-            );
-          })}
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold sm:text-base">{title}</p>
         </div>
       </div>
       <div className="flex items-center gap-2">
@@ -196,10 +209,10 @@ function MobileNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const items = [
     { to: "/", icon: LayoutDashboard, label: "Home" },
-    { to: "/projects", icon: FolderKanban, label: "Projects" },
+    { to: "/study", icon: Layers, label: "Study" },
     { to: "/ai-viva", icon: BrainCircuit, label: "Viva", center: true },
-    { to: "/teams", icon: Users, label: "Teams" },
-    { to: "/profile", icon: Settings, label: "Profile" },
+    { to: "/readiness", icon: Gauge, label: "Ready" },
+    { to: "/projects", icon: FolderKanban, label: "Projects" },
   ];
   return (
     <nav className="fixed inset-x-3 bottom-3 z-40 flex items-center justify-around rounded-2xl bg-card p-2 shadow-[var(--shadow-card)] lg:hidden">
@@ -281,6 +294,30 @@ export function Badge({
       {children}
     </span>
   );
+}
+
+function pageTitle(pathname: string): string {
+  const map: Record<string, string> = {
+    "/": "Dashboard",
+    "/ai": "AI Tools",
+    "/ai-viva": "Mock Viva",
+    "/ai-presentation": "Presentation Coach",
+    "/pitch-drill": "90-Second Pitch Drill",
+    "/study": "Study Bank",
+    "/readiness": "Defense Readiness",
+    "/progress": "Progress",
+    "/leaderboard": "Leaderboard",
+    "/projects": "Projects",
+    "/templates": "Templates",
+    "/teams": "Teams",
+    "/files": "Files",
+    "/profile": "Profile",
+  };
+  if (map[pathname]) return map[pathname];
+  const match = Object.keys(map)
+    .filter((k) => k !== "/" && pathname.startsWith(k))
+    .sort((a, b) => b.length - a.length)[0];
+  return match ? map[match] : "VivAI";
 }
 
 function ThemeToggle() {

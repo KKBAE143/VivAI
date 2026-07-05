@@ -16,6 +16,9 @@ import { AppShell, Card, Badge } from "@/components/app-shell";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 import { DashboardSkeleton } from "@/components/loading-skeleton";
+import { ReadinessGauge } from "@/components/readiness-gauge";
+import { GamificationStrip } from "@/components/gamification-strip";
+import { useReadiness } from "@/lib/hooks-features";
 import { useRequireAuth } from "@/lib/auth-context";
 import {
   useDashboard,
@@ -58,6 +61,7 @@ function Dashboard() {
   const teamsQuery = useTeams();
   const dashboardQuery = useDashboard();
   const meQuery = useMe();
+  const readinessQuery = useReadiness();
 
   const queries = [profileQuery, projectsQuery, sessionsQuery, teamsQuery, dashboardQuery] as const;
   const loading = authLoading || queries.some((q) => q.isLoading);
@@ -84,8 +88,12 @@ function Dashboard() {
         <>
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">{`Good ${greeting}, ${firstName}`}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Stay on top of your tasks, monitor progress, and track status.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Here&apos;s your defense readiness and what to practice next.</p>
           </div>
+
+          <ReadinessHero readiness={readinessQuery.data} />
+
+          <GamificationStrip />
 
           <StatRow stats={dashboardQuery.data} />
 
@@ -104,6 +112,62 @@ function Dashboard() {
         </>
       )}
     </AppShell>
+  );
+}
+
+function ReadinessHero({ readiness }: { readiness?: import("@/lib/hooks-features").Readiness }) {
+  const score = readiness?.score ?? 0;
+  const label = readiness?.label ?? "Let's get you ready";
+  const primaryAction = readiness?.actions?.[0];
+  const components = readiness?.components ?? [];
+  return (
+    <Card className="overflow-hidden !p-0">
+      <div className="grid gap-6 p-6 md:grid-cols-[auto_minmax(0,1fr)] md:items-center md:gap-8">
+        <div className="flex items-center gap-5">
+          <ReadinessGauge score={score} label="Ready" />
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Defense Readiness</p>
+            <p className="mt-1 text-lg font-bold leading-tight text-balance">{label}</p>
+            <Link to="/readiness" className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary">
+              See full breakdown <ChevronRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        </div>
+        <div className="space-y-4">
+          {components.length > 0 && (
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
+              {components.map((c) => (
+                <div key={c.key}>
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="truncate text-muted-foreground">{c.label}</span>
+                    <span className="font-semibold">{Math.round(c.score)}</span>
+                  </div>
+                  <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-secondary">
+                    <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, c.score)}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Link
+              to="/ai-viva/new"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-transform hover:-translate-y-0.5"
+            >
+              <Mic className="h-4 w-4" /> Start Mock Viva
+            </Link>
+            {primaryAction && primaryAction.to !== "/ai-viva/new" && (
+              <Link
+                to={primaryAction.to}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-secondary px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-secondary/70"
+              >
+                <Sparkles className="h-4 w-4" /> {primaryAction.cta}
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+    </Card>
   );
 }
 
