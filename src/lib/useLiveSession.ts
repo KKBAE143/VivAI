@@ -13,7 +13,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { getToken, wsUrl } from "@/lib/api";
 
 export type LiveStatus = "idle" | "connecting" | "live" | "reconnecting" | "ended" | "error";
-export type LiveMode = "viva" | "presentation" | "pitch";
+export type LiveMode = "viva" | "presentation" | "pitch" | "coach";
 
 export interface LiveCaption {
   role: "student" | "examiner";
@@ -36,6 +36,11 @@ export interface LiveSummary {
   questions?: unknown[];
   flags?: unknown[];
   transcript?: unknown[];
+  summary?: string;
+  strengths?: string[];
+  weaknesses?: string[];
+  recommendations?: string[];
+  coach_metrics?: Record<string, number>;
 }
 
 export interface StartOptions {

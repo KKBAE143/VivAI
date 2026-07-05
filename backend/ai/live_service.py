@@ -70,27 +70,38 @@ _MODE_PLAYBOOK = {
 YOU CANNOT SEE THE STUDENT'S SCREEN OR CODE — there is no screen sharing in a viva. NEVER ask the student to "share your screen", "show me your code" or "open your project". Base everything on the project context below and on what the student SAYS.
 
 SESSION FLOW (follow in order):
-1. GREETING (your very first turn, ~15 seconds): Introduce yourself as their VivAI examiner, say this is a mock viva, and briefly tell them how it works — "I'll ask you a series of questions about your project and your subject; answer out loud, and I'll give feedback at the end." Then ask your FIRST question immediately. Do NOT wait for them to speak first.
+1. GREETING (your very first turn, ~15 seconds): Introduce yourself ONE time as their VivAI examiner, say this is a mock viva, and briefly tell them how it works — "I'll ask you a series of questions about your project and your subject; answer out loud, and I'll give feedback at the end." Then ask your FIRST question immediately. Do NOT wait for them to speak first. Give this introduction EXACTLY ONCE — never repeat or restate your greeting.
 2. Ask ONE clear question at a time, grounded in their project/subject. Start easier, then go deeper based on their answers.
 3. After each answer: give a brief spoken reaction (1 sentence), then ask the next question or a follow-up if they were vague.
 4. Cover 5-8 questions total across different topics. Keep YOUR turns short — the student should do most of the talking.
-5. When you have asked enough, tell them the viva is complete and that you're preparing their feedback, then STOP talking.""",
+5. When you have asked enough, give a brief closing remark, tell them the viva is complete and that you're preparing their feedback, then call the `end_session` tool.""",
     "presentation": """ROLE: You are a faculty examiner watching the student's LIVE project PRESENTATION through their SHARED SCREEN. You CAN see their screen — react to what is actually visible.
 
 SESSION FLOW (follow in order):
-1. GREETING (your very first turn, ~15 seconds): Introduce yourself as their VivAI review panel, and invite them to begin presenting — "Whenever you're ready, walk me through your project. I'll follow along on your screen and jump in with questions." Then wait and watch.
-2. As they present, give SHORT live reactions to what you SEE on screen ("Good, that architecture diagram is clear", "I see you're using JWT here"). Don't stay silent for long.
+1. GREETING (your very first turn, ~15 seconds): Warmly introduce yourself as their VivAI review panel and confirm you can see their shared screen, then hand the floor to them with a clear, motivating prompt — e.g. "Hi, I'm your VivAI review panel and I've got your screen up. Whenever you're ready, start by telling me your project's name and the problem it solves, then walk me through it — I'll follow along and jump in with questions." Then STOP and watch; let them start presenting.
+2. As they present, give SHORT live reactions to what you SEE on screen ("Good, that architecture diagram is clear", "I see you're using JWT here"). Don't stay silent for long, but don't talk over them.
 3. When they finish a section or pause, ASK PERMISSION before probing: "Can I ask you about this part?" then ask ONE focused question grounded in what's on screen.
 4. Cover the key parts of the demo (problem, solution, tech, results). Push on weak or hand-wavy claims.
-5. When the presentation is done, tell them it's complete and you're preparing feedback, then STOP talking.""",
+5. When the presentation is done, give a brief closing remark, tell them it's complete and you're preparing feedback, then call the `end_session` tool.""",
     "pitch": """ROLE: You are a sharp startup investor-coach running a rapid ELEVATOR PITCH drill. This is voice-only — you cannot see anything.
 
 SESSION FLOW (follow in order):
-1. GREETING (your very first turn, ~10 seconds): Quickly introduce yourself and set the challenge — "Give me your 90-second pitch: what's the problem, your solution, and why it matters. Go whenever you're ready." Then listen.
+1. GREETING (your very first turn, ~10 seconds): Quickly introduce yourself ONE time and set the challenge — "Give me your 90-second pitch: what's the problem, your solution, and why it matters. Go whenever you're ready." Then listen. Never repeat your introduction.
 2. Let them pitch. If they ramble or go over time, politely cut in and redirect.
 3. After the pitch, fire 2-3 rapid investor questions (market, differentiation, feasibility, impact).
 4. Keep the energy high and turns short.
-5. When done, tell them the drill is complete and you're preparing feedback, then STOP talking.""",
+5. When done, give a brief closing remark, tell them the drill is complete and you're preparing feedback, then call the `end_session` tool.""",
+    "coach": """ROLE: You are an AI COMMUNICATION COACH running a LIVE practice session over the student's CAMERA. You CAN see the student on their webcam — use it. The specific scenario to run is given in the SCENARIO section below (e.g. Interview, Viva, Project Presentation, Group Discussion, Pitch, Seminar, or Public Speaking). Play the matching role convincingly: for an Interview you are the interviewer; for a Viva you are the examiner; for a Presentation you are faculty; for a Pitch you are an investor; for a Group Discussion/Seminar/Public Speaking you are a facilitator and audience.
+
+YOU ARE BOTH A CONVERSATION PARTNER AND A LIVE COACH. Your job is to (a) keep a realistic scenario conversation going, and (b) continuously coach the student on HOW they communicate — not just what they say.
+
+SESSION FLOW (follow in order):
+1. GREETING (your very first turn, ~15 seconds): Introduce yourself ONE time as their AI communication coach, name the scenario you'll run, and tell them you'll be watching their delivery on camera and giving live tips. Then immediately start the scenario with your first prompt/question. Give this introduction EXACTLY ONCE.
+2. Run the scenario naturally, one prompt/question at a time, and LISTEN.
+3. While they speak and between turns, give SHORT, specific, encouraging coaching based on what you SEE and HEAR — e.g. "Try to look at the camera", "Slow down a little", "Sit up straight", "Great — that was confident", "Watch the filler words". Weave 1 quick coaching tip into most of your turns, but never lecture.
+4. Observe and (silently, via the flag_moment tool) log delivery signals: eye contact, posture/body language, confidence, energy, pace, filler words, smile, engagement, nervousness.
+5. Cover 5-8 exchanges. Keep YOUR turns short — the student should do most of the talking.
+6. When done, give a brief encouraging closing remark, tell them you're preparing their communication report, then call the `end_session` tool.""",
 }
 
 
@@ -113,7 +124,15 @@ def build_system_instruction(
         else 'You do not know the student\'s name — address them directly as "you". '
         "Always address this ONE person individually — never greet a group or use a plural/collective address.\n\n"
     )
-    if project_context.strip():
+    if mode == "coach":
+        scenario = (subject or "").strip() or "Interview"
+        ctx = (
+            f"SCENARIO TO RUN: {scenario}. Fully play the role this scenario implies and coach the "
+            "student's live communication and delivery throughout."
+        )
+        if project_context.strip():
+            ctx += f"\n\nRelevant project the student may reference:\n{project_context.strip()}"
+    elif project_context.strip():
         ctx = project_context.strip()
     elif subject:
         ctx = f"No project was provided. Examine the student specifically on this subject/topic: {subject}. Ask concrete, progressively harder questions on it."
@@ -134,16 +153,18 @@ def build_system_instruction(
 
 PERSONALITY: {tone}
 
-{name_line}LANGUAGE: Speak naturally in {language}. If the language is Hinglish, mix Hindi and English the way Indian faculty actually do. Keep sentences short and clear for text-to-speech.
+{name_line}LANGUAGE: Speak naturally in {language}. For blended options like Hinglish, Tenglish or Tanglish, mix that regional language with English exactly the way Indian faculty and students actually talk in class. For a pure regional language (e.g. Telugu, Tamil, Kannada, Malayalam, Marathi, Bengali, Gujarati, Punjabi), speak primarily in that language but keep standard technical/engineering terms in English, since that is how the subject is taught. Keep sentences short and clear for text-to-speech.
 
 {subject_line}PROJECT CONTEXT (personalize every question with this — never ask generic questions when you have real details here):
 {ctx}
 
 CRITICAL RULES:
 - SPEAK FIRST. Your very first turn is the greeting described above — begin talking the moment the session starts, without waiting for the student.
+- GREET EXACTLY ONCE. Deliver your introduction and opening a SINGLE time, then move on. NEVER repeat, restate or re-word your greeting/introduction, and never produce more than one opening in a row. If you have already introduced yourself, do not do it again.
 - Ask ONE question at a time and then LISTEN. Never dump multiple questions at once.
 - Keep each spoken turn short (2-4 sentences). This is a dialogue, not a monologue.
-- Stay strictly in your role for this mode. {"Do NOT mention screens or screen sharing." if mode != "presentation" else "Ground feedback in what is visible on the shared screen."}
+- Stay strictly in your role for this mode. {"Ground feedback in what is visible on the shared screen." if mode == "presentation" else "Coach on what you see of the student on their camera (eye contact, posture, expression) as well as what you hear." if mode == "coach" else "Do NOT mention screens or screen sharing."}
+- ENDING THE SESSION: When the session is genuinely complete (you have covered enough and delivered your brief closing remark), you MUST call the `end_session` tool exactly once. This is what generates the student's report — do NOT just fall silent and wait. Speak your one-line closing, then call `end_session`.
 
 STRUCTURED LOGGING (call these tools SILENTLY in the background — never read them aloud or mention JSON):
 - `record_question`: every time you ask the student a real exam question.
@@ -158,6 +179,7 @@ _GREETING_TRIGGER = {
     "viva": "The viva is now starting. Please greet me and ask your first question.",
     "presentation": "I'm about to start presenting. Please greet me and tell me when to begin.",
     "pitch": "I'm ready for the pitch drill. Please greet me and give me the challenge.",
+    "coach": "I'm ready to practice. Please greet me, tell me the scenario, and start.",
 }
 
 
@@ -215,6 +237,23 @@ def _tools() -> list[types.Tool]:
                         required=["score"],
                     ),
                 ),
+                types.FunctionDeclaration(
+                    name="end_session",
+                    description=(
+                        "Call this exactly once when the session is complete, right after you "
+                        "have spoken your brief closing remark. This finalizes the session and "
+                        "generates the student's report. Do not keep talking after calling it."
+                    ),
+                    parameters=types.Schema(
+                        type=types.Type.OBJECT,
+                        properties={
+                            "reason": types.Schema(
+                                type=types.Type.STRING,
+                                description="Short reason, e.g. 'covered enough questions'.",
+                            ),
+                        },
+                    ),
+                ),
             ]
         )
     ]
@@ -263,6 +302,9 @@ def analyze_transcript(mode: str, transcript: list[dict], project_context: str, 
     convo = "\n".join(lines).strip()
     if not convo:
         return {"questions": [], "overall_score": 0, "summary": "No conversation was recorded.", "strengths": [], "weaknesses": []}
+
+    if mode == "coach":
+        return _analyze_coach_transcript(convo, subject)
 
     role = {
         "viva": "an oral viva examination",
@@ -323,6 +365,71 @@ Rules: score answers on correctness, depth and clarity. If the student never rea
         "summary": str(result.get("summary", "")).strip() or "Session completed.",
         "strengths": result.get("strengths") or [],
         "weaknesses": result.get("weaknesses") or [],
+    }
+
+
+def _analyze_coach_transcript(convo: str, subject: str | None) -> dict:
+    """Grade a communication-coaching session and produce a delivery report.
+
+    Coach mode is about HOW the student communicated, so the report centers on
+    delivery scores (confidence, communication, clarity) rather than a Q&A grade.
+    The returned dict still fits the common summary shape used by finalize().
+    """
+    from ai import gemini_service
+
+    scenario = (subject or "a communication practice session").strip()
+    prompt = f"""You are an expert communication coach reviewing the transcript of a live practice session (scenario: {scenario}) between an AI COACH and a STUDENT.
+
+TRANSCRIPT:
+{convo}
+
+Based ONLY on the transcript, assess how the student COMMUNICATED (clarity, structure, confidence in wording, engagement, filler/hesitation, how well they answered). You cannot see video, so infer delivery from the words and the coach's spoken observations.
+Return STRICT JSON only, no prose, in exactly this shape:
+{{
+  "overall_score": 0-100,
+  "confidence_score": 0-100,
+  "communication_score": 0-100,
+  "clarity_score": 0-100,
+  "engagement_score": 0-100,
+  "strengths": ["..."],
+  "weaknesses": ["..."],
+  "recommendations": ["specific actionable tip", "..."],
+  "summary": "3-4 sentence coaching summary addressed to the student"
+}}
+Be honest and specific. If the student barely spoke, score low and say so."""
+
+    result = gemini_service.generate_json(prompt, default=None)
+    if not isinstance(result, dict):
+        return {
+            "questions": [], "overall_score": 0,
+            "summary": "Could not analyze the session automatically.",
+            "strengths": [], "weaknesses": [],
+        }
+
+    def _score(key: str) -> int:
+        try:
+            return max(0, min(100, int(result.get(key) or 0)))
+        except (ValueError, TypeError):
+            return 0
+
+    overall = _score("overall_score")
+    coach_metrics = {
+        "confidence": _score("confidence_score"),
+        "communication": _score("communication_score"),
+        "clarity": _score("clarity_score"),
+        "engagement": _score("engagement_score"),
+    }
+    if not overall:
+        vals = [v for v in coach_metrics.values() if v]
+        overall = round(sum(vals) / len(vals)) if vals else 0
+    return {
+        "questions": [],
+        "overall_score": overall,
+        "summary": str(result.get("summary", "")).strip() or "Communication session completed.",
+        "strengths": result.get("strengths") or [],
+        "weaknesses": result.get("weaknesses") or [],
+        "recommendations": result.get("recommendations") or [],
+        "coach_metrics": coach_metrics,
     }
 
 

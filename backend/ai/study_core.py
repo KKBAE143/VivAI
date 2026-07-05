@@ -39,6 +39,41 @@ def generate_flashcards(source_text: str, count: int = 15) -> list[dict]:
     ]
 
 
+def generate_question_bank_from_topic(topic: str, notes: str = "", count: int = 12) -> list[dict]:
+    notes_block = f"Optional student notes to prioritise:\n{notes[:8000]}" if notes.strip() else ""
+    result = gemini_service.generate_json(
+        prompts.STUDY_QUESTION_BANK_TOPIC.format(topic=topic[:500], notes=notes_block, count=count)
+    ) or {}
+    questions = result.get("questions") or []
+    cleaned = []
+    for q in questions:
+        if not q.get("question"):
+            continue
+        diff = (q.get("difficulty") or "Medium").capitalize()
+        cleaned.append(
+            {
+                "question_text": q["question"],
+                "expected_answer": q.get("answer"),
+                "topic": q.get("topic"),
+                "difficulty": diff if diff in ("Easy", "Medium", "Hard") else "Medium",
+            }
+        )
+    return cleaned
+
+
+def generate_flashcards_from_topic(topic: str, notes: str = "", count: int = 15) -> list[dict]:
+    notes_block = f"Optional student notes to prioritise:\n{notes[:8000]}" if notes.strip() else ""
+    result = gemini_service.generate_json(
+        prompts.STUDY_FLASHCARDS_TOPIC.format(topic=topic[:500], notes=notes_block, count=count)
+    ) or {}
+    cards = result.get("cards") or []
+    return [
+        {"front": c["front"], "back": c.get("back", ""), "topic": c.get("topic")}
+        for c in cards
+        if c.get("front")
+    ]
+
+
 def generate_from_image(image_data: bytes, mime_type: str, count: int = 12) -> dict:
     """Doc-grounded generation directly from a PDF/image the student uploaded."""
     bank_json = gemini_service.generate_json_with_image(

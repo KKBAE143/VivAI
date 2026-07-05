@@ -13,11 +13,13 @@ export const Route = createFileRoute("/advanced/faculty-sim")({
 
 function FacultySim() {
   const { data: profiles } = useFacultyProfiles();
-  const [form, setForm] = useState({ name: "", subjects: "", style_tags: "", known_patterns: "", difficulty_level: "Medium" });
+  const emptyForm = { name: "", college_name: "", subjects: "", style_tags: "", known_patterns: "", difficulty_level: "Medium" };
+  const [form, setForm] = useState(emptyForm);
   const createProfile = useApiMutation(
     () => api("/api/advanced/faculty-sim/profiles", {
       body: {
-        name: form.name,
+        name: form.name.trim(),
+        college_name: form.college_name.trim() || undefined,
         subjects: form.subjects.split(",").map((s) => s.trim()).filter(Boolean),
         style_tags: form.style_tags.split(",").map((s) => s.trim()).filter(Boolean),
         known_patterns: form.known_patterns,
@@ -26,6 +28,11 @@ function FacultySim() {
     }),
     ["faculty-profiles"],
   );
+
+  const saveProfile = () => {
+    if (!form.name.trim()) return;
+    createProfile.mutate(undefined, { onSuccess: () => setForm(emptyForm) });
+  };
 
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [question, setQuestion] = useState<{ question: string } | null>(null);
@@ -98,10 +105,21 @@ function FacultySim() {
           <div className="mt-4 border-t pt-3">
             <h4 className="text-sm font-semibold">Add a professor</h4>
             <input placeholder="Name (e.g. Prof. Sharma)" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-2 w-full rounded-lg border bg-background p-2 text-sm" />
+            <input placeholder="College (optional)" value={form.college_name} onChange={(e) => setForm({ ...form, college_name: e.target.value })} className="mt-2 w-full rounded-lg border bg-background p-2 text-sm" />
             <input placeholder="Subjects (comma separated)" value={form.subjects} onChange={(e) => setForm({ ...form, subjects: e.target.value })} className="mt-2 w-full rounded-lg border bg-background p-2 text-sm" />
             <input placeholder="Style tags (strict, gives-hints…)" value={form.style_tags} onChange={(e) => setForm({ ...form, style_tags: e.target.value })} className="mt-2 w-full rounded-lg border bg-background p-2 text-sm" />
             <textarea placeholder="Known patterns (always starts with…)" value={form.known_patterns} onChange={(e) => setForm({ ...form, known_patterns: e.target.value })} rows={2} className="mt-2 w-full rounded-lg border bg-background p-2 text-sm" />
-            <button disabled={!form.name || createProfile.isPending} onClick={() => createProfile.mutate(undefined)} className="mt-2 rounded-lg border px-3 py-1.5 text-xs font-semibold">Save Profile</button>
+            <button disabled={!form.name.trim() || createProfile.isPending} onClick={saveProfile} className="mt-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50">
+              {createProfile.isPending ? "Saving…" : "Save Profile"}
+            </button>
+            {createProfile.isError && (
+              <p className="mt-2 text-xs text-destructive">
+                {createProfile.error instanceof Error ? createProfile.error.message : "Could not save faculty"}
+              </p>
+            )}
+            {createProfile.isSuccess && !createProfile.isPending && (
+              <p className="mt-2 text-xs text-emerald-600">Faculty added.</p>
+            )}
           </div>
         </Card>
         <Card className="lg:col-span-8">

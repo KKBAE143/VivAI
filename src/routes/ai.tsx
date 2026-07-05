@@ -57,7 +57,7 @@ const tools = [
   { to: "/advanced/faculty-sim", title: "Faculty Simulation", desc: "Practice against an AI persona of your actual professor.", icon: GraduationCap, tag: "New" },
   { to: "/advanced/weakness-heatmap", title: "Weakness Heatmap", desc: "Per-topic weak spots aggregated across every session.", icon: Grid3X3, tag: "New" },
   { to: "/advanced/college-predictor", title: "College Viva Predictor", desc: "Predict exam topics from your whole college's viva history.", icon: TrendingUp, tag: "New" },
-  { to: "/advanced/sentiment-analysis", title: "Real-Time Sentiment", desc: "Live webcam coaching on confidence, pace and eye contact.", icon: Video, tag: "New" },
+  { to: "/advanced/sentiment-analysis", title: "AI Communication Coach", desc: "Live role-play for interviews, GD, pitch & more with real-time delivery coaching.", icon: Video, tag: "New" },
 ] as const;
 
 function AIHub() {

@@ -8,6 +8,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, Mic, MonitorUp, Volume2, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { LIVE_LANGUAGES } from "@/lib/languages";
 
 export type VideoSource = "screen" | "camera" | "none";
 
@@ -19,7 +20,7 @@ export interface PreflightResult {
 }
 
 interface PreflightSetupProps {
-  mode: "viva" | "presentation" | "pitch";
+  mode: "viva" | "presentation" | "pitch" | "coach";
   defaultLanguage?: string;
   defaultPersona?: string;
   /** Show the examiner persona picker (viva). */
@@ -38,9 +39,10 @@ const MODE_SOURCES: Record<string, VideoSource[]> = {
   presentation: ["screen"],
   viva: ["none"],
   pitch: ["none"],
+  coach: ["camera"],
 };
 
-const LANGUAGES = ["English", "Hindi", "Hinglish"];
+const LANGUAGES = LIVE_LANGUAGES;
 const PERSONAS = [
   { id: "friendly", label: "Friendly" },
   { id: "balanced", label: "Balanced" },
@@ -60,6 +62,10 @@ const MODE_COPY: Record<string, { title: string; hint: string }> = {
   pitch: {
     title: "Get ready to pitch",
     hint: "You have ~90 seconds. Cover problem, solution, tech and impact. The coach listens and reacts live.",
+  },
+  coach: {
+    title: "Get ready to practice",
+    hint: "Turn on your camera so the AI coach can watch your delivery — eye contact, posture and confidence — while you speak. It role-plays your scenario and coaches you live.",
   },
 };
 

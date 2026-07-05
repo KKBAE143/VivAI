@@ -149,7 +149,7 @@ class LivePersistence:
         try:
             if self.mode == "viva":
                 sb.table("viva_sessions").update({"status": "Pending"}).eq("id", self.session_id).execute()
-            elif self.mode == "presentation":
+            elif self.mode in ("presentation", "coach"):
                 sb.table("presentation_sessions").update({"status": "Pending"}).eq("id", self.session_id).execute()
         except Exception as exc:
             print(f"[live] revert error ({self.mode}): {exc}")
@@ -194,6 +194,10 @@ class LivePersistence:
             "strengths": analysis.get("strengths", []) if isinstance(analysis, dict) else [],
             "weaknesses": analysis.get("weaknesses", []) if isinstance(analysis, dict) else [],
         }
+        if isinstance(analysis, dict) and self.mode == "coach":
+            # Delivery-focused fields for the communication coach report.
+            summary["coach_metrics"] = analysis.get("coach_metrics", {})
+            summary["recommendations"] = analysis.get("recommendations", [])
         try:
             if self.mode == "viva":
                 for i, q in enumerate(self.questions, start=1):
@@ -253,9 +257,57 @@ class LivePersistence:
                              self.project_id, "presentation_session", self.session_id)
                 gamification_service.award_xp(self.user_id, "presentation_completed")
 
+            elif self.mode == "coach":
+                # Communication Coach: store delivery metrics + recommendations
+                # into the reused presentation_sessions row.
+                coach_metrics = analysis.get("coach_metrics", {}) if isinstance(analysis, dict) else {}
+                recommendations = analysis.get("recommendations", []) if isinstance(analysis, dict) else []
+                summary["coach_metrics"] = coach_metrics
+                summary["recommendations"] = recommendations
+                row = sb.table("presentation_sessions").select("topic_scores").eq("id", self.session_id).execute()
+                state = (row.data[0].get("topic_scores") if row.data else None) or {}
+                if isinstance(state, str):
+                    try:
+                        state = json.loads(state)
+                    except (ValueError, TypeError):
+                        state = {}
+                state.setdefault("slides", [])
+                state.setdefault("topics", {})
+                state["coach"] = True
+                state["report"] = {
+                    "coach_metrics": coach_metrics,
+                    "recommendations": recommendations,
+                    "strengths": summary.get("strengths", []),
+                    "weaknesses": summary.get("weaknesses", []),
+                    "flags": self.flags,
+                    "transcript": self.transcript,
+                }
+                sb.table("presentation_sessions").update({
+                    "status": "Completed",
+                    "overall_score": overall,
+                    "confidence_score": coach_metrics.get("confidence", overall),
+                    "clarity_score": coach_metrics.get("clarity", overall),
+                    "coverage_score": coach_metrics.get("engagement", overall),
+                    "feedback_summary": summary_text,
+                    "topic_scores": state,
+                    "completed_at": datetime.now(timezone.utc).isoformat(),
+                }).eq("id", self.session_id).execute()
+                log_activity(self.user_id, "presentation_completed", f"Completed a communication coaching session ({overall}%)",
+                             self.project_id, "presentation_session", self.session_id)
+                gamification_service.award_xp(self.user_id, "presentation_completed")
+
             elif self.mode == "pitch":
                 log_activity(self.user_id, "pitch_completed", f"Completed a live pitch drill ({overall}%)", self.project_id)
                 gamification_service.award_xp(self.user_id, "pitch_completed")
+
+            elif self.mode == "coach":
+                # Stateless like pitch — the report is delivered inline via the
+                # "ended" summary. Just log the activity + award XP.
+                log_activity(self.user_id, "coach_completed", f"Completed a communication coaching session ({overall}%)", self.project_id)
+                try:
+                    gamification_service.award_xp(self.user_id, "pitch_completed")
+                except Exception:
+                    pass
         except Exception as exc:  # never let persistence crash the socket close
             print(f"[live] finalize error ({self.mode}): {exc}")
         return summary
@@ -309,7 +361,7 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
         await websocket.close(code=4401)
         return
 
-    if mode not in ("viva", "presentation", "pitch"):
+    if mode not in ("viva", "presentation", "pitch", "coach"):
         await websocket.send_json({"type": "error", "message": f"Unknown mode '{mode}'"})
         await websocket.close(code=4400)
         return
@@ -329,13 +381,14 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
             language = row.get("language") or language
             subject = row.get("subject")
             sb.table("viva_sessions").update({"status": "In Progress"}).eq("id", session_id).execute()
-        elif mode == "presentation":
+        elif mode in ("presentation", "coach"):
+            # Coach sessions reuse the presentation_sessions table (session_type="Coach").
             res = sb.table("presentation_sessions").select("*").eq("id", session_id).eq("profile_id", user["id"]).execute()
             if not res.data:
                 raise ValueError("Session not found")
             row = res.data[0]
             project_id = row.get("project_id") or project_id
-            # Presentation stores its free-text topic inside topic_scores JSONB.
+            # Presentation/coach store their free-text topic/scenario inside topic_scores JSONB.
             subject = ((row.get("topic_scores") or {}).get("subject")) or subject
             sb.table("presentation_sessions").update({"status": "In Progress"}).eq("id", session_id).execute()
         # pitch: stateless, project_id + subject come from the query params
@@ -355,6 +408,7 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
     )
 
     errored = False
+    end_requested = asyncio.Event()
     try:
         async with live_service.connect_with_fallback(config) as session:
             await websocket.send_json({"type": "ready"})
@@ -425,13 +479,29 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                         if tc and tc.function_calls:
                             responses = []
                             for fc in tc.function_calls:
+                                if fc.name == "end_session":
+                                    # The examiner has decided the session is over.
+                                    # Acknowledge, flag for finalize, and stop receiving.
+                                    end_requested.set()
+                                    responses.append(
+                                        types.FunctionResponse(id=fc.id, name=fc.name, response={"status": "ok"})
+                                    )
+                                    continue
                                 event = persist.on_tool(fc.name, dict(fc.args or {}))
                                 if event:
                                     await websocket.send_json(event)
                                 responses.append(
                                     types.FunctionResponse(id=fc.id, name=fc.name, response={"status": "ok"})
                                 )
-                            await session.send_tool_response(function_responses=responses)
+                            try:
+                                await session.send_tool_response(function_responses=responses)
+                            except Exception:
+                                pass
+                            if end_requested.is_set():
+                                # Give the final closing audio a moment to flush to
+                                # the browser, then end the receive loop.
+                                await asyncio.sleep(0.5)
+                                return
                     # If a turn yielded nothing, the connection is gone — stop.
                     if not got_turn:
                         break

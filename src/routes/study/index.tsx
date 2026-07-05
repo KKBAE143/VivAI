@@ -6,7 +6,6 @@ import { AppShell, Card, PageHeader, Badge } from "@/components/app-shell";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 import { useRequireAuth } from "@/lib/auth-context";
-import { useProjects } from "@/lib/hooks";
 import {
   useQuestionBanks,
   useCreateBank,
@@ -32,7 +31,7 @@ function StudyPage() {
     <AppShell>
       <PageHeader
         title="Study Bank"
-        subtitle="Turn your report or notes into exam-style question banks and spaced-repetition flashcards."
+        subtitle="Enter any topic and instantly get exam-style question banks and spaced-repetition flashcards."
         action={
           <button
             onClick={() => setCreating(true)}
@@ -54,7 +53,7 @@ function StudyPage() {
       ) : (banks.data ?? []).length === 0 ? (
         <EmptyState
           title="No study banks yet"
-          description="Generate your first bank from a project report, uploaded file, or pasted notes."
+          description="Generate your first bank by entering a topic — notes are optional."
           action={
             <button onClick={() => setCreating(true)} className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
               <Plus className="h-4 w-4" /> New Bank
@@ -153,19 +152,17 @@ function BankTile({ bank }: { bank: { id: string; title: string; question_count:
 }
 
 function CreateBankForm({ onClose }: { onClose: () => void }) {
-  const projects = useProjects();
   const create = useCreateBank();
-  const [title, setTitle] = useState("");
-  const [projectId, setProjectId] = useState("");
+  const [topic, setTopic] = useState("");
   const [sourceText, setSourceText] = useState("");
   const [count, setCount] = useState(10);
 
   const submit = () => {
-    if (!title.trim()) return;
+    if (!topic.trim()) return;
     create.mutate(
       {
-        title: title.trim(),
-        project_id: projectId || null,
+        title: topic.trim(),
+        topic: topic.trim(),
         source_text: sourceText.trim() || undefined,
         count,
       },
@@ -179,37 +176,23 @@ function CreateBankForm({ onClose }: { onClose: () => void }) {
         <h3 className="text-base font-semibold">Generate a study bank</h3>
         <button onClick={onClose} className="text-xs font-semibold text-muted-foreground hover:text-foreground">Cancel</button>
       </div>
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <div>
-          <label className="text-xs font-semibold text-muted-foreground">Title</label>
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. DBMS Unit 3 — Normalization"
-            className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm"
-          />
-        </div>
-        <div>
-          <label className="text-xs font-semibold text-muted-foreground">Link to project (optional)</label>
-          <select
-            value={projectId}
-            onChange={(e) => setProjectId(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm"
-          >
-            <option value="">No project — use pasted notes</option>
-            {(projects.data ?? []).map((p) => (
-              <option key={String(p.id)} value={String(p.id)}>{String(p.title)}</option>
-            ))}
-          </select>
-        </div>
+      <div className="mt-4">
+        <label className="text-xs font-semibold text-muted-foreground">Topic <span className="text-primary">*</span></label>
+        <input
+          value={topic}
+          onChange={(e) => setTopic(e.target.value)}
+          placeholder="e.g. DBMS Normalization, Operating System Deadlocks, TCP/IP…"
+          className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm"
+        />
+        <p className="mt-1 text-xs text-muted-foreground">The AI generates questions and flashcards on this topic from its own knowledge.</p>
       </div>
       <div className="mt-4">
-        <label className="text-xs font-semibold text-muted-foreground">Source notes (optional if a project is linked)</label>
+        <label className="text-xs font-semibold text-muted-foreground">Notes (optional)</label>
         <textarea
           value={sourceText}
           onChange={(e) => setSourceText(e.target.value)}
-          rows={5}
-          placeholder="Paste your report abstract, notes, or key concepts here…"
+          rows={4}
+          placeholder="Paste any specific notes or emphasis you want the AI to prioritise (optional)…"
           className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm"
         />
       </div>
@@ -226,12 +209,15 @@ function CreateBankForm({ onClose }: { onClose: () => void }) {
         </label>
         <button
           onClick={submit}
-          disabled={create.isPending || !title.trim()}
+          disabled={create.isPending || !topic.trim()}
           className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
         >
           {create.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Generate
         </button>
       </div>
+      {create.isPending && (
+        <p className="mt-3 text-xs text-muted-foreground">Generating your questions and flashcards… this can take a few seconds.</p>
+      )}
       {create.error && (
         <p className="mt-3 text-xs text-destructive">
           {create.error instanceof Error ? create.error.message : "Generation failed"}

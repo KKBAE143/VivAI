@@ -38,12 +38,13 @@ function Signup() {
     setError("");
     setInfo("");
     try {
-      const res = await api<{ access_token: string | null; email_confirmation_required: boolean }>(
-        "/api/auth/signup",
-        { body: { name, email, password, college, year, branch } },
-      );
+      const res = await api<{
+        access_token: string | null;
+        refresh_token?: string | null;
+        email_confirmation_required: boolean;
+      }>("/api/auth/signup", { body: { name, email, password, college, year, branch } });
       if (res.access_token) {
-        login(res.access_token);
+        login(res.access_token, res.refresh_token ?? null);
         navigate({ to: "/onboarding" });
       } else {
         setInfo("Check your inbox to confirm your email, then sign in.");
