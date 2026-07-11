@@ -7,11 +7,14 @@ from fastapi import APIRouter, Depends, HTTPException
 from ai import delivery_metrics, prompts, viva_core
 from core.database import get_supabase
 from core.deps import get_current_user
+from core.languages import normalize_language
+from core.logging import get_logger
 from models.schemas import AnswerSubmit, VivaSessionCreate
 from services import gamification_service
 from services.activity_service import log_activity
 
 router = APIRouter(prefix="/api/viva", tags=["viva"])
+logger = get_logger("viva")
 
 
 def _get_session(session_id: str, user_id: str) -> dict:
@@ -107,13 +110,26 @@ def create_session(body: VivaSessionCreate, user=Depends(get_current_user)):
         "subject": body.subject,
         "duration_minutes": body.duration_minutes,
         "difficulty": body.difficulty,
-        "language": body.language,
+        # Normalize server-side so an unknown language can never reach (and 500
+        # against) the DB CHECK — belt-and-braces for the relaxed CHECK in 002.
+        "language": normalize_language(body.language),
         "persona": persona,
     }
     try:
         res = get_supabase().table("viva_sessions").insert(payload).execute()
-    except Exception:
-        # persona column not present yet (migration not applied) — retry without it.
+    except Exception as exc:
+        # Schema drift only: on an instance where migration 001/002 has not run,
+        # the `persona` column can be missing. Retry WITHOUT persona for that
+        # single case and log it. The language is already normalized, so this can
+        # never mask a language CHECK violation; any other error is re-raised so
+        # it surfaces (as a clean JSON 500 via CatchAllErrorMiddleware) instead
+        # of being silently swallowed.
+        if "persona" not in str(exc).lower():
+            raise
+        logger.warning(
+            "viva insert failed; retrying without persona (schema drift — apply migration 002)",
+            extra={"user_id": user["id"], "event": "viva_persona_fallback"},
+        )
         payload.pop("persona", None)
         res = get_supabase().table("viva_sessions").insert(payload).execute()
     return res.data[0]

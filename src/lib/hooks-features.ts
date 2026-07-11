@@ -1,17 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "./api";
-import { useAuth } from "./auth-context";
 import type { ApiRecord } from "./hooks";
-
-function useAuthedQuery<T>(key: unknown[], path: string, enabled = true) {
-  const { isAuthenticated } = useAuth();
-  return useQuery<T>({
-    queryKey: key,
-    queryFn: () => api<T>(path),
-    enabled: enabled && isAuthenticated,
-  });
-}
+import { useAuthedQuery } from "./query";
 
 // ---------- Readiness ----------
 export interface ReadinessComponent {

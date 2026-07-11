@@ -15,6 +15,22 @@ class Settings(BaseSettings):
     storage_bucket: str = "uploads"
     cors_origins: str = "http://localhost:8080,http://localhost:5173"
 
+    # --- Live-session behavior flags / tunables (REVIEW v2 / R7) ---
+    # Server-side mic gate is opt-in defense-in-depth for old clients; the
+    # client-side gate-on-drain is the real double-greeting fix. Default OFF so
+    # it can never fight Gemini's VAD or deadlock the greeting until validated.
+    live_server_mic_gate: bool = False
+    # Optional long-session re-anchor nudge (speculative; enable only if drift
+    # is observed in QA/telemetry).
+    live_reanchor: bool = False
+    # Live system-instruction char budget (two-tier prompt architecture). The
+    # registry char-budget test asserts every scenario x persona x mode stays
+    # under this; also emitted as a per-session metric for monitoring.
+    prompt_max_chars: int = 5000
+    # Raw session_events retention (days) for the pruning job (R8). The report
+    # JSON is the durable artifact; raw per-turn events are operational data.
+    session_events_retention_days: int = 90
+
     model_config = {"env_file": ("backend/.env", ".env"), "extra": "ignore"}
 
     @property

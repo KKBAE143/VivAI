@@ -7,6 +7,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from core.config import get_settings
+from core.errors import CatchAllErrorMiddleware
+from core.logging import configure_logging
 from api import (
     advanced,
     analytics,
@@ -25,9 +27,16 @@ from api import (
 )
 
 settings = get_settings()
+configure_logging()
 
 app = FastAPI(title="CollgePro Navigator API", version="1.0.0")
 
+# Middleware order matters: the LAST middleware added is the OUTERMOST wrapper.
+# We add the catch-all FIRST (inner) and CORS LAST (outer) so that every
+# unhandled 500 produced by the catch-all still passes back out through
+# CORSMiddleware and receives its Access-Control-Allow-Origin header. Do NOT
+# convert this to @app.exception_handler(Exception) — that runs outside CORS.
+app.add_middleware(CatchAllErrorMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,

@@ -3,17 +3,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { api, wsUrl } from "./api";
 import { useAuth } from "./auth-context";
+import { useAuthedQuery } from "./query";
 
 export type ApiRecord = Record<string, unknown>;
-
-function useAuthedQuery<T>(key: unknown[], path: string, enabled = true) {
-  const { isAuthenticated } = useAuth();
-  return useQuery<T>({
-    queryKey: key,
-    queryFn: () => api<T>(path),
-    enabled: enabled && isAuthenticated,
-  });
-}
 
 // ---------- A. Code-Aware Viva ----------
 

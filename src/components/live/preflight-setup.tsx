@@ -100,7 +100,9 @@ export function PreflightSetup({
     (async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          audio: { echoCancellation: true, noiseSuppression: true },
+          // autoGainControl added alongside the existing echo/noise constraints
+          // to further reduce the greeting leaking back into the mic (WS1).
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
         });
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());

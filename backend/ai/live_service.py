@@ -26,6 +26,7 @@ from google import genai
 from google.genai import types
 
 from core.config import get_settings
+from core.languages import audio_language_code
 
 # Current Live API models (2026), tried in order. gemini-3.1-flash-live-preview
 # is the recommended low-latency voice model; 2.5-flash-live-preview is the
@@ -212,8 +213,7 @@ PERSONALITY: {tone}
 CRITICAL RULES:
 - LANGUAGE: {lang_directive}
 - NEVER invent, assume or make up ANY facts about the student, their project, product, company, team, results, numbers or background. Use ONLY details explicitly given in PROJECT CONTEXT or SUBJECT above. If a detail was not provided, do NOT fabricate it (never invent a project name) — ask the student or keep it general.
-- SPEAK FIRST. Your very first turn is the greeting described above — begin talking the moment the session starts, without waiting for the student.
-- GREET EXACTLY ONCE. Deliver your introduction and opening a SINGLE time, then move on. NEVER repeat, restate or re-word your greeting/introduction, and never produce more than one opening in a row. If you have already introduced yourself, do not do it again — just continue the conversation.
+- GREETING (single source of truth): You will receive ONE short "the session is starting" message — respond to THAT message with the one-time greeting and opening described above. Deliver your greeting EXACTLY ONCE; after it, NEVER greet, re-introduce, restate or re-word your opening again — just continue the conversation. Do not produce any greeting before that starting message arrives.
 - Ask ONE question at a time and then LISTEN. Never dump multiple questions at once.
 - Keep each spoken turn short (2-4 sentences). This is a dialogue, not a monologue.
 - Stay strictly in your role for this mode. {"Ground feedback in what is visible on the shared screen." if mode == "presentation" else "Coach on what you see of the student on their camera (eye contact, posture, expression) as well as what you hear." if mode == "coach" else "Do NOT mention screens or screen sharing."}
@@ -328,14 +328,22 @@ def build_config(
     system_instruction = build_system_instruction(
         mode, persona, language, project_context, subject, student_name
     )
+    # The half-cascade Live models synthesize speech via TTS, which needs a target
+    # language. Without a language_code a non-English session yields a transcript
+    # but NO audio. We set it ONLY for non-English languages (English -> None ->
+    # unset), so the working English/Coach config is unchanged.
+    speech_kwargs: dict = {
+        "voice_config": types.VoiceConfig(
+            prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=voice)
+        )
+    }
+    lang_code = audio_language_code(language)
+    if lang_code:
+        speech_kwargs["language_code"] = lang_code
     kwargs = dict(
         response_modalities=["AUDIO"],
         media_resolution="MEDIA_RESOLUTION_MEDIUM",
-        speech_config=types.SpeechConfig(
-            voice_config=types.VoiceConfig(
-                prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=voice)
-            )
-        ),
+        speech_config=types.SpeechConfig(**speech_kwargs),
         system_instruction=types.Content(parts=[types.Part(text=system_instruction)]),
         input_audio_transcription=types.AudioTranscriptionConfig(),
         output_audio_transcription=types.AudioTranscriptionConfig(),
@@ -523,29 +531,52 @@ def _model_candidates() -> list[str]:
     return ordered
 
 
+def _config_without_language_code(config: types.LiveConnectConfig) -> types.LiveConnectConfig | None:
+    """Return a copy of config with speech language_code removed, or None if it had none."""
+    sc = getattr(config, "speech_config", None)
+    if not sc or not getattr(sc, "language_code", None):
+        return None
+    stripped = config.model_copy(deep=True)
+    # Rebuild the speech config without language_code (robust whether or not the
+    # SDK model permits in-place mutation).
+    stripped.speech_config = types.SpeechConfig(voice_config=sc.voice_config)
+    return stripped
+
+
 @asynccontextmanager
 async def connect_with_fallback(config: types.LiveConnectConfig):
     """Try each candidate Live model until one connects.
 
     Model availability changes while the Live API is in preview; a retired or
     region-restricted model must not kill the whole feature.
+
+    If the config set a speech language_code and EVERY model rejects it (e.g. an
+    unsupported BCP-47 code), we retry once with the code stripped so the session
+    still connects (transcript + default audio) instead of failing outright. This
+    makes adding a language_code strictly non-regressive.
     """
+    configs = [config]
+    fallback = _config_without_language_code(config)
+    if fallback is not None:
+        configs.append(fallback)
+
     last_exc: Exception | None = None
-    for model in _model_candidates():
-        connected = False
-        try:
-            async with get_client().aio.live.connect(model=model, config=config) as session:
-                connected = True
-                print(f"[live] connected with model {model}")
-                yield session
-                return
-        except Exception as exc:
-            if connected:
-                # Failure AFTER a successful connect (mid-session) — surface it,
-                # don't silently restart on another model.
-                raise
-            print(f"[live] model {model} failed to connect: {exc}")
-            last_exc = exc
+    for cfg in configs:
+        for model in _model_candidates():
+            connected = False
+            try:
+                async with get_client().aio.live.connect(model=model, config=cfg) as session:
+                    connected = True
+                    print(f"[live] connected with model {model}")
+                    yield session
+                    return
+            except Exception as exc:
+                if connected:
+                    # Failure AFTER a successful connect (mid-session) — surface it,
+                    # don't silently restart on another model.
+                    raise
+                print(f"[live] model {model} failed to connect: {exc}")
+                last_exc = exc
     raise RuntimeError(
         f"No Gemini Live model is available for this API key. Last error: {last_exc}"
     )

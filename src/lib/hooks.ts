@@ -2,24 +2,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "./api";
 import { useAuth } from "./auth-context";
+import { useAuthedQuery } from "./query";
 
 export type ApiRecord = Record<string, unknown>;
-
-function useAuthedQuery<T>(
-  key: unknown[],
-  path: string,
-  enabled = true,
-  extras?: { refetchOnWindowFocus?: boolean; refetchInterval?: number },
-) {
-  const { isAuthenticated } = useAuth();
-  return useQuery<T>({
-    queryKey: key,
-    queryFn: () => api<T>(path),
-    enabled: enabled && isAuthenticated,
-    refetchOnWindowFocus: extras?.refetchOnWindowFocus,
-    refetchInterval: extras?.refetchInterval,
-  });
-}
 
 // ---------- Auth / profile ----------
 

@@ -32,11 +32,19 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from google.genai import types
 
 from ai import live_service, viva_core
+from core.config import get_settings
 from core.database import get_supabase
+from core.logging import get_logger
 from services import gamification_service
 from services.activity_service import log_activity
 
 router = APIRouter(tags=["live"])
+logger = get_logger("live")
+
+# Safety release for the optional server-side mic gate: if the model never emits
+# a turn_complete (e.g. greeting failed), stop dropping mic audio after this long
+# so the session can never deadlock waiting for a greeting that isn't coming.
+_MIC_GATE_SAFETY_SECONDS = 20
 
 
 # --------------------------------------------------------------------------- #
@@ -400,6 +408,12 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
 
     errored = False
     end_requested = asyncio.Event()
+    # Optional server-side mic gate (defense-in-depth for old clients that lack
+    # the client gate-on-drain). Default OFF so it can never fight Gemini's VAD
+    # or deadlock the greeting until it has been validated on its own. It only
+    # ever drops AUDIO frames, before the first turn_complete is forwarded.
+    mic_gate_enabled = get_settings().live_server_mic_gate
+    first_turn_done = asyncio.Event()
     try:
         async with live_service.connect_with_fallback(config) as session:
             await websocket.send_json({"type": "ready"})
@@ -424,6 +438,12 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                         break
                     data = msg.get("bytes")
                     if data is not None:
+                        # Server-side gate: drop the student's mic audio until the
+                        # first Gemini turn (the greeting) has completed, so the
+                        # greeting cannot echo back and trigger a second greeting.
+                        # Only audio is gated; text/image/end always pass through.
+                        if mic_gate_enabled and not first_turn_done.is_set():
+                            continue
                         await _send_audio(session, data)
                         continue
                     text = msg.get("text")
@@ -465,6 +485,8 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                             if getattr(sc, "interrupted", None):
                                 await websocket.send_json({"type": "interrupted"})
                             if getattr(sc, "turn_complete", None):
+                                # Releases the server-side mic gate (if enabled).
+                                first_turn_done.set()
                                 await websocket.send_json({"type": "turn_complete"})
                         tc = getattr(response, "tool_call", None)
                         if tc and tc.function_calls:
@@ -497,11 +519,26 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                     if not got_turn:
                         break
 
+            async def _mic_gate_safety():
+                # Never let a missing turn_complete keep the mic gated forever.
+                await asyncio.sleep(_MIC_GATE_SAFETY_SECONDS)
+                if not first_turn_done.is_set():
+                    logger.warning(
+                        "mic gate safety release fired (no turn_complete)",
+                        extra={"session_id": session_id, "mode": mode, "event": "mic_gate_safety"},
+                    )
+                    first_turn_done.set()
+
             send_task = asyncio.create_task(client_to_gemini())
             recv_task = asyncio.create_task(gemini_to_client())
+            safety_task = (
+                asyncio.create_task(_mic_gate_safety()) if mic_gate_enabled else None
+            )
             done, pending = await asyncio.wait(
                 {send_task, recv_task}, return_when=asyncio.FIRST_COMPLETED
             )
+            if safety_task and not safety_task.done():
+                safety_task.cancel()
             for task in pending:
                 task.cancel()
             for task in done:
