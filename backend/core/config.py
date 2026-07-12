@@ -16,10 +16,6 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:8080,http://localhost:5173"
 
     # --- Live-session behavior flags / tunables (REVIEW v2 / R7) ---
-    # Server-side mic gate is opt-in defense-in-depth for old clients; the
-    # client-side gate-on-drain is the real double-greeting fix. Default OFF so
-    # it can never fight Gemini's VAD or deadlock the greeting until validated.
-    live_server_mic_gate: bool = False
     # Optional long-session re-anchor nudge (speculative; enable only if drift
     # is observed in QA/telemetry).
     live_reanchor: bool = False

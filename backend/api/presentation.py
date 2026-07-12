@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from ai import delivery_metrics, gemini_service, prompts
+from ai.registry import get_scenario
 from core.database import get_supabase
 from core.deps import get_current_user
 from models.schemas import AskRequest, PresentationAnswer, PresentationSessionCreate
@@ -58,13 +59,20 @@ def _project_context(project_id: str | None) -> str:
 
 @router.post("/sessions", status_code=201)
 def create_session(body: PresentationSessionCreate, user=Depends(get_current_user)):
+    scenario = get_scenario(body.scenario_id)
+    if body.scenario_id and not scenario:
+        raise HTTPException(status_code=400, detail="Unknown scenario_id")
+    # Keep the scenario label in topic_scores for report pages and historical
+    # sessions that predate the dedicated scenario_id column.
+    subject = (body.subject or "").strip() or (scenario.label if scenario else None)
     res = get_supabase().table("presentation_sessions").insert(
         {
             "profile_id": user["id"],
             "project_id": body.project_id,
             "session_type": body.session_type,
             "duration_minutes": body.duration_minutes,
-            "topic_scores": {"slides": [], "topics": {}, "subject": (body.subject or "").strip() or None},
+            "scenario_id": scenario.id if scenario else None,
+            "topic_scores": {"slides": [], "topics": {}, "subject": subject},
         }
     ).execute()
     return res.data[0]

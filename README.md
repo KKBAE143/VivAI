@@ -23,6 +23,11 @@ uvicorn main:app --reload --port 8000
 
 Frontend points at `http://localhost:8000` by default. Override with `VITE_API_URL=...` in `.env.local`.
 
+Run the schema and migrations in the Supabase SQL editor, in order:
+`backend/supabase_schema.sql` → `backend/migrations/001_platform_enhancement.sql` →
+`backend/migrations/002_quality_upgrade.sql`. Migrations are additive and
+idempotent (safe to re-run).
+
 ## Environment
 
 Backend (`backend/.env`):
@@ -46,8 +51,13 @@ Frontend (`.env.local` at repo root):
 
 - **Projects & Teams** — collaborative project workspace.
 - **AI Mock Viva** — `/ai-viva`. Configure session (subject, difficulty, duration, language) → live Q&A with Gemini → end-of-session score and feedback.
-- **AI Presentation Mock** — `/ai-presentation`. Configure session → upload slide images (Gemini VLM feedback per slide) → ask follow-up questions → end-of-session scoring (clarity, confidence, coverage).
-- **College Predictor**, **Sentiment Analysis**, **Weakness Heatmap**.
+- **AI Presentation Mock** — `/ai-presentation`. Configure session → upload slide images (Gemini VLM feedback per slide) → ask follow-up questions → end-of-session scoring (clarity, confidence, coverage). Live real-time sessions get an evidence-based report.
+- **AI Communication Coach** — `/advanced/sentiment-analysis`. Pick a scenario from the server-owned catalog (20 scenarios across academic/placement/corporate/public/school categories, 5 personas) → live camera coaching → evidence-based report.
+- **Live Pitch Coach** — `/pitch-drill`. Real-time 90-second pitch practice with an evidence-based report (plus a classic timed/scored mode).
+- **Kanban task board** — drag-and-drop (`@dnd-kit`) with a persisted `sort_order`, 4 statuses including Review.
+- **College Predictor**, **Weakness Heatmap**.
+
+See [docs/QUALITY-UPGRADE.md](./docs/QUALITY-UPGRADE.md) for the architecture behind the live-session engine, evidence-based reports, and the scenario/persona registry.
 
 ## Folder structure
 

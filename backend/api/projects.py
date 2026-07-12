@@ -34,7 +34,18 @@ def get_project(project_id: str, user=Depends(get_current_user)):
     sb = get_supabase()
     project = require_project_owner(project_id, user["id"])
     tasks = sb.table("tasks").select("*").eq("project_id", project_id).order("created_at").execute().data
-    teams = sb.table("teams").select("*, team_members(*)").eq("project_id", project_id).execute().data
+    # Source of truth is projects.team_id (see migration 003) — a project has
+    # at most one current team. `teams` stays a list in the response shape for
+    # backward compatibility with existing frontend code, but now contains 0
+    # or 1 entries resolved from the live pointer, not the deprecated
+    # teams.project_id column.
+    teams: list[dict] = []
+    if project.get("team_id"):
+        team_res = (
+            sb.table("teams").select("*, team_members(*, profiles(full_name, avatar_url))")
+            .eq("id", project["team_id"]).execute()
+        )
+        teams = team_res.data
     files = sb.table("files").select("*").eq("project_id", project_id).execute().data
     vivas = (
         sb.table("viva_sessions").select("id, session_type, score, status, created_at")

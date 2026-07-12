@@ -1,64 +1,51 @@
-"""Regression test: non-English live sessions must carry a speech language_code.
-
-Root cause of the "configured (regional-language) Mock Viva has no audio" bug:
-the half-cascade Live models synthesize speech via TTS, which needs a target
-language. Without speech_config.language_code a non-English session produces a
-transcript but no audible speech. English must stay unset so the working
-English/Coach path is byte-for-byte unchanged.
-"""
+"""Regression coverage for audio delivery in every Live-session variant."""
 from __future__ import annotations
 
-import pytest
+from types import SimpleNamespace
 
 from ai import live_service
-from core.languages import audio_language_code
+from api.live import _response_audio_chunks
 
 
-def test_english_has_no_language_code():
-    assert audio_language_code("English") is None
-    assert audio_language_code(None) is None
-    assert audio_language_code("Klingon") is None
+def test_quick_viva_project_viva_and_coach_always_request_native_audio():
+    """All user-facing flows must use one valid native-audio configuration."""
+    flows = (
+        ("viva", "English", "", "DBMS"),  # Quick Mock Viva
+        ("viva", "Telugu", "Title: Capstone. Tech stack: Python.", None),  # configured Project Viva
+        ("coach", "Hinglish", "", "HR Interview"),  # AI Coach
+    )
+    for mode, language, project_context, subject in flows:
+        config = live_service.build_config(mode, "balanced", language, project_context, subject=subject)
+        assert config.speech_config is not None
+        assert config.speech_config.language_code is None
+        assert list(config.response_modalities) == ["AUDIO"]
 
 
-@pytest.mark.parametrize(
-    "language,expected",
-    [
-        ("Telugu", "te-IN"),
-        ("Tenglish", "te-IN"),
-        ("Hindi", "hi-IN"),
-        ("Hinglish", "hi-IN"),
-        ("Tamil", "ta-IN"),
-        ("Tanglish", "ta-IN"),
-        ("Kannada", "kn-IN"),
-        ("Malayalam", "ml-IN"),
-        ("Marathi", "mr-IN"),
-        ("Bengali", "bn-IN"),
-        ("Gujarati", "gu-IN"),
-        ("Punjabi", "pa-IN"),
-        ("telugu", "te-IN"),  # case-insensitive
-    ],
-)
-def test_regional_languages_map_to_bcp47(language, expected):
-    assert audio_language_code(language) == expected
+def test_current_sdk_model_turn_audio_is_forwarded_to_the_browser():
+    response = SimpleNamespace(
+        data=None,
+        server_content=SimpleNamespace(
+            model_turn=SimpleNamespace(
+                parts=[
+                    SimpleNamespace(inline_data=SimpleNamespace(data=b"pcm-1", mime_type="audio/pcm;rate=24000")),
+                    SimpleNamespace(inline_data=SimpleNamespace(data=b"ignore", mime_type="image/jpeg")),
+                    SimpleNamespace(inline_data=None),
+                ]
+            )
+        ),
+    )
+
+    assert _response_audio_chunks(response) == [b"pcm-1"]
 
 
-def test_build_config_sets_language_code_only_for_non_english():
-    en = live_service.build_config("viva", "balanced", "English", "Project X", subject="DBMS")
-    assert getattr(en.speech_config, "language_code", None) is None
+def test_legacy_audio_data_stays_supported_without_double_forwarding():
+    response = SimpleNamespace(
+        data=b"legacy-pcm",
+        server_content=SimpleNamespace(
+            model_turn=SimpleNamespace(
+                parts=[SimpleNamespace(inline_data=SimpleNamespace(data=b"same", mime_type="audio/pcm"))]
+            )
+        ),
+    )
 
-    te = live_service.build_config("viva", "balanced", "Telugu", "Project X", subject="DBMS")
-    assert te.speech_config.language_code == "te-IN"
-    # The audio modality must remain set regardless of language.
-    assert list(te.response_modalities) == ["AUDIO"]
-
-
-def test_connect_fallback_strips_language_code():
-    te = live_service.build_config("viva", "balanced", "Telugu", "Project X")
-    stripped = live_service._config_without_language_code(te)
-    assert stripped is not None
-    assert getattr(stripped.speech_config, "language_code", None) is None
-    # Original config is not mutated.
-    assert te.speech_config.language_code == "te-IN"
-    # English config has nothing to strip.
-    en = live_service.build_config("viva", "balanced", "English", "")
-    assert live_service._config_without_language_code(en) is None
+    assert _response_audio_chunks(response) == [b"legacy-pcm"]

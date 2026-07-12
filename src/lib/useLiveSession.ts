@@ -23,11 +23,15 @@ export interface LiveCaption {
 
 export interface LiveEvent {
   id: string;
-  kind: "flag" | "question" | "score";
+  kind: "flag" | "observation" | "question" | "score";
   text: string;
   topic?: string | null;
   score?: number | null;
   severity?: string | null;
+  category?: string | null;
+  dimension?: string | null;
+  confidence?: "high" | "medium" | "low" | null;
+  tip?: string | null;
   ts: number;
 }
 
@@ -302,11 +306,30 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
               topic: (msg.topic as string | null) ?? null,
               score: (msg.score as number | null) ?? null,
               severity: (msg.severity as string | null) ?? null,
+              category: (msg.category as string | null) ?? null,
+              dimension: (msg.dimension as string | null) ?? null,
+              confidence: (msg.confidence as LiveEvent["confidence"]) ?? null,
+              tip: (msg.tip as string | null) ?? null,
               ts: Date.now(),
             },
           ]);
           break;
         }
+        case "finalizing":
+          // The server is starting the expensive part (transcript analysis +
+          // report generation). Re-arm the force-close safety net from this
+          // point, not from when "end" was first sent, so a slow report is
+          // never truncated by time already spent on teardown/flush.
+          if (gateTimerRef.current) clearTimeout(gateTimerRef.current);
+          gateTimerRef.current = setTimeout(() => {
+            try {
+              wsRef.current?.close();
+            } catch {
+              /* noop */
+            }
+            wsRef.current = null;
+          }, 60000);
+          break;
         case "ended":
           endedReceivedRef.current = true;
           setSummary((msg.summary as LiveSummary) ?? null);

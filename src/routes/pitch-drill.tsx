@@ -11,14 +11,18 @@ import {
   Timer as TimerIcon,
   Radio,
   Clock,
+  ArrowLeft,
 } from "lucide-react";
 
 import { AppShell, Card, PageHeader, Badge } from "@/components/app-shell";
 import { useRequireAuth } from "@/lib/auth-context";
-import { useProjects } from "@/lib/hooks";
+import { api } from "@/lib/api";
+import { useProjects, usePresentationSession } from "@/lib/hooks";
 import { useEvaluatePitch, type PitchResult } from "@/lib/hooks-features";
 import { useSpeechToText } from "@/lib/speech";
 import { LiveSessionRunner } from "@/components/live/live-session-runner";
+import { SessionReport } from "@/components/reports/session-report";
+import type { SessionReport as SessionReportData } from "@/lib/types";
 
 export const Route = createFileRoute("/pitch-drill")({
   head: () => ({ meta: [{ title: "90-Second Pitch Drill — VivAI" }] }),
@@ -36,8 +40,9 @@ function PitchDrillPage() {
   const [projectId, setProjectId] = useState<string>("");
   const [topic, setTopic] = useState<string>("");
   const [mode, setMode] = useState<"live" | "classic">("live");
-  const [liveActive, setLiveActive] = useState(false);
-  const [liveSessionId] = useState(() => `pitch-${Date.now()}`);
+  const [livePhase, setLivePhase] = useState<"idle" | "starting" | "live" | "report">("idle");
+  const [liveSessionId, setLiveSessionId] = useState<string | null>(null);
+  const [liveStartError, setLiveStartError] = useState("");
   const [phase, setPhase] = useState<"idle" | "recording" | "done">("idle");
   const [elapsed, setElapsed] = useState(0);
   const [result, setResult] = useState<PitchResult | null>(null);
@@ -100,10 +105,35 @@ function PitchDrillPage() {
     setResult(null);
   };
 
+  const startLivePitch = async () => {
+    setLiveStartError("");
+    setLivePhase("starting");
+    try {
+      // A real, persisted session (mirrors the Coach flow) so the live pitch
+      // can finalize an evidence-based report instead of vanishing on end.
+      const session = await api<{ id: string }>("/api/presentation/sessions", {
+        body: {
+          session_type: "Pitch",
+          scenario_id: "elevator_pitch",
+          project_id: projectId || null,
+          subject: topic.trim() || null,
+          duration_minutes: 6,
+        },
+      });
+      setLiveSessionId(session.id);
+      setLivePhase("live");
+    } catch (e) {
+      setLiveStartError(
+        e instanceof Error ? e.message : "Could not start the live pitch. Please try again.",
+      );
+      setLivePhase("idle");
+    }
+  };
+
   if (!authLoading && !ready) return null;
 
   // ----- Live AI coach mode -----
-  if (liveActive) {
+  if (livePhase === "live" && liveSessionId) {
     return (
       <LiveSessionRunner
         mode="pitch"
@@ -114,7 +144,19 @@ function PitchDrillPage() {
         subtitle="Deliver your 90-second pitch — your coach reacts and coaches you in real time."
         defaultLanguage="English"
         sources={["none"]}
-        onEnded={() => setLiveActive(false)}
+        onEnded={() => setLivePhase("report")}
+      />
+    );
+  }
+
+  if (livePhase === "report" && liveSessionId) {
+    return (
+      <PitchLiveReport
+        sessionId={liveSessionId}
+        onDone={() => {
+          setLiveSessionId(null);
+          setLivePhase("idle");
+        }}
       />
     );
   }
@@ -167,11 +209,18 @@ function PitchDrillPage() {
               </p>
             </div>
             <button
-              onClick={() => setLiveActive(true)}
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground"
+              onClick={() => void startLivePitch()}
+              disabled={livePhase === "starting"}
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
             >
-              <Play className="h-4 w-4" /> Start live pitch
+              {livePhase === "starting" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Play className="h-4 w-4" />
+              )}
+              {livePhase === "starting" ? "Starting…" : "Start live pitch"}
             </button>
+            {liveStartError && <p className="text-sm text-destructive">{liveStartError}</p>}
           </Card>
           <div className="space-y-5">
             <Card>
@@ -337,6 +386,68 @@ function PitchDrillPage() {
 
       {mode === "classic" && result && <PitchReport result={result} />}
     </AppShell>
+  );
+}
+
+function PitchLiveReport({ sessionId, onDone }: { sessionId: string; onDone: () => void }) {
+  const { data: session, isLoading } = usePresentationSession(sessionId);
+
+  if (isLoading) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-background text-sm text-muted-foreground">
+        Preparing your pitch report…
+      </div>
+    );
+  }
+
+  const report = session?.report as SessionReportData | null | undefined;
+
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur">
+        <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
+          <div>
+            <div className="text-sm font-semibold">Live Pitch — Report</div>
+            <div className="text-xs text-muted-foreground">Live Pitch Coach</div>
+          </div>
+          <button
+            onClick={onDone}
+            className="flex items-center gap-1.5 rounded-xl bg-secondary px-4 py-2 text-sm font-medium"
+          >
+            <ArrowLeft className="h-4 w-4" /> New pitch
+          </button>
+        </div>
+      </header>
+
+      <div className="mx-auto max-w-4xl space-y-6 px-4 py-8">
+        {report ? (
+          <SessionReport report={report} />
+        ) : (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[
+              ["Overall", session?.overall_score],
+              ["Clarity", session?.clarity_score],
+              ["Confidence", session?.confidence_score],
+              ["Coverage", session?.coverage_score],
+            ].map(([label, val]) => (
+              <div
+                key={String(label)}
+                className="rounded-2xl bg-card p-4 text-center shadow-[var(--shadow-card)]"
+              >
+                <div className="text-2xl font-bold">{val == null ? "—" : `${val}%`}</div>
+                <div className="text-xs text-muted-foreground">{String(label)}</div>
+              </div>
+            ))}
+          </div>
+        )}
+        {session?.feedback_summary ? (
+          <div className="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
+            <h3 className="text-sm font-semibold">Summary</h3>
+            <p className="mt-2 text-sm leading-relaxed">{String(session.feedback_summary)}</p>
+          </div>
+        ) : null}
+      </div>
+    </div>
   );
 }
 

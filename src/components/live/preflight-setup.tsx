@@ -9,12 +9,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, Mic, MonitorUp, Volume2, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { LIVE_LANGUAGES } from "@/lib/languages";
+import { usePersonaCatalog } from "@/lib/hooks-features";
 
 export type VideoSource = "screen" | "camera" | "none";
 
 export interface PreflightResult {
   micStream: MediaStream;
   videoStream: MediaStream | null;
+  videoSource: VideoSource | null;
   language: string;
   persona: string;
 }
@@ -43,7 +45,10 @@ const MODE_SOURCES: Record<string, VideoSource[]> = {
 };
 
 const LANGUAGES = LIVE_LANGUAGES;
-const PERSONAS = [
+// Fallback shown only while the catalog is loading, so the picker never
+// flashes empty — the server-owned list (incl. "calm") replaces this once
+// usePersonaCatalog() resolves.
+const FALLBACK_PERSONAS = [
   { id: "friendly", label: "Friendly" },
   { id: "balanced", label: "Balanced" },
   { id: "strict", label: "Strict" },
@@ -78,6 +83,8 @@ export function PreflightSetup({
   onReady,
 }: PreflightSetupProps) {
   const availableSources = sourcesProp ?? MODE_SOURCES[mode] ?? ["none"];
+  const personaCatalog = usePersonaCatalog();
+  const personas = personaCatalog.data?.length ? personaCatalog.data : FALLBACK_PERSONAS;
   const [language, setLanguage] = useState(defaultLanguage);
   const [persona, setPersona] = useState(defaultPersona);
   const [source, setSource] = useState<VideoSource>(availableSources[0]);
@@ -158,7 +165,7 @@ export function PreflightSetup({
       // Stop the meter loop; hand the mic stream to the live session.
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       audioCtxRef.current?.close().catch(() => {});
-      onReady({ micStream: micStreamRef.current, videoStream, language, persona });
+      onReady({ micStream: micStreamRef.current, videoStream, videoSource: videoStream ? source : null, language, persona });
     } catch (e) {
       if (e instanceof DOMException && e.name === "NotAllowedError") {
         setError("Permission was denied. Please allow access and try again.");
@@ -288,7 +295,7 @@ export function PreflightSetup({
                 onChange={(e) => setPersona(e.target.value)}
                 className="mt-1 w-full rounded-lg bg-card px-2 py-2 text-sm font-semibold focus:outline-none"
               >
-                {PERSONAS.map((p) => (
+                {personas.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.label}
                   </option>

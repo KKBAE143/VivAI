@@ -104,6 +104,7 @@ export interface SessionReport {
   scores: { overall: number; dimensions: ReportDimension[] };
   sections: ReportSection[];
   timeline?: Array<{ ts_ms: number; label: string; kind: string; evidence_refs?: string[] }>;
+  questions?: Array<{ question: string; topic?: string | null; answer?: string | null; score?: number | null; feedback?: string | null }>;
   strengths?: string[];
   improvements?: string[];
   recommendations?: Array<{ text: string; dimension?: string }>;

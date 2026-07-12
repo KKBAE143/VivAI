@@ -3,6 +3,16 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "./api";
 import type { ApiRecord } from "./hooks";
 import { useAuthedQuery } from "./query";
+import type { Persona, Scenario } from "./types";
+
+// ---------- Live scenario catalog ----------
+export function useScenarioCatalog() {
+  return useAuthedQuery<Scenario[]>(["catalog", "scenarios"], "/api/catalog/scenarios");
+}
+
+export function usePersonaCatalog() {
+  return useAuthedQuery<Persona[]>(["catalog", "personas"], "/api/catalog/personas");
+}
 
 // ---------- Readiness ----------
 export interface ReadinessComponent {

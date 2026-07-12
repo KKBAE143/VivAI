@@ -8,6 +8,7 @@ time_taken_seconds) and presentation exam Q&A items.
 from __future__ import annotations
 
 import re
+from statistics import median
 
 FILLER_WORDS = [
     "um", "uh", "er", "ah", "like", "you know", "basically", "actually",
@@ -127,4 +128,74 @@ def aggregate(answers: list[dict]) -> dict:
         "fluency_score": fluency_score,
         "clarity_score": clarity_score,
         "tips": tips,
+    }
+
+
+def from_transcript(turns: list[dict]) -> dict:
+    """Evidence-safe metrics from timestamped live transcript turns.
+
+    Timestamp ranges are approximate (they reflect streaming transcription), so
+    all timing-derived fields are explicitly marked as estimates. Missing or
+    malformed timings never become invented zeroes.
+    """
+    student_turns = [turn for turn in turns if turn.get("role") == "student" and (turn.get("text") or "").strip()]
+    if not student_turns:
+        return {
+            "available": False, "estimate": True, "words": 0, "filler_total": 0,
+            "filler_ratio": None, "top_fillers": [], "avg_wpm": None,
+            "talk_ratio": None, "avg_response_latency_ms": None,
+            "longest_monologue_ms": None, "turn_count": 0,
+        }
+
+    words = sum(_count_words(turn.get("text") or "") for turn in student_turns)
+    filler_agg: dict[str, int] = {}
+    for turn in student_turns:
+        for filler, count in _count_fillers(turn.get("text") or "").items():
+            filler_agg[filler] = filler_agg.get(filler, 0) + count
+    filler_total = sum(filler_agg.values())
+
+    def interval(turn: dict) -> tuple[int, int] | None:
+        try:
+            start, end = int(turn["start_ms"]), int(turn["end_ms"])
+        except (KeyError, TypeError, ValueError):
+            return None
+        return (start, end) if end >= start else None
+
+    timed = [(turn, interval(turn)) for turn in turns]
+    student_durations = [end - start for turn, value in timed if turn.get("role") == "student" and value for start, end in [value]]
+    wpms = []
+    for turn, value in timed:
+        if turn.get("role") != "student" or not value:
+            continue
+        start, end = value
+        duration = end - start
+        if duration > 3_000:
+            wpms.append(_count_words(turn.get("text") or "") / (duration / 60_000))
+
+    latencies = []
+    previous_examiner_end: int | None = None
+    for turn, value in timed:
+        if not value:
+            continue
+        start, end = value
+        if turn.get("role") == "examiner":
+            previous_examiner_end = end
+        elif turn.get("role") == "student" and previous_examiner_end is not None:
+            latency = start - previous_examiner_end
+            if 0 <= latency < 30_000:
+                latencies.append(latency)
+            previous_examiner_end = None
+
+    return {
+        "available": True,
+        "estimate": True,
+        "words": words,
+        "filler_total": filler_total,
+        "filler_ratio": round(filler_total / words, 3) if words else 0.0,
+        "top_fillers": sorted(({"word": word, "count": count} for word, count in filler_agg.items()), key=lambda item: item["count"], reverse=True)[:5],
+        "avg_wpm": round(sum(wpms) / len(wpms), 1) if wpms else None,
+        "talk_ratio": round(sum(student_durations) / sum(end - start for _turn, value in timed if value for start, end in [value]), 3) if student_durations and any(value for _turn, value in timed) else None,
+        "avg_response_latency_ms": round(median(latencies)) if latencies else None,
+        "longest_monologue_ms": max(student_durations) if student_durations else None,
+        "turn_count": len(student_turns),
     }

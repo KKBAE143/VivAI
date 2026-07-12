@@ -26,7 +26,7 @@ from google import genai
 from google.genai import types
 
 from core.config import get_settings
-from core.languages import audio_language_code
+from ai.registry import DEFAULT_PERSONA_ID, PERSONAS, Scenario, render_persona_block, render_scenario_block
 
 # Current Live API models (2026), tried in order. gemini-3.1-flash-live-preview
 # is the recommended low-latency voice model; 2.5-flash-live-preview is the
@@ -57,13 +57,6 @@ def live_model() -> str:
 # --------------------------------------------------------------------------- #
 # System instruction
 # --------------------------------------------------------------------------- #
-_PERSONA_TONE = {
-    "friendly": "Warm, encouraging and supportive. Offer gentle nudges when the student struggles.",
-    "balanced": "Fair but rigorous, like a typical B.Tech faculty examiner.",
-    "strict": "Precise and demanding. Expect exact answers and push follow-ups on vague reasoning. No hints.",
-    "hostile": "Tough, skeptical external examiner. Challenge every claim with rapid-fire follow-ups, but stay professional.",
-}
-
 # Each mode gets a fully self-contained playbook. Crucially, the VIVA is an ORAL
 # exam with NO screen — it must never ask the student to share their screen.
 _MODE_PLAYBOOK = {
@@ -71,7 +64,7 @@ _MODE_PLAYBOOK = {
 YOU CANNOT SEE THE STUDENT'S SCREEN OR CODE — there is no screen sharing in a viva. NEVER ask the student to "share your screen", "show me your code" or "open your project". Base everything on the project context below and on what the student SAYS.
 
 SESSION FLOW (follow in order):
-1. GREETING (your very first turn, ~15 seconds): Introduce yourself ONE time as their VivAI examiner, say this is a mock viva, and briefly tell them how it works — "I'll ask you a series of questions about your project and your subject; answer out loud, and I'll give feedback at the end." Then ask your FIRST question immediately. Do NOT wait for them to speak first. Give this introduction EXACTLY ONCE — never repeat or restate your greeting.
+1. OPENING (in response to the session-start message, ~15 seconds): Introduce yourself as their VivAI examiner, say this is a mock viva, and briefly tell them how it works — "I'll ask you a series of questions about your project and your subject; answer out loud, and I'll give feedback at the end." Then ask your FIRST question immediately.
 2. Ask ONE clear question at a time, grounded in their project/subject. Start easier, then go deeper based on their answers.
 3. After each answer: give a brief spoken reaction (1 sentence), then ask the next question or a follow-up if they were vague.
 4. Cover 5-8 questions total across different topics. Keep YOUR turns short — the student should do most of the talking.
@@ -79,7 +72,7 @@ SESSION FLOW (follow in order):
     "presentation": """ROLE: You are a faculty examiner watching the student's LIVE project PRESENTATION through their SHARED SCREEN. You CAN see their screen — react to what is actually visible.
 
 SESSION FLOW (follow in order):
-1. GREETING (your very first turn, ~15 seconds): Warmly introduce yourself as their VivAI review panel and confirm you can see their shared screen, then hand the floor to them with a clear, motivating prompt — e.g. "Hi, I'm your VivAI review panel and I've got your screen up. Whenever you're ready, start by telling me your project's name and the problem it solves, then walk me through it — I'll follow along and jump in with questions." Then STOP and watch; let them start presenting.
+1. OPENING (in response to the session-start message, ~15 seconds): Warmly introduce yourself as their VivAI review panel and confirm you can see their shared screen, then hand the floor to them with a clear, motivating prompt — e.g. "Hi, I'm your VivAI review panel and I've got your screen up. Whenever you're ready, start by telling me your project's name and the problem it solves, then walk me through it — I'll follow along and jump in with questions." Then STOP and watch; let them start presenting.
 2. As they present, give SHORT live reactions to what you SEE on screen ("Good, that architecture diagram is clear", "I see you're using JWT here"). Don't stay silent for long, but don't talk over them.
 3. When they finish a section or pause, ASK PERMISSION before probing: "Can I ask you about this part?" then ask ONE focused question grounded in what's on screen.
 4. Cover the key parts of the demo (problem, solution, tech, results). Push on weak or hand-wavy claims.
@@ -87,7 +80,7 @@ SESSION FLOW (follow in order):
     "pitch": """ROLE: You are a sharp startup investor-coach running a rapid ELEVATOR PITCH drill. This is voice-only — you cannot see anything.
 
 SESSION FLOW (follow in order):
-1. GREETING (your very first turn, ~10 seconds): Quickly introduce yourself ONE time and set the challenge — "Give me your 90-second pitch: what's the problem, your solution, and why it matters. Go whenever you're ready." Then listen. Never repeat your introduction.
+1. OPENING (in response to the session-start message, ~10 seconds): Quickly introduce yourself and set the challenge — "Give me your 90-second pitch: what's the problem, your solution, and why it matters. Go whenever you're ready." Then listen.
 2. Let them pitch. If they ramble or go over time, politely cut in and redirect.
 3. After the pitch, fire 2-3 rapid investor questions (market, differentiation, feasibility, impact).
 4. Keep the energy high and turns short.
@@ -97,10 +90,10 @@ SESSION FLOW (follow in order):
 YOU ARE BOTH A CONVERSATION PARTNER AND A LIVE COACH. Your job is to (a) keep a realistic scenario conversation going, and (b) continuously coach the student on HOW they communicate — not just what they say.
 
 SESSION FLOW (follow in order):
-1. GREETING (your very first turn, ~15 seconds): Introduce yourself ONE time as their AI communication coach, name the scenario you'll run, and tell them you'll be watching their delivery on camera and giving live tips. Then immediately start the scenario with your first prompt/question. Give this introduction EXACTLY ONCE.
+1. OPENING (in response to the session-start message, ~15 seconds): Introduce yourself as their AI communication coach, name the scenario you'll run, and tell them you'll be watching their delivery on camera and giving live tips. Then immediately start the scenario with your first prompt/question.
 2. Run the scenario naturally, one prompt/question at a time, and LISTEN.
 3. While they speak and between turns, give SHORT, specific, encouraging coaching based on what you SEE and HEAR — e.g. "Try to look at the camera", "Slow down a little", "Sit up straight", "Great — that was confident", "Watch the filler words". Weave 1 quick coaching tip into most of your turns, but never lecture.
-4. Observe and (silently, via the flag_moment tool) log delivery signals: eye contact, posture/body language, confidence, energy, pace, filler words, smile, engagement, nervousness.
+4. After every student turn, silently log 1-2 evidence-backed observations with the `log_observation` tool. Only log what you actually saw or heard; never invent body-language evidence when the camera is not useful.
 5. Cover 5-8 exchanges. Keep YOUR turns short — the student should do most of the talking.
 6. When done, give a brief encouraging closing remark, tell them you're preparing their communication report, then call the `end_session` tool.""",
 }
@@ -156,8 +149,9 @@ def build_system_instruction(
     project_context: str,
     subject: str | None = None,
     student_name: str | None = None,
+    scenario: Scenario | None = None,
 ) -> str:
-    tone = _PERSONA_TONE.get(persona, _PERSONA_TONE["balanced"])
+    persona_contract = render_persona_block(PERSONAS.get(persona, PERSONAS[DEFAULT_PERSONA_ID]))
     playbook = _MODE_PLAYBOOK.get(mode, _MODE_PLAYBOOK["viva"])
     name = (student_name or "").strip()
     name_line = (
@@ -169,9 +163,9 @@ def build_system_instruction(
         "Always address this ONE person individually — never greet a group or use a plural/collective address.\n\n"
     )
     if mode == "coach":
-        scenario = (subject or "").strip() or "Interview"
+        scenario_label = scenario.label if scenario else (subject or "").strip() or "Interview"
         ctx = (
-            f"SCENARIO TO RUN: {scenario}. Fully play the role this scenario implies and coach the "
+            f"SCENARIO TO RUN: {scenario_label}. Fully play the role this scenario implies and coach the "
             "student's live communication and delivery throughout."
         )
         if project_context.strip():
@@ -197,6 +191,7 @@ def build_system_instruction(
             "examined on. Then run the viva strictly on the subject they name, starting with "
             "fundamentals and going deeper based on their answers."
         )
+    scenario_block = render_scenario_block(scenario) if scenario else ""
     subject_line = f"SUBJECT FOCUS (weight your questions toward this): {subject}.\n\n" if subject else ""
     lang_directive = _language_directive(language)
     return f"""You are VivAI, an advanced real-time voice examiner and coach for Indian B.Tech students in 2026. You sound like a real human professor — natural pacing, warmth, and authority — never a robotic read-aloud.
@@ -205,7 +200,9 @@ LANGUAGE (MOST IMPORTANT — obey for EVERY single turn, including the greeting)
 
 {playbook}
 
-PERSONALITY: {tone}
+{persona_contract}
+
+{scenario_block}
 
 {name_line}{subject_line}PROJECT CONTEXT (personalize every question with this — never ask generic questions when you have real details here):
 {ctx}
@@ -213,7 +210,7 @@ PERSONALITY: {tone}
 CRITICAL RULES:
 - LANGUAGE: {lang_directive}
 - NEVER invent, assume or make up ANY facts about the student, their project, product, company, team, results, numbers or background. Use ONLY details explicitly given in PROJECT CONTEXT or SUBJECT above. If a detail was not provided, do NOT fabricate it (never invent a project name) — ask the student or keep it general.
-- GREETING (single source of truth): You will receive ONE short "the session is starting" message — respond to THAT message with the one-time greeting and opening described above. Deliver your greeting EXACTLY ONCE; after it, NEVER greet, re-introduce, restate or re-word your opening again — just continue the conversation. Do not produce any greeting before that starting message arrives.
+- GREETING (single source of truth): You will receive a session-start message — respond to it with your one-time greeting and the opening described above. Deliver it EXACTLY ONCE; never greet, re-introduce, restate, or re-word your opening again after that.
 - Ask ONE question at a time and then LISTEN. Never dump multiple questions at once.
 - Keep each spoken turn short (2-4 sentences). This is a dialogue, not a monologue.
 - Stay strictly in your role for this mode. {"Ground feedback in what is visible on the shared screen." if mode == "presentation" else "Coach on what you see of the student on their camera (eye contact, posture, expression) as well as what you hear." if mode == "coach" else "Do NOT mention screens or screen sharing."}
@@ -222,7 +219,7 @@ CRITICAL RULES:
 STRUCTURED LOGGING (call these tools SILENTLY in the background — never read them aloud or mention JSON):
 - `record_question`: every time you ask the student a real exam question.
 - `score_response`: right after the student answers, with a 0-100 score and one line of feedback.
-- `flag_moment`: when you notice a clear strength or issue.
+- `log_observation`: after each student turn, with a concise quote or concrete observed evidence.
 Still, do not rely on tools for the conversation — just talk naturally; the logging is secondary."""
 
 
@@ -236,11 +233,12 @@ _GREETING_TRIGGER = {
 }
 
 
-def greeting_trigger(mode: str, language: str = "English") -> str:
+def greeting_trigger(mode: str, language: str = "English", scenario: Scenario | None = None) -> str:
     base = _GREETING_TRIGGER.get(mode, _GREETING_TRIGGER["viva"])
     # Reinforce the language on the very first turn — this is where the model is
     # most likely to default to English if not reminded.
-    return f"{base} Remember: {_language_directive(language)}"
+    opening = f" Your scenario-specific opening move: {scenario.opening_move}" if scenario else ""
+    return f"{base}{opening} Remember: {_language_directive(language)}"
 
 
 # --------------------------------------------------------------------------- #
@@ -250,6 +248,23 @@ def _tools() -> list[types.Tool]:
     return [
         types.Tool(
             function_declarations=[
+                types.FunctionDeclaration(
+                    name="log_observation",
+                    description="Record one evidence-backed communication observation after a student turn.",
+                    parameters=types.Schema(
+                        type=types.Type.OBJECT,
+                        properties={
+                            "category": types.Schema(type=types.Type.STRING, description="communication | body_language | voice | engagement | content"),
+                            "dimension": types.Schema(type=types.Type.STRING, description="eye_contact | posture | gestures | facial_expression | pace | volume | tone_variation | filler_words | clarity | structure | conciseness | confidence | energy | responsiveness | listening | technical_depth"),
+                            "kind": types.Schema(type=types.Type.STRING, description="strength | issue | note"),
+                            "severity": types.Schema(type=types.Type.STRING, description="low | medium | high"),
+                            "confidence": types.Schema(type=types.Type.STRING, description="high | medium | low"),
+                            "evidence": types.Schema(type=types.Type.STRING, description="Short spoken quote or concrete visible observation."),
+                            "tip": types.Schema(type=types.Type.STRING, description="Optional one-line coaching cue."),
+                        },
+                        required=["category", "dimension", "kind", "severity", "confidence", "evidence"],
+                    ),
+                ),
                 types.FunctionDeclaration(
                     name="flag_moment",
                     description="Log a noteworthy observation about what is on the shared screen or how the student is doing.",
@@ -322,24 +337,22 @@ def build_config(
     project_context: str,
     subject: str | None = None,
     student_name: str | None = None,
+    scenario: Scenario | None = None,
 ) -> types.LiveConnectConfig:
     settings = get_settings()
     voice = (settings.gemini_live_voice or DEFAULT_VOICE).strip() or DEFAULT_VOICE
     system_instruction = build_system_instruction(
-        mode, persona, language, project_context, subject, student_name
+        mode, persona, language, project_context, subject, student_name, scenario
     )
-    # The half-cascade Live models synthesize speech via TTS, which needs a target
-    # language. Without a language_code a non-English session yields a transcript
-    # but NO audio. We set it ONLY for non-English languages (English -> None ->
-    # unset), so the working English/Coach config is unchanged.
+    # Gemini 3.1/2.5 Live are native-audio models. They choose the output
+    # language from the conversation and explicitly reject/ignore a forced
+    # SpeechConfig.language_code in some model variants. The system instruction
+    # above is the single language control for every live mode.
     speech_kwargs: dict = {
         "voice_config": types.VoiceConfig(
             prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=voice)
         )
     }
-    lang_code = audio_language_code(language)
-    if lang_code:
-        speech_kwargs["language_code"] = lang_code
     kwargs = dict(
         response_modalities=["AUDIO"],
         media_resolution="MEDIA_RESOLUTION_MEDIUM",
@@ -531,52 +544,29 @@ def _model_candidates() -> list[str]:
     return ordered
 
 
-def _config_without_language_code(config: types.LiveConnectConfig) -> types.LiveConnectConfig | None:
-    """Return a copy of config with speech language_code removed, or None if it had none."""
-    sc = getattr(config, "speech_config", None)
-    if not sc or not getattr(sc, "language_code", None):
-        return None
-    stripped = config.model_copy(deep=True)
-    # Rebuild the speech config without language_code (robust whether or not the
-    # SDK model permits in-place mutation).
-    stripped.speech_config = types.SpeechConfig(voice_config=sc.voice_config)
-    return stripped
-
-
 @asynccontextmanager
 async def connect_with_fallback(config: types.LiveConnectConfig):
     """Try each candidate Live model until one connects.
 
     Model availability changes while the Live API is in preview; a retired or
     region-restricted model must not kill the whole feature.
-
-    If the config set a speech language_code and EVERY model rejects it (e.g. an
-    unsupported BCP-47 code), we retry once with the code stripped so the session
-    still connects (transcript + default audio) instead of failing outright. This
-    makes adding a language_code strictly non-regressive.
     """
-    configs = [config]
-    fallback = _config_without_language_code(config)
-    if fallback is not None:
-        configs.append(fallback)
-
     last_exc: Exception | None = None
-    for cfg in configs:
-        for model in _model_candidates():
-            connected = False
-            try:
-                async with get_client().aio.live.connect(model=model, config=cfg) as session:
-                    connected = True
-                    print(f"[live] connected with model {model}")
-                    yield session
-                    return
-            except Exception as exc:
-                if connected:
-                    # Failure AFTER a successful connect (mid-session) — surface it,
-                    # don't silently restart on another model.
-                    raise
-                print(f"[live] model {model} failed to connect: {exc}")
-                last_exc = exc
+    for model in _model_candidates():
+        connected = False
+        try:
+            async with get_client().aio.live.connect(model=model, config=config) as session:
+                connected = True
+                print(f"[live] connected with model {model}")
+                yield session
+                return
+        except Exception as exc:
+            if connected:
+                # Failure AFTER a successful connect (mid-session) — surface it,
+                # don't silently restart on another model.
+                raise
+            print(f"[live] model {model} failed to connect: {exc}")
+            last_exc = exc
     raise RuntimeError(
         f"No Gemini Live model is available for this API key. Last error: {last_exc}"
     )

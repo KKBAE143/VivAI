@@ -15,9 +15,10 @@ def test_greeting_trigger_present_per_mode(mode):
     assert "greet" in trigger.lower()
 
 
-def test_system_instruction_has_single_greeting_source():
+@pytest.mark.parametrize("mode", MODES)
+def test_system_instruction_has_single_greeting_source(mode):
     si = live_service.build_system_instruction(
-        mode="viva",
+        mode=mode,
         persona="balanced",
         language="English",
         project_context="A todo app in React.",
@@ -26,10 +27,10 @@ def test_system_instruction_has_single_greeting_source():
     )
     # The consolidated directive replaces the old independent "SPEAK FIRST" rule
     # so there is exactly one greeting mechanism (the server-sent trigger).
-    assert "GREETING (single source of truth)" in si
+    assert si.count("GREETING (single source of truth)") == 1
     assert "SPEAK FIRST" not in si
     # The greeting must be tied to the starting message, and forbidden to repeat.
-    assert "EXACTLY ONCE" in si
+    assert si.count("EXACTLY ONCE") == 1
 
 
 def test_system_instruction_carries_language_directive():

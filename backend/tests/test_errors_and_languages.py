@@ -28,6 +28,7 @@ def test_catch_all_middleware_returns_json_500():
     """A route that raises must yield a JSON 500 (not a bare crash) so that the
     outer CORS middleware can attach headers the browser will accept."""
     from starlette.applications import Starlette
+    from starlette.middleware.cors import CORSMiddleware
     from starlette.responses import PlainTextResponse
     from starlette.routing import Route
     from starlette.testclient import TestClient
@@ -41,14 +42,24 @@ def test_catch_all_middleware_returns_json_500():
         return PlainTextResponse("ok")
 
     app = Starlette(routes=[Route("/boom", boom), Route("/ok", ok)])
+    # Match backend/main.py's order: catch-all first (inner), CORS last
+    # (outer). The outer wrapper must decorate the JSON 500 as it returns.
     app.add_middleware(CatchAllErrorMiddleware)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:3000"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     client = TestClient(app, raise_server_exceptions=False)
 
     assert client.get("/ok").text == "ok"
 
-    res = client.get("/boom")
+    res = client.get("/boom", headers={"Origin": "http://localhost:3000"})
     assert res.status_code == 500
+    assert res.headers["access-control-allow-origin"] == "http://localhost:3000"
     body = json.loads(res.text)
     assert "Internal server error" in body["detail"]
     assert "RuntimeError" in body["detail"]

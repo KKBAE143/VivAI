@@ -31,6 +31,7 @@ interface LiveStageProps {
 
 const EVENT_META = {
   flag: { icon: Sparkles, tone: "text-primary", label: "Observation" },
+  observation: { icon: Sparkles, tone: "text-primary", label: "Coach cue" },
   question: { icon: MessageCircleQuestion, tone: "text-warning", label: "Question" },
   score: { icon: Award, tone: "text-success", label: "Score" },
 } as const;
@@ -333,8 +334,12 @@ export function LiveStage({ live, videoStream, title, subtitle, onEnd, onRetry }
                               · {ev.topic}
                             </span>
                           )}
+                          {ev.dimension && (
+                            <span className="truncate text-[11px] text-muted-foreground">· {ev.dimension.replaceAll("_", " ")}</span>
+                          )}
                         </div>
                         {ev.text && <p className="mt-0.5 text-sm leading-snug">{ev.text}</p>}
+                        {ev.tip && <p className="mt-1 text-xs text-primary">Tip: {ev.tip}</p>}
                       </div>
                     </div>
                   );

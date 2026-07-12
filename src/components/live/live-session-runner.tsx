@@ -46,6 +46,7 @@ export function LiveSessionRunner({
   const [ending, setEnding] = useState(false);
   const micStreamRef = useRef<MediaStream | null>(null);
   const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
+  const [videoSource, setVideoSource] = useState<VideoSource | null>(null);
   const endedRef = useRef(false);
 
   const live = useLiveSession({ mode, sessionId, language, persona, projectId, subject });
@@ -53,6 +54,7 @@ export function LiveSessionRunner({
   const handleReady = useCallback((result: PreflightResult) => {
     micStreamRef.current = result.micStream;
     setVideoStream(result.videoStream);
+    setVideoSource(result.videoSource);
     setLanguage(result.language);
     setPersona(result.persona);
     setPhase("live");
@@ -61,7 +63,12 @@ export function LiveSessionRunner({
   // Start the live connection once we enter the live phase with fresh settings.
   useEffect(() => {
     if (phase !== "live" || !micStreamRef.current) return;
-    void live.start({ micStream: micStreamRef.current, videoStream });
+    // "none" (audio-only) carries no video source for the server to track.
+    void live.start({
+      micStream: micStreamRef.current,
+      videoStream,
+      videoSource: videoSource === "camera" || videoSource === "screen" ? videoSource : null,
+    });
     // Only run when entering the live phase.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
@@ -88,6 +95,7 @@ export function LiveSessionRunner({
   const handleRetry = useCallback(() => {
     setEnding(false);
     setVideoStream(null);
+    setVideoSource(null);
     live.reset();
     setPhase("setup");
   }, [live]);
