@@ -99,6 +99,16 @@ def coalesce_turns(transcript: list[dict]) -> list[dict]:
     return turns
 
 
+_VIVA_SCENARIO_BY_TYPE = {"Subject": "subject_viva", "Project": "viva_defense", "General": "general_viva"}
+
+
+def resolve_viva_scenario_id(session_type: str | None) -> str:
+    """Subject/Project/General vivas are different exams — own coaching
+    emphasis, not just a shared "project defense" label. Pure so it's
+    testable without a live session."""
+    return _VIVA_SCENARIO_BY_TYPE.get(session_type or "", "viva_defense")
+
+
 # --------------------------------------------------------------------------- #
 # Auth + context loading
 # --------------------------------------------------------------------------- #
@@ -191,25 +201,43 @@ class LivePersistence:
         self.transcript.append(item)
         self._buffer_event("transcript_turn", item, item["ts_ms"])
 
+    @staticmethod
+    def _evidence_is_near_duplicate(a: str, b: str) -> bool:
+        """Cheap similarity check so the dedup window only catches the model
+        literally repeating itself, not two distinct real moments that happen
+        to share a dimension+kind close together (the latter was silently
+        dropping genuine observations)."""
+        a_norm, b_norm = a.strip().lower(), b.strip().lower()
+        if not a_norm or not b_norm:
+            return False
+        if a_norm == b_norm:
+            return True
+        shorter, longer = sorted((a_norm, b_norm), key=len)
+        return len(shorter) > 8 and shorter in longer
+
     def on_tool(self, name: str, args: dict) -> dict | None:
         """Handle a model tool call; return a client event to forward (or None)."""
         if name == "log_observation":
             dimension = str(args.get("dimension") or "").strip()
             kind = str(args.get("kind") or "note")
+            evidence = str(args.get("evidence") or "")
             now = self.now_ms()
-            if not dimension:
+            if not dimension or not evidence:
                 return None
-            if any(item.get("dimension") == dimension and item.get("kind") == kind and now - int(item.get("ts_ms", 0)) < 20_000 for item in self.observations):
+            if any(
+                item.get("dimension") == dimension and item.get("kind") == kind
+                and now - int(item.get("ts_ms", 0)) < 20_000
+                and self._evidence_is_near_duplicate(str(item.get("evidence") or ""), evidence)
+                for item in self.observations
+            ):
                 return None
             item = {
                 "id": f"obs_{len(self.observations) + 1}", "ts_ms": now,
                 "category": args.get("category", "communication"), "dimension": dimension,
                 "kind": kind if kind in {"strength", "issue", "note"} else "note",
                 "severity": args.get("severity", "low"), "confidence": args.get("confidence", "low"),
-                "evidence": str(args.get("evidence") or ""), "tip": args.get("tip"),
+                "evidence": evidence, "tip": args.get("tip"),
             }
-            if not item["evidence"]:
-                return None
             self.observations.append(item)
             self._buffer_event("observation", item, now)
             return {"type": "event", "event": "observation", **item, "text": item["evidence"]}
@@ -223,28 +251,42 @@ class LivePersistence:
             self._buffer_event("observation", item)
             return {"type": "event", "event": "flag", **item}
         if name == "record_question":
+            now = self.now_ms()
             item = {
+                "id": f"q_{len(self.questions) + 1}",
                 "question": args.get("question", ""),
                 "topic": args.get("topic"),
                 "answer": None,
                 "score": None,
                 "feedback": None,
+                "ts_ms": now,
             }
             self.questions.append(item)
-            return {"type": "event", "event": "question", "question": item["question"], "topic": item["topic"]}
+            self._buffer_event("question", item, now)
+            return {"type": "event", "event": "question", "id": item["id"], "question": item["question"], "topic": item["topic"]}
         if name == "score_response":
             score = max(0, min(100, int(args.get("score", 0) or 0)))
             feedback = args.get("feedback")
             topic = args.get("topic")
-            target = next((q for q in reversed(self.questions) if q.get("score") is None), None)
+            now = self.now_ms()
+            # Prefer an explicit question_id from the model when it supplies
+            # one; otherwise fall back to the most recently asked, unscored
+            # question — the only reliable signal available without it.
+            question_id = args.get("question_id")
+            target = None
+            if question_id:
+                target = next((q for q in self.questions if q.get("id") == question_id), None)
             if target is None:
-                target = {"question": "(live discussion)", "topic": topic, "answer": None}
+                target = next((q for q in reversed(self.questions) if q.get("score") is None), None)
+            if target is None:
+                target = {"id": f"q_{len(self.questions) + 1}", "question": "(live discussion)", "topic": topic, "answer": None, "ts_ms": now}
                 self.questions.append(target)
             target["score"] = score
             target["feedback"] = feedback
             if topic and not target.get("topic"):
                 target["topic"] = topic
-            return {"type": "event", "event": "score", "score": score, "feedback": feedback, "topic": target.get("topic")}
+            self._buffer_event("score", target, now)
+            return {"type": "event", "event": "score", "id": target.get("id"), "score": score, "feedback": feedback, "topic": target.get("topic")}
         return None
 
     # -- finalize ----------------------------------------------------------- #
@@ -524,6 +566,7 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
     project_id = project_id_param
     subject = None
     scenario_id = None
+    viva_session_type = None
     try:
         if mode == "viva":
             res = sb.table("viva_sessions").select("*").eq("id", session_id).eq("profile_id", user["id"]).execute()
@@ -534,6 +577,7 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
             persona = row.get("persona") or persona
             language = row.get("language") or language
             subject = row.get("subject")
+            viva_session_type = row.get("session_type")
             sb.table("viva_sessions").update({"status": "In Progress"}).eq("id", session_id).execute()
         elif mode in ("presentation", "coach", "pitch"):
             # Coach and Pitch sessions reuse the presentation_sessions table
@@ -558,9 +602,10 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
     subject = subject_param or subject
     # Every mode gets a scenario contract. Coach sessions persist an explicit
     # registry id; legacy rows fall back to their stored label before a safe
-    # default. Viva, presentation and pitch use their natural implicit modes.
+    # default. Presentation and pitch use their natural implicit modes. Viva
+    # differentiates by session_type — see resolve_viva_scenario_id.
     scenario = {
-        "viva": get_scenario("viva_defense"),
+        "viva": get_scenario(resolve_viva_scenario_id(viva_session_type)),
         "presentation": get_scenario("project_presentation"),
         "pitch": get_scenario("elevator_pitch"),
     }.get(mode)
@@ -666,8 +711,17 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                                 event = persist.on_tool(fc.name, dict(fc.args or {}))
                                 if event:
                                     await websocket.send_json(event)
+                                # Hand the generated id back to the model so a
+                                # later score_response can reference it
+                                # explicitly via question_id, instead of
+                                # relying only on "most recent unscored
+                                # question" — which breaks if two questions
+                                # are asked before either is scored.
+                                tool_response = {"status": "ok"}
+                                if event and event.get("id"):
+                                    tool_response["question_id" if fc.name == "record_question" else "id"] = event["id"]
                                 responses.append(
-                                    types.FunctionResponse(id=fc.id, name=fc.name, response={"status": "ok"})
+                                    types.FunctionResponse(id=fc.id, name=fc.name, response=tool_response)
                                 )
                             try:
                                 await session.send_tool_response(function_responses=responses)

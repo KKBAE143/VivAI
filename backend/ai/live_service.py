@@ -216,11 +216,11 @@ CRITICAL RULES:
 - Stay strictly in your role for this mode. {"Ground feedback in what is visible on the shared screen." if mode == "presentation" else "Coach on what you see of the student on their camera (eye contact, posture, expression) as well as what you hear." if mode == "coach" else "Do NOT mention screens or screen sharing."}
 - ENDING THE SESSION: When the session is genuinely complete (you have covered enough and delivered your brief closing remark), you MUST call the `end_session` tool exactly once. This is what generates the student's report — do NOT just fall silent and wait. Speak your one-line closing, then call `end_session`.
 
-STRUCTURED LOGGING (call these tools SILENTLY in the background — never read them aloud or mention JSON):
-- `record_question`: every time you ask the student a real exam question.
-- `score_response`: right after the student answers, with a 0-100 score and one line of feedback.
+STRUCTURED LOGGING — MANDATORY, not optional (call these tools SILENTLY in the background — never read them aloud, never mention JSON, never let a tool call interrupt or delay your spoken turn):
+- `record_question`: REQUIRED every single time you ask the student a real question. Call it in the same turn as the question. Remember the question_id it returns.
+- `score_response`: REQUIRED right after you evaluate the student's answer to any recorded question — never move to the next question without scoring the previous one first. Pass question_id when you have it so the score attaches to the correct question.
 - `log_observation`: after each student turn, with a concise quote or concrete observed evidence.
-Still, do not rely on tools for the conversation — just talk naturally; the logging is secondary."""
+These tools are how the student's report and live feedback are built — skipping them means that moment is permanently lost from their feedback, not just delayed. Call them every time, exactly as specified, without exception."""
 
 
 # Short user-role trigger that forces the model to produce its opening greeting
@@ -285,7 +285,12 @@ def _tools() -> list[types.Tool]:
                 ),
                 types.FunctionDeclaration(
                     name="record_question",
-                    description="Record an exam question you just asked the student out loud.",
+                    description=(
+                        "Record an exam question you just asked the student out loud. Call this in "
+                        "the SAME turn you ask ANY real question — this is mandatory, not optional. "
+                        "The response returns a question_id; remember it so you can pass it to "
+                        "score_response for this exact question."
+                    ),
                     parameters=types.Schema(
                         type=types.Type.OBJECT,
                         properties={
@@ -297,13 +302,23 @@ def _tools() -> list[types.Tool]:
                 ),
                 types.FunctionDeclaration(
                     name="score_response",
-                    description="Score the student's most recent answer to your question.",
+                    description=(
+                        "Score the student's answer. Mandatory — call this immediately after "
+                        "evaluating ANY answer to a question you recorded, never skip it. Pass "
+                        "question_id from the matching record_question call whenever you have it, "
+                        "so the score attaches to the right question even if you've since asked "
+                        "another one."
+                    ),
                     parameters=types.Schema(
                         type=types.Type.OBJECT,
                         properties={
                             "score": types.Schema(type=types.Type.INTEGER, description="0-100"),
                             "feedback": types.Schema(type=types.Type.STRING, description="One or two sentences."),
                             "topic": types.Schema(type=types.Type.STRING, description="Short topic label."),
+                            "question_id": types.Schema(
+                                type=types.Type.STRING,
+                                description="The question_id returned by record_question for the question being scored, if known.",
+                            ),
                         },
                         required=["score"],
                     ),

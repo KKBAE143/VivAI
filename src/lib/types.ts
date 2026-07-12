@@ -106,8 +106,16 @@ export interface SessionReport {
   timeline?: Array<{ ts_ms: number; label: string; kind: string; evidence_refs?: string[] }>;
   questions?: Array<{ question: string; topic?: string | null; answer?: string | null; score?: number | null; feedback?: string | null }>;
   strengths?: string[];
+  /** v2: diagnostic weaknesses (what + why). `improvements` is kept as an
+   * alias of the same content for backward compatibility with v1 reports. */
+  weaknesses?: string[];
   improvements?: string[];
+  /** "How to improve" — concrete, actionable steps tied to a weakness. */
   recommendations?: Array<{ text: string; dimension?: string }>;
   practice_plan?: Array<{ day: string; action: string; scenario_id?: string }>;
+  /** v2: what a real evaluator would expect at a professional standard. */
+  industry_expectations?: string | null;
+  /** v2: topics worth studying, each tied to a specific weakness. */
+  resources?: Array<{ topic: string; why: string }>;
   metrics?: Record<string, unknown>;
 }

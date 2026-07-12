@@ -20,6 +20,10 @@ interface LiveSessionRunnerProps {
   defaultLanguage?: string;
   defaultPersona?: string;
   showPersona?: boolean;
+  /** Language/persona were fixed at session creation; the server always uses
+   * the stored value, so the preflight shows them read-only instead of an
+   * editable control that would silently have no effect (viva). */
+  configLocked?: boolean;
   /** Override the capture sources offered (defaults are mode-specific). */
   sources?: VideoSource[];
   /** Called once the live session ends (persisted). Parent shows the report. */
@@ -36,6 +40,7 @@ export function LiveSessionRunner({
   defaultLanguage = "English",
   defaultPersona = "balanced",
   showPersona = false,
+  configLocked = false,
   sources,
   onEnded,
 }: LiveSessionRunnerProps) {
@@ -115,6 +120,7 @@ export function LiveSessionRunner({
         defaultLanguage={defaultLanguage}
         defaultPersona={defaultPersona}
         showPersona={showPersona}
+        configLocked={configLocked}
         sources={sources}
         onReady={handleReady}
       />

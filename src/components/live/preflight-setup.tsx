@@ -27,6 +27,11 @@ interface PreflightSetupProps {
   defaultPersona?: string;
   /** Show the examiner persona picker (viva). */
   showPersona?: boolean;
+  /** Language and persona were fixed at session creation and the server
+   * always uses the stored value regardless of what's sent at connect time
+   * (viva). Showing them as editable here would be a control that silently
+   * does nothing when changed — render read-only instead, honestly. */
+  configLocked?: boolean;
   /** Override the video sources offered. Defaults are mode-specific. */
   sources?: VideoSource[];
   onReady: (result: PreflightResult) => void;
@@ -79,6 +84,7 @@ export function PreflightSetup({
   defaultLanguage = "English",
   defaultPersona = "balanced",
   showPersona = false,
+  configLocked = false,
   sources: sourcesProp,
   onReady,
 }: PreflightSetupProps) {
@@ -275,35 +281,56 @@ export function PreflightSetup({
 
         {/* Language + persona */}
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          <label className="rounded-xl bg-secondary px-4 py-3">
-            <span className="text-xs text-muted-foreground">Language</span>
-            <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              className="mt-1 w-full rounded-lg bg-card px-2 py-2 text-sm font-semibold focus:outline-none"
-            >
-              {LANGUAGES.map((l) => (
-                <option key={l}>{l}</option>
-              ))}
-            </select>
-          </label>
-          {showPersona && (
+          {configLocked ? (
+            <div className="rounded-xl bg-secondary px-4 py-3">
+              <span className="text-xs text-muted-foreground">Language</span>
+              <div className="mt-1 text-sm font-semibold">{language}</div>
+            </div>
+          ) : (
             <label className="rounded-xl bg-secondary px-4 py-3">
-              <span className="text-xs text-muted-foreground">Examiner style</span>
+              <span className="text-xs text-muted-foreground">Language</span>
               <select
-                value={persona}
-                onChange={(e) => setPersona(e.target.value)}
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
                 className="mt-1 w-full rounded-lg bg-card px-2 py-2 text-sm font-semibold focus:outline-none"
               >
-                {personas.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.label}
-                  </option>
+                {LANGUAGES.map((l) => (
+                  <option key={l}>{l}</option>
                 ))}
               </select>
             </label>
           )}
+          {showPersona && (
+            configLocked ? (
+              <div className="rounded-xl bg-secondary px-4 py-3">
+                <span className="text-xs text-muted-foreground">Examiner style</span>
+                <div className="mt-1 text-sm font-semibold">
+                  {personas.find((p) => p.id === persona)?.label ?? persona}
+                </div>
+              </div>
+            ) : (
+              <label className="rounded-xl bg-secondary px-4 py-3">
+                <span className="text-xs text-muted-foreground">Examiner style</span>
+                <select
+                  value={persona}
+                  onChange={(e) => setPersona(e.target.value)}
+                  className="mt-1 w-full rounded-lg bg-card px-2 py-2 text-sm font-semibold focus:outline-none"
+                >
+                  {personas.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )
+          )}
         </div>
+        {configLocked && (
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            Set when you configured this session — change them from the session setup screen instead.
+          </p>
+        )}
 
         {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
 

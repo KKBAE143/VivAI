@@ -80,17 +80,28 @@ def _validate_report(raw: dict | None, availability: dict, rubric: tuple[RubricD
             refs = [ref for ref in item.get("evidence_refs", []) if ref in valid_refs]
             if refs:
                 timeline.append({"ts_ms": max(0, int(item.get("ts_ms") or 0)), "label": str(item.get("label") or "Observation"), "kind": str(item.get("kind") or "note"), "evidence_refs": refs})
+    weaknesses = [str(item) for item in raw.get("weaknesses", []) if str(item).strip()][:5]
+    resources = [
+        {"topic": str(item.get("topic") or "").strip(), "why": str(item.get("why") or "").strip()}
+        for item in raw.get("resources", []) if isinstance(item, dict) and str(item.get("topic") or "").strip()
+    ][:5]
     return {
-        "version": 1,
+        "version": 2,
         "availability": availability,
         "executive_summary": str(raw.get("executive_summary") or "Your report is based only on the recorded session evidence."),
         "scores": {"overall": overall, "dimensions": dimensions},
         "sections": sections,
         "timeline": timeline,
         "strengths": [str(item) for item in raw.get("strengths", [])][:5],
-        "improvements": [str(item) for item in raw.get("improvements", [])][:5],
+        # weaknesses: diagnostic ("what went wrong and why"). improvements is
+        # kept as an alias of the same content for any older client reading
+        # the v1 field name — additive, not a breaking rename.
+        "weaknesses": weaknesses,
+        "improvements": weaknesses,
         "recommendations": [item for item in raw.get("recommendations", []) if isinstance(item, dict)][:5],
         "practice_plan": [item for item in raw.get("practice_plan", []) if isinstance(item, dict)][:4],
+        "industry_expectations": str(raw.get("industry_expectations") or "").strip() or None,
+        "resources": resources,
     }
 
 
@@ -102,7 +113,22 @@ def build_report(*, mode: str, scenario: Scenario, persona: str, turns: list[dic
         "turns": turns, "observations": observations, "questions": questions, "metrics": metrics,
         "availability": availability, "duration_ms": duration_ms, "project_context": project_context[:3000],
     }
-    prompt = """Create a strict JSON coaching report from this evidence only. Every finding and timeline item must cite evidence_refs using only observation ids or turn_N ids. Never claim body language when availability.camera is false. Use this exact top-level shape: executive_summary, scores:{dimensions:[{id,score,explanation,evidence_refs}]}, sections:[{id,findings:[{text,kind,confidence,evidence_refs,quote}]}], timeline, strengths, improvements, recommendations, practice_plan.\n\nEVIDENCE:\n""" + json.dumps(payload, ensure_ascii=False)[:24000]
+    prompt = f"""Create a strict JSON coaching report from this evidence only, for a {scenario.label} session graded against the {scenario.report_framework} framework. Every finding and timeline item must cite evidence_refs using only observation ids or turn_N ids from the evidence below — never invent one. Never claim body language when availability.camera is false.
+
+Write each section like an experienced human coach, not a generic template:
+- executive_summary: 2-3 sentences — WHAT the student did in this session (concrete, not generic praise).
+- scores.dimensions[].explanation: for each rubric dimension, explain WHY it got that score — cite the specific evidence that justifies it, not just "did well" / "needs work".
+- strengths: 2-4 specific things the student did well, each naming the concrete moment (not "good communication skills").
+- weaknesses: 2-4 specific gaps, each explaining WHY it's a gap (the underlying cause, not just the symptom) — e.g. not "answers were vague" but "skipped explaining the trade-off, likely because the underlying reasoning wasn't fully worked through".
+- recommendations: 2-4 concrete, actionable "how to improve" steps tied directly to a weakness above — each must be something the student can DO, not a vague trait to have.
+- industry_expectations: 2-3 sentences on what a real {scenario.audience} would expect at a professional/competitive standard for this kind of {scenario.label}, so the student knows the bar they're being measured against.
+- practice_plan: 2-4 concrete next actions (the action plan), each as {{"day": "This week" | "Next session" | etc., "action": "specific practice task", "scenario_id": "a relevant scenario id if applicable"}}.
+- resources: 1-4 topics worth studying/practicing to close the weakest dimension(s), each as {{"topic": "short topic name", "why": "one sentence tying it to a specific weakness above"}}.
+
+Return STRICT JSON only, this exact top-level shape: executive_summary, scores:{{dimensions:[{{id,score,explanation,evidence_refs}}]}}, sections:[{{id,findings:[{{text,kind,confidence,evidence_refs,quote}}]}}], timeline, strengths, weaknesses, recommendations, industry_expectations, practice_plan, resources.
+
+EVIDENCE:
+""" + json.dumps(payload, ensure_ascii=False)[:24000]
     raw = gemini_service.generate_json(prompt, default={}) or {}
     raw["_valid_evidence_refs"] = list(evidence_refs)
     report = _validate_report(raw, availability, scenario.rubric)

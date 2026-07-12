@@ -22,7 +22,13 @@ export interface LiveCaption {
 }
 
 export interface LiveEvent {
+  /** Client-generated, unique per event — used as the React key. */
   id: string;
+  /** Server-generated correlation id (e.g. "q_3"), present on question/score/
+   * observation events. A "score" event's refId names the "question" event
+   * it belongs to, so the UI can group them into one evolving evaluation
+   * instead of two disconnected list entries. */
+  refId?: string | null;
   kind: "flag" | "observation" | "question" | "score";
   text: string;
   topic?: string | null;
@@ -301,6 +307,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
             ...e,
             {
               id: nextId(),
+              refId: (msg.id as string | null) ?? null,
               kind,
               text: String(msg.text ?? msg.question ?? msg.feedback ?? ""),
               topic: (msg.topic as string | null) ?? null,

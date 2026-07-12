@@ -117,9 +117,9 @@ const TemplatesIndexRoute = TemplatesIndexRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const TeamsIndexRoute = TeamsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => TeamsRoute,
+  id: '/teams/',
+  path: '/teams/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const StudyIndexRoute = StudyIndexRouteImport.update({
   id: '/study/',
@@ -495,6 +495,7 @@ export interface RootRouteChildren {
   AiVivaIndexRoute: typeof AiVivaIndexRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
   StudyIndexRoute: typeof StudyIndexRoute
+  TeamsIndexRoute: typeof TeamsIndexRoute
   TemplatesIndexRoute: typeof TemplatesIndexRoute
   AiPresentationSessionIdRoute: typeof AiPresentationSessionIdRoute
   AiVivaSessionIdRoute: typeof AiVivaSessionIdRoute
@@ -602,10 +603,10 @@ declare module '@tanstack/react-router' {
     }
     '/teams/': {
       id: '/teams/'
-      path: '/'
+      path: '/teams'
       fullPath: '/teams/'
       preLoaderRoute: typeof TeamsIndexRouteImport
-      parentRoute: typeof TeamsRoute
+      parentRoute: typeof rootRouteImport
     }
     '/study/': {
       id: '/study/'
@@ -790,6 +791,7 @@ const rootRouteChildren: RootRouteChildren = {
   AiVivaIndexRoute: AiVivaIndexRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
   StudyIndexRoute: StudyIndexRoute,
+  TeamsIndexRoute: TeamsIndexRoute,
   TemplatesIndexRoute: TemplatesIndexRoute,
   AiPresentationSessionIdRoute: AiPresentationSessionIdRoute,
   AiVivaSessionIdRoute: AiVivaSessionIdRoute,

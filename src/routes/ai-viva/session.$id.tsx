@@ -129,7 +129,9 @@ function VivaSession() {
       title={title}
       subtitle={`Difficulty: ${difficulty} · Speak naturally — the examiner is listening.`}
       defaultLanguage={language}
+      defaultPersona={String(session?.persona ?? "balanced")}
       showPersona
+      configLocked
       sources={["camera", "none"]}
       onEnded={() => {
         setJustEnded(true);
