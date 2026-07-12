@@ -434,7 +434,9 @@ def build_config(
     # unhinted config rather than failing the whole session.
     try:
         input_transcription_cfg = types.AudioTranscriptionConfig(
-            language_codes=_transcription_language_hints(language)
+            language_hints=types.LanguageHints(
+                language_codes=_transcription_language_hints(language)
+            )
         )
     except Exception as exc:  # noqa: BLE001 — optional accuracy tuning, never fatal
         print(f"[live] input transcription language hints unavailable, using defaults: {exc}")

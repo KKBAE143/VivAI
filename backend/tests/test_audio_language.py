@@ -40,14 +40,35 @@ def test_transcription_language_hints_cover_regional_and_blended_languages():
 
 
 def test_build_config_wires_language_hints_into_input_transcription():
-    """End-to-end guard: the hints actually reach the SDK config object,
-    not just the pure helper function."""
+    """End-to-end guard: the hints actually reach the SDK config object via
+    the structured `language_hints` field, not the deprecated top-level
+    `language_codes` field.
+
+    Regression guard: `AudioTranscriptionConfig(language_codes=[...])`
+    constructs fine locally (pydantic allows it) but is REJECTED at the real
+    Gemini Developer API call site — `_AudioTranscriptionConfig_to_mldev`
+    raises "language_codes parameter is only supported in Gemini Enterprise
+    Agent Platform mode, not in Gemini Developer API mode.", which broke
+    every live session in production even though local construction and an
+    earlier version of this test both passed. `language_hints` (a nested
+    `LanguageHints` object) is the field that survives that converter, so
+    this test exercises the converter directly rather than only pydantic
+    construction — a construction-only check cannot catch this class of bug.
+    """
+    from google.genai._live_converters import _AudioTranscriptionConfig_to_mldev
+
     config = live_service.build_config("viva", "balanced", "Telugu", "", subject="DBMS")
     assert config.input_audio_transcription is not None
-    assert config.input_audio_transcription.language_codes == ["te-IN", "en-US"]
+    assert config.input_audio_transcription.language_codes is None
+    assert config.input_audio_transcription.language_hints.language_codes == ["te-IN", "en-US"]
 
     config_en = live_service.build_config("viva", "balanced", "English", "", subject="DBMS")
-    assert config_en.input_audio_transcription.language_codes == ["en-US"]
+    assert config_en.input_audio_transcription.language_hints.language_codes == ["en-US"]
+
+    # Must not raise — this is the exact call the SDK makes for a
+    # Developer-API-mode client, and the exact call that raised before.
+    mldev = _AudioTranscriptionConfig_to_mldev(config.input_audio_transcription)
+    assert mldev["languageHints"].language_codes == ["te-IN", "en-US"]
 
 
 def test_build_config_vad_silence_duration_tolerates_mid_answer_pauses():
