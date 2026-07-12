@@ -99,12 +99,14 @@ SESSION FLOW (follow in order):
 }
 
 
-# Blended (code-mixed) languages -> the two languages they mix.
+# Blended (code-mixed) languages -> the two languages they mix (display string).
 _BLENDED_LANGUAGES = {
     "hinglish": "Hindi and English",
     "tenglish": "Telugu and English",
     "tanglish": "Tamil and English",
 }
+# The regional half of each blend, for the formal-register instruction below.
+_BLENDED_REGIONAL_NAME = {"hinglish": "Hindi", "tenglish": "Telugu", "tanglish": "Tamil"}
 # Pure regional languages the model must actually speak (not silently fall back
 # to English). Technical terms stay in English, as is normal in Indian classes.
 _PURE_REGIONAL = {
@@ -128,16 +130,21 @@ def _language_directive(language: str) -> str:
         pair = _BLENDED_LANGUAGES[key]
         return (
             f"Speak in {language.strip()} for the ENTIRE session, starting from your very first greeting. "
-            f"{language.strip()} means naturally CODE-MIXING {pair} within the same sentences, exactly the way "
-            f"Indian students and faculty actually talk. MOST of your sentences must contain words from BOTH "
-            f"{pair}. Do NOT speak only English, and do NOT speak only the regional language — you MUST blend "
-            f"them together. Keep technical/engineering terms in English."
+            f"{language.strip()} means naturally CODE-MIXING {pair} within the same sentences — that is about "
+            f"WHICH WORDS you blend, not how formal or casual you sound. MOST of your sentences must contain "
+            f"words from BOTH {pair}. Do NOT speak only English, and do NOT speak only the regional language — "
+            f"you MUST blend them together. Keep technical/engineering terms in English. Use the FORMAL/polite "
+            f"address forms of {_BLENDED_REGIONAL_NAME.get(key, language.strip())}, never casual slang or "
+            f"friend-to-friend forms — your PERSONA's formality (given elsewhere in these instructions) applies "
+            f"exactly as much in this blended language as it would in English."
         )
     if key in _PURE_REGIONAL:
         return (
             f"Speak PRIMARILY in {language.strip()} for the ENTIRE session, starting from your very first "
             f"greeting. Use {language.strip()} for almost everything; keep ONLY standard technical/engineering "
-            f"terms in English (as is normal in Indian classrooms). Do NOT default to or drift into English."
+            f"terms in English (as is normal in Indian classrooms). Do NOT default to or drift into English. "
+            f"Use the FORMAL/polite address forms of {language.strip()}, never casual slang — your PERSONA's "
+            f"formality (given elsewhere in these instructions) applies exactly as much here as it would in English."
         )
     return f"Speak naturally in {language.strip()} for the entire session, starting from your very first greeting."
 
@@ -210,7 +217,7 @@ LANGUAGE (MOST IMPORTANT — obey for EVERY single turn, including the greeting)
 CRITICAL RULES:
 - LANGUAGE: {lang_directive}
 - NEVER invent, assume or make up ANY facts about the student, their project, product, company, team, results, numbers or background. Use ONLY details explicitly given in PROJECT CONTEXT or SUBJECT above. If a detail was not provided, do NOT fabricate it (never invent a project name) — ask the student or keep it general.
-- GREETING (single source of truth): You will receive a session-start message — respond to it with your one-time greeting and the opening described above. Deliver it EXACTLY ONCE; never greet, re-introduce, restate, or re-word your opening again after that.
+- GREETING (single source of truth): You will receive a session-start message — respond to it with your one-time greeting and the opening described above, in ONE continuous turn: a single short self-introduction (1-2 sentences), immediately followed by your first question or prompt, with NO second self-introduction, restatement of who you are, or repeated "hello/welcome" anywhere later in that same turn or after it. Deliver the greeting EXACTLY ONCE per session; never greet, re-introduce, restate, or re-word your opening again after that turn.
 - Ask ONE question at a time and then LISTEN. Never dump multiple questions at once.
 - Keep each spoken turn short (2-4 sentences). This is a dialogue, not a monologue.
 - Stay strictly in your role for this mode. {"Ground feedback in what is visible on the shared screen." if mode == "presentation" else "Coach on what you see of the student on their camera (eye contact, posture, expression) as well as what you hear." if mode == "coach" else "Do NOT mention screens or screen sharing."}
@@ -237,7 +244,21 @@ def greeting_trigger(mode: str, language: str = "English", scenario: Scenario | 
     base = _GREETING_TRIGGER.get(mode, _GREETING_TRIGGER["viva"])
     # Reinforce the language on the very first turn — this is where the model is
     # most likely to default to English if not reminded.
-    opening = f" Your scenario-specific opening move: {scenario.opening_move}" if scenario else ""
+    #
+    # Viva's own ctx block (in build_system_instruction) already fully owns
+    # "what to ask first" for every session_type (Project/Subject/General) —
+    # it knows whether a subject was actually provided, the scenario's
+    # opening_move does not. Injecting both created two competing "ask this
+    # first" instructions from different prompt locations (system_instruction
+    # vs. this trigger message), which is exactly the kind of redundancy that
+    # produces a rambling, doubled-sounding opening — the regression this
+    # guards against. Every other mode has no equivalent ctx-based opening
+    # logic, so the scenario's opening_move is the only source there.
+    opening = (
+        f" Your scenario-specific opening move: {scenario.opening_move}"
+        if scenario and mode != "viva"
+        else ""
+    )
     return f"{base}{opening} Remember: {_language_directive(language)}"
 
 

@@ -21,6 +21,29 @@ def test_registry_ids_weights_and_references_are_valid():
         assert set(scenario.coaching_focus) <= KNOWN_OBSERVATION_DIMENSIONS
 
 
+def test_every_persona_declares_a_formality_register():
+    """Regression guard: the Persona model originally had no vocabulary/
+    formality axis at all, so "Tough Panel" (pressure/interruption-heavy)
+    had nothing stopping the model from expressing that pressure in casual
+    slang — which is exactly what real testing surfaced. Every persona must
+    declare a register, and it must actually show up in the rendered block."""
+    for persona in PERSONAS.values():
+        assert persona.register.strip()
+        block = render_persona_block(persona)
+        assert persona.register in block
+        assert "NON-NEGOTIABLE" in block
+
+
+def test_hostile_persona_register_explicitly_forbids_casual_slang():
+    hostile = PERSONAS["hostile"]
+    register_lower = hostile.register.lower()
+    assert "slang" in register_lower
+    assert "formal" in register_lower
+    block = render_persona_block(hostile)
+    # The "tough = pressure, not casualness" disclaimer must survive rendering.
+    assert "never an excuse to become casual" in block
+
+
 def test_every_scenario_persona_combination_fits_live_instruction_budget():
     for scenario in SCENARIOS:
         for persona in PERSONAS:

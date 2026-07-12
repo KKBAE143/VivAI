@@ -30,6 +30,10 @@ export interface LiveEvent {
    * instead of two disconnected list entries. */
   refId?: string | null;
   kind: "flag" | "observation" | "question" | "score";
+  /** For observation/flag events only: whether this specific moment was a
+   * strength, an issue, or a neutral note — distinct from `kind` above,
+   * which is the event envelope type, not the observation's own verdict. */
+  observationKind?: "strength" | "issue" | "note" | null;
   text: string;
   topic?: string | null;
   score?: number | null;
@@ -134,6 +138,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
   const [error, setError] = useState<string>("");
   const [aiSpeaking, setAiSpeaking] = useState(false);
   const [micMuted, setMicMuted] = useState(false);
+  const [videoEnabled, setVideoEnabled] = useState(true);
   const [captions, setCaptions] = useState<LiveCaption[]>([]);
   const [events, setEvents] = useState<LiveEvent[]>([]);
   const [liveUserText, setLiveUserText] = useState("");
@@ -151,6 +156,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
   const frameVideoRef = useRef<HTMLVideoElement | null>(null);
   const frameCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const micMutedRef = useRef(false);
+  const videoEnabledRef = useRef(true);
   const userBufRef = useRef("");
   const aiBufRef = useRef("");
   const speakingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -309,6 +315,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
               id: nextId(),
               refId: (msg.id as string | null) ?? null,
               kind,
+              observationKind: (msg.kind as LiveEvent["observationKind"]) ?? null,
               text: String(msg.text ?? msg.question ?? msg.feedback ?? ""),
               topic: (msg.topic as string | null) ?? null,
               score: (msg.score as number | null) ?? null,
@@ -358,6 +365,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     const ws = wsRef.current;
     const video = frameVideoRef.current;
     const canvas = frameCanvasRef.current;
+    if (!videoEnabledRef.current) return;
     if (!ws || ws.readyState !== WebSocket.OPEN || !video || !canvas || !video.videoWidth) return;
     const scale = Math.min(1, FRAME_MAX_WIDTH / video.videoWidth);
     canvas.width = Math.round(video.videoWidth * scale);
@@ -379,6 +387,8 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
       setCaptions([]);
       setEvents([]);
       setSummary(null);
+      videoEnabledRef.current = true;
+      setVideoEnabled(true);
 
       // Keep the mic gated until the AI's opening greeting completes (we open it
       // on the first `turn_complete`). Streaming ambient noise DURING the
@@ -562,6 +572,21 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
 
   const toggleMic = useCallback(() => setMicMuted((m) => !m), []);
 
+  /** Pause/resume the camera mid-session — disables the actual video track
+   * (not just the frame-capture timer), so the local preview and the
+   * frames sent to the model go dark together, from one source of truth. */
+  const toggleVideo = useCallback(() => {
+    setVideoEnabled((prev) => {
+      const next = !prev;
+      videoEnabledRef.current = next;
+      const stream = frameVideoRef.current?.srcObject as MediaStream | null | undefined;
+      stream?.getVideoTracks().forEach((track) => {
+        track.enabled = next;
+      });
+      return next;
+    });
+  }, []);
+
   /** Fully reset the hook so the session can be retried from pre-flight. */
   const reset = useCallback(() => {
     cleanup();
@@ -607,6 +632,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     error,
     aiSpeaking,
     micMuted,
+    videoEnabled,
     captions,
     events,
     liveUserText,
@@ -616,6 +642,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     stop,
     reset,
     toggleMic,
+    toggleVideo,
     pushText,
   };
 }

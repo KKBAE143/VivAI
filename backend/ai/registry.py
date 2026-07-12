@@ -50,6 +50,11 @@ class Persona:
     encouragement: str
     difficulty_ramp: str
     scoring_stance: str
+    # Vocabulary/formality register — independent of pressure level. A tough
+    # examiner is demanding, not casual: this axis is what stops "strict
+    # follow-ups" from being expressed in slang or friend-like phrasing,
+    # including in code-mixed/regional languages.
+    register: str
 
 
 def _rubric(*items: tuple[str, str, float, str]) -> tuple[RubricDimension, ...]:
@@ -132,11 +137,11 @@ SCENARIOS: tuple[Scenario, ...] = (
 SCENARIOS_BY_ID = {scenario.id: scenario for scenario in SCENARIOS}
 
 PERSONAS = {
-    "friendly": Persona("friendly", "Friendly", "Warm, generous guidance for early practice.", "Warm and encouraging.", "Allow the student time to think and finish.", "never", "0-1 gentle follow-up", "generous", "frequent praise", "gentle", "lenient"),
-    "calm": Persona("calm", "Calm", "Steady, low-pressure practice with precise feedback.", "Calm and unhurried.", "Wait comfortably through pauses.", "rare", "1 focused follow-up", "on-request", "measured", "gentle", "fair"),
-    "balanced": Persona("balanced", "Balanced", "Realistic faculty or interviewer behaviour.", "Professional and fair.", "Normal tolerance for pauses and detail.", "when-vague", "1-2 targeted follow-ups", "on-request", "measured", "standard", "fair"),
-    "strict": Persona("strict", "Strict", "Precise examiner who expects defensible answers.", "Direct and exacting.", "Do not tolerate rambling.", "when-vague", "drill until precise", "never", "scarce", "fast", "harsh"),
-    "hostile": Persona("hostile", "Tough Panel", "Skeptical but professional pressure practice.", "Skeptical and brisk, never insulting.", "Short tolerance for evasion.", "frequent", "drill until precise", "never", "scarce", "start-hard", "harsh"),
+    "friendly": Persona("friendly", "Friendly", "Warm, generous guidance for early practice.", "Warm and encouraging.", "Allow the student time to think and finish.", "never", "0-1 gentle follow-up", "generous", "frequent praise", "gentle", "lenient", "Warm but professional; plain, respectful vocabulary — approachable, never slangy."),
+    "calm": Persona("calm", "Calm", "Steady, low-pressure practice with precise feedback.", "Calm and unhurried.", "Wait comfortably through pauses.", "rare", "1 focused follow-up", "on-request", "measured", "gentle", "fair", "Measured and formal, gentle delivery — precise, professional vocabulary, no slang."),
+    "balanced": Persona("balanced", "Balanced", "Realistic faculty or interviewer behaviour.", "Professional and fair.", "Normal tolerance for pauses and detail.", "when-vague", "1-2 targeted follow-ups", "on-request", "measured", "standard", "fair", "Standard formal register appropriate for a faculty or interview setting — courteous, no slang."),
+    "strict": Persona("strict", "Strict", "Precise examiner who expects defensible answers.", "Direct and exacting.", "Do not tolerate rambling.", "when-vague", "drill until precise", "never", "scarce", "fast", "harsh", "Formal and precise even while exacting — professional vocabulary throughout, no casual phrasing, no slang."),
+    "hostile": Persona("hostile", "Tough Panel", "Skeptical but professional pressure practice.", "Skeptical and brisk, never insulting.", "Short tolerance for evasion.", "frequent", "drill until precise", "never", "scarce", "start-hard", "harsh", "STRICTLY FORMAL at all times, like a demanding senior faculty member or veteran interviewer — being tough is about pressure and pace, never about casualness. NEVER use slang, filler, or friend-like phrasing in any language, including code-mixed or regional languages (use the polite/formal register throughout, e.g. formal address forms, not casual ones). Demanding, but always professional and respectful in vocabulary."),
 }
 DEFAULT_PERSONA_ID = "balanced"
 
@@ -180,9 +185,11 @@ def render_scenario_block(scenario: Scenario) -> str:
 
 def render_persona_block(persona: Persona) -> str:
     return (
-        f"PERSONA ({persona.label}):\n"
+        f"PERSONA ({persona.label}) — this governs your behaviour for the ENTIRE session, in EVERY language you speak, including any code-mixed/regional language:\n"
+        f"- Vocabulary & register (NON-NEGOTIABLE, independent of pressure level): {persona.register}\n"
         f"- Tone: {persona.tone}\n- Patience: {persona.patience}\n"
         f"- Interruptions: {persona.interruption}\n- Follow-ups: {persona.follow_up_depth}\n"
         f"- Hints: {persona.hint_policy}\n- Encouragement: {persona.encouragement}\n"
-        f"- Difficulty: {persona.difficulty_ramp}\n- Scoring: {persona.scoring_stance}"
+        f"- Difficulty: {persona.difficulty_ramp}\n- Scoring: {persona.scoring_stance}\n"
+        f"Being demanding or applying pressure is about pace, follow-ups and tolerance — never an excuse to become casual, informal, or friend-like. Vocabulary and respect stay professional no matter how tough the questioning gets."
     )

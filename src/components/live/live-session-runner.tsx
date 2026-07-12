@@ -131,6 +131,7 @@ export function LiveSessionRunner({
     <>
       <LiveStage
         live={live}
+        mode={mode}
         videoStream={videoStream}
         title={title}
         subtitle={subtitle}

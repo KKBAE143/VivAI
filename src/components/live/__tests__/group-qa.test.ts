@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import { groupQuestionsAndScores } from "../live-stage";
+import { groupQuestionsAndScores, computeTrend } from "../live-stage";
 import type { LiveEvent } from "@/lib/useLiveSession";
 
 function ev(partial: Partial<LiveEvent> & Pick<LiveEvent, "id" | "kind" | "ts">): LiveEvent {
@@ -50,5 +50,24 @@ describe("groupQuestionsAndScores", () => {
     expect(grouped).toHaveLength(1);
     expect(grouped[0].score).toBe(60);
     expect(grouped[0].question).toContain("Delivery");
+  });
+});
+
+describe("computeTrend", () => {
+  it("returns null with fewer than two scores — nothing to compare", () => {
+    expect(computeTrend([])).toBeNull();
+    expect(computeTrend([80])).toBeNull();
+  });
+
+  it("detects a clear upward trend", () => {
+    expect(computeTrend([50, 55, 85, 90])).toBe("up");
+  });
+
+  it("detects a clear downward trend", () => {
+    expect(computeTrend([90, 85, 55, 50])).toBe("down");
+  });
+
+  it("reports steady when the difference is small", () => {
+    expect(computeTrend([70, 72, 71, 73])).toBe("flat");
   });
 });
