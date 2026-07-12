@@ -114,6 +114,42 @@ _PURE_REGIONAL = {
     "marathi", "bengali", "gujarati", "punjabi",
 }
 
+# BCP-47 codes for input_audio_transcription's language_hints — this is a
+# DIFFERENT config surface from speech_config (which stays model-driven; see
+# build_config below for why a forced speech_config.language_code was removed
+# for native-audio models). Hints here only bias speech-to-text of what the
+# STUDENT says; they do not force the model's own spoken output language, so
+# they are safe to set for every session. Without any hint, transcription has
+# no anchor and can drift to an unrelated script turn-to-turn — the exact
+# "transcription shows a different language/characters" symptom reported.
+_REGIONAL_CODE = {
+    "hindi": "hi-IN", "telugu": "te-IN", "tamil": "ta-IN", "kannada": "kn-IN",
+    "malayalam": "ml-IN", "marathi": "mr-IN", "bengali": "bn-IN",
+    "gujarati": "gu-IN", "punjabi": "pa-IN",
+}
+
+
+def _transcription_language_hints(language: str) -> list[str]:
+    """Languages the student is actually likely to speak, for STT bias.
+
+    English-only sessions still hint en-US (an explicit anchor beats none).
+    Regional/blended sessions hint BOTH the regional code and en-US, since
+    Indian B.Tech students routinely keep technical terms in English even in
+    an otherwise regional/blended session (and, per real-world testing, may
+    speak more English than configured, or vice versa) — the hint list is a
+    bias, not a hard restriction, so listing both is strictly safer than
+    picking one and guessing wrong.
+    """
+    key = (language or "English").strip().lower()
+    if key in _BLENDED_LANGUAGES:
+        regional = _BLENDED_REGIONAL_NAME.get(key, "").lower()
+        code = _REGIONAL_CODE.get(regional)
+        return [code, "en-US"] if code else ["en-US"]
+    if key in _PURE_REGIONAL:
+        code = _REGIONAL_CODE.get(key)
+        return [code, "en-US"] if code else ["en-US"]
+    return ["en-US"]
+
 
 def _language_directive(language: str) -> str:
     """A forceful, unambiguous instruction for the requested language.
@@ -389,18 +425,39 @@ def build_config(
             prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=voice)
         )
     }
+    # Bias input transcription (what the STUDENT is transcribed as saying)
+    # toward the languages actually expected in this session. This is
+    # independent of speech_config above — it only affects STT, never what
+    # language the model itself speaks — so it carries none of the
+    # native-audio-model restriction that ruled out speech_config.language_code.
+    # Wrapped defensively: if an SDK/model variant rejects it, fall back to the
+    # unhinted config rather than failing the whole session.
+    try:
+        input_transcription_cfg = types.AudioTranscriptionConfig(
+            language_codes=_transcription_language_hints(language)
+        )
+    except Exception as exc:  # noqa: BLE001 — optional accuracy tuning, never fatal
+        print(f"[live] input transcription language hints unavailable, using defaults: {exc}")
+        input_transcription_cfg = types.AudioTranscriptionConfig()
+
     kwargs = dict(
         response_modalities=["AUDIO"],
         media_resolution="MEDIA_RESOLUTION_MEDIUM",
         speech_config=types.SpeechConfig(**speech_kwargs),
         system_instruction=types.Content(parts=[types.Part(text=system_instruction)]),
-        input_audio_transcription=types.AudioTranscriptionConfig(),
+        input_audio_transcription=input_transcription_cfg,
         output_audio_transcription=types.AudioTranscriptionConfig(),
         tools=_tools(),
     )
     # Make voice-activity detection less trigger-happy so background noise (or
     # the student clearing their throat during the AI's opening greeting) does
     # not get treated as a full turn — a common cause of the AI greeting twice.
+    # silence_duration_ms is also the main lever against the AI cutting the
+    # student off mid-answer: a student formulating a technical answer often
+    # pauses 1-1.5s mid-sentence, and 900ms was short enough for that natural
+    # pause to be read as "turn complete" (an interruption, not a real end of
+    # turn). 1500ms gives real thinking-pauses room without making the AI feel
+    # sluggish once the student has genuinely finished.
     # Wrapped defensively: config shape varies across google-genai versions.
     try:
         realtime_cfg = types.RealtimeInputConfig(
@@ -408,7 +465,7 @@ def build_config(
                 start_of_speech_sensitivity=types.StartSensitivity.START_SENSITIVITY_LOW,
                 end_of_speech_sensitivity=types.EndSensitivity.END_SENSITIVITY_LOW,
                 prefix_padding_ms=300,
-                silence_duration_ms=900,
+                silence_duration_ms=1500,
             )
         )
         kwargs["realtime_input_config"] = realtime_cfg

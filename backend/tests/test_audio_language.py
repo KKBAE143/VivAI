@@ -21,6 +21,44 @@ def test_quick_viva_project_viva_and_coach_always_request_native_audio():
         assert list(config.response_modalities) == ["AUDIO"]
 
 
+def test_transcription_language_hints_anchor_english_only_sessions():
+    """English-only sessions still get an explicit en-US hint (an anchor
+    beats none) so STT doesn't drift to an unrelated script mid-session."""
+    assert live_service._transcription_language_hints("English") == ["en-US"]
+    assert live_service._transcription_language_hints("") == ["en-US"]
+
+
+def test_transcription_language_hints_cover_regional_and_blended_languages():
+    """Regression guard for 'transcription shows a different language/
+    characters' — pure regional and code-mixed sessions must hint BOTH the
+    regional code and en-US, since students routinely mix in English terms."""
+    assert live_service._transcription_language_hints("Hindi") == ["hi-IN", "en-US"]
+    assert live_service._transcription_language_hints("Telugu") == ["te-IN", "en-US"]
+    assert live_service._transcription_language_hints("Tenglish") == ["te-IN", "en-US"]
+    assert live_service._transcription_language_hints("Hinglish") == ["hi-IN", "en-US"]
+    assert live_service._transcription_language_hints("Tanglish") == ["ta-IN", "en-US"]
+
+
+def test_build_config_wires_language_hints_into_input_transcription():
+    """End-to-end guard: the hints actually reach the SDK config object,
+    not just the pure helper function."""
+    config = live_service.build_config("viva", "balanced", "Telugu", "", subject="DBMS")
+    assert config.input_audio_transcription is not None
+    assert config.input_audio_transcription.language_codes == ["te-IN", "en-US"]
+
+    config_en = live_service.build_config("viva", "balanced", "English", "", subject="DBMS")
+    assert config_en.input_audio_transcription.language_codes == ["en-US"]
+
+
+def test_build_config_vad_silence_duration_tolerates_mid_answer_pauses():
+    """Regression guard: the AI must not interrupt a student mid-answer.
+    900ms was short enough that a natural thinking-pause mid-sentence was
+    read as end-of-turn; 1500ms gives real pauses room without going stale."""
+    config = live_service.build_config("viva", "balanced", "English", "", subject="DBMS")
+    vad = config.realtime_input_config.automatic_activity_detection
+    assert vad.silence_duration_ms == 1500
+
+
 def test_current_sdk_model_turn_audio_is_forwarded_to_the_browser():
     response = SimpleNamespace(
         data=None,
