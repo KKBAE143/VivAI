@@ -5,8 +5,10 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 
 from ai import delivery_metrics, prompts, viva_core
+from ai.registry import DEFAULT_PERSONA_ID, PERSONAS
 from core.database import get_supabase
 from core.deps import get_current_user
+from core.languages import normalize_language
 from models.schemas import AnswerSubmit, VivaSessionCreate
 from services import gamification_service
 from services.activity_service import log_activity
@@ -36,7 +38,11 @@ def _project_context(project_id: str | None) -> str:
 
 
 def _persona_prompt(session: dict) -> str:
-    return prompts.PERSONA_INSTRUCTIONS.get(session.get("persona") or "balanced", prompts.VIVA_EXAMINER)
+    # The serial REST viva still uses the legacy text prompts. Calm is a live
+    # persona too, so give it the balanced examiner baseline rather than reject
+    # a session that the shared registry considers valid.
+    persona = session.get("persona") or DEFAULT_PERSONA_ID
+    return prompts.PERSONA_INSTRUCTIONS.get(persona, prompts.PERSONA_INSTRUCTIONS[DEFAULT_PERSONA_ID])
 
 
 def _ask_next(session: dict, difficulty: str) -> dict:
@@ -99,7 +105,7 @@ def _delivery_scorecard(session_id: str) -> dict:
 def create_session(body: VivaSessionCreate, user=Depends(get_current_user)):
     if body.session_type not in ("Subject", "Project", "General"):
         raise HTTPException(status_code=400, detail="Invalid session_type")
-    persona = body.persona if body.persona in prompts.PERSONA_INSTRUCTIONS else "balanced"
+    persona = body.persona if body.persona in PERSONAS else DEFAULT_PERSONA_ID
     payload = {
         "profile_id": user["id"],
         "project_id": body.project_id,
@@ -107,15 +113,17 @@ def create_session(body: VivaSessionCreate, user=Depends(get_current_user)):
         "subject": body.subject,
         "duration_minutes": body.duration_minutes,
         "difficulty": body.difficulty,
-        "language": body.language,
+        # Normalize server-side so an unknown language can never reach (and 500
+        # against) the DB CHECK — belt-and-braces for the relaxed CHECK in 002.
+        "language": normalize_language(body.language),
         "persona": persona,
     }
-    try:
-        res = get_supabase().table("viva_sessions").insert(payload).execute()
-    except Exception:
-        # persona column not present yet (migration not applied) — retry without it.
-        payload.pop("persona", None)
-        res = get_supabase().table("viva_sessions").insert(payload).execute()
+    # 002_quality_upgrade.sql guarantees the persona column. Do not retry a
+    # failed insert with fields removed: doing so hides genuine schema and data
+    # problems, and makes a successful response silently lose the selected
+    # persona. The global ASGI catch-all turns an unexpected failure into a
+    # CORS-readable JSON 500.
+    res = get_supabase().table("viva_sessions").insert(payload).execute()
     return res.data[0]
 
 

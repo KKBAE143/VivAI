@@ -9,26 +9,27 @@ import {
   Plus,
   Pencil,
   Trash2,
-  ChevronRight,
-  X,
   Download,
 } from "lucide-react";
 import { useState } from "react";
 import { AppShell, Card, Badge } from "@/components/app-shell";
 import { ErrorState } from "@/components/error-state";
 import { ProjectDetailSkeleton } from "@/components/loading-skeleton";
+import { ModalShell } from "@/components/modal-shell";
 import { useRequireAuth } from "@/lib/auth-context";
 import {
   useCreateTask,
   useProject,
   useUpdateTask,
   useDeleteTask,
-  useUpdateTaskStatus,
   useUpdateProject,
   useDeleteProject,
   useUpdateProgress,
   type ApiRecord,
 } from "@/lib/hooks";
+import { KanbanBoard } from "@/components/tasks/kanban-board";
+import { ProjectTeamTab } from "@/components/projects/team-tab";
+import { taskDerivedProgress } from "@/lib/utils";
 
 export const Route = createFileRoute("/projects/$id")({
   head: () => ({ meta: [{ title: "Project — CollgePro Navigator" }] }),
@@ -155,12 +156,18 @@ function ProjectDetail() {
               })}
             </div>
           </Card>
-          <ProgressCard projectId={id} progress={progress} />
+          <ProgressCard projectId={id} progress={progress} tasks={tasks} />
         </div>
       )}
 
-      {tab === "Tasks" && <TasksBoard projectId={id} tasks={tasks} />}
-      {tab === "Team" && <TeamTab teams={teams} />}
+      {tab === "Tasks" && (
+        <TasksBoard
+          projectId={id}
+          tasks={tasks}
+          teamMembers={(teams[0]?.team_members as ApiRecord[] | undefined) ?? []}
+        />
+      )}
+      {tab === "Team" && <ProjectTeamTab projectId={id} teams={teams} />}
       {tab === "Files" && <FilesTab files={files} />}
       {tab === "Viva Prep" && <VivaTab vivas={vivas} projectId={id} />}
       {tab === "Activity" && <ActivityTab tasks={tasks} vivas={vivas} />}
@@ -170,9 +177,18 @@ function ProjectDetail() {
   );
 }
 
-function ProgressCard({ projectId, progress }: { projectId: string; progress: number }) {
+function ProgressCard({
+  projectId,
+  progress,
+  tasks,
+}: {
+  projectId: string;
+  progress: number;
+  tasks: ApiRecord[];
+}) {
   const updateProgress = useUpdateProgress();
   const [value, setValue] = useState(progress);
+  const suggested = taskDerivedProgress(tasks);
 
   return (
     <Card className="lg:col-span-4 bg-primary text-primary-foreground">
@@ -210,6 +226,18 @@ function ProgressCard({ projectId, progress }: { projectId: string; progress: nu
         className="mt-4 w-full accent-white"
         aria-label="Set progress"
       />
+      {suggested != null && suggested !== value && (
+        <div className="mt-2 flex items-center justify-between gap-2 text-xs opacity-90">
+          <span>Suggested from tasks: {suggested}%</span>
+          <button
+            type="button"
+            onClick={() => setValue(suggested)}
+            className="rounded-full border border-primary-foreground/40 px-2.5 py-1 font-semibold"
+          >
+            Apply
+          </button>
+        </div>
+      )}
       <button
         disabled={updateProgress.isPending || value === progress}
         onClick={() => updateProgress.mutate({ id: projectId, progress: value })}
@@ -227,21 +255,16 @@ function ProgressCard({ projectId, progress }: { projectId: string; progress: nu
   );
 }
 
-const COLUMNS = [
-  { title: "To Do", tone: "muted" as const },
-  { title: "In Progress", tone: "primary" as const },
-  { title: "Done", tone: "success" as const },
-];
-const NEXT_STATUS: Record<string, string> = { "To Do": "In Progress", "In Progress": "Done", Done: "To Do" };
-
-function TasksBoard({ projectId, tasks }: { projectId: string; tasks: ApiRecord[] }) {
+function TasksBoard({
+  projectId, tasks, teamMembers,
+}: { projectId: string; tasks: ApiRecord[]; teamMembers: ApiRecord[] }) {
   const [showAdd, setShowAdd] = useState(false);
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState("med");
   const [dueDate, setDueDate] = useState("");
+  const [assigneeId, setAssigneeId] = useState("");
   const [editTask, setEditTask] = useState<ApiRecord | null>(null);
   const createTask = useCreateTask();
-  const updateStatus = useUpdateTaskStatus();
   const deleteTask = useDeleteTask();
 
   const addTask = async () => {
@@ -251,10 +274,12 @@ function TasksBoard({ projectId, tasks }: { projectId: string; tasks: ApiRecord[
       title: title.trim(),
       priority,
       due_date: dueDate || undefined,
+      assignee_id: assigneeId || undefined,
     });
     setTitle("");
     setDueDate("");
     setPriority("med");
+    setAssigneeId("");
     setShowAdd(false);
   };
 
@@ -294,6 +319,19 @@ function TasksBoard({ projectId, tasks }: { projectId: string; tasks: ApiRecord[
             className="rounded-xl border border-border bg-card px-3 py-2 text-sm"
             aria-label="Due date"
           />
+          <select
+            value={assigneeId}
+            onChange={(e) => setAssigneeId(e.target.value)}
+            className="rounded-xl border border-border bg-card px-3 py-2 text-sm"
+            aria-label="Assignee"
+          >
+            <option value="">Unassigned</option>
+            {teamMembers.map((m) => (
+              <option key={String(m.profile_id)} value={String(m.profile_id)}>
+                {String((m.profiles as ApiRecord | undefined)?.full_name ?? "Member")}
+              </option>
+            ))}
+          </select>
           <button
             disabled={createTask.isPending || !title.trim()}
             onClick={() => void addTask()}
@@ -303,77 +341,29 @@ function TasksBoard({ projectId, tasks }: { projectId: string; tasks: ApiRecord[
           </button>
         </div>
       )}
-      <div className="mt-4 grid gap-3 md:grid-cols-3">
-        {COLUMNS.map((col) => {
-          const items = tasks.filter((t) => String(t.status ?? "To Do") === col.title);
-          return (
-            <div key={col.title} className="rounded-xl bg-secondary p-3">
-              <div className="mb-3 flex items-center justify-between text-xs font-semibold">
-                <Badge tone={col.tone}>{col.title}</Badge>
-                <span className="text-muted-foreground">{items.length}</span>
-              </div>
-              <div className="space-y-2">
-                {items.map((t) => {
-                  const p = String(t.priority ?? "med");
-                  const taskId = String(t.id);
-                  return (
-                    <div key={taskId} className="rounded-lg bg-card p-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="text-sm font-medium">{String(t.title)}</div>
-                        <div className="flex shrink-0 items-center gap-1">
-                          <button
-                            aria-label="Edit task"
-                            onClick={() => setEditTask(t)}
-                            className="grid h-6 w-6 place-items-center rounded-md hover:bg-secondary"
-                          >
-                            <Pencil className="h-3 w-3" />
-                          </button>
-                          <button
-                            aria-label="Delete task"
-                            onClick={() => deleteTask.mutate({ taskId, projectId })}
-                            className="grid h-6 w-6 place-items-center rounded-md text-destructive hover:bg-secondary"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        </div>
-                      </div>
-                      {Boolean(t.description) && (
-                        <p className="mt-1 text-xs text-muted-foreground">{String(t.description)}</p>
-                      )}
-                      <div className="mt-2 flex items-center justify-between">
-                        <span className="text-[10px] text-muted-foreground">
-                          {t.due_date ? `Due ${String(t.due_date).slice(0, 10)}` : "No due date"}
-                        </span>
-                        <Badge tone={p === "high" ? "destructive" : p === "med" ? "warning" : "muted"}>{p}</Badge>
-                      </div>
-                      <button
-                        onClick={() =>
-                          updateStatus.mutate({ taskId, status: NEXT_STATUS[col.title], projectId })
-                        }
-                        className="mt-2 flex w-full items-center justify-center gap-1 rounded-md bg-secondary py-1.5 text-[11px] font-medium hover:bg-muted"
-                      >
-                        Move to {NEXT_STATUS[col.title]} <ChevronRight className="h-3 w-3" />
-                      </button>
-                    </div>
-                  );
-                })}
-                {items.length === 0 && <p className="px-1 py-2 text-xs text-muted-foreground">No tasks</p>}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      {editTask && <EditTaskModal task={editTask} projectId={projectId} onClose={() => setEditTask(null)} />}
+      <KanbanBoard
+        projectId={projectId}
+        tasks={tasks}
+        teamMembers={teamMembers}
+        onEdit={setEditTask}
+        onDelete={(task) => deleteTask.mutate({ taskId: String(task.id), projectId })}
+      />
+      {editTask && (
+        <EditTaskModal task={editTask} projectId={projectId} teamMembers={teamMembers} onClose={() => setEditTask(null)} />
+      )}
     </Card>
   );
 }
 
-function EditTaskModal({ task, projectId, onClose }: { task: ApiRecord; projectId: string; onClose: () => void }) {
+function EditTaskModal({
+  task, projectId, teamMembers, onClose,
+}: { task: ApiRecord; projectId: string; teamMembers: ApiRecord[]; onClose: () => void }) {
   const updateTask = useUpdateTask();
   const [title, setTitle] = useState(String(task.title ?? ""));
   const [description, setDescription] = useState(String(task.description ?? ""));
   const [priority, setPriority] = useState(String(task.priority ?? "med"));
   const [dueDate, setDueDate] = useState(task.due_date ? String(task.due_date).slice(0, 10) : "");
+  const [assigneeId, setAssigneeId] = useState(task.assignee_id ? String(task.assignee_id) : "");
 
   const save = async () => {
     await updateTask.mutateAsync({
@@ -383,6 +373,9 @@ function EditTaskModal({ task, projectId, onClose }: { task: ApiRecord; projectI
       description: description.trim() || undefined,
       priority,
       due_date: dueDate || undefined,
+      // Sent every save (not omitted), so explicitly clearing the assignee
+      // ("Unassigned") is honored — see backend's exclude_unset handling.
+      assignee_id: assigneeId || null,
     });
     onClose();
   };
@@ -425,6 +418,19 @@ function EditTaskModal({ task, projectId, onClose }: { task: ApiRecord; projectI
           />
         </div>
       </div>
+      <label className="mt-3 block text-xs font-medium text-muted-foreground">Assignee</label>
+      <select
+        value={assigneeId}
+        onChange={(e) => setAssigneeId(e.target.value)}
+        className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm"
+      >
+        <option value="">Unassigned</option>
+        {teamMembers.map((m) => (
+          <option key={String(m.profile_id)} value={String(m.profile_id)}>
+            {String((m.profiles as ApiRecord | undefined)?.full_name ?? "Member")}
+          </option>
+        ))}
+      </select>
       <button
         disabled={updateTask.isPending || !title.trim()}
         onClick={() => void save()}
@@ -548,50 +554,6 @@ function EditProjectModal({ project, onClose }: { project: ApiRecord; onClose: (
   );
 }
 
-function TeamTab({ teams }: { teams: ApiRecord[] }) {
-  if (teams.length === 0) {
-    return (
-      <Card>
-        <p className="text-sm text-muted-foreground">
-          No team linked to this project yet.{" "}
-          <Link to="/teams" className="font-medium text-primary">
-            Create or join a team
-          </Link>
-          .
-        </p>
-      </Card>
-    );
-  }
-  return (
-    <div className="space-y-4">
-      {teams.map((team) => {
-        const members = (team.team_members as ApiRecord[] | undefined) ?? [];
-        return (
-          <Card key={String(team.id)}>
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-semibold">{String(team.name)}</h3>
-              <Link to="/teams" className="text-xs font-medium text-primary">
-                Manage
-              </Link>
-            </div>
-            <div className="mt-3 space-y-2">
-              {members.map((m) => {
-                const profile = (m.profiles as ApiRecord | undefined) ?? {};
-                return (
-                  <div key={String(m.id)} className="flex items-center justify-between rounded-xl bg-secondary p-2.5">
-                    <span className="text-sm font-medium">{String(profile.full_name ?? "Member")}</span>
-                    <Badge tone={String(m.role) === "Lead" ? "primary" : "muted"}>{String(m.role ?? "Member")}</Badge>
-                  </div>
-                );
-              })}
-              {members.length === 0 && <p className="text-xs text-muted-foreground">No members yet</p>}
-            </div>
-          </Card>
-        );
-      })}
-    </div>
-  );
-}
 
 function FilesTab({ files }: { files: ApiRecord[] }) {
   if (files.length === 0) {
@@ -709,24 +671,5 @@ function ActivityTab({ tasks, vivas }: { tasks: ApiRecord[]; vivas: ApiRecord[] 
         {events.length === 0 && <p className="text-sm text-muted-foreground">No activity yet.</p>}
       </div>
     </Card>
-  );
-}
-
-function ModalShell({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4" onClick={onClose}>
-      <div
-        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-card p-5 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">{title}</h3>
-          <button aria-label="Close" onClick={onClose} className="grid h-8 w-8 place-items-center rounded-lg hover:bg-secondary">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="mt-4">{children}</div>
-      </div>
-    </div>
   );
 }

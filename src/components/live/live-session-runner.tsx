@@ -20,6 +20,10 @@ interface LiveSessionRunnerProps {
   defaultLanguage?: string;
   defaultPersona?: string;
   showPersona?: boolean;
+  /** Language/persona were fixed at session creation; the server always uses
+   * the stored value, so the preflight shows them read-only instead of an
+   * editable control that would silently have no effect (viva). */
+  configLocked?: boolean;
   /** Override the capture sources offered (defaults are mode-specific). */
   sources?: VideoSource[];
   /** Called once the live session ends (persisted). Parent shows the report. */
@@ -36,6 +40,7 @@ export function LiveSessionRunner({
   defaultLanguage = "English",
   defaultPersona = "balanced",
   showPersona = false,
+  configLocked = false,
   sources,
   onEnded,
 }: LiveSessionRunnerProps) {
@@ -46,6 +51,7 @@ export function LiveSessionRunner({
   const [ending, setEnding] = useState(false);
   const micStreamRef = useRef<MediaStream | null>(null);
   const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
+  const [videoSource, setVideoSource] = useState<VideoSource | null>(null);
   const endedRef = useRef(false);
 
   const live = useLiveSession({ mode, sessionId, language, persona, projectId, subject });
@@ -53,6 +59,7 @@ export function LiveSessionRunner({
   const handleReady = useCallback((result: PreflightResult) => {
     micStreamRef.current = result.micStream;
     setVideoStream(result.videoStream);
+    setVideoSource(result.videoSource);
     setLanguage(result.language);
     setPersona(result.persona);
     setPhase("live");
@@ -61,7 +68,12 @@ export function LiveSessionRunner({
   // Start the live connection once we enter the live phase with fresh settings.
   useEffect(() => {
     if (phase !== "live" || !micStreamRef.current) return;
-    void live.start({ micStream: micStreamRef.current, videoStream });
+    // "none" (audio-only) carries no video source for the server to track.
+    void live.start({
+      micStream: micStreamRef.current,
+      videoStream,
+      videoSource: videoSource === "camera" || videoSource === "screen" ? videoSource : null,
+    });
     // Only run when entering the live phase.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
@@ -88,6 +100,7 @@ export function LiveSessionRunner({
   const handleRetry = useCallback(() => {
     setEnding(false);
     setVideoStream(null);
+    setVideoSource(null);
     live.reset();
     setPhase("setup");
   }, [live]);
@@ -107,6 +120,7 @@ export function LiveSessionRunner({
         defaultLanguage={defaultLanguage}
         defaultPersona={defaultPersona}
         showPersona={showPersona}
+        configLocked={configLocked}
         sources={sources}
         onReady={handleReady}
       />
@@ -117,6 +131,7 @@ export function LiveSessionRunner({
     <>
       <LiveStage
         live={live}
+        mode={mode}
         videoStream={videoStream}
         title={title}
         subtitle={subtitle}

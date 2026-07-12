@@ -9,6 +9,7 @@ def log_activity(
     project_id: str | None = None,
     entity_type: str | None = None,
     entity_id: str | None = None,
+    team_id: str | None = None,
 ) -> None:
     try:
         get_supabase().table("activity_log").insert(
@@ -19,6 +20,7 @@ def log_activity(
                 "project_id": project_id,
                 "entity_type": entity_type,
                 "entity_id": entity_id,
+                "team_id": team_id,
             }
         ).execute()
     except Exception:

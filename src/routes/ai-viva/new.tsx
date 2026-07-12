@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AppShell, Card, PageHeader } from "@/components/app-shell";
 import { useRequireAuth } from "@/lib/auth-context";
 import { useCreateVivaSession, useProjects } from "@/lib/hooks";
+import { usePersonaCatalog } from "@/lib/hooks-features";
 import { LIVE_LANGUAGES } from "@/lib/languages";
 
 export const Route = createFileRoute("/ai-viva/new")({
@@ -44,7 +45,10 @@ const SUBJECT_SUGGESTIONS = [
   "Control Systems",
 ];
 
-const PERSONAS = [
+// Fallback shown only while the catalog is loading, so the picker never
+// flashes empty — the server-owned list (incl. "calm") replaces this once
+// usePersonaCatalog() resolves.
+const FALLBACK_PERSONAS = [
   { value: "friendly", t: "Friendly", d: "Encouraging, gentle follow-ups" },
   { value: "balanced", t: "Balanced", d: "Fair and realistic examiner" },
   { value: "strict", t: "Strict", d: "Probing, expects precision" },
@@ -55,6 +59,10 @@ function NewViva() {
   useRequireAuth();
   const { projectId: initialProjectId } = Route.useSearch();
   const { data: projects } = useProjects();
+  const personaCatalog = usePersonaCatalog();
+  const personas = personaCatalog.data?.length
+    ? personaCatalog.data.map((p) => ({ value: p.id, t: p.label, d: p.description }))
+    : FALLBACK_PERSONAS;
   const [sessionType, setSessionType] = useState<string>("Project");
   const [duration, setDuration] = useState(20);
   const [difficulty, setDifficulty] = useState("Adaptive");
@@ -171,7 +179,7 @@ function NewViva() {
         </Section>
         <Section title="Examiner Persona">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {PERSONAS.map((p) => {
+            {personas.map((p) => {
               const active = persona === p.value;
               return (
                 <button

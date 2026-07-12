@@ -9,7 +9,6 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TeamsRouteImport } from './routes/teams'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ReadinessRouteImport } from './routes/readiness'
@@ -24,12 +23,14 @@ import { Route as FilesRouteImport } from './routes/files'
 import { Route as AiRouteImport } from './routes/ai'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TemplatesIndexRouteImport } from './routes/templates/index'
+import { Route as TeamsIndexRouteImport } from './routes/teams/index'
 import { Route as StudyIndexRouteImport } from './routes/study/index'
 import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
 import { Route as AiVivaIndexRouteImport } from './routes/ai-viva/index'
 import { Route as AiPresentationIndexRouteImport } from './routes/ai-presentation/index'
 import { Route as AdvancedIndexRouteImport } from './routes/advanced/index'
 import { Route as TemplatesSlugRouteImport } from './routes/templates/$slug'
+import { Route as TeamsIdRouteImport } from './routes/teams/$id'
 import { Route as StudyReviewRouteImport } from './routes/study/review'
 import { Route as StudyIdRouteImport } from './routes/study/$id'
 import { Route as ProjectsNewRouteImport } from './routes/projects/new'
@@ -45,11 +46,6 @@ import { Route as AdvancedCollegePredictorRouteImport } from './routes/advanced/
 import { Route as AiVivaSessionIdRouteImport } from './routes/ai-viva/session.$id'
 import { Route as AiPresentationSessionIdRouteImport } from './routes/ai-presentation/session.$id'
 
-const TeamsRoute = TeamsRouteImport.update({
-  id: '/teams',
-  path: '/teams',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
@@ -120,6 +116,11 @@ const TemplatesIndexRoute = TemplatesIndexRouteImport.update({
   path: '/templates/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TeamsIndexRoute = TeamsIndexRouteImport.update({
+  id: '/teams/',
+  path: '/teams/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StudyIndexRoute = StudyIndexRouteImport.update({
   id: '/study/',
   path: '/study/',
@@ -148,6 +149,11 @@ const AdvancedIndexRoute = AdvancedIndexRouteImport.update({
 const TemplatesSlugRoute = TemplatesSlugRouteImport.update({
   id: '/templates/$slug',
   path: '/templates/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TeamsIdRoute = TeamsIdRouteImport.update({
+  id: '/teams/$id',
+  path: '/teams/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StudyReviewRoute = StudyReviewRouteImport.update({
@@ -238,7 +244,6 @@ export interface FileRoutesByFullPath {
   '/readiness': typeof ReadinessRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
-  '/teams': typeof TeamsRoute
   '/advanced/college-predictor': typeof AdvancedCollegePredictorRoute
   '/advanced/faculty-sim': typeof AdvancedFacultySimRoute
   '/advanced/presentation-bridge': typeof AdvancedPresentationBridgeRoute
@@ -251,12 +256,14 @@ export interface FileRoutesByFullPath {
   '/projects/new': typeof ProjectsNewRoute
   '/study/$id': typeof StudyIdRoute
   '/study/review': typeof StudyReviewRoute
+  '/teams/$id': typeof TeamsIdRoute
   '/templates/$slug': typeof TemplatesSlugRoute
   '/advanced/': typeof AdvancedIndexRoute
   '/ai-presentation/': typeof AiPresentationIndexRoute
   '/ai-viva/': typeof AiVivaIndexRoute
   '/projects/': typeof ProjectsIndexRoute
   '/study/': typeof StudyIndexRoute
+  '/teams/': typeof TeamsIndexRoute
   '/templates/': typeof TemplatesIndexRoute
   '/ai-presentation/session/$id': typeof AiPresentationSessionIdRoute
   '/ai-viva/session/$id': typeof AiVivaSessionIdRoute
@@ -275,7 +282,6 @@ export interface FileRoutesByTo {
   '/readiness': typeof ReadinessRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
-  '/teams': typeof TeamsRoute
   '/advanced/college-predictor': typeof AdvancedCollegePredictorRoute
   '/advanced/faculty-sim': typeof AdvancedFacultySimRoute
   '/advanced/presentation-bridge': typeof AdvancedPresentationBridgeRoute
@@ -288,12 +294,14 @@ export interface FileRoutesByTo {
   '/projects/new': typeof ProjectsNewRoute
   '/study/$id': typeof StudyIdRoute
   '/study/review': typeof StudyReviewRoute
+  '/teams/$id': typeof TeamsIdRoute
   '/templates/$slug': typeof TemplatesSlugRoute
   '/advanced': typeof AdvancedIndexRoute
   '/ai-presentation': typeof AiPresentationIndexRoute
   '/ai-viva': typeof AiVivaIndexRoute
   '/projects': typeof ProjectsIndexRoute
   '/study': typeof StudyIndexRoute
+  '/teams': typeof TeamsIndexRoute
   '/templates': typeof TemplatesIndexRoute
   '/ai-presentation/session/$id': typeof AiPresentationSessionIdRoute
   '/ai-viva/session/$id': typeof AiVivaSessionIdRoute
@@ -313,7 +321,6 @@ export interface FileRoutesById {
   '/readiness': typeof ReadinessRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
-  '/teams': typeof TeamsRoute
   '/advanced/college-predictor': typeof AdvancedCollegePredictorRoute
   '/advanced/faculty-sim': typeof AdvancedFacultySimRoute
   '/advanced/presentation-bridge': typeof AdvancedPresentationBridgeRoute
@@ -326,12 +333,14 @@ export interface FileRoutesById {
   '/projects/new': typeof ProjectsNewRoute
   '/study/$id': typeof StudyIdRoute
   '/study/review': typeof StudyReviewRoute
+  '/teams/$id': typeof TeamsIdRoute
   '/templates/$slug': typeof TemplatesSlugRoute
   '/advanced/': typeof AdvancedIndexRoute
   '/ai-presentation/': typeof AiPresentationIndexRoute
   '/ai-viva/': typeof AiVivaIndexRoute
   '/projects/': typeof ProjectsIndexRoute
   '/study/': typeof StudyIndexRoute
+  '/teams/': typeof TeamsIndexRoute
   '/templates/': typeof TemplatesIndexRoute
   '/ai-presentation/session/$id': typeof AiPresentationSessionIdRoute
   '/ai-viva/session/$id': typeof AiVivaSessionIdRoute
@@ -352,7 +361,6 @@ export interface FileRouteTypes {
     | '/readiness'
     | '/reset-password'
     | '/signup'
-    | '/teams'
     | '/advanced/college-predictor'
     | '/advanced/faculty-sim'
     | '/advanced/presentation-bridge'
@@ -365,12 +373,14 @@ export interface FileRouteTypes {
     | '/projects/new'
     | '/study/$id'
     | '/study/review'
+    | '/teams/$id'
     | '/templates/$slug'
     | '/advanced/'
     | '/ai-presentation/'
     | '/ai-viva/'
     | '/projects/'
     | '/study/'
+    | '/teams/'
     | '/templates/'
     | '/ai-presentation/session/$id'
     | '/ai-viva/session/$id'
@@ -389,7 +399,6 @@ export interface FileRouteTypes {
     | '/readiness'
     | '/reset-password'
     | '/signup'
-    | '/teams'
     | '/advanced/college-predictor'
     | '/advanced/faculty-sim'
     | '/advanced/presentation-bridge'
@@ -402,12 +411,14 @@ export interface FileRouteTypes {
     | '/projects/new'
     | '/study/$id'
     | '/study/review'
+    | '/teams/$id'
     | '/templates/$slug'
     | '/advanced'
     | '/ai-presentation'
     | '/ai-viva'
     | '/projects'
     | '/study'
+    | '/teams'
     | '/templates'
     | '/ai-presentation/session/$id'
     | '/ai-viva/session/$id'
@@ -426,7 +437,6 @@ export interface FileRouteTypes {
     | '/readiness'
     | '/reset-password'
     | '/signup'
-    | '/teams'
     | '/advanced/college-predictor'
     | '/advanced/faculty-sim'
     | '/advanced/presentation-bridge'
@@ -439,12 +449,14 @@ export interface FileRouteTypes {
     | '/projects/new'
     | '/study/$id'
     | '/study/review'
+    | '/teams/$id'
     | '/templates/$slug'
     | '/advanced/'
     | '/ai-presentation/'
     | '/ai-viva/'
     | '/projects/'
     | '/study/'
+    | '/teams/'
     | '/templates/'
     | '/ai-presentation/session/$id'
     | '/ai-viva/session/$id'
@@ -464,7 +476,6 @@ export interface RootRouteChildren {
   ReadinessRoute: typeof ReadinessRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
-  TeamsRoute: typeof TeamsRoute
   AdvancedCollegePredictorRoute: typeof AdvancedCollegePredictorRoute
   AdvancedFacultySimRoute: typeof AdvancedFacultySimRoute
   AdvancedPresentationBridgeRoute: typeof AdvancedPresentationBridgeRoute
@@ -477,12 +488,14 @@ export interface RootRouteChildren {
   ProjectsNewRoute: typeof ProjectsNewRoute
   StudyIdRoute: typeof StudyIdRoute
   StudyReviewRoute: typeof StudyReviewRoute
+  TeamsIdRoute: typeof TeamsIdRoute
   TemplatesSlugRoute: typeof TemplatesSlugRoute
   AdvancedIndexRoute: typeof AdvancedIndexRoute
   AiPresentationIndexRoute: typeof AiPresentationIndexRoute
   AiVivaIndexRoute: typeof AiVivaIndexRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
   StudyIndexRoute: typeof StudyIndexRoute
+  TeamsIndexRoute: typeof TeamsIndexRoute
   TemplatesIndexRoute: typeof TemplatesIndexRoute
   AiPresentationSessionIdRoute: typeof AiPresentationSessionIdRoute
   AiVivaSessionIdRoute: typeof AiVivaSessionIdRoute
@@ -490,13 +503,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/teams': {
-      id: '/teams'
-      path: '/teams'
-      fullPath: '/teams'
-      preLoaderRoute: typeof TeamsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/signup': {
       id: '/signup'
       path: '/signup'
@@ -595,6 +601,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TemplatesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/teams/': {
+      id: '/teams/'
+      path: '/teams'
+      fullPath: '/teams/'
+      preLoaderRoute: typeof TeamsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/study/': {
       id: '/study/'
       path: '/study'
@@ -635,6 +648,13 @@ declare module '@tanstack/react-router' {
       path: '/templates/$slug'
       fullPath: '/templates/$slug'
       preLoaderRoute: typeof TemplatesSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/teams/$id': {
+      id: '/teams/$id'
+      path: '/teams/$id'
+      fullPath: '/teams/$id'
+      preLoaderRoute: typeof TeamsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/study/review': {
@@ -752,7 +772,6 @@ const rootRouteChildren: RootRouteChildren = {
   ReadinessRoute: ReadinessRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
-  TeamsRoute: TeamsRoute,
   AdvancedCollegePredictorRoute: AdvancedCollegePredictorRoute,
   AdvancedFacultySimRoute: AdvancedFacultySimRoute,
   AdvancedPresentationBridgeRoute: AdvancedPresentationBridgeRoute,
@@ -765,12 +784,14 @@ const rootRouteChildren: RootRouteChildren = {
   ProjectsNewRoute: ProjectsNewRoute,
   StudyIdRoute: StudyIdRoute,
   StudyReviewRoute: StudyReviewRoute,
+  TeamsIdRoute: TeamsIdRoute,
   TemplatesSlugRoute: TemplatesSlugRoute,
   AdvancedIndexRoute: AdvancedIndexRoute,
   AiPresentationIndexRoute: AiPresentationIndexRoute,
   AiVivaIndexRoute: AiVivaIndexRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
   StudyIndexRoute: StudyIndexRoute,
+  TeamsIndexRoute: TeamsIndexRoute,
   TemplatesIndexRoute: TemplatesIndexRoute,
   AiPresentationSessionIdRoute: AiPresentationSessionIdRoute,
   AiVivaSessionIdRoute: AiVivaSessionIdRoute,

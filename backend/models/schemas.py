@@ -88,6 +88,20 @@ class JoinRequest(BaseModel):
     code: str
 
 
+# ---------- Project <-> Team linking ----------
+class LinkTeamRequest(BaseModel):
+    """Link one of the caller's own teams to a project. Instant — the caller
+    must already be a member of team_id (validated server-side)."""
+    team_id: str
+
+
+class RequestTeamLinkRequest(BaseModel):
+    """Propose linking a team the caller is NOT a member of, identified by its
+    invite code (the same discovery mechanism team joining already uses).
+    Creates a pending request the team's Lead must accept or decline."""
+    invite_code: str
+
+
 class RoleUpdate(BaseModel):
     role: str  # Lead | Member
 
@@ -111,7 +125,17 @@ class TaskUpdate(BaseModel):
 
 
 class TaskStatusUpdate(BaseModel):
-    status: str  # To Do | In Progress | Done
+    status: str  # To Do | In Progress | Review | Done
+
+
+class TaskMove(BaseModel):
+    id: str
+    status: str
+    sort_order: int = Field(ge=0)
+
+
+class TaskReorder(BaseModel):
+    moves: list[TaskMove] = Field(min_length=1, max_length=200)
 
 
 # ---------- Viva ----------
@@ -136,6 +160,7 @@ class PresentationSessionCreate(BaseModel):
     duration_minutes: int = 10
     session_type: str = "Project"
     subject: str | None = None  # free-text topic / focus for the presentation
+    scenario_id: str | None = None
 
 
 class AskRequest(BaseModel):

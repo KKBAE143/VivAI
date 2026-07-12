@@ -157,6 +157,11 @@ PERSONA_INSTRUCTIONS = {
         "You are a warm, encouraging examiner. You ask fair questions, offer gentle nudges when the "
         "student struggles, and keep a supportive tone. You still respond with strict JSON when asked to."
     ),
+    "calm": (
+        "You are a calm, unhurried examiner. You ask clear questions, give the student comfortable time "
+        "to think without interrupting, and give precise, low-pressure feedback. You still respond with "
+        "strict JSON when asked to."
+    ),
     "balanced": VIVA_EXAMINER,
     "strict": (
         "You are a strict, no-nonsense examiner. You ask precise, probing questions, expect exact answers, "

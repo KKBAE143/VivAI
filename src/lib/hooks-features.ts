@@ -1,16 +1,17 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "./api";
-import { useAuth } from "./auth-context";
 import type { ApiRecord } from "./hooks";
+import { useAuthedQuery } from "./query";
+import type { Persona, Scenario } from "./types";
 
-function useAuthedQuery<T>(key: unknown[], path: string, enabled = true) {
-  const { isAuthenticated } = useAuth();
-  return useQuery<T>({
-    queryKey: key,
-    queryFn: () => api<T>(path),
-    enabled: enabled && isAuthenticated,
-  });
+// ---------- Live scenario catalog ----------
+export function useScenarioCatalog() {
+  return useAuthedQuery<Scenario[]>(["catalog", "scenarios"], "/api/catalog/scenarios");
+}
+
+export function usePersonaCatalog() {
+  return useAuthedQuery<Persona[]>(["catalog", "personas"], "/api/catalog/personas");
 }
 
 // ---------- Readiness ----------

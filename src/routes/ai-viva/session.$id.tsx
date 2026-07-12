@@ -4,6 +4,8 @@ import { useRequireAuth } from "@/lib/auth-context";
 import { useVivaSession, type ApiRecord } from "@/lib/hooks";
 import { DeliveryPanel } from "@/components/delivery-panel";
 import { LiveSessionRunner } from "@/components/live/live-session-runner";
+import { SessionReport } from "@/components/reports/session-report";
+import type { SessionReport as SessionReportData } from "@/lib/types";
 
 export const Route = createFileRoute("/ai-viva/session/$id")({
   head: () => ({ meta: [{ title: "Live Viva Session — CollgePro Navigator" }] }),
@@ -34,6 +36,7 @@ function VivaSession() {
   // ----- Completed: transcript review -----
   if (isCompleted) {
     const allQuestions = (session?.questions as ApiRecord[] | undefined) ?? [];
+    const report = session?.report as SessionReportData | null | undefined;
     return (
       <div className="min-h-screen bg-background">
         <header className="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur">
@@ -53,7 +56,7 @@ function VivaSession() {
           </div>
         </header>
         <div className="mx-auto max-w-4xl space-y-4 px-4 py-8">
-          <DeliveryPanel sessionId={id} />
+          {report ? <SessionReport report={report} /> : <DeliveryPanel sessionId={id} />}
           {allQuestions.length === 0 && (
             <p className="text-sm text-muted-foreground">
               No questions were recorded for this session.
@@ -126,7 +129,9 @@ function VivaSession() {
       title={title}
       subtitle={`Difficulty: ${difficulty} · Speak naturally — the examiner is listening.`}
       defaultLanguage={language}
+      defaultPersona={String(session?.persona ?? "balanced")}
       showPersona
+      configLocked
       sources={["camera", "none"]}
       onEnded={() => {
         setJustEnded(true);

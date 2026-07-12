@@ -9,12 +9,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, Mic, MonitorUp, Volume2, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { LIVE_LANGUAGES } from "@/lib/languages";
+import { usePersonaCatalog } from "@/lib/hooks-features";
 
 export type VideoSource = "screen" | "camera" | "none";
 
 export interface PreflightResult {
   micStream: MediaStream;
   videoStream: MediaStream | null;
+  videoSource: VideoSource | null;
   language: string;
   persona: string;
 }
@@ -25,6 +27,11 @@ interface PreflightSetupProps {
   defaultPersona?: string;
   /** Show the examiner persona picker (viva). */
   showPersona?: boolean;
+  /** Language and persona were fixed at session creation and the server
+   * always uses the stored value regardless of what's sent at connect time
+   * (viva). Showing them as editable here would be a control that silently
+   * does nothing when changed — render read-only instead, honestly. */
+  configLocked?: boolean;
   /** Override the video sources offered. Defaults are mode-specific. */
   sources?: VideoSource[];
   onReady: (result: PreflightResult) => void;
@@ -43,7 +50,10 @@ const MODE_SOURCES: Record<string, VideoSource[]> = {
 };
 
 const LANGUAGES = LIVE_LANGUAGES;
-const PERSONAS = [
+// Fallback shown only while the catalog is loading, so the picker never
+// flashes empty — the server-owned list (incl. "calm") replaces this once
+// usePersonaCatalog() resolves.
+const FALLBACK_PERSONAS = [
   { id: "friendly", label: "Friendly" },
   { id: "balanced", label: "Balanced" },
   { id: "strict", label: "Strict" },
@@ -74,10 +84,13 @@ export function PreflightSetup({
   defaultLanguage = "English",
   defaultPersona = "balanced",
   showPersona = false,
+  configLocked = false,
   sources: sourcesProp,
   onReady,
 }: PreflightSetupProps) {
   const availableSources = sourcesProp ?? MODE_SOURCES[mode] ?? ["none"];
+  const personaCatalog = usePersonaCatalog();
+  const personas = personaCatalog.data?.length ? personaCatalog.data : FALLBACK_PERSONAS;
   const [language, setLanguage] = useState(defaultLanguage);
   const [persona, setPersona] = useState(defaultPersona);
   const [source, setSource] = useState<VideoSource>(availableSources[0]);
@@ -100,7 +113,9 @@ export function PreflightSetup({
     (async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          audio: { echoCancellation: true, noiseSuppression: true },
+          // autoGainControl added alongside the existing echo/noise constraints
+          // to further reduce the greeting leaking back into the mic (WS1).
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
         });
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());
@@ -156,7 +171,7 @@ export function PreflightSetup({
       // Stop the meter loop; hand the mic stream to the live session.
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       audioCtxRef.current?.close().catch(() => {});
-      onReady({ micStream: micStreamRef.current, videoStream, language, persona });
+      onReady({ micStream: micStreamRef.current, videoStream, videoSource: videoStream ? source : null, language, persona });
     } catch (e) {
       if (e instanceof DOMException && e.name === "NotAllowedError") {
         setError("Permission was denied. Please allow access and try again.");
@@ -266,35 +281,56 @@ export function PreflightSetup({
 
         {/* Language + persona */}
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          <label className="rounded-xl bg-secondary px-4 py-3">
-            <span className="text-xs text-muted-foreground">Language</span>
-            <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              className="mt-1 w-full rounded-lg bg-card px-2 py-2 text-sm font-semibold focus:outline-none"
-            >
-              {LANGUAGES.map((l) => (
-                <option key={l}>{l}</option>
-              ))}
-            </select>
-          </label>
-          {showPersona && (
+          {configLocked ? (
+            <div className="rounded-xl bg-secondary px-4 py-3">
+              <span className="text-xs text-muted-foreground">Language</span>
+              <div className="mt-1 text-sm font-semibold">{language}</div>
+            </div>
+          ) : (
             <label className="rounded-xl bg-secondary px-4 py-3">
-              <span className="text-xs text-muted-foreground">Examiner style</span>
+              <span className="text-xs text-muted-foreground">Language</span>
               <select
-                value={persona}
-                onChange={(e) => setPersona(e.target.value)}
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
                 className="mt-1 w-full rounded-lg bg-card px-2 py-2 text-sm font-semibold focus:outline-none"
               >
-                {PERSONAS.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.label}
-                  </option>
+                {LANGUAGES.map((l) => (
+                  <option key={l}>{l}</option>
                 ))}
               </select>
             </label>
           )}
+          {showPersona && (
+            configLocked ? (
+              <div className="rounded-xl bg-secondary px-4 py-3">
+                <span className="text-xs text-muted-foreground">Examiner style</span>
+                <div className="mt-1 text-sm font-semibold">
+                  {personas.find((p) => p.id === persona)?.label ?? persona}
+                </div>
+              </div>
+            ) : (
+              <label className="rounded-xl bg-secondary px-4 py-3">
+                <span className="text-xs text-muted-foreground">Examiner style</span>
+                <select
+                  value={persona}
+                  onChange={(e) => setPersona(e.target.value)}
+                  className="mt-1 w-full rounded-lg bg-card px-2 py-2 text-sm font-semibold focus:outline-none"
+                >
+                  {personas.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )
+          )}
         </div>
+        {configLocked && (
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            Set when you configured this session — change them from the session setup screen instead.
+          </p>
+        )}
 
         {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
 

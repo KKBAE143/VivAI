@@ -22,12 +22,26 @@ export interface LiveCaption {
 }
 
 export interface LiveEvent {
+  /** Client-generated, unique per event — used as the React key. */
   id: string;
-  kind: "flag" | "question" | "score";
+  /** Server-generated correlation id (e.g. "q_3"), present on question/score/
+   * observation events. A "score" event's refId names the "question" event
+   * it belongs to, so the UI can group them into one evolving evaluation
+   * instead of two disconnected list entries. */
+  refId?: string | null;
+  kind: "flag" | "observation" | "question" | "score";
+  /** For observation/flag events only: whether this specific moment was a
+   * strength, an issue, or a neutral note — distinct from `kind` above,
+   * which is the event envelope type, not the observation's own verdict. */
+  observationKind?: "strength" | "issue" | "note" | null;
   text: string;
   topic?: string | null;
   score?: number | null;
   severity?: string | null;
+  category?: string | null;
+  dimension?: string | null;
+  confidence?: "high" | "medium" | "low" | null;
+  tip?: string | null;
   ts: number;
 }
 
@@ -47,6 +61,9 @@ export interface StartOptions {
   micStream: MediaStream;
   /** Optional screen/camera stream sampled at ~1fps and sent to the model. */
   videoStream?: MediaStream | null;
+  /** What the video stream is, so the server can track availability for the
+   * report (body-language findings require a camera, not a screen share). */
+  videoSource?: "camera" | "screen" | null;
 }
 
 export interface UseLiveSessionOptions {
@@ -102,6 +119,18 @@ function floatToPCM16(input: Float32Array, inRate: number): ArrayBuffer {
 let _eventSeq = 0;
 const nextId = () => `ev_${Date.now()}_${(_eventSeq += 1)}`;
 
+// Padding added on top of the remaining playback time before opening the mic
+// gate, to cover speaker->mic acoustic latency after the greeting audio ends.
+const GATE_DRAIN_PADDING_MS = 350;
+
+/**
+ * Milliseconds of AI speech still scheduled ahead of the audio clock.
+ * Pure + exported so the gate-timing math can be unit-tested (bun test).
+ */
+export function remainingPlaybackMs(playHead: number, currentTime: number): number {
+  return Math.max(0, (playHead - currentTime) * 1000);
+}
+
 export function useLiveSession(opts: UseLiveSessionOptions) {
   const { mode, sessionId, language = "English", persona = "balanced", projectId, subject } = opts;
 
@@ -109,6 +138,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
   const [error, setError] = useState<string>("");
   const [aiSpeaking, setAiSpeaking] = useState(false);
   const [micMuted, setMicMuted] = useState(false);
+  const [videoEnabled, setVideoEnabled] = useState(true);
   const [captions, setCaptions] = useState<LiveCaption[]>([]);
   const [events, setEvents] = useState<LiveEvent[]>([]);
   const [liveUserText, setLiveUserText] = useState("");
@@ -126,6 +156,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
   const frameVideoRef = useRef<HTMLVideoElement | null>(null);
   const frameCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const micMutedRef = useRef(false);
+  const videoEnabledRef = useRef(true);
   const userBufRef = useRef("");
   const aiBufRef = useRef("");
   const speakingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -196,6 +227,37 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     setLiveAiText("");
   }, []);
 
+  // --------------------------- mic gate --------------------------------- //
+  /**
+   * Open the mic gate only AFTER the greeting audio has finished playing.
+   * `turn_complete` arrives while several seconds of 24kHz greeting are still
+   * scheduled in the playback graph; opening the gate immediately streams that
+   * greeting (leaking through the speakers, since capture/playback use separate
+   * AudioContexts that defeat echo cancellation) back to Gemini, which then
+   * greets again. We instead wait out the remaining scheduled playback plus a
+   * small acoustic-latency pad, then open. Idempotent.
+   */
+  const openGateWhenDrained = useCallback(() => {
+    if (micGateOpenRef.current) return;
+    const ctx = playbackCtxRef.current;
+    const remaining = ctx ? remainingPlaybackMs(playHeadRef.current, ctx.currentTime) : 0;
+    if (gateTimerRef.current) clearTimeout(gateTimerRef.current);
+    gateTimerRef.current = setTimeout(() => {
+      micGateOpenRef.current = true;
+      gateTimerRef.current = null;
+    }, remaining + GATE_DRAIN_PADDING_MS);
+  }, []);
+
+  /** Open the gate right now (used on barge-in — the model already heard us). */
+  const openGateNow = useCallback(() => {
+    if (micGateOpenRef.current) return;
+    micGateOpenRef.current = true;
+    if (gateTimerRef.current) {
+      clearTimeout(gateTimerRef.current);
+      gateTimerRef.current = null;
+    }
+  }, []);
+
   // --------------------------- socket events ---------------------------- //
   const handleMessage = useCallback(
     (raw: MessageEvent) => {
@@ -232,18 +294,16 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
         case "interrupted":
           stopPlayback();
           setAiSpeaking(false);
+          // Barge-in: the model clearly heard the student, so gating is moot —
+          // open immediately (playHeadRef was just zeroed by stopPlayback).
+          openGateNow();
           commitAi();
           break;
         case "turn_complete":
-          // The AI just finished a turn (the opening greeting on the first one)
-          // — now it's safe to start streaming the student's mic.
-          if (!micGateOpenRef.current) {
-            micGateOpenRef.current = true;
-            if (gateTimerRef.current) {
-              clearTimeout(gateTimerRef.current);
-              gateTimerRef.current = null;
-            }
-          }
+          // The AI just finished a turn (the opening greeting on the first one).
+          // Open the mic gate only once the greeting audio has actually drained
+          // from the playback graph — see openGateWhenDrained.
+          openGateWhenDrained();
           commitUser();
           commitAi();
           break;
@@ -253,16 +313,37 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
             ...e,
             {
               id: nextId(),
+              refId: (msg.id as string | null) ?? null,
               kind,
+              observationKind: (msg.kind as LiveEvent["observationKind"]) ?? null,
               text: String(msg.text ?? msg.question ?? msg.feedback ?? ""),
               topic: (msg.topic as string | null) ?? null,
               score: (msg.score as number | null) ?? null,
               severity: (msg.severity as string | null) ?? null,
+              category: (msg.category as string | null) ?? null,
+              dimension: (msg.dimension as string | null) ?? null,
+              confidence: (msg.confidence as LiveEvent["confidence"]) ?? null,
+              tip: (msg.tip as string | null) ?? null,
               ts: Date.now(),
             },
           ]);
           break;
         }
+        case "finalizing":
+          // The server is starting the expensive part (transcript analysis +
+          // report generation). Re-arm the force-close safety net from this
+          // point, not from when "end" was first sent, so a slow report is
+          // never truncated by time already spent on teardown/flush.
+          if (gateTimerRef.current) clearTimeout(gateTimerRef.current);
+          gateTimerRef.current = setTimeout(() => {
+            try {
+              wsRef.current?.close();
+            } catch {
+              /* noop */
+            }
+            wsRef.current = null;
+          }, 60000);
+          break;
         case "ended":
           endedReceivedRef.current = true;
           setSummary((msg.summary as LiveSummary) ?? null);
@@ -276,7 +357,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
           break;
       }
     },
-    [playChunk, stopPlayback, commitUser, commitAi],
+    [playChunk, stopPlayback, commitUser, commitAi, openGateWhenDrained, openGateNow],
   );
 
   // ------------------------- frame sampling ----------------------------- //
@@ -284,6 +365,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     const ws = wsRef.current;
     const video = frameVideoRef.current;
     const canvas = frameCanvasRef.current;
+    if (!videoEnabledRef.current) return;
     if (!ws || ws.readyState !== WebSocket.OPEN || !video || !canvas || !video.videoWidth) return;
     const scale = Math.min(1, FRAME_MAX_WIDTH / video.videoWidth);
     canvas.width = Math.round(video.videoWidth * scale);
@@ -298,13 +380,15 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
 
   // ------------------------------ start --------------------------------- //
   const start = useCallback(
-    async ({ micStream, videoStream }: StartOptions) => {
+    async ({ micStream, videoStream, videoSource }: StartOptions) => {
       if (wsRef.current) return;
       setStatus("connecting");
       setError("");
       setCaptions([]);
       setEvents([]);
       setSummary(null);
+      videoEnabledRef.current = true;
+      setVideoEnabled(true);
 
       // Keep the mic gated until the AI's opening greeting completes (we open it
       // on the first `turn_complete`). Streaming ambient noise DURING the
@@ -395,10 +479,14 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
         frameTimerRef.current = setInterval(sendFrame, FRAME_INTERVAL_MS);
       }
 
-      // Open the socket.
+      // Open the socket. Params are built additively; new ones (video, pv) are
+      // ignored by older server builds, so this stays backward-compatible.
       const qs = new URLSearchParams({ token, language, persona });
       if (projectId) qs.set("project_id", projectId);
       if (subject && subject.trim()) qs.set("subject", subject.trim());
+      const hasVideo = Boolean(videoStream && videoStream.getVideoTracks().length > 0);
+      if (hasVideo) qs.set("video", videoSource ?? "1");
+      qs.set("pv", "1"); // client protocol version (additive negotiation seam)
       const ws = new WebSocket(wsUrl(`/ws/live/${mode}/${sessionId}?${qs.toString()}`));
       ws.binaryType = "arraybuffer";
       wsRef.current = ws;
@@ -477,10 +565,27 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
         /* noop */
       }
       wsRef.current = null;
-    }, 30000);
+    }, 60000); // 60s: report generation (an LLM call) can take a while; the
+    // server closes the socket itself once finalize() is done. Bumped from 30s
+    // so a slower evidence-based report is never truncated (WS3 / R6).
   }, [cleanup]);
 
   const toggleMic = useCallback(() => setMicMuted((m) => !m), []);
+
+  /** Pause/resume the camera mid-session — disables the actual video track
+   * (not just the frame-capture timer), so the local preview and the
+   * frames sent to the model go dark together, from one source of truth. */
+  const toggleVideo = useCallback(() => {
+    setVideoEnabled((prev) => {
+      const next = !prev;
+      videoEnabledRef.current = next;
+      const stream = frameVideoRef.current?.srcObject as MediaStream | null | undefined;
+      stream?.getVideoTracks().forEach((track) => {
+        track.enabled = next;
+      });
+      return next;
+    });
+  }, []);
 
   /** Fully reset the hook so the session can be retried from pre-flight. */
   const reset = useCallback(() => {
@@ -527,6 +632,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     error,
     aiSpeaking,
     micMuted,
+    videoEnabled,
     captions,
     events,
     liveUserText,
@@ -536,6 +642,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     stop,
     reset,
     toggleMic,
+    toggleVideo,
     pushText,
   };
 }

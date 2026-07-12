@@ -2,24 +2,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "./api";
 import { useAuth } from "./auth-context";
+import { useAuthedQuery } from "./query";
+import type { TaskMove, TaskStatus } from "./types";
+
+export type { TaskMove, TaskStatus } from "./types";
 
 export type ApiRecord = Record<string, unknown>;
-
-function useAuthedQuery<T>(
-  key: unknown[],
-  path: string,
-  enabled = true,
-  extras?: { refetchOnWindowFocus?: boolean; refetchInterval?: number },
-) {
-  const { isAuthenticated } = useAuth();
-  return useQuery<T>({
-    queryKey: key,
-    queryFn: () => api<T>(path),
-    enabled: enabled && isAuthenticated,
-    refetchOnWindowFocus: extras?.refetchOnWindowFocus,
-    refetchInterval: extras?.refetchInterval,
-  });
-}
 
 // ---------- Auth / profile ----------
 
@@ -151,7 +139,15 @@ export function useCreateTeam() {
   return useMutation({
     mutationFn: (body: { name: string; project_id?: string | null }) =>
       api<ApiRecord>("/api/teams", { body }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["teams"] }),
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["teams"] });
+      // Creating a team with project_id also links it (see backend
+      // create_team) — the project's cached data (and its Team tab) would
+      // otherwise show stale "no team" state until an unrelated refetch.
+      if (vars.project_id) {
+        queryClient.invalidateQueries({ queryKey: ["project", vars.project_id] });
+      }
+    },
   });
 }
 
@@ -218,6 +214,102 @@ export function useUpdateMemberRole() {
   });
 }
 
+export function useTeamActivity(teamId: string) {
+  return useAuthedQuery<ApiRecord[]>(["team-activity", teamId], `/api/teams/${teamId}/activity`, Boolean(teamId));
+}
+
+export function useTeamIncomingRequests(teamId: string) {
+  return useAuthedQuery<ApiRecord[]>(["team-requests", teamId], `/api/teams/${teamId}/requests`, Boolean(teamId));
+}
+
+function useInvalidateTeamLinkQueries() {
+  const queryClient = useQueryClient();
+  return (projectId?: string, teamId?: string) => {
+    if (projectId) {
+      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["project-linkable-teams", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["project-team-requests", projectId] });
+    }
+    if (teamId) {
+      queryClient.invalidateQueries({ queryKey: ["team", teamId] });
+      queryClient.invalidateQueries({ queryKey: ["team-requests", teamId] });
+      queryClient.invalidateQueries({ queryKey: ["team-activity", teamId] });
+    }
+    queryClient.invalidateQueries({ queryKey: ["teams"] });
+  };
+}
+
+export function useAcceptTeamRequest(teamId: string) {
+  const invalidate = useInvalidateTeamLinkQueries();
+  return useMutation({
+    mutationFn: (requestId: string) =>
+      api<ApiRecord>(`/api/teams/${teamId}/requests/${requestId}/accept`),
+    onSuccess: () => invalidate(undefined, teamId),
+  });
+}
+
+export function useDeclineTeamRequest(teamId: string) {
+  const invalidate = useInvalidateTeamLinkQueries();
+  return useMutation({
+    mutationFn: (requestId: string) =>
+      api<ApiRecord>(`/api/teams/${teamId}/requests/${requestId}/decline`),
+    onSuccess: () => invalidate(undefined, teamId),
+  });
+}
+
+// ---------- Project <-> Team linking ----------
+
+export function useLinkableTeams(projectId: string) {
+  return useAuthedQuery<ApiRecord[]>(
+    ["project-linkable-teams", projectId],
+    `/api/projects/${projectId}/team/my-teams`,
+    Boolean(projectId),
+  );
+}
+
+export function useProjectTeamRequests(projectId: string) {
+  return useAuthedQuery<ApiRecord[]>(
+    ["project-team-requests", projectId],
+    `/api/projects/${projectId}/team/requests`,
+    Boolean(projectId),
+  );
+}
+
+export function useLinkTeam(projectId: string) {
+  const invalidate = useInvalidateTeamLinkQueries();
+  return useMutation({
+    mutationFn: (teamId: string) =>
+      api<ApiRecord>(`/api/projects/${projectId}/team/link`, { body: { team_id: teamId } }),
+    onSuccess: (data) => invalidate(projectId, data.team_id as string | undefined),
+  });
+}
+
+export function useRequestTeamLink(projectId: string) {
+  const invalidate = useInvalidateTeamLinkQueries();
+  return useMutation({
+    mutationFn: (inviteCode: string) =>
+      api<ApiRecord>(`/api/projects/${projectId}/team/request`, { body: { invite_code: inviteCode } }),
+    onSuccess: () => invalidate(projectId),
+  });
+}
+
+export function useUnlinkTeam(projectId: string) {
+  const invalidate = useInvalidateTeamLinkQueries();
+  return useMutation({
+    mutationFn: () => api(`/api/projects/${projectId}/team`, { method: "DELETE" }),
+    onSuccess: () => invalidate(projectId),
+  });
+}
+
+export function useCancelProjectTeamRequest(projectId: string) {
+  const invalidate = useInvalidateTeamLinkQueries();
+  return useMutation({
+    mutationFn: (requestId: string) =>
+      api<ApiRecord>(`/api/projects/${projectId}/team/requests/${requestId}/cancel`),
+    onSuccess: () => invalidate(projectId),
+  });
+}
+
 // ---------- Tasks ----------
 
 export function useTasks(projectId?: string) {
@@ -244,13 +336,39 @@ export function useCreateTask() {
 export function useUpdateTaskStatus() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ taskId, status }: { taskId: string; status: string; projectId?: string }) =>
+    mutationFn: ({ taskId, status }: { taskId: string; status: TaskStatus; projectId?: string }) =>
       api<ApiRecord>(`/api/tasks/${taskId}/status`, { method: "PUT", body: { status } }),
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       if (vars.projectId) queryClient.invalidateQueries({ queryKey: ["project", vars.projectId] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
+  });
+}
+
+export function useReorderTasks() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ projectId, moves }: { projectId: string; moves: TaskMove[] }) =>
+      api<{ ok: boolean }>(`/api/projects/${projectId}/tasks/reorder`, { method: "PUT", body: { moves } }),
+    onMutate: async ({ projectId, moves }) => {
+      const key = ["project", projectId] as const;
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData<ApiRecord>(key);
+      queryClient.setQueryData<ApiRecord>(key, (project) => {
+        if (!project || !Array.isArray(project.tasks)) return project;
+        const byId = new Map(moves.map((move) => [move.id, move]));
+        return { ...project, tasks: project.tasks.map((task) => {
+          const move = byId.get(String((task as ApiRecord).id));
+          return move ? { ...(task as ApiRecord), status: move.status, sort_order: move.sort_order } : task;
+        }) };
+      });
+      return { key, previous };
+    },
+    onError: (_error, _vars, context) => {
+      if (context) queryClient.setQueryData(context.key, context.previous);
+    },
+    onSettled: (_data, _error, { projectId }) => queryClient.invalidateQueries({ queryKey: ["project", projectId] }),
   });
 }
 

@@ -129,9 +129,17 @@ export async function api<T = unknown>(path: string, options: ApiOptions = {}): 
     } catch (err) {
       // Re-throw genuine aborts so React Query can treat them as cancellations.
       if (err instanceof DOMException && err.name === "AbortError") throw err;
+      // A fetch rejection has two very different causes and we must not conflate
+      // them: (1) the backend is genuinely unreachable, or (2) the request hit
+      // the backend but it crashed and the error response lacked CORS headers,
+      // so the browser blocked it. The message names the method + path and both
+      // realities so the user/logs can tell which one happened.
+      const reason = err instanceof Error ? err.message : String(err);
       throw new ApiError(
         0,
-        `Cannot reach the server at ${API_URL}. Make sure the backend is running and VITE_API_URL points to it.`,
+        `Network error calling ${method} ${path}: ${reason}. Either the backend at ${API_URL} is unreachable, ` +
+          `or it received the request but crashed and the browser blocked the response (CORS / server error). ` +
+          `Check the backend logs.`,
       );
     }
   };
