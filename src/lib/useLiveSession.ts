@@ -64,6 +64,8 @@ export interface StartOptions {
   /** What the video stream is, so the server can track availability for the
    * report (body-language findings require a camera, not a screen share). */
   videoSource?: "camera" | "screen" | null;
+  /** Prefer a context already resumed under a user gesture (preflight Start). */
+  playbackAudioContext?: AudioContext | null;
 }
 
 export interface UseLiveSessionOptions {
@@ -144,6 +146,10 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
   const [liveUserText, setLiveUserText] = useState("");
   const [liveAiText, setLiveAiText] = useState("");
   const [summary, setSummary] = useState<LiveSummary | null>(null);
+  /** True when the browser is blocking AI audio until the user taps again. */
+  const [audioBlocked, setAudioBlocked] = useState(false);
+  /** Student paused the session (mic+playback held; socket stays open). */
+  const [paused, setPaused] = useState(false);
 
   const wsRef = useRef<WebSocket | null>(null);
   const captureCtxRef = useRef<AudioContext | null>(null);
@@ -166,10 +172,17 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
   // treat it as a turn and greet a second time, and can destabilize the socket.
   const micGateOpenRef = useRef(false);
   const gateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pausedRef = useRef(false);
+  /** Mic mute state before pause, restored on resume. */
+  const micMutedBeforePauseRef = useRef(false);
 
   useEffect(() => {
     micMutedRef.current = micMuted;
   }, [micMuted]);
+
+  useEffect(() => {
+    pausedRef.current = paused;
+  }, [paused]);
 
   // ----------------------- audio playback (24kHz) ----------------------- //
   const stopPlayback = useCallback(() => {
@@ -185,8 +198,19 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
   }, []);
 
   const playChunk = useCallback((pcm: ArrayBuffer) => {
+    // Drop AI audio while paused so we don't queue speech for later.
+    if (pausedRef.current) return;
     const ctx = playbackCtxRef.current;
     if (!ctx) return;
+    // Autoplay policy: if still suspended, try resume; surface a tap-to-unlock UI.
+    if (ctx.state === "suspended") {
+      setAudioBlocked(true);
+      void ctx.resume().then(() => {
+        setAudioBlocked(playbackCtxRef.current?.state !== "running");
+      });
+    } else if (ctx.state === "running") {
+      setAudioBlocked(false);
+    }
     const int16 = new Int16Array(pcm);
     if (int16.length === 0) return;
     const float = new Float32Array(int16.length);
@@ -198,7 +222,12 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     src.connect(ctx.destination);
     const now = ctx.currentTime;
     const startAt = Math.max(now, playHeadRef.current);
-    src.start(startAt);
+    try {
+      src.start(startAt);
+    } catch {
+      setAudioBlocked(true);
+      return;
+    }
     playHeadRef.current = startAt + buffer.duration;
     activeSourcesRef.current.push(src);
     src.onended = () => {
@@ -210,6 +239,24 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
       () => setAiSpeaking(false),
       Math.max(300, (playHeadRef.current - now) * 1000 + 150),
     );
+  }, []);
+
+  /** Call from a click handler if the browser blocked AI audio. */
+  const unlockAudio = useCallback(async () => {
+    const ctx = playbackCtxRef.current;
+    if (!ctx) return;
+    try {
+      await ctx.resume();
+      // Play a tiny silent buffer to fully unlock some browsers.
+      const buf = ctx.createBuffer(1, 1, PLAYBACK_SAMPLE_RATE);
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(ctx.destination);
+      src.start();
+      setAudioBlocked(ctx.state !== "running");
+    } catch {
+      setAudioBlocked(true);
+    }
   }, []);
 
   // ----------------------- transcript handling -------------------------- //
@@ -367,6 +414,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     const canvas = frameCanvasRef.current;
     if (!videoEnabledRef.current) return;
     if (!ws || ws.readyState !== WebSocket.OPEN || !video || !canvas || !video.videoWidth) return;
+    if (pausedRef.current || !videoEnabledRef.current) return;
     const scale = Math.min(1, FRAME_MAX_WIDTH / video.videoWidth);
     canvas.width = Math.round(video.videoWidth * scale);
     canvas.height = Math.round(video.videoHeight * scale);
@@ -380,13 +428,14 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
 
   // ------------------------------ start --------------------------------- //
   const start = useCallback(
-    async ({ micStream, videoStream, videoSource }: StartOptions) => {
+    async ({ micStream, videoStream, videoSource, playbackAudioContext }: StartOptions) => {
       if (wsRef.current) return;
       setStatus("connecting");
       setError("");
       setCaptions([]);
       setEvents([]);
       setSummary(null);
+      setAudioBlocked(false);
       videoEnabledRef.current = true;
       setVideoEnabled(true);
 
@@ -408,13 +457,21 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
         return;
       }
 
-      // Playback context (resampled from 24kHz buffers).
+      // Playback context — prefer the one unlocked under the preflight Start click.
       try {
-        const PlaybackCtx =
-          window.AudioContext ??
-          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-        playbackCtxRef.current = new PlaybackCtx();
-        await playbackCtxRef.current.resume().catch(() => {});
+        if (playbackAudioContext) {
+          playbackCtxRef.current = playbackAudioContext;
+          await playbackCtxRef.current.resume().catch(() => {});
+        } else {
+          const PlaybackCtx =
+            window.AudioContext ??
+            (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+          playbackCtxRef.current = new PlaybackCtx();
+          await playbackCtxRef.current.resume().catch(() => {});
+        }
+        if (playbackCtxRef.current.state === "suspended") {
+          setAudioBlocked(true);
+        }
       } catch {
         setError("Audio playback is not supported in this browser.");
         setStatus("error");
@@ -443,11 +500,12 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
         const inRate = ctx.sampleRate;
         node.port.onmessage = (e: MessageEvent) => {
           const ws = wsRef.current;
-          // Hold audio until the greeting finishes (gate) and while muted.
+          // Hold audio until the greeting finishes (gate), while muted, or while paused.
           if (
             !ws ||
             ws.readyState !== WebSocket.OPEN ||
             micMutedRef.current ||
+            pausedRef.current ||
             !micGateOpenRef.current
           )
             return;
@@ -570,7 +628,11 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     // so a slower evidence-based report is never truncated (WS3 / R6).
   }, [cleanup]);
 
-  const toggleMic = useCallback(() => setMicMuted((m) => !m), []);
+  const toggleMic = useCallback(() => {
+    // While paused, mic is forced silent — don't fight the pause state.
+    if (pausedRef.current) return;
+    setMicMuted((m) => !m);
+  }, []);
 
   /** Pause/resume the camera mid-session — disables the actual video track
    * (not just the frame-capture timer), so the local preview and the
@@ -586,6 +648,36 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
       return next;
     });
   }, []);
+
+  /**
+   * Pause the live session without ending it:
+   * - stops AI playback
+   * - stops sending mic audio
+   * - keeps the WebSocket open so Resume continues the same session
+   */
+  const pause = useCallback(() => {
+    if (pausedRef.current) return;
+    micMutedBeforePauseRef.current = micMutedRef.current;
+    pausedRef.current = true;
+    setPaused(true);
+    setMicMuted(true);
+    stopPlayback();
+    setAiSpeaking(false);
+  }, [stopPlayback]);
+
+  const resume = useCallback(() => {
+    if (!pausedRef.current) return;
+    pausedRef.current = false;
+    setPaused(false);
+    setMicMuted(micMutedBeforePauseRef.current);
+    // Re-unlock playback in case the browser suspended the context while idle.
+    void playbackCtxRef.current?.resume().catch(() => {});
+  }, []);
+
+  const togglePause = useCallback(() => {
+    if (pausedRef.current) resume();
+    else pause();
+  }, [pause, resume]);
 
   /** Fully reset the hook so the session can be retried from pre-flight. */
   const reset = useCallback(() => {
@@ -605,6 +697,9 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     setLiveAiText("");
     setSummary(null);
     setMicMuted(false);
+    setAudioBlocked(false);
+    setPaused(false);
+    pausedRef.current = false;
   }, [cleanup]);
 
   const pushText = useCallback((text: string) => {
@@ -638,11 +733,17 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     liveUserText,
     liveAiText,
     summary,
+    audioBlocked,
+    paused,
     start,
     stop,
     reset,
     toggleMic,
     toggleVideo,
+    togglePause,
+    pause,
+    resume,
     pushText,
+    unlockAudio,
   };
 }

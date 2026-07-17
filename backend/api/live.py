@@ -35,6 +35,7 @@ from google.genai import types
 from ai import delivery_metrics, live_service, report_service, viva_core
 from ai.registry import find_scenario_by_label, get_scenario
 from core.database import get_supabase
+from core.deps import user_from_token
 from core.logging import get_logger
 from services import gamification_service
 from services.activity_service import log_activity
@@ -54,32 +55,7 @@ async def _forward_turn_complete(websocket: WebSocket, first_turn_done: asyncio.
     first_turn_done.set()
 
 
-def _response_audio_chunks(response) -> list[bytes]:
-    """Read Live audio from both SDK response layouts.
-
-    Older ``google-genai`` releases exposed a convenience ``response.data``
-    attribute.  Current Live responses place the raw 24kHz PCM chunks in
-    ``server_content.model_turn.parts[].inline_data.data`` instead.  Output
-    transcription still arrives either way, which is why the UI could show AI
-    text while remaining silent.  Prefer the legacy convenience field when it
-    exists to avoid forwarding one chunk twice on SDKs that expose both.
-    """
-    legacy_data = getattr(response, "data", None)
-    if legacy_data:
-        return [bytes(legacy_data)]
-
-    server_content = getattr(response, "server_content", None)
-    model_turn = getattr(server_content, "model_turn", None)
-    chunks: list[bytes] = []
-    for part in getattr(model_turn, "parts", None) or []:
-        inline_data = getattr(part, "inline_data", None)
-        data = getattr(inline_data, "data", None)
-        mime_type = (getattr(inline_data, "mime_type", "") or "").lower()
-        # Live model turns can contain text/thought parts as well as audio.
-        # Only proxy audio bytes to the browser's PCM player.
-        if data and (not mime_type or mime_type.startswith("audio/")):
-            chunks.append(bytes(data))
-    return chunks
+_response_audio_chunks = live_service.response_audio_chunks
 
 
 def coalesce_turns(transcript: list[dict]) -> list[dict]:
@@ -99,34 +75,24 @@ def coalesce_turns(transcript: list[dict]) -> list[dict]:
     return turns
 
 
-_VIVA_SCENARIO_BY_TYPE = {"Subject": "subject_viva", "Project": "viva_defense", "General": "general_viva"}
+_VIVA_SCENARIO_BY_TYPE = {
+    "Subject": "subject_viva",
+    "Project": "viva_defense",
+    "General": "general_viva",
+    "CodeAware": "viva_defense",
+}
 
 
 def resolve_viva_scenario_id(session_type: str | None) -> str:
-    """Subject/Project/General vivas are different exams — own coaching
+    """Subject/Project/General/CodeAware vivas are different exams — own coaching
     emphasis, not just a shared "project defense" label. Pure so it's
     testable without a live session."""
     return _VIVA_SCENARIO_BY_TYPE.get(session_type or "", "viva_defense")
 
 
 # --------------------------------------------------------------------------- #
-# Auth + context loading
+# Context loading
 # --------------------------------------------------------------------------- #
-def _user_from_token(token: str) -> dict | None:
-    try:
-        res = get_supabase().auth.get_user(token)
-        user = res.user
-    except Exception:
-        return None
-    if not user:
-        return None
-    meta = dict(getattr(user, "user_metadata", None) or {})
-    raw_name = (meta.get("full_name") or meta.get("name") or "").strip()
-    # Use just the first name so the examiner addresses them naturally.
-    first_name = raw_name.split()[0] if raw_name else ""
-    return {"id": user.id, "email": user.email, "name": first_name}
-
-
 def _project_context(project_id: str | None) -> str:
     if not project_id:
         return ""
@@ -203,17 +169,7 @@ class LivePersistence:
 
     @staticmethod
     def _evidence_is_near_duplicate(a: str, b: str) -> bool:
-        """Cheap similarity check so the dedup window only catches the model
-        literally repeating itself, not two distinct real moments that happen
-        to share a dimension+kind close together (the latter was silently
-        dropping genuine observations)."""
-        a_norm, b_norm = a.strip().lower(), b.strip().lower()
-        if not a_norm or not b_norm:
-            return False
-        if a_norm == b_norm:
-            return True
-        shorter, longer = sorted((a_norm, b_norm), key=len)
-        return len(shorter) > 8 and shorter in longer
+        return live_service.is_near_duplicate(a, b)
 
     def on_tool(self, name: str, args: dict) -> dict | None:
         """Handle a model tool call; return a client event to forward (or None)."""
@@ -412,18 +368,66 @@ class LivePersistence:
                     except (ValueError, TypeError):
                         state = {}
                 state.setdefault("slides", [])
-                state.setdefault("topics", {})
+                # Build a per-topic score map from Q&A for reports / heatmaps.
+                topics: dict[str, int] = dict(state.get("topics") or {})
+                for q in self.questions:
+                    topic = (q.get("topic") or "").strip()
+                    score = q.get("score")
+                    if not topic or not isinstance(score, (int, float)):
+                        continue
+                    score_i = max(0, min(100, int(score)))
+                    prev = topics.get(topic)
+                    topics[topic] = score_i if prev is None else min(int(prev), score_i)
+                state["topics"] = topics
                 state["qa"] = [
-                    {"kind": "exam_q", "question": q.get("question"), "answer": q.get("answer"),
-                     "score": q.get("score"), "feedback": q.get("feedback"), "answered": q.get("score") is not None}
+                    {
+                        "kind": "exam_q",
+                        "question": q.get("question"),
+                        "answer": q.get("answer"),
+                        "topic": q.get("topic"),
+                        "score": q.get("score"),
+                        "feedback": q.get("feedback"),
+                        "answered": q.get("score") is not None,
+                    }
                     for q in self.questions
                 ]
-                state["report"] = {"flags": self.flags, "transcript": turns}
+                weaknesses = summary.get("weaknesses") or []
+                # Prefer short resource topics from the structured report when present.
+                resource_topics = []
+                if isinstance(report, dict):
+                    for item in report.get("resources") or []:
+                        if isinstance(item, dict) and item.get("topic"):
+                            resource_topics.append(str(item["topic"]))
+                    if not weaknesses:
+                        weaknesses = [str(w) for w in (report.get("weaknesses") or []) if str(w).strip()]
+                gap_labels = resource_topics or weaknesses or [
+                    t for t, s in topics.items() if isinstance(s, (int, float)) and s < 70
+                ]
+                state["report"] = {
+                    "flags": self.flags,
+                    "transcript": turns,
+                    "gaps": gap_labels[:6],
+                    "weaknesses": weaknesses[:5],
+                }
+                # Dimension scores → aggregate columns when the structured report has them.
+                clarity = confidence = coverage = overall
+                if isinstance(report, dict):
+                    dims = {
+                        d.get("id"): d.get("score")
+                        for d in ((report.get("scores") or {}).get("dimensions") or [])
+                        if isinstance(d, dict)
+                    }
+                    if dims.get("clarity") is not None:
+                        clarity = int(dims["clarity"])
+                    if dims.get("delivery") is not None:
+                        confidence = int(dims["delivery"])
+                    if dims.get("structure") is not None:
+                        coverage = int(dims["structure"])
                 sb.table("presentation_sessions").update({
                     "status": "Completed",
-                    "clarity_score": overall,
-                    "confidence_score": overall,
-                    "coverage_score": overall,
+                    "clarity_score": clarity,
+                    "confidence_score": confidence,
+                    "coverage_score": coverage,
                     "overall_score": overall,
                     "feedback_summary": summary_text,
                     "topic_scores": state,
@@ -510,12 +514,7 @@ class LivePersistence:
 # --------------------------------------------------------------------------- #
 # Gemini send helpers (tolerant of google-genai signature differences)
 # --------------------------------------------------------------------------- #
-async def _send_audio(session, data: bytes) -> None:
-    blob = types.Blob(data=data, mime_type="audio/pcm;rate=16000")
-    try:
-        await session.send_realtime_input(audio=blob)
-    except TypeError:
-        await session.send_realtime_input(media=blob)
+_send_audio = live_service.send_audio
 
 
 async def _send_image(session, data: bytes) -> None:
@@ -550,7 +549,7 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
     subject_param = (params.get("subject") or "").strip() or None
     video_source = params.get("video") if params.get("video") in {"camera", "screen"} else None
 
-    user = _user_from_token(token)
+    user = user_from_token(token)
     if not user:
         await websocket.send_json({"type": "error", "message": "Authentication failed"})
         await websocket.close(code=4401)
@@ -567,6 +566,9 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
     subject = None
     scenario_id = None
     viva_session_type = None
+    focus_topics: list[str] = []
+    practice_questions: list[str] = []
+    live_brief = ""
     try:
         if mode == "viva":
             res = sb.table("viva_sessions").select("*").eq("id", session_id).eq("profile_id", user["id"]).execute()
@@ -578,6 +580,36 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
             language = row.get("language") or language
             subject = row.get("subject")
             viva_session_type = row.get("session_type")
+            ctx = row.get("context") or {}
+            if isinstance(ctx, str):
+                try:
+                    ctx = json.loads(ctx)
+                except (ValueError, TypeError):
+                    ctx = {}
+            if isinstance(ctx, dict):
+                focus_topics = [
+                    str(t).strip() for t in (ctx.get("focus_topics") or []) if str(t).strip()
+                ]
+                practice_questions = [
+                    str(q).strip() for q in (ctx.get("practice_questions") or []) if str(q).strip()
+                ]
+                live_brief = str(ctx.get("live_brief") or "").strip()
+            # If the session preloaded viva_questions but context bank is empty, load them.
+            if not practice_questions:
+                try:
+                    qrows = (
+                        sb.table("viva_questions").select("question_text,answer_text")
+                        .eq("session_id", session_id)
+                        .order("question_number")
+                        .execute().data or []
+                    )
+                    practice_questions = [
+                        str(q["question_text"]).strip()
+                        for q in qrows
+                        if q.get("question_text") and not q.get("answer_text")
+                    ][:12]
+                except Exception:
+                    pass
             sb.table("viva_sessions").update({"status": "In Progress"}).eq("id", session_id).execute()
         elif mode in ("presentation", "coach", "pitch"):
             # Coach and Pitch sessions reuse the presentation_sessions table
@@ -613,9 +645,28 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
         scenario = get_scenario(scenario_id) or find_scenario_by_label(subject) or get_scenario("hr_interview")
 
     project_context = await asyncio.to_thread(_project_context, project_id)
+    # Code-aware sessions: examiner brief is the distilled knowledge pack only.
+    # Never inject full source into Live (free-tier + credibility).
+    if mode == "viva" and live_brief:
+        project_context = (
+            live_brief
+            + (
+                "\n\nLinked project metadata (secondary):\n" + project_context
+                if project_context.strip()
+                else ""
+            )
+        )
     persist = LivePersistence(mode, session_id, user["id"], project_id, project_context, subject, scenario.id if scenario else None, video_source, persona)
     config = live_service.build_config(
-        mode, persona, language, project_context, subject, student_name=user.get("name"), scenario=scenario
+        mode,
+        persona,
+        language,
+        project_context,
+        subject,
+        student_name=user.get("name"),
+        scenario=scenario,
+        focus_topics=focus_topics or None,
+        practice_questions=practice_questions or None,
     )
 
     errored = False
@@ -630,15 +681,29 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
             # Make the AI speak FIRST. Live models stay silent until they receive
             # a turn, so we send a short trigger to force the opening greeting.
             try:
+                trigger = live_service.greeting_trigger(mode, language, scenario)
                 await session.send_client_content(
                     turns=types.Content(
                         role="user",
-                        parts=[types.Part(text=live_service.greeting_trigger(mode, language, scenario))],
+                        parts=[types.Part(text=trigger)],
                     ),
                     turn_complete=True,
                 )
+                logger.info(
+                    "greeting trigger sent",
+                    extra={"session_id": session_id, "mode": mode, "event": "greeting_trigger"},
+                )
             except Exception as exc:
-                print(f"[live] greeting trigger failed: {exc}")
+                logger.exception("greeting trigger failed session_id=%s", session_id)
+                try:
+                    await websocket.send_json(
+                        {
+                            "type": "error",
+                            "message": f"Could not start the examiner voice: {exc}",
+                        }
+                    )
+                except Exception:
+                    pass
 
             async def client_to_gemini():
                 while True:

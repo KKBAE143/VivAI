@@ -15,8 +15,6 @@ XP_REWARDS = {
     "viva_completed": 50,
     "presentation_completed": 50,
     "pitch_completed": 30,
-    "flashcards_reviewed": 15,
-    "question_bank_created": 20,
     "task_completed": 10,
     "project_created": 15,
 }
@@ -52,7 +50,6 @@ BADGES = [
     {"id": "streak_7", "label": "Unstoppable", "desc": "7-day practice streak"},
     {"id": "high_scorer", "label": "High Scorer", "desc": "Scored 85%+ in a viva"},
     {"id": "presenter", "label": "Presenter", "desc": "Completed a presentation practice"},
-    {"id": "scholar", "label": "Scholar", "desc": "Reviewed 50 flashcards"},
     {"id": "level_5", "label": "Rising Star", "desc": "Reached level 5"},
 ]
 
@@ -116,19 +113,12 @@ def _collect_stats(uid: str) -> dict:
     completed = [v for v in vivas if v.get("status") == "Completed"]
     presentations = sb.table("presentation_sessions").select("id").eq("profile_id", uid).execute().data or []
     best = max((v.get("score") or 0 for v in completed), default=0)
-    cards_reviewed = 0
-    try:
-        cards = sb.table("flashcards").select("repetitions").eq("profile_id", uid).execute().data or []
-        cards_reviewed = sum(1 for c in cards if (c.get("repetitions") or 0) > 0)
-    except Exception:
-        pass
     return {
         "viva_count": len(completed),
         "presentation_count": len(presentations),
         "best_score": best,
         "streak": int(prof.get("current_streak") or 0),
         "level": int(prof.get("level") or 1),
-        "cards_reviewed": cards_reviewed,
     }
 
 
@@ -148,8 +138,6 @@ def _earned_badge_ids(stats: dict) -> set[str]:
         earned.add("high_scorer")
     if stats["presentation_count"] >= 1:
         earned.add("presenter")
-    if stats["cards_reviewed"] >= 50:
-        earned.add("scholar")
     if stats["level"] >= 5:
         earned.add("level_5")
     return earned

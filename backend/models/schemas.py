@@ -176,8 +176,9 @@ class PresentationAnswer(BaseModel):
 class CodeAwareSessionCreate(BaseModel):
     snapshot_id: str
     project_id: str | None = None
-    duration_minutes: int = 20
+    duration_minutes: int = Field(default=10, ge=5, le=20)
     language: str = "English"
+    persona: str = "balanced"
 
 
 class GithubLinkRequest(BaseModel):
@@ -192,49 +193,9 @@ class TeamVivaCreate(BaseModel):
     subject: str | None = None
 
 
-class FacultyProfileCreate(BaseModel):
-    name: str
-    college_name: str | None = None
-    subjects: list[str] = []
-    style_tags: list[str] = []
-    known_patterns: str | None = None
-    difficulty_level: str = "Medium"
-
-
-class FacultySimSessionCreate(BaseModel):
-    subject: str | None = None
-    project_id: str | None = None
-    duration_minutes: int = 15
-    language: str = "English"
-
-
-class FacultySimEnd(BaseModel):
-    accuracy_rating: int | None = Field(default=None, ge=1, le=5)
-    feedback: str | None = None
-
-
 class SentimentSessionCreate(BaseModel):
     project_id: str | None = None
     duration_minutes: int = 10
-
-
-# ---------- Study: question banks & flashcards ----------
-class QuestionBankCreate(BaseModel):
-    title: str
-    topic: str | None = None
-    source_text: str | None = None
-    file_id: str | None = None
-    project_id: str | None = None
-    count: int = Field(default=12, ge=4, le=30)
-
-
-class FlashcardReview(BaseModel):
-    quality: int = Field(ge=0, le=5)
-
-
-class BankToVivaRequest(BaseModel):
-    language: str = "English"
-    difficulty: str = "Medium"
 
 
 # ---------- Readiness: pitch drill ----------

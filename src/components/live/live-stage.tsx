@@ -34,7 +34,9 @@ import {
   Lightbulb,
   ListChecks,
   Maximize2,
+  Minimize2,
   Pause,
+  Play,
   ArrowDown,
   Eye,
   Ear,
@@ -52,6 +54,8 @@ interface LiveStageProps {
   onEnd: () => void;
   /** Called when the student wants to retry after a connection failure. */
   onRetry?: () => void;
+  /** Unlock AI speech if the browser autoplay policy blocked AudioContext. */
+  onUnlockAudio?: () => void;
 }
 
 // How many questions the mode playbooks actually target (from live_service.py
@@ -171,11 +175,17 @@ function IndicatorRow({
   );
 }
 
-export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onRetry }: LiveStageProps) {
+export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onRetry, onUnlockAudio }: LiveStageProps) {
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const transcriptRef = useRef<HTMLDivElement | null>(null);
   const [text, setText] = useState("");
   const [isAtBottom, setIsAtBottom] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [fullscreenError, setFullscreenError] = useState("");
+  /** Accumulated seconds while unpaused — freezes the clock during pause. */
+  const pausedAccumRef = useRef(0);
+  const lastTickRef = useRef<number | null>(null);
   const [elapsedSec, setElapsedSec] = useState(0);
   const sessionStartRef = useRef<number | null>(null);
 
@@ -186,19 +196,52 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
     }
   }, [videoStream]);
 
-  // Session timer — starts counting once the connection is actually live.
+  // Session timer — counts only while live and not paused.
   useEffect(() => {
     if (live.status === "live" && sessionStartRef.current == null) {
       sessionStartRef.current = Date.now();
+      lastTickRef.current = Date.now();
+      pausedAccumRef.current = 0;
     }
     if (live.status !== "live") return;
     const interval = setInterval(() => {
-      if (sessionStartRef.current != null) {
-        setElapsedSec(Math.floor((Date.now() - sessionStartRef.current) / 1000));
+      const now = Date.now();
+      if (!live.paused && lastTickRef.current != null) {
+        pausedAccumRef.current += Math.max(0, now - lastTickRef.current);
       }
+      lastTickRef.current = now;
+      setElapsedSec(Math.floor(pausedAccumRef.current / 1000));
     }, 1000);
     return () => clearInterval(interval);
-  }, [live.status]);
+  }, [live.status, live.paused]);
+
+  // Track browser fullscreen state (Escape to exit, etc.).
+  useEffect(() => {
+    const onFs = () => {
+      const el = rootRef.current;
+      setIsFullscreen(Boolean(el && document.fullscreenElement === el));
+    };
+    document.addEventListener("fullscreenchange", onFs);
+    return () => document.removeEventListener("fullscreenchange", onFs);
+  }, []);
+
+  const toggleFullscreen = async () => {
+    setFullscreenError("");
+    try {
+      if (!document.fullscreenElement) {
+        const el = rootRef.current;
+        if (!el?.requestFullscreen) {
+          setFullscreenError("Fullscreen is not supported in this browser.");
+          return;
+        }
+        await el.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch {
+      setFullscreenError("Could not toggle fullscreen. Try again or use F11.");
+    }
+  };
 
   // Auto-scroll ONLY while the user is already at (or near) the bottom —
   // never force-scroll past a message they scrolled up to read.
@@ -257,7 +300,7 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
     live.status === "error" ? "poor" : connecting ? "checking" : "good";
 
   const submitText = () => {
-    if (!text.trim()) return;
+    if (!text.trim() || live.paused) return;
     live.pushText(text.trim());
     setText("");
   };
@@ -266,7 +309,34 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
   const ss = String(elapsedSec % 60).padStart(2, "0");
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-background">
+    <div ref={rootRef} className="relative flex h-dvh overflow-hidden bg-background">
+      {live.audioBlocked && onUnlockAudio && (
+        <button
+          type="button"
+          onClick={() => onUnlockAudio()}
+          className="absolute inset-x-0 top-0 z-40 border-b border-warning/40 bg-warning/15 px-4 py-2.5 text-center text-sm font-semibold text-foreground backdrop-blur"
+        >
+          Tap here to enable AI voice (browser blocked sound)
+        </button>
+      )}
+      {live.paused && (
+        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-background/80 p-6 backdrop-blur-sm">
+          <div className="rounded-2xl border border-border bg-card px-8 py-6 text-center shadow-[var(--shadow-card)]">
+            <Pause className="mx-auto h-8 w-8 text-muted-foreground" />
+            <p className="mt-3 text-base font-semibold">Session paused</p>
+            <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+              Mic and AI audio are held. Your connection stays open — resume when you&apos;re ready.
+            </p>
+            <button
+              type="button"
+              onClick={() => live.resume()}
+              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"
+            >
+              <Play className="h-4 w-4" /> Resume
+            </button>
+          </div>
+        </div>
+      )}
       {/* ============================= LEFT PANE ============================= */}
       <aside className="flex w-72 shrink-0 flex-col gap-4 overflow-y-auto border-r border-border bg-card/60 p-4 xl:w-80">
         <div>
@@ -274,7 +344,7 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
           {subtitle && <p className="mt-0.5 truncate text-xs text-muted-foreground">{subtitle}</p>}
         </div>
 
-        {/* Live camera */}
+        {/* Same left rail as Mock Viva / pitch: media tile + controls (no camera for viva). */}
         <div className="relative overflow-hidden rounded-2xl border border-border bg-foreground/5">
           {videoStream && live.videoEnabled ? (
             <video ref={videoRef} muted playsInline className="aspect-video w-full bg-foreground/5 object-cover" />
@@ -290,7 +360,7 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
           )}
           <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-background/85 px-2 py-0.5 text-[10px] font-semibold backdrop-blur">
             <span className={`h-1.5 w-1.5 rounded-full ${connecting ? "bg-muted-foreground" : "bg-success animate-pulse"}`} />
-            AI watching
+            {mode === "viva" ? "Oral exam" : "AI watching"}
           </span>
         </div>
 
@@ -305,8 +375,9 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
         <div className="flex gap-2">
           <button
             onClick={live.toggleMic}
+            disabled={live.paused}
             aria-label={live.micMuted ? "Unmute microphone" : "Mute microphone"}
-            className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold ${
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold disabled:opacity-50 ${
               live.micMuted ? "bg-destructive text-destructive-foreground" : "bg-secondary"
             }`}
           >
@@ -316,8 +387,9 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
           {videoStream && (
             <button
               onClick={live.toggleVideo}
+              disabled={live.paused}
               aria-label={live.videoEnabled ? "Turn camera off" : "Turn camera on"}
-              className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold ${
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold disabled:opacity-50 ${
                 !live.videoEnabled ? "bg-destructive text-destructive-foreground" : "bg-secondary"
               }`}
             >
@@ -366,15 +438,32 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
         </div>
 
         <div className="mt-auto space-y-2">
-          {/* Future controls — visibly present, intentionally inert for now. */}
-          <div className="flex gap-2 opacity-40">
-            <button disabled className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-secondary py-2 text-xs font-medium">
-              <Maximize2 className="h-3.5 w-3.5" /> Fullscreen
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => void toggleFullscreen()}
+              aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-secondary py-2 text-xs font-semibold hover:bg-secondary/80"
+            >
+              {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+              {isFullscreen ? "Exit" : "Fullscreen"}
             </button>
-            <button disabled className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-secondary py-2 text-xs font-medium">
-              <Pause className="h-3.5 w-3.5" /> Pause
+            <button
+              type="button"
+              onClick={() => live.togglePause()}
+              disabled={connecting || live.status === "error"}
+              aria-label={live.paused ? "Resume session" : "Pause session"}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold disabled:opacity-50 ${
+                live.paused ? "bg-primary text-primary-foreground" : "bg-secondary hover:bg-secondary/80"
+              }`}
+            >
+              {live.paused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
+              {live.paused ? "Resume" : "Pause"}
             </button>
           </div>
+          {fullscreenError && (
+            <p className="text-[11px] text-destructive">{fullscreenError}</p>
+          )}
           <button
             onClick={onEnd}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-destructive py-2.5 text-sm font-semibold text-destructive-foreground"
@@ -473,13 +562,15 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.nativeEvent.isComposing && e.keyCode !== 229) submitText();
             }}
-            placeholder="Type instead of speaking…"
-            className="flex-1 rounded-xl bg-secondary px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            placeholder={live.paused ? "Resume to type or speak…" : "Type instead of speaking…"}
+            disabled={live.paused}
+            className="flex-1 rounded-xl bg-secondary px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
           />
           <button
             onClick={submitText}
+            disabled={live.paused}
             aria-label="Send message"
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground disabled:opacity-50"
           >
             <Send className="h-4 w-4" />
           </button>

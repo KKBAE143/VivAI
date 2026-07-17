@@ -19,10 +19,16 @@ export interface PreflightResult {
   videoSource: VideoSource | null;
   language: string;
   persona: string;
+  /**
+   * Playback AudioContext created under the Start click (user gesture) so the
+   * browser will actually play AI speech. Creating it later in a useEffect is
+   * often blocked by autoplay policy → silent sessions.
+   */
+  playbackAudioContext: AudioContext;
 }
 
 interface PreflightSetupProps {
-  mode: "viva" | "presentation" | "pitch" | "coach";
+  mode: "viva" | "presentation" | "pitch" | "coach" | "team_viva";
   defaultLanguage?: string;
   defaultPersona?: string;
   /** Show the examiner persona picker (viva). */
@@ -47,6 +53,7 @@ const MODE_SOURCES: Record<string, VideoSource[]> = {
   viva: ["none"],
   pitch: ["none"],
   coach: ["camera"],
+  team_viva: ["none"],
 };
 
 const LANGUAGES = LIVE_LANGUAGES;
@@ -76,6 +83,10 @@ const MODE_COPY: Record<string, { title: string; hint: string }> = {
   coach: {
     title: "Get ready to practice",
     hint: "Turn on your camera so the AI coach can watch your delivery — eye contact, posture and confidence — while you speak. It role-plays your scenario and coaches you live.",
+  },
+  team_viva: {
+    title: "Get your mic ready",
+    hint: "This is a spoken team viva — no screen needed. Once everyone's in the lobby and the lead starts the session, the AI will call on people one at a time; only speak when it's your turn.",
   },
 };
 
@@ -171,7 +182,25 @@ export function PreflightSetup({
       // Stop the meter loop; hand the mic stream to the live session.
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       audioCtxRef.current?.close().catch(() => {});
-      onReady({ micStream: micStreamRef.current, videoStream, videoSource: videoStream ? source : null, language, persona });
+      audioCtxRef.current = null;
+
+      // CRITICAL: unlock AI speech playback under this user gesture. A new
+      // AudioContext created later (in useEffect after connect) stays suspended
+      // in Chrome/Safari → transcripts may appear but no sound.
+      const PlaybackCtor =
+        window.AudioContext ??
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const playbackAudioContext = new PlaybackCtor();
+      await playbackAudioContext.resume().catch(() => {});
+
+      onReady({
+        micStream: micStreamRef.current,
+        videoStream,
+        videoSource: videoStream ? source : null,
+        language,
+        persona,
+        playbackAudioContext,
+      });
     } catch (e) {
       if (e instanceof DOMException && e.name === "NotAllowedError") {
         setError("Permission was denied. Please allow access and try again.");

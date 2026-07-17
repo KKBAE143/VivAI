@@ -1,7 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "./api";
-import type { ApiRecord } from "./hooks";
 import { useAuthedQuery } from "./query";
 import type { Persona, Scenario } from "./types";
 
@@ -67,91 +66,6 @@ export interface Gamification {
 
 export function useGamification() {
   return useAuthedQuery<Gamification>(["gamification"], "/api/gamification");
-}
-
-// ---------- Study: question banks ----------
-export interface QuestionBank extends ApiRecord {
-  id: string;
-  title: string;
-  question_count: number;
-  card_count?: number;
-}
-
-export function useQuestionBanks() {
-  return useAuthedQuery<QuestionBank[]>(["question-banks"], "/api/study/banks");
-}
-
-export function useQuestionBank(id: string) {
-  return useAuthedQuery<ApiRecord>(["question-bank", id], `/api/study/banks/${id}`, Boolean(id));
-}
-
-export function useCreateBank() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (body: {
-      title: string;
-      topic?: string;
-      source_text?: string;
-      file_id?: string;
-      project_id?: string | null;
-      count?: number;
-    }) => api<ApiRecord>("/api/study/banks", { body }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["question-banks"] });
-      qc.invalidateQueries({ queryKey: ["flashcard-summary"] });
-    },
-  });
-}
-
-export function useDeleteBank() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => api(`/api/study/banks/${id}`, { method: "DELETE" }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["question-banks"] });
-      qc.invalidateQueries({ queryKey: ["flashcard-summary"] });
-    },
-  });
-}
-
-export function useBankToViva() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, ...body }: { id: string; language?: string; difficulty?: string }) =>
-      api<ApiRecord>(`/api/study/banks/${id}/to-viva`, { body }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["viva-sessions"] }),
-  });
-}
-
-// ---------- Study: flashcards ----------
-export interface Flashcard extends ApiRecord {
-  id: string;
-  front: string;
-  back: string;
-  topic?: string | null;
-}
-
-export function useDueFlashcards(limit = 30) {
-  return useAuthedQuery<Flashcard[]>(["flashcards-due", limit], `/api/study/flashcards/due?limit=${limit}`);
-}
-
-export function useFlashcardSummary() {
-  return useAuthedQuery<{ total: number; due: number; learned: number }>(
-    ["flashcard-summary"],
-    "/api/study/flashcards/summary",
-  );
-}
-
-export function useReviewFlashcard() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, quality }: { id: string; quality: number }) =>
-      api<ApiRecord>(`/api/study/flashcards/${id}/review`, { body: { quality } }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["flashcard-summary"] });
-      qc.invalidateQueries({ queryKey: ["gamification"] });
-    },
-  });
 }
 
 // ---------- Readiness: pitch drill ----------

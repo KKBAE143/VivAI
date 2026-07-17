@@ -16,11 +16,11 @@ import {
   Sparkles,
   Sun,
   Moon,
-  Layers,
   Target,
   Gauge,
   Timer,
   Trophy,
+  Video,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTheme } from "@/lib/theme";
@@ -40,7 +40,7 @@ const navGroups: { heading: string; items: NavItem[] }[] = [
       { to: "/ai-viva", icon: BrainCircuit, label: "Mock Viva" },
       { to: "/ai-presentation", icon: MonitorSmartphone, label: "Presentation" },
       { to: "/pitch-drill", icon: Timer, label: "Pitch Drill" },
-      { to: "/study", icon: Layers, label: "Study Bank" },
+      { to: "/advanced/sentiment-analysis", icon: Video, label: "Live Coach" },
       { to: "/ai", icon: Sparkles, label: "AI Tools" },
     ],
   },
@@ -64,7 +64,14 @@ const navGroups: { heading: string; items: NavItem[] }[] = [
   },
 ];
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({
+  children,
+  /** Full-width workspace: hides the left sidebar so dense tools (e.g. Code-Aware) can breathe. */
+  wide = false,
+}: {
+  children: ReactNode;
+  wide?: boolean;
+}) {
   const { ready, isLoading } = useRequireAuth();
   if (isLoading) {
     return (
@@ -74,6 +81,15 @@ export function AppShell({ children }: { children: ReactNode }) {
     );
   }
   if (!ready) return null;
+  if (wide) {
+    return (
+      <div className="flex min-h-screen flex-col bg-background">
+        <WideTopBar />
+        <main className="min-h-0 min-w-0 flex-1 pb-20 lg:pb-0">{children}</main>
+        <MobileNav />
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen bg-background">
       <div className="flex w-full gap-6 p-4 lg:p-6">
@@ -146,6 +162,41 @@ function Sidebar() {
   );
 }
 
+function WideTopBar() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const title = pageTitle(pathname);
+  return (
+    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card/95 px-3 backdrop-blur sm:px-4">
+      <Link
+        to="/"
+        aria-label="Home"
+        className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground"
+      >
+        <GraduationCap className="h-4 w-4" />
+      </Link>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold">{title}</p>
+        <p className="hidden truncate text-[11px] text-muted-foreground sm:block">
+          Full workspace · sidebar hidden for more room
+        </p>
+      </div>
+      <Link
+        to="/ai"
+        className="hidden rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground sm:inline-flex"
+      >
+        AI Tools
+      </Link>
+      <Link
+        to="/"
+        className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+      >
+        Dashboard
+      </Link>
+      <ThemeToggle />
+    </header>
+  );
+}
+
 function TopBar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { data: profile } = useProfile();
@@ -209,7 +260,7 @@ function MobileNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const items = [
     { to: "/", icon: LayoutDashboard, label: "Home" },
-    { to: "/study", icon: Layers, label: "Study" },
+    { to: "/pitch-drill", icon: Timer, label: "Pitch" },
     { to: "/ai-viva", icon: BrainCircuit, label: "Viva", center: true },
     { to: "/readiness", icon: Gauge, label: "Ready" },
     { to: "/projects", icon: FolderKanban, label: "Projects" },
@@ -303,7 +354,8 @@ function pageTitle(pathname: string): string {
     "/ai-viva": "Mock Viva",
     "/ai-presentation": "Presentation Coach",
     "/pitch-drill": "90-Second Pitch Drill",
-    "/study": "Study Bank",
+    "/advanced/sentiment-analysis": "AI Communication Coach",
+    "/advanced/viva-code-aware": "Code-Aware Viva",
     "/readiness": "Defense Readiness",
     "/progress": "Progress",
     "/leaderboard": "Leaderboard",

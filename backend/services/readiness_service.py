@@ -132,7 +132,7 @@ def _next_actions(components, vivas, pres, weak_topics, recent_sessions) -> list
         actions.append({"text": "Try a presentation practice to build delivery confidence.", "cta": "Start Presentation", "to": "/ai-presentation/new"})
     if weak_topics:
         t = weak_topics[0]["topic"]
-        actions.append({"text": f"Your weakest topic is \u201c{t}\u201d — drill it with flashcards.", "cta": "Study Weak Topics", "to": "/study"})
+        actions.append({"text": f"Your weakest topic is \u201c{t}\u201d — run a focused mock viva on it.", "cta": "Practice Weak Topics", "to": "/ai-viva/new"})
     if recent_sessions == 0:
         actions.append({"text": "You haven't practiced recently — a quick 90-second pitch keeps momentum.", "cta": "Pitch Drill", "to": "/pitch-drill"})
     if components["project"] < 60:

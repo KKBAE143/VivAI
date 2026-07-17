@@ -24,15 +24,12 @@ import { Route as AiRouteImport } from './routes/ai'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TemplatesIndexRouteImport } from './routes/templates/index'
 import { Route as TeamsIndexRouteImport } from './routes/teams/index'
-import { Route as StudyIndexRouteImport } from './routes/study/index'
 import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
 import { Route as AiVivaIndexRouteImport } from './routes/ai-viva/index'
 import { Route as AiPresentationIndexRouteImport } from './routes/ai-presentation/index'
 import { Route as AdvancedIndexRouteImport } from './routes/advanced/index'
 import { Route as TemplatesSlugRouteImport } from './routes/templates/$slug'
 import { Route as TeamsIdRouteImport } from './routes/teams/$id'
-import { Route as StudyReviewRouteImport } from './routes/study/review'
-import { Route as StudyIdRouteImport } from './routes/study/$id'
 import { Route as ProjectsNewRouteImport } from './routes/projects/new'
 import { Route as ProjectsIdRouteImport } from './routes/projects/$id'
 import { Route as AiVivaNewRouteImport } from './routes/ai-viva/new'
@@ -40,11 +37,10 @@ import { Route as AdvancedWeaknessHeatmapRouteImport } from './routes/advanced/w
 import { Route as AdvancedVivaTeamRouteImport } from './routes/advanced/viva-team'
 import { Route as AdvancedVivaCodeAwareRouteImport } from './routes/advanced/viva-code-aware'
 import { Route as AdvancedSentimentAnalysisRouteImport } from './routes/advanced/sentiment-analysis'
-import { Route as AdvancedPresentationBridgeRouteImport } from './routes/advanced/presentation-bridge'
-import { Route as AdvancedFacultySimRouteImport } from './routes/advanced/faculty-sim'
-import { Route as AdvancedCollegePredictorRouteImport } from './routes/advanced/college-predictor'
 import { Route as AiVivaSessionIdRouteImport } from './routes/ai-viva/session.$id'
 import { Route as AiPresentationSessionIdRouteImport } from './routes/ai-presentation/session.$id'
+import { Route as AdvancedVivaTeamJoinJoinCodeRouteImport } from './routes/advanced/viva-team_.join.$joinCode'
+import { Route as AdvancedVivaCodeAwareSessionIdRouteImport } from './routes/advanced/viva-code-aware_.session.$id'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -121,11 +117,6 @@ const TeamsIndexRoute = TeamsIndexRouteImport.update({
   path: '/teams/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const StudyIndexRoute = StudyIndexRouteImport.update({
-  id: '/study/',
-  path: '/study/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ProjectsIndexRoute = ProjectsIndexRouteImport.update({
   id: '/projects/',
   path: '/projects/',
@@ -154,16 +145,6 @@ const TemplatesSlugRoute = TemplatesSlugRouteImport.update({
 const TeamsIdRoute = TeamsIdRouteImport.update({
   id: '/teams/$id',
   path: '/teams/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const StudyReviewRoute = StudyReviewRouteImport.update({
-  id: '/study/review',
-  path: '/study/review',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const StudyIdRoute = StudyIdRouteImport.update({
-  id: '/study/$id',
-  path: '/study/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProjectsNewRoute = ProjectsNewRouteImport.update({
@@ -202,23 +183,6 @@ const AdvancedSentimentAnalysisRoute =
     path: '/advanced/sentiment-analysis',
     getParentRoute: () => rootRouteImport,
   } as any)
-const AdvancedPresentationBridgeRoute =
-  AdvancedPresentationBridgeRouteImport.update({
-    id: '/advanced/presentation-bridge',
-    path: '/advanced/presentation-bridge',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const AdvancedFacultySimRoute = AdvancedFacultySimRouteImport.update({
-  id: '/advanced/faculty-sim',
-  path: '/advanced/faculty-sim',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdvancedCollegePredictorRoute =
-  AdvancedCollegePredictorRouteImport.update({
-    id: '/advanced/college-predictor',
-    path: '/advanced/college-predictor',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const AiVivaSessionIdRoute = AiVivaSessionIdRouteImport.update({
   id: '/ai-viva/session/$id',
   path: '/ai-viva/session/$id',
@@ -229,6 +193,18 @@ const AiPresentationSessionIdRoute = AiPresentationSessionIdRouteImport.update({
   path: '/ai-presentation/session/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdvancedVivaTeamJoinJoinCodeRoute =
+  AdvancedVivaTeamJoinJoinCodeRouteImport.update({
+    id: '/advanced/viva-team_/join/$joinCode',
+    path: '/advanced/viva-team/join/$joinCode',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AdvancedVivaCodeAwareSessionIdRoute =
+  AdvancedVivaCodeAwareSessionIdRouteImport.update({
+    id: '/advanced/viva-code-aware_/session/$id',
+    path: '/advanced/viva-code-aware/session/$id',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -244,9 +220,6 @@ export interface FileRoutesByFullPath {
   '/readiness': typeof ReadinessRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
-  '/advanced/college-predictor': typeof AdvancedCollegePredictorRoute
-  '/advanced/faculty-sim': typeof AdvancedFacultySimRoute
-  '/advanced/presentation-bridge': typeof AdvancedPresentationBridgeRoute
   '/advanced/sentiment-analysis': typeof AdvancedSentimentAnalysisRoute
   '/advanced/viva-code-aware': typeof AdvancedVivaCodeAwareRoute
   '/advanced/viva-team': typeof AdvancedVivaTeamRoute
@@ -254,19 +227,18 @@ export interface FileRoutesByFullPath {
   '/ai-viva/new': typeof AiVivaNewRoute
   '/projects/$id': typeof ProjectsIdRoute
   '/projects/new': typeof ProjectsNewRoute
-  '/study/$id': typeof StudyIdRoute
-  '/study/review': typeof StudyReviewRoute
   '/teams/$id': typeof TeamsIdRoute
   '/templates/$slug': typeof TemplatesSlugRoute
   '/advanced/': typeof AdvancedIndexRoute
   '/ai-presentation/': typeof AiPresentationIndexRoute
   '/ai-viva/': typeof AiVivaIndexRoute
   '/projects/': typeof ProjectsIndexRoute
-  '/study/': typeof StudyIndexRoute
   '/teams/': typeof TeamsIndexRoute
   '/templates/': typeof TemplatesIndexRoute
   '/ai-presentation/session/$id': typeof AiPresentationSessionIdRoute
   '/ai-viva/session/$id': typeof AiVivaSessionIdRoute
+  '/advanced/viva-code-aware/session/$id': typeof AdvancedVivaCodeAwareSessionIdRoute
+  '/advanced/viva-team/join/$joinCode': typeof AdvancedVivaTeamJoinJoinCodeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -282,9 +254,6 @@ export interface FileRoutesByTo {
   '/readiness': typeof ReadinessRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
-  '/advanced/college-predictor': typeof AdvancedCollegePredictorRoute
-  '/advanced/faculty-sim': typeof AdvancedFacultySimRoute
-  '/advanced/presentation-bridge': typeof AdvancedPresentationBridgeRoute
   '/advanced/sentiment-analysis': typeof AdvancedSentimentAnalysisRoute
   '/advanced/viva-code-aware': typeof AdvancedVivaCodeAwareRoute
   '/advanced/viva-team': typeof AdvancedVivaTeamRoute
@@ -292,19 +261,18 @@ export interface FileRoutesByTo {
   '/ai-viva/new': typeof AiVivaNewRoute
   '/projects/$id': typeof ProjectsIdRoute
   '/projects/new': typeof ProjectsNewRoute
-  '/study/$id': typeof StudyIdRoute
-  '/study/review': typeof StudyReviewRoute
   '/teams/$id': typeof TeamsIdRoute
   '/templates/$slug': typeof TemplatesSlugRoute
   '/advanced': typeof AdvancedIndexRoute
   '/ai-presentation': typeof AiPresentationIndexRoute
   '/ai-viva': typeof AiVivaIndexRoute
   '/projects': typeof ProjectsIndexRoute
-  '/study': typeof StudyIndexRoute
   '/teams': typeof TeamsIndexRoute
   '/templates': typeof TemplatesIndexRoute
   '/ai-presentation/session/$id': typeof AiPresentationSessionIdRoute
   '/ai-viva/session/$id': typeof AiVivaSessionIdRoute
+  '/advanced/viva-code-aware/session/$id': typeof AdvancedVivaCodeAwareSessionIdRoute
+  '/advanced/viva-team/join/$joinCode': typeof AdvancedVivaTeamJoinJoinCodeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -321,9 +289,6 @@ export interface FileRoutesById {
   '/readiness': typeof ReadinessRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
-  '/advanced/college-predictor': typeof AdvancedCollegePredictorRoute
-  '/advanced/faculty-sim': typeof AdvancedFacultySimRoute
-  '/advanced/presentation-bridge': typeof AdvancedPresentationBridgeRoute
   '/advanced/sentiment-analysis': typeof AdvancedSentimentAnalysisRoute
   '/advanced/viva-code-aware': typeof AdvancedVivaCodeAwareRoute
   '/advanced/viva-team': typeof AdvancedVivaTeamRoute
@@ -331,19 +296,18 @@ export interface FileRoutesById {
   '/ai-viva/new': typeof AiVivaNewRoute
   '/projects/$id': typeof ProjectsIdRoute
   '/projects/new': typeof ProjectsNewRoute
-  '/study/$id': typeof StudyIdRoute
-  '/study/review': typeof StudyReviewRoute
   '/teams/$id': typeof TeamsIdRoute
   '/templates/$slug': typeof TemplatesSlugRoute
   '/advanced/': typeof AdvancedIndexRoute
   '/ai-presentation/': typeof AiPresentationIndexRoute
   '/ai-viva/': typeof AiVivaIndexRoute
   '/projects/': typeof ProjectsIndexRoute
-  '/study/': typeof StudyIndexRoute
   '/teams/': typeof TeamsIndexRoute
   '/templates/': typeof TemplatesIndexRoute
   '/ai-presentation/session/$id': typeof AiPresentationSessionIdRoute
   '/ai-viva/session/$id': typeof AiVivaSessionIdRoute
+  '/advanced/viva-code-aware_/session/$id': typeof AdvancedVivaCodeAwareSessionIdRoute
+  '/advanced/viva-team_/join/$joinCode': typeof AdvancedVivaTeamJoinJoinCodeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -361,9 +325,6 @@ export interface FileRouteTypes {
     | '/readiness'
     | '/reset-password'
     | '/signup'
-    | '/advanced/college-predictor'
-    | '/advanced/faculty-sim'
-    | '/advanced/presentation-bridge'
     | '/advanced/sentiment-analysis'
     | '/advanced/viva-code-aware'
     | '/advanced/viva-team'
@@ -371,19 +332,18 @@ export interface FileRouteTypes {
     | '/ai-viva/new'
     | '/projects/$id'
     | '/projects/new'
-    | '/study/$id'
-    | '/study/review'
     | '/teams/$id'
     | '/templates/$slug'
     | '/advanced/'
     | '/ai-presentation/'
     | '/ai-viva/'
     | '/projects/'
-    | '/study/'
     | '/teams/'
     | '/templates/'
     | '/ai-presentation/session/$id'
     | '/ai-viva/session/$id'
+    | '/advanced/viva-code-aware/session/$id'
+    | '/advanced/viva-team/join/$joinCode'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -399,9 +359,6 @@ export interface FileRouteTypes {
     | '/readiness'
     | '/reset-password'
     | '/signup'
-    | '/advanced/college-predictor'
-    | '/advanced/faculty-sim'
-    | '/advanced/presentation-bridge'
     | '/advanced/sentiment-analysis'
     | '/advanced/viva-code-aware'
     | '/advanced/viva-team'
@@ -409,19 +366,18 @@ export interface FileRouteTypes {
     | '/ai-viva/new'
     | '/projects/$id'
     | '/projects/new'
-    | '/study/$id'
-    | '/study/review'
     | '/teams/$id'
     | '/templates/$slug'
     | '/advanced'
     | '/ai-presentation'
     | '/ai-viva'
     | '/projects'
-    | '/study'
     | '/teams'
     | '/templates'
     | '/ai-presentation/session/$id'
     | '/ai-viva/session/$id'
+    | '/advanced/viva-code-aware/session/$id'
+    | '/advanced/viva-team/join/$joinCode'
   id:
     | '__root__'
     | '/'
@@ -437,9 +393,6 @@ export interface FileRouteTypes {
     | '/readiness'
     | '/reset-password'
     | '/signup'
-    | '/advanced/college-predictor'
-    | '/advanced/faculty-sim'
-    | '/advanced/presentation-bridge'
     | '/advanced/sentiment-analysis'
     | '/advanced/viva-code-aware'
     | '/advanced/viva-team'
@@ -447,19 +400,18 @@ export interface FileRouteTypes {
     | '/ai-viva/new'
     | '/projects/$id'
     | '/projects/new'
-    | '/study/$id'
-    | '/study/review'
     | '/teams/$id'
     | '/templates/$slug'
     | '/advanced/'
     | '/ai-presentation/'
     | '/ai-viva/'
     | '/projects/'
-    | '/study/'
     | '/teams/'
     | '/templates/'
     | '/ai-presentation/session/$id'
     | '/ai-viva/session/$id'
+    | '/advanced/viva-code-aware_/session/$id'
+    | '/advanced/viva-team_/join/$joinCode'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -476,9 +428,6 @@ export interface RootRouteChildren {
   ReadinessRoute: typeof ReadinessRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
-  AdvancedCollegePredictorRoute: typeof AdvancedCollegePredictorRoute
-  AdvancedFacultySimRoute: typeof AdvancedFacultySimRoute
-  AdvancedPresentationBridgeRoute: typeof AdvancedPresentationBridgeRoute
   AdvancedSentimentAnalysisRoute: typeof AdvancedSentimentAnalysisRoute
   AdvancedVivaCodeAwareRoute: typeof AdvancedVivaCodeAwareRoute
   AdvancedVivaTeamRoute: typeof AdvancedVivaTeamRoute
@@ -486,19 +435,18 @@ export interface RootRouteChildren {
   AiVivaNewRoute: typeof AiVivaNewRoute
   ProjectsIdRoute: typeof ProjectsIdRoute
   ProjectsNewRoute: typeof ProjectsNewRoute
-  StudyIdRoute: typeof StudyIdRoute
-  StudyReviewRoute: typeof StudyReviewRoute
   TeamsIdRoute: typeof TeamsIdRoute
   TemplatesSlugRoute: typeof TemplatesSlugRoute
   AdvancedIndexRoute: typeof AdvancedIndexRoute
   AiPresentationIndexRoute: typeof AiPresentationIndexRoute
   AiVivaIndexRoute: typeof AiVivaIndexRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
-  StudyIndexRoute: typeof StudyIndexRoute
   TeamsIndexRoute: typeof TeamsIndexRoute
   TemplatesIndexRoute: typeof TemplatesIndexRoute
   AiPresentationSessionIdRoute: typeof AiPresentationSessionIdRoute
   AiVivaSessionIdRoute: typeof AiVivaSessionIdRoute
+  AdvancedVivaCodeAwareSessionIdRoute: typeof AdvancedVivaCodeAwareSessionIdRoute
+  AdvancedVivaTeamJoinJoinCodeRoute: typeof AdvancedVivaTeamJoinJoinCodeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -608,13 +556,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeamsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/study/': {
-      id: '/study/'
-      path: '/study'
-      fullPath: '/study/'
-      preLoaderRoute: typeof StudyIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/projects/': {
       id: '/projects/'
       path: '/projects'
@@ -655,20 +596,6 @@ declare module '@tanstack/react-router' {
       path: '/teams/$id'
       fullPath: '/teams/$id'
       preLoaderRoute: typeof TeamsIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/study/review': {
-      id: '/study/review'
-      path: '/study/review'
-      fullPath: '/study/review'
-      preLoaderRoute: typeof StudyReviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/study/$id': {
-      id: '/study/$id'
-      path: '/study/$id'
-      fullPath: '/study/$id'
-      preLoaderRoute: typeof StudyIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/projects/new': {
@@ -720,27 +647,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdvancedSentimentAnalysisRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/advanced/presentation-bridge': {
-      id: '/advanced/presentation-bridge'
-      path: '/advanced/presentation-bridge'
-      fullPath: '/advanced/presentation-bridge'
-      preLoaderRoute: typeof AdvancedPresentationBridgeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/advanced/faculty-sim': {
-      id: '/advanced/faculty-sim'
-      path: '/advanced/faculty-sim'
-      fullPath: '/advanced/faculty-sim'
-      preLoaderRoute: typeof AdvancedFacultySimRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/advanced/college-predictor': {
-      id: '/advanced/college-predictor'
-      path: '/advanced/college-predictor'
-      fullPath: '/advanced/college-predictor'
-      preLoaderRoute: typeof AdvancedCollegePredictorRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/ai-viva/session/$id': {
       id: '/ai-viva/session/$id'
       path: '/ai-viva/session/$id'
@@ -753,6 +659,20 @@ declare module '@tanstack/react-router' {
       path: '/ai-presentation/session/$id'
       fullPath: '/ai-presentation/session/$id'
       preLoaderRoute: typeof AiPresentationSessionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/advanced/viva-team_/join/$joinCode': {
+      id: '/advanced/viva-team_/join/$joinCode'
+      path: '/advanced/viva-team/join/$joinCode'
+      fullPath: '/advanced/viva-team/join/$joinCode'
+      preLoaderRoute: typeof AdvancedVivaTeamJoinJoinCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/advanced/viva-code-aware_/session/$id': {
+      id: '/advanced/viva-code-aware_/session/$id'
+      path: '/advanced/viva-code-aware/session/$id'
+      fullPath: '/advanced/viva-code-aware/session/$id'
+      preLoaderRoute: typeof AdvancedVivaCodeAwareSessionIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -772,9 +692,6 @@ const rootRouteChildren: RootRouteChildren = {
   ReadinessRoute: ReadinessRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
-  AdvancedCollegePredictorRoute: AdvancedCollegePredictorRoute,
-  AdvancedFacultySimRoute: AdvancedFacultySimRoute,
-  AdvancedPresentationBridgeRoute: AdvancedPresentationBridgeRoute,
   AdvancedSentimentAnalysisRoute: AdvancedSentimentAnalysisRoute,
   AdvancedVivaCodeAwareRoute: AdvancedVivaCodeAwareRoute,
   AdvancedVivaTeamRoute: AdvancedVivaTeamRoute,
@@ -782,30 +699,19 @@ const rootRouteChildren: RootRouteChildren = {
   AiVivaNewRoute: AiVivaNewRoute,
   ProjectsIdRoute: ProjectsIdRoute,
   ProjectsNewRoute: ProjectsNewRoute,
-  StudyIdRoute: StudyIdRoute,
-  StudyReviewRoute: StudyReviewRoute,
   TeamsIdRoute: TeamsIdRoute,
   TemplatesSlugRoute: TemplatesSlugRoute,
   AdvancedIndexRoute: AdvancedIndexRoute,
   AiPresentationIndexRoute: AiPresentationIndexRoute,
   AiVivaIndexRoute: AiVivaIndexRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
-  StudyIndexRoute: StudyIndexRoute,
   TeamsIndexRoute: TeamsIndexRoute,
   TemplatesIndexRoute: TemplatesIndexRoute,
   AiPresentationSessionIdRoute: AiPresentationSessionIdRoute,
   AiVivaSessionIdRoute: AiVivaSessionIdRoute,
+  AdvancedVivaCodeAwareSessionIdRoute: AdvancedVivaCodeAwareSessionIdRoute,
+  AdvancedVivaTeamJoinJoinCodeRoute: AdvancedVivaTeamJoinJoinCodeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

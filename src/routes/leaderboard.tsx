@@ -23,7 +23,7 @@ function LeaderboardPage() {
 
   return (
     <AppShell>
-      <PageHeader title="Leaderboard" subtitle="Earn XP by practicing — vivas, presentations, pitches and flashcards all count." />
+      <PageHeader title="Leaderboard" subtitle="Earn XP by practicing — vivas, presentations and pitches all count." />
 
       {game.data && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">

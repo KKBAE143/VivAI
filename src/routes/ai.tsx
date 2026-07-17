@@ -3,15 +3,11 @@ import {
   Mic,
   MonitorSmartphone,
   Code2,
-  GitMerge,
   Users,
-  GraduationCap,
   Grid3X3,
-  TrendingUp,
   Video,
   Sparkles,
   ArrowRight,
-  Layers,
   Timer,
   Gauge,
 } from "lucide-react";
@@ -21,7 +17,7 @@ export const Route = createFileRoute("/ai")({
   head: () => ({
     meta: [
       { title: "AI Hub — CollgePro Navigator" },
-      { name: "description", content: "All your AI study tools in one place: mock viva, presentation practice, code-aware viva, presentation-to-viva bridge, team viva, faculty simulation, weakness heatmap, college viva predictor and real-time sentiment coaching." },
+      { name: "description", content: "All your AI study tools in one place: mock viva, presentation practice, code-aware viva, team viva, weakness heatmap and real-time sentiment coaching." },
     ],
   }),
   component: AIHub,
@@ -45,18 +41,14 @@ const hero = [
 ] as const;
 
 const essentials = [
-  { to: "/study", title: "Study Bank & Flashcards", desc: "Turn your report into a viva question bank and spaced-repetition flashcards.", icon: Layers, tag: "New" },
   { to: "/pitch-drill", title: "90-Second Pitch Drill", desc: "Nail the elevator pitch examiners ask for first. Timed, AI-scored.", icon: Timer, tag: "New" },
   { to: "/readiness", title: "Defense Readiness", desc: "See how ready you are to defend, and exactly what to fix next.", icon: Gauge, tag: "New" },
 ] as const;
 
 const tools = [
-  { to: "/advanced/viva-code-aware", title: "Code-Aware Viva", desc: "AI reads your source code, asks implementation-specific questions.", icon: Code2, tag: "New" },
-  { to: "/advanced/presentation-bridge", title: "Presentation → Viva Bridge", desc: "Turn weak presentation topics into targeted viva practice.", icon: GitMerge, tag: "New" },
+  { to: "/advanced/viva-code-aware", title: "Code-Aware Viva", desc: "Upload a ZIP, then the same live viva layout as Mock Viva — examiner already knows your code.", icon: Code2, tag: "New" },
   { to: "/advanced/viva-team", title: "Team Viva Mode", desc: "Real-time group viva — race to answer, team scores.", icon: Users, tag: "New" },
-  { to: "/advanced/faculty-sim", title: "Faculty Simulation", desc: "Practice against an AI persona of your actual professor.", icon: GraduationCap, tag: "New" },
   { to: "/advanced/weakness-heatmap", title: "Weakness Heatmap", desc: "Per-topic weak spots aggregated across every session.", icon: Grid3X3, tag: "New" },
-  { to: "/advanced/college-predictor", title: "College Viva Predictor", desc: "Predict exam topics from your whole college's viva history.", icon: TrendingUp, tag: "New" },
   { to: "/advanced/sentiment-analysis", title: "AI Communication Coach", desc: "Live role-play for interviews, GD, pitch & more with real-time delivery coaching.", icon: Video, tag: "New" },
 ] as const;
 

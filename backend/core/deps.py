@@ -47,6 +47,25 @@ def get_current_user(
     }
 
 
+def user_from_token(token: str) -> dict | None:
+    """Validate a raw Supabase JWT (not an Authorization header) and return a
+    lightweight user dict. For WebSocket routes, which receive the token as a
+    query param instead of a Bearer header."""
+    sb = get_supabase()
+    try:
+        res = sb.auth.get_user(token)
+        user = res.user
+    except Exception:
+        return None
+    if not user:
+        return None
+    meta = dict(getattr(user, "user_metadata", None) or {})
+    raw_name = (meta.get("full_name") or meta.get("name") or "").strip()
+    # Use just the first name so a live-session examiner addresses them naturally.
+    first_name = raw_name.split()[0] if raw_name else ""
+    return {"id": user.id, "email": user.email, "name": first_name}
+
+
 def require_project_owner(project_id: str, user_id: str) -> dict:
     sb = get_supabase()
     res = sb.table("projects").select("*").eq("id", project_id).execute()

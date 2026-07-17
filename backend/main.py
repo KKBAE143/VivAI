@@ -21,8 +21,8 @@ from api import (
     project_team,
     projects,
     readiness,
-    study,
     tasks,
+    team_live,
     teams,
     templates,
     viva,
@@ -61,10 +61,10 @@ for router in (
     templates.router,
     analytics.router,
     advanced.router,
-    study.router,
     gamification.router,
     readiness.router,
     live.router,
+    team_live.router,
 ):
     app.include_router(router)
 

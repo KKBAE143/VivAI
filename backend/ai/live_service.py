@@ -64,9 +64,9 @@ _MODE_PLAYBOOK = {
 YOU CANNOT SEE THE STUDENT'S SCREEN OR CODE — there is no screen sharing in a viva. NEVER ask the student to "share your screen", "show me your code" or "open your project". Base everything on the project context below and on what the student SAYS.
 
 SESSION FLOW (follow in order):
-1. OPENING (in response to the session-start message, ~15 seconds): Introduce yourself as their VivAI examiner, say this is a mock viva, and briefly tell them how it works — "I'll ask you a series of questions about your project and your subject; answer out loud, and I'll give feedback at the end." Then ask your FIRST question immediately.
+1. OPENING — ONLY in your FIRST reply to the session-start message (one continuous turn, ~10 seconds max): Say a SHORT hello (1 sentence, use their name if given), that you are the VivAI examiner for a mock viva, then IMMEDIATELY ask your FIRST real question. Do NOT explain the full rules at length. Do NOT produce a second hello or re-introduce yourself later in the session.
 2. Ask ONE clear question at a time, grounded in their project/subject. Start easier, then go deeper based on their answers.
-3. After each answer: give a brief spoken reaction (1 sentence), then ask the next question or a follow-up if they were vague.
+3. After each answer: give a brief spoken reaction (1 sentence, no re-greeting), then ask the next question or a follow-up if they were vague.
 4. Cover 5-8 questions total across different topics. Keep YOUR turns short — the student should do most of the talking.
 5. When you have asked enough, give a brief closing remark, tell them the viva is complete and that you're preparing their feedback, then call the `end_session` tool.""",
     "presentation": """ROLE: You are a faculty examiner watching the student's LIVE project PRESENTATION through their SHARED SCREEN. You CAN see their screen — react to what is actually visible.
@@ -151,6 +151,42 @@ def _transcription_language_hints(language: str) -> list[str]:
     return ["en-US"]
 
 
+# Languages that must never use native-script captions on screen. Students
+# (and our UI) need Latin/Roman spelling so bubbles stay readable.
+_ROMAN_SCRIPT_KEYS = {
+    "telugu", "tenglish", "hindi", "hinglish", "tamil", "tanglish",
+    "kannada", "malayalam", "marathi", "bengali", "gujarati", "punjabi",
+}
+
+
+def _roman_script_directive(language: str) -> str:
+    """Force Latin script so live captions never dump Telugu/Hindi glyphs."""
+    key = (language or "English").strip().lower()
+    if key not in _ROMAN_SCRIPT_KEYS:
+        return ""
+    if key in ("telugu", "tenglish"):
+        return (
+            " SCRIPT (CRITICAL for on-screen captions): Write and speak using ONLY Latin/Roman letters "
+            "(Roman Telugu / Tenglish). Example: \"Namaskaram Karthik. Nenu mee VivAI examiner ni. "
+            "Idi oka mock viva.\" NEVER use Telugu script characters (no తెలుగు అక్షరాలు at all). "
+            "File paths, code identifiers and tech terms stay in English Latin script."
+        )
+    if key in ("hindi", "hinglish"):
+        return (
+            " SCRIPT (CRITICAL): Use ONLY Latin/Roman letters (Roman Hindi / Hinglish), e.g. "
+            "\"Namaste, main aapka VivAI examiner hoon.\" NEVER use Devanagari (no हिन्दी लिपि)."
+        )
+    if key in ("tamil", "tanglish"):
+        return (
+            " SCRIPT (CRITICAL): Use ONLY Latin/Roman letters (Roman Tamil / Tanglish). "
+            "NEVER use Tamil script characters."
+        )
+    return (
+        f" SCRIPT (CRITICAL): Use ONLY Latin/Roman letters for {language.strip()} words "
+        f"(romanized spelling). NEVER use native-script characters for captions or speech wording."
+    )
+
+
 def _language_directive(language: str) -> str:
     """A forceful, unambiguous instruction for the requested language.
 
@@ -160,6 +196,7 @@ def _language_directive(language: str) -> str:
     system prompt AND into the opening trigger.
     """
     key = (language or "English").strip().lower()
+    roman = _roman_script_directive(language)
     if key == "english":
         return "Speak ONLY in clear, natural English for the ENTIRE session, starting from your very first greeting."
     if key in _BLENDED_LANGUAGES:
@@ -172,17 +209,19 @@ def _language_directive(language: str) -> str:
             f"you MUST blend them together. Keep technical/engineering terms in English. Use the FORMAL/polite "
             f"address forms of {_BLENDED_REGIONAL_NAME.get(key, language.strip())}, never casual slang or "
             f"friend-to-friend forms — your PERSONA's formality (given elsewhere in these instructions) applies "
-            f"exactly as much in this blended language as it would in English."
+            f"exactly as much in this blended language as it would in English.{roman}"
         )
     if key in _PURE_REGIONAL:
+        # Pure regional still romanized on screen (especially Telugu → Roman Telugu).
         return (
             f"Speak PRIMARILY in {language.strip()} for the ENTIRE session, starting from your very first "
-            f"greeting. Use {language.strip()} for almost everything; keep ONLY standard technical/engineering "
-            f"terms in English (as is normal in Indian classrooms). Do NOT default to or drift into English. "
+            f"greeting. Prefer natural classroom code-mix: {language.strip()} phrasing with English for "
+            f"technical terms and file paths (as is normal in Indian B.Tech classes). "
             f"Use the FORMAL/polite address forms of {language.strip()}, never casual slang — your PERSONA's "
             f"formality (given elsewhere in these instructions) applies exactly as much here as it would in English."
+            f"{roman}"
         )
-    return f"Speak naturally in {language.strip()} for the entire session, starting from your very first greeting."
+    return f"Speak naturally in {language.strip()} for the entire session, starting from your very first greeting.{roman}"
 
 
 def build_system_instruction(
@@ -193,17 +232,19 @@ def build_system_instruction(
     subject: str | None = None,
     student_name: str | None = None,
     scenario: Scenario | None = None,
+    focus_topics: list[str] | None = None,
+    practice_questions: list[str] | None = None,
 ) -> str:
     persona_contract = render_persona_block(PERSONAS.get(persona, PERSONAS[DEFAULT_PERSONA_ID]))
     playbook = _MODE_PLAYBOOK.get(mode, _MODE_PLAYBOOK["viva"])
     name = (student_name or "").strip()
     name_line = (
-        f"STUDENT'S NAME: {name}. Greet them by their first name once at the start "
-        f'(e.g. "Hello {name}") and use it occasionally. Always address this ONE person '
-        "individually — never greet a group or use a plural/collective address.\n\n"
+        f"STUDENT'S NAME: {name}. In your FIRST reply only, greet them once by first name "
+        f'(e.g. "Hello {name}" / "Namaskaram {name}") — never again in a later turn. '
+        "Always address this ONE person individually — never greet a group.\n\n"
         if name
-        else 'You do not know the student\'s name — address them directly as "you". '
-        "Always address this ONE person individually — never greet a group or use a plural/collective address.\n\n"
+        else 'You do not know the student\'s name — address them as "you". '
+        "Greet only once in the first reply. Always address this ONE person individually.\n\n"
     )
     if mode == "coach":
         scenario_label = scenario.label if scenario else (subject or "").strip() or "Interview"
@@ -236,7 +277,57 @@ def build_system_instruction(
         )
     scenario_block = render_scenario_block(scenario) if scenario else ""
     subject_line = f"SUBJECT FOCUS (weight your questions toward this): {subject}.\n\n" if subject else ""
+    focus = [t.strip() for t in (focus_topics or []) if isinstance(t, str) and t.strip()]
+    bank = [q.strip() for q in (practice_questions or []) if isinstance(q, str) and q.strip()]
+    # Code-aware live_brief already embeds PREFERRED VIVA PLAN — re-listing the same
+    # bank here made the model re-open with a second greeting + first question.
+    ctx_has_plan = "PREFERRED VIVA PLAN" in (project_context or "") or "CODEBASE KNOWLEDGE PACK" in (
+        project_context or ""
+    )
+    if ctx_has_plan:
+        bank = []
+    focus_block = ""
+    if focus or bank:
+        lines = [
+            "FOCUSED PRACTICE (mandatory):",
+            "This viva has a fixed topic focus and/or question bank.",
+            "You MUST prioritise the topics below over unrelated material.",
+            "Do NOT re-greet, re-introduce yourself, or restart the session when moving to the next bank item — "
+            "just react briefly to the last answer and ask the next question.",
+        ]
+        if focus:
+            lines.append("Weak topics to cover (hit every topic before ending): " + "; ".join(focus[:8]))
+        if bank:
+            lines.append("Preferred question bank (ask these or close spoken variations; cover as many as time allows):")
+            for i, q in enumerate(bank[:12], 1):
+                lines.append(f"  {i}. {q}")
+        lines.append(
+            "Do NOT wander into unrelated subjects. When the bank is exhausted, end the session "
+            "with a short wrap-up and call end_session."
+        )
+        focus_block = "\n".join(lines) + "\n\n"
+    elif ctx_has_plan:
+        focus_block = (
+            "CODE-AWARE VIVA (mandatory when a CODEBASE KNOWLEDGE PACK is present):\n"
+            "- Greet only once, then ask what the PROJECT is (problem, users, main goal) — NOT a file path.\n"
+            "- Next ask main FEATURES and how one important user flow works end-to-end.\n"
+            "- Then go deeper: how a feature is implemented, data/auth/API/UI connections, trade-offs, failures.\n"
+            "- NEVER ask the student to recall long monorepo paths (e.g. apps/api/src/app.module.ts). "
+            "They cannot memorize thousands of files. Paths in the pack are YOUR private notes only.\n"
+            "- After each answer, verify against the pack. If their story conflicts with the codebase notes, "
+            "cross-question: challenge the mismatch without reading a long path aloud.\n"
+            "- Follow PREFERRED VIVA PLAN roughly, but adapt to their answers.\n"
+            "- Keep questions conversational, like a real B.Tech project viva.\n\n"
+        )
     lang_directive = _language_directive(language)
+    # Soften the generic viva "ask first question immediately" when code-aware:
+    # first question must be project overview, not a random technical probe.
+    if ctx_has_plan:
+        playbook = playbook + (
+            "\n\nCODE-AWARE OVERRIDE FOR OPENING: After the short hello, your FIRST question must be "
+            "about the project itself (what it is / who it is for / what problem it solves). "
+            "Do not jump to a specific source file on the first turn."
+        )
     return f"""You are VivAI, an advanced real-time voice examiner and coach for Indian B.Tech students in 2026. You sound like a real human professor — natural pacing, warmth, and authority — never a robotic read-aloud.
 
 LANGUAGE (MOST IMPORTANT — obey for EVERY single turn, including the greeting): {lang_directive} Keep sentences short and clear for text-to-speech.
@@ -247,13 +338,13 @@ LANGUAGE (MOST IMPORTANT — obey for EVERY single turn, including the greeting)
 
 {scenario_block}
 
-{name_line}{subject_line}PROJECT CONTEXT (personalize every question with this — never ask generic questions when you have real details here):
+{name_line}{subject_line}{focus_block}PROJECT CONTEXT (personalize every question with this — never ask generic questions when you have real details here):
 {ctx}
 
 CRITICAL RULES:
 - LANGUAGE: {lang_directive}
 - NEVER invent, assume or make up ANY facts about the student, their project, product, company, team, results, numbers or background. Use ONLY details explicitly given in PROJECT CONTEXT or SUBJECT above. If a detail was not provided, do NOT fabricate it (never invent a project name) — ask the student or keep it general.
-- GREETING (single source of truth): You will receive a session-start message — respond to it with your one-time greeting and the opening described above, in ONE continuous turn: a single short self-introduction (1-2 sentences), immediately followed by your first question or prompt, with NO second self-introduction, restatement of who you are, or repeated "hello/welcome" anywhere later in that same turn or after it. Deliver the greeting EXACTLY ONCE per session; never greet, re-introduce, restate, or re-word your opening again after that turn.
+- GREETING (single source of truth): You will receive ONE session-start message. Reply with EXACTLY ONE opening turn: (a) one short hello + who you are (max 2 short sentences), then (b) your first exam question in the SAME turn. Deliver the greeting EXACTLY ONCE per session. Never output two separate openings. Never say hello/namaskaram/welcome twice. Never re-introduce as VivAI after the first turn. If you already greeted, the next turns are ONLY reactions + questions.
 - Ask ONE question at a time and then LISTEN. Never dump multiple questions at once.
 - Keep each spoken turn short (2-4 sentences). This is a dialogue, not a monologue.
 - Stay strictly in your role for this mode. {"Ground feedback in what is visible on the shared screen." if mode == "presentation" else "Coach on what you see of the student on their camera (eye contact, posture, expression) as well as what you hear." if mode == "coach" else "Do NOT mention screens or screen sharing."}
@@ -269,10 +360,27 @@ These tools are how the student's report and live feedback are built — skippin
 # Short user-role trigger that forces the model to produce its opening greeting
 # immediately (Live models stay silent until they receive a turn).
 _GREETING_TRIGGER = {
-    "viva": "The viva is now starting. Please greet me and ask your first question.",
-    "presentation": "I'm about to start presenting. Please greet me and tell me when to begin.",
-    "pitch": "I'm ready for the pitch drill. Please greet me and give me the challenge.",
-    "coach": "I'm ready to practice. Please greet me, tell me the scenario, and start.",
+    # Keep these conversational and explicit about SPOKEN output — overly
+    # mechanical "session start signal" phrasing made some Live models stay silent.
+    "viva": (
+        "Please start the viva now. Speak out loud: say a short hello, introduce yourself "
+        "as the VivAI examiner in one sentence, then ask your first question. "
+        "If a CODEBASE KNOWLEDGE PACK is in context, first ask what the project is "
+        "(problem, users, goal) — do NOT ask about a specific file path. "
+        "One opening only — do not greet twice."
+    ),
+    "presentation": (
+        "Please start now. Speak out loud: short greeting, then tell me when to begin presenting. "
+        "One opening only."
+    ),
+    "pitch": (
+        "Please start the pitch drill now. Speak out loud: short greeting, then give the challenge. "
+        "One opening only."
+    ),
+    "coach": (
+        "Please start coaching now. Speak out loud: short greeting, name the scenario, and begin. "
+        "One opening only."
+    ),
 }
 
 
@@ -410,11 +518,21 @@ def build_config(
     subject: str | None = None,
     student_name: str | None = None,
     scenario: Scenario | None = None,
+    focus_topics: list[str] | None = None,
+    practice_questions: list[str] | None = None,
 ) -> types.LiveConnectConfig:
     settings = get_settings()
     voice = (settings.gemini_live_voice or DEFAULT_VOICE).strip() or DEFAULT_VOICE
     system_instruction = build_system_instruction(
-        mode, persona, language, project_context, subject, student_name, scenario
+        mode,
+        persona,
+        language,
+        project_context,
+        subject,
+        student_name,
+        scenario,
+        focus_topics=focus_topics,
+        practice_questions=practice_questions,
     )
     # Gemini 3.1/2.5 Live are native-audio models. They choose the output
     # language from the conversation and explicitly reject/ignore a forced
@@ -620,6 +738,58 @@ Be honest and specific. If the student barely spoke, score low and say so."""
         "recommendations": result.get("recommendations") or [],
         "coach_metrics": coach_metrics,
     }
+
+
+def is_near_duplicate(a: str, b: str) -> bool:
+    """Cheap similarity check so a dedup window only catches literal
+    self-repetition, not two distinct real moments that happen to be close
+    together in time."""
+    a_norm, b_norm = a.strip().lower(), b.strip().lower()
+    if not a_norm or not b_norm:
+        return False
+    if a_norm == b_norm:
+        return True
+    shorter, longer = sorted((a_norm, b_norm), key=len)
+    return len(shorter) > 8 and shorter in longer
+
+
+def response_audio_chunks(response) -> list[bytes]:
+    """Read Live audio from both SDK response layouts.
+
+    Older ``google-genai`` releases exposed a convenience ``response.data``
+    attribute.  Current Live responses place the raw 24kHz PCM chunks in
+    ``server_content.model_turn.parts[].inline_data.data`` instead.  Output
+    transcription still arrives either way, which is why the UI could show AI
+    text while remaining silent.  Prefer the legacy convenience field when it
+    exists to avoid forwarding one chunk twice on SDKs that expose both.
+    """
+    legacy_data = getattr(response, "data", None)
+    if legacy_data:
+        return [bytes(legacy_data)]
+
+    server_content = getattr(response, "server_content", None)
+    model_turn = getattr(server_content, "model_turn", None)
+    chunks: list[bytes] = []
+    for part in getattr(model_turn, "parts", None) or []:
+        inline_data = getattr(part, "inline_data", None)
+        data = getattr(inline_data, "data", None)
+        mime_type = (getattr(inline_data, "mime_type", "") or "").lower()
+        # Live model turns can contain text/thought parts as well as audio.
+        # Only proxy audio bytes to the browser's PCM player.
+        if data and (not mime_type or mime_type.startswith("audio/")):
+            chunks.append(bytes(data))
+    return chunks
+
+
+# --------------------------------------------------------------------------- #
+# Gemini send helpers (tolerant of google-genai signature differences)
+# --------------------------------------------------------------------------- #
+async def send_audio(session, data: bytes) -> None:
+    blob = types.Blob(data=data, mime_type="audio/pcm;rate=16000")
+    try:
+        await session.send_realtime_input(audio=blob)
+    except TypeError:
+        await session.send_realtime_input(media=blob)
 
 
 def connect(config: types.LiveConnectConfig, model: str | None = None):

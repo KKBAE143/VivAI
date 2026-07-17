@@ -73,3 +73,43 @@ def test_system_instruction_carries_language_directive():
         student_name=None,
     )
     assert "Telugu" in si
+
+
+def test_telugu_forces_roman_script_not_native_glyphs():
+    si = live_service.build_system_instruction(
+        mode="viva",
+        persona="balanced",
+        language="Telugu",
+        project_context="A FastAPI app.",
+        subject=None,
+        student_name="Karthik",
+    )
+    assert "Roman" in si or "Latin" in si
+    assert "Namaskaram" in si or "Latin/Roman" in si
+    # Must ban native Telugu script usage for captions
+    assert "NEVER use Telugu script" in si or "తెలుగు" in si
+
+
+def test_code_aware_brief_does_not_duplicate_question_bank():
+    """Re-listing viva_plan as practice_questions caused a double opening."""
+    brief = (
+        "CODEBASE KNOWLEDGE PACK — YOUR PRIVATE NOTES.\n"
+        "PREFERRED VIVA PLAN (spoken questions):\n"
+        "  1. [Easy] What is this project and who is it for?\n"
+    )
+    si = live_service.build_system_instruction(
+        mode="viva",
+        persona="balanced",
+        language="Tenglish",
+        project_context=brief,
+        subject="Code-aware viva",
+        student_name="Karthik",
+        practice_questions=["What is this project and who is it for?", "Explain auth flow"],
+        focus_topics=["Core"],
+    )
+    # Bank should not be pasted again under Preferred question bank
+    assert si.count("What is this project and who is it for?") == 1
+    assert "Preferred question bank" not in si
+    assert "CODE-AWARE" in si
+    assert "file path" in si.lower() or "monorepo" in si.lower()
+    assert "Greet only once" in si or "EXACTLY ONCE" in si or "only once" in si.lower()

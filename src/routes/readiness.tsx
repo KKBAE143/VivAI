@@ -104,10 +104,10 @@ function ReadinessPage() {
                 )}
               </div>
               <Link
-                to="/study"
+                to="/ai-viva/new"
                 className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-primary"
               >
-                Build a study bank from your report <ArrowRight className="h-3.5 w-3.5" />
+                Practice weak topics in a mock viva <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </Card>
           </div>

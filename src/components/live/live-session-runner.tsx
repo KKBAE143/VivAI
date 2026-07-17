@@ -56,12 +56,15 @@ export function LiveSessionRunner({
 
   const live = useLiveSession({ mode, sessionId, language, persona, projectId, subject });
 
+  const playbackCtxRef = useRef<AudioContext | null>(null);
+
   const handleReady = useCallback((result: PreflightResult) => {
     micStreamRef.current = result.micStream;
     setVideoStream(result.videoStream);
     setVideoSource(result.videoSource);
     setLanguage(result.language);
     setPersona(result.persona);
+    playbackCtxRef.current = result.playbackAudioContext;
     setPhase("live");
   }, []);
 
@@ -73,6 +76,7 @@ export function LiveSessionRunner({
       micStream: micStreamRef.current,
       videoStream,
       videoSource: videoSource === "camera" || videoSource === "screen" ? videoSource : null,
+      playbackAudioContext: playbackCtxRef.current,
     });
     // Only run when entering the live phase.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -137,6 +141,7 @@ export function LiveSessionRunner({
         subtitle={subtitle}
         onEnd={handleEnd}
         onRetry={handleRetry}
+        onUnlockAudio={live.unlockAudio}
       />
       {ending && live.status !== "error" && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-background/80 p-4 backdrop-blur-sm">

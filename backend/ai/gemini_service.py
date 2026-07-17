@@ -71,7 +71,7 @@ def generate_json(prompt: str, system_instruction: str | None = None, default=No
     """Generate and parse a JSON response.
 
     Model output is non-deterministic and occasionally returns prose or a
-    truncated/invalid JSON blob. A single attempt made features like flashcard
+    truncated/invalid JSON blob. A single attempt made features like pitch
     generation flaky ("AI could not generate content"). We retry a couple of
     times, nudging the model to emit strict JSON, before giving up.
     """

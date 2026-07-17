@@ -70,6 +70,44 @@ Codebase digest:
 
 Return STRICT JSON: {{"architecture": "2-3 sentence architecture summary", "key_files": ["path1", "path2"], "patterns": ["notable pattern/decision 1", "..."], "question_hooks": ["specific code detail worth asking about", "..."]}}"""
 
+CODE_KNOWLEDGE_PACK = """You are preparing an oral CODE-AWARE VIVA examiner brief for a B.Tech student.
+You are given (1) a local structure summary with real file paths and (2) truncated source of the most important files.
+
+The student CANNOT memorize a large monorepo. The examiner brief is YOUR private notes — students will be asked about
+PRODUCT/FEATURES/BEHAVIOR, not random file paths.
+
+RULES:
+- ONLY describe features, modules, and flows that appear in the digest. Never invent features.
+- Prefer product language: "auth login", "order checkout", "admin dashboard" — not "what does apps/api/src/x.ts do?".
+- File paths belong in key_files / targets as PRIVATE verification anchors for YOU, never as the spoken question.
+- Keep every string concise — this brief must fit a free-tier live voice session.
+- viva_plan: 6-8 ORAL questions a real faculty member would ask in a project viva, in this order:
+  1) Easy overview (what is the project / problem / users)
+  2) Main features and how a key user flow works
+  3-6) Implementation of major features (how auth works, how data is stored, how API/UI connect, error handling, etc.)
+  7-8) Deeper trade-offs / edge cases / verification probes
+- Each viva_plan.q must be speakable aloud WITHOUT reading a file path. Put paths only in "targets" and expected_points may mention them for the examiner.
+
+DIGEST:
+{digest}
+
+Return STRICT JSON only with this shape:
+{{
+  "project_one_liner": "what the product does in plain language",
+  "stack": ["…"],
+  "architecture": "3-6 sentences: major features, how layers connect, main data flow",
+  "modules": [{{"name": "feature or layer name", "role": "what user/business purpose", "key_files": ["path"], "how_it_works": "behavior in plain language", "risks": ["…"]}}],
+  "critical_paths": [{{"flow": "e.g. Login → JWT → protected API", "files": ["path"], "what_to_probe": "what student should explain"}}],
+  "design_decisions": [{{"decision": "…", "why_likely": "…", "challenge_question": "feature-level follow-up, no file path in the question text"}}],
+  "data_model": "main entities / storage in plain language",
+  "apis_or_entrypoints": ["human labels of main APIs/screens, optional path in parentheses"],
+  "weak_spots": [{{"area": "…", "evidence": "path or pattern", "viva_angle": "how to probe in plain language"}}],
+  "security_and_quality": ["…"],
+  "glossary": [{{"term": "…", "meaning_in_this_repo": "…"}}],
+  "features": [{{"name": "…", "what_it_does": "…", "how_implemented": "brief", "key_files": ["path"]}}],
+  "viva_plan": [{{"q": "spoken question with NO file path", "targets": ["optional private file paths"], "difficulty": "Easy|Medium|Hard", "expected_points": ["what a good answer includes"]}}]
+}}"""
+
 CODE_QUESTION = """You are a faculty member who has read the student's actual source code.
 Code analysis: {analysis}
 Relevant code excerpt:
@@ -80,28 +118,6 @@ Language: {language}
 Ask ONE implementation-specific question referencing concrete files/lines/choices in THEIR code (e.g. 'In app.py you use X — why not Y?').
 Return STRICT JSON: {{"question": "...", "topic": "...", "file": "path referenced", "expected_answer": "concise model answer"}}"""
 
-BRIDGE_QUESTIONS = """A student scored poorly on these presentation topics: {gaps}
-Project context: {project_context}
-
-For each weak topic generate 3 targeted viva questions to strengthen it.
-Return STRICT JSON: {{"<topic>": [{{"question": "...", "expected_answer": "..."}}]}}"""
-
-FACULTY_PERSONA = """You are simulating a specific professor conducting a viva.
-Professor profile:
-- Name: {name}
-- Subjects: {subjects}
-- Style tags: {style_tags}
-- Known patterns: {known_patterns}
-- Difficulty: {difficulty}
-
-Stay fully in character: mirror their question style, favourite topics, and temperament.
-You always respond with strict JSON when asked to."""
-
-TEAM_VIVA_EXAMINER = (
-    "You are a faculty member running a GROUP viva for a project team. You ask questions that "
-    "any member should answer, score the first responder, and value corrections from teammates. "
-    "You always respond with strict JSON when asked to."
-)
 
 SENTIMENT_FRAME = """Analyze this webcam frame of a student practicing a presentation.
 Assess: confidence (posture/expression), eye_contact (looking toward camera), energy, stress signals.
@@ -110,36 +126,6 @@ Return STRICT JSON: {{"confidence": <0-100>, "eye_contact": <0-100>, "energy": <
 TOPIC_CLASSIFY = """Classify each viva question into a short canonical topic label (2-4 words).
 Questions: {questions}
 Return STRICT JSON: {{"<question index>": "<topic>"}}"""
-
-# ---------- Study: doc-grounded question banks & flashcards ----------
-STUDY_QUESTION_BANK = """You are a B.Tech faculty member preparing a viva question bank from a student's own project report/notes.
-Source material:
-{source}
-
-Generate {count} exam-quality viva questions that a real examiner would ask about THIS material, spanning easy, medium and hard.
-Return STRICT JSON: {{"questions": [{{"question": "...", "answer": "concise model answer", "topic": "short topic label", "difficulty": "Easy|Medium|Hard"}}]}}"""
-
-STUDY_FLASHCARDS = """You are creating spaced-repetition study flashcards from a student's own project report/notes.
-Source material:
-{source}
-
-Generate {count} atomic flashcards (one fact/concept each) covering the key concepts, definitions, and technical decisions.
-Return STRICT JSON: {{"cards": [{{"front": "question or term", "back": "concise answer/definition", "topic": "short topic label"}}]}}"""
-
-# Topic-based generation (no source material required — use your own knowledge).
-STUDY_QUESTION_BANK_TOPIC = """You are a B.Tech faculty member preparing a viva question bank on a topic for a student.
-Topic: {topic}
-{notes}
-
-Using your own expert knowledge of this topic (and any optional notes above), generate {count} exam-quality viva questions a real examiner would ask, spanning easy, medium and hard.
-Return STRICT JSON: {{"questions": [{{"question": "...", "answer": "concise model answer", "topic": "short sub-topic label", "difficulty": "Easy|Medium|Hard"}}]}}"""
-
-STUDY_FLASHCARDS_TOPIC = """You are creating spaced-repetition study flashcards on a topic for a student.
-Topic: {topic}
-{notes}
-
-Using your own expert knowledge of this topic (and any optional notes above), generate {count} atomic flashcards (one fact/concept each) covering the key concepts, definitions, formulas and technical details a student must know.
-Return STRICT JSON: {{"cards": [{{"front": "question or term", "back": "concise answer/definition", "topic": "short sub-topic label"}}]}}"""
 
 # ---------- Readiness: 90-second pitch drill ----------
 PITCH_EVAL = """You are a viva examiner judging a student's 90-second project "elevator pitch".
