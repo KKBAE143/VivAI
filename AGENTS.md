@@ -39,6 +39,14 @@ AI-powered companion app for college students — projects, teams, AI Mock Viva,
 
 ## Common commands
 
+First-time setup on a fresh Windows machine (installs Bun + Python if missing, creates the backend venv, installs ALL frontend/backend packages, and writes `backend\.env` + `.env.local` with placeholder values):
+
+```powershell
+.\setup.bat        # double-click, or: powershell -ExecutionPolicy Bypass -File .\setup.ps1
+```
+
+After setup, fill real keys into `backend\.env`, then launch with `start-app.bat` / `start-app.ps1`.
+
 Frontend (root):
 
 ```bash
