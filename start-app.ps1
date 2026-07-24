@@ -101,6 +101,20 @@ Write-Host "[2/5] Checking tools..." -ForegroundColor Cyan
 
 $bun = Get-Command bun -ErrorAction SilentlyContinue
 if (-not $bun) {
+    # Bun not on PATH - try common install locations and add to this
+    # session's PATH (child server windows inherit it automatically).
+    $bunCandidates = @()
+    if ($env:BUN_INSTALL) { $bunCandidates += Join-Path $env:BUN_INSTALL "bin\bun.exe" }
+    $bunCandidates += Join-Path $env:USERPROFILE ".bun\bin\bun.exe"
+    foreach ($cand in $bunCandidates) {
+        if (Test-Path $cand) {
+            $env:Path = "$(Split-Path $cand -Parent);$env:Path"
+            $bun = Get-Command bun -ErrorAction SilentlyContinue
+            break
+        }
+    }
+}
+if (-not $bun) {
     Write-Host "  ERROR: 'bun' is not installed or not on PATH." -ForegroundColor Red
     Write-Host "         Install it from https://bun.sh then re-run this script." -ForegroundColor Red
     Read-Host "Press Enter to exit"
