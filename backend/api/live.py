@@ -48,6 +48,18 @@ logger = get_logger("live")
 # so the session can never deadlock waiting for a greeting that isn't coming.
 _MIC_GATE_SAFETY_SECONDS = 20
 
+# One Live Gemini session + one greeting trigger per app session_id.
+# Root cause of double greetings: two browser WebSockets (Strict Mode remount /
+# concurrent start()) each connected and each called send_client_content(greeting).
+_active_live_owners: dict[str, str] = {}
+_active_live_lock = asyncio.Lock()
+
+
+async def _release_live_owner(session_id: str, connection_id: str) -> None:
+    async with _active_live_lock:
+        if _active_live_owners.get(session_id) == connection_id:
+            _active_live_owners.pop(session_id, None)
+
 
 async def _forward_turn_complete(websocket: WebSocket, first_turn_done: asyncio.Event) -> None:
     """Notify the client before opening the server-side first-turn mic gate."""
@@ -548,6 +560,8 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
     project_id_param = params.get("project_id")
     subject_param = (params.get("subject") or "").strip() or None
     video_source = params.get("video") if params.get("video") in {"camera", "screen"} else None
+    # Unique id for this WebSocket instance (for single-owner bookkeeping).
+    connection_id = f"{id(websocket)}-{time.time_ns()}"
 
     user = user_from_token(token)
     if not user:
@@ -559,6 +573,18 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
         await websocket.send_json({"type": "error", "message": f"Unknown mode '{mode}'"})
         await websocket.close(code=4400)
         return
+
+    # Latest connection wins for this session_id (do not reject — a stale
+    # Strict-Mode / remount socket holding the lock caused "AI not speaking"
+    # when the real client was refused). Greeting is still once-per-socket.
+    async with _active_live_lock:
+        prev = _active_live_owners.get(session_id)
+        if prev and prev != connection_id:
+            logger.info(
+                "superseding previous live connection",
+                extra={"session_id": session_id, "event": "live_ws_supersede"},
+            )
+        _active_live_owners[session_id] = connection_id
 
     # Resolve session + project context.
     sb = get_supabase()
@@ -627,6 +653,7 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
     except Exception as exc:
         await websocket.send_json({"type": "error", "message": f"Could not load session: {exc}"})
         await websocket.close(code=4404)
+        await _release_live_owner(session_id, connection_id)
         return
 
     # A subject explicitly sent by the client always wins (lets the student
@@ -680,6 +707,7 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
 
             # Make the AI speak FIRST. Live models stay silent until they receive
             # a turn, so we send a short trigger to force the opening greeting.
+            # Exactly once per WebSocket (this connection).
             try:
                 trigger = live_service.greeting_trigger(mode, language, scenario)
                 await session.send_client_content(
@@ -715,7 +743,6 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                         # Server-side gate: drop the student's mic audio until the
                         # first Gemini turn (the greeting) has completed, so the
                         # greeting cannot echo back and trigger a second greeting.
-                        # Only audio is gated; text/image/end always pass through.
                         if not first_turn_done.is_set():
                             continue
                         await _send_audio(session, data)
@@ -741,12 +768,30 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                 # then ends (it breaks on turn_complete). We must re-enter it in
                 # an outer loop so the conversation continues across turns —
                 # otherwise the session dies right after the opening greeting.
+                #
+                # NOTE: Do not suppress AI audio here. An earlier "suppress second
+                # opening" path dropped real greeting audio when the first turn
+                # only had transcription / tool events, leaving the student silent.
+                # Double openings are prevented by: single client start lock +
+                # one greeting trigger per socket + client caption dedupe.
                 while True:
                     got_turn = False
                     async for response in session.receive():
                         got_turn = True
-                        for audio_chunk in _response_audio_chunks(response):
-                            await websocket.send_bytes(audio_chunk)
+                        try:
+                            for audio_chunk in _response_audio_chunks(response):
+                                if audio_chunk:
+                                    await websocket.send_bytes(audio_chunk)
+                        except Exception as audio_exc:
+                            # Never let one bad PCM frame kill the whole receive
+                            # loop — that was a silent "AI voice not coming" mode
+                            # (transcripts could still arrive from later messages
+                            # until the task fully died).
+                            logger.warning(
+                                "audio forward failed: %s",
+                                audio_exc,
+                                extra={"session_id": session_id, "event": "audio_forward_error"},
+                            )
                         sc = getattr(response, "server_content", None)
                         if sc:
                             it = getattr(sc, "input_transcription", None)
@@ -766,8 +811,6 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                             responses = []
                             for fc in tc.function_calls:
                                 if fc.name == "end_session":
-                                    # The examiner has decided the session is over.
-                                    # Acknowledge, flag for finalize, and stop receiving.
                                     end_requested.set()
                                     responses.append(
                                         types.FunctionResponse(id=fc.id, name=fc.name, response={"status": "ok"})
@@ -776,15 +819,18 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                                 event = persist.on_tool(fc.name, dict(fc.args or {}))
                                 if event:
                                     await websocket.send_json(event)
-                                # Hand the generated id back to the model so a
-                                # later score_response can reference it
-                                # explicitly via question_id, instead of
-                                # relying only on "most recent unscored
-                                # question" — which breaks if two questions
-                                # are asked before either is scored.
                                 tool_response = {"status": "ok"}
                                 if event and event.get("id"):
                                     tool_response["question_id" if fc.name == "record_question" else "id"] = event["id"]
+                                if fc.name == "record_question":
+                                    # Do NOT tell the model to stay completely silent —
+                                    # if record_question fires before spoken audio for the
+                                    # first question, a hard "stay silent" kills AI voice.
+                                    tool_response["instruction"] = (
+                                        "Question logged. If you have not spoken this question "
+                                        "aloud yet, speak it once now, then wait for the student. "
+                                        "Do not greet again or re-introduce yourself."
+                                    )
                                 responses.append(
                                     types.FunctionResponse(id=fc.id, name=fc.name, response=tool_response)
                                 )
@@ -793,11 +839,8 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                             except Exception:
                                 pass
                             if end_requested.is_set():
-                                # Give the final closing audio a moment to flush to
-                                # the browser, then end the receive loop.
                                 await asyncio.sleep(0.5)
                                 return
-                    # If a turn yielded nothing, the connection is gone — stop.
                     if not got_turn:
                         break
 
@@ -853,6 +896,7 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
             await websocket.close()
         except Exception:
             pass
+        await _release_live_owner(session_id, connection_id)
         return
 
     # finalize() now does real work (transcript analysis + a report-generation
@@ -869,3 +913,4 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
         await websocket.close()
     except Exception:
         pass
+    await _release_live_owner(session_id, connection_id)

@@ -53,6 +53,8 @@ export function LiveSessionRunner({
   const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
   const [videoSource, setVideoSource] = useState<VideoSource | null>(null);
   const endedRef = useRef(false);
+  /** Ensures we only call live.start once per "enter live phase" (Strict Mode safe). */
+  const startedForPhaseRef = useRef(false);
 
   const live = useLiveSession({ mode, sessionId, language, persona, projectId, subject });
 
@@ -65,12 +67,19 @@ export function LiveSessionRunner({
     setLanguage(result.language);
     setPersona(result.persona);
     playbackCtxRef.current = result.playbackAudioContext;
+    startedForPhaseRef.current = false;
     setPhase("live");
   }, []);
 
   // Start the live connection once we enter the live phase with fresh settings.
+  // Do NOT reset() in this effect's cleanup — that races React Strict Mode and
+  // can open two Live sockets (two greetings) or close the preflight AudioContext
+  // mid-start. useLiveSession has a sync start lock + generation counter; the
+  // server also enforces one Live owner per session_id.
   useEffect(() => {
     if (phase !== "live" || !micStreamRef.current) return;
+    if (startedForPhaseRef.current) return;
+    startedForPhaseRef.current = true;
     // "none" (audio-only) carries no video source for the server to track.
     void live.start({
       micStream: micStreamRef.current,
@@ -81,6 +90,14 @@ export function LiveSessionRunner({
     // Only run when entering the live phase.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
+
+  // If start failed and left us idle/error while still "live" UI phase, allow retry.
+  useEffect(() => {
+    if (phase !== "live") return;
+    if (live.status === "error") {
+      startedForPhaseRef.current = false;
+    }
+  }, [phase, live.status]);
 
   // When the session ends cleanly, tear down media tracks and notify the parent once.
   // Errors do NOT complete the session — the student stays here and can retry.
@@ -105,6 +122,7 @@ export function LiveSessionRunner({
     setEnding(false);
     setVideoStream(null);
     setVideoSource(null);
+    startedForPhaseRef.current = false;
     live.reset();
     setPhase("setup");
   }, [live]);

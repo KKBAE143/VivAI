@@ -123,7 +123,8 @@ const nextId = () => `ev_${Date.now()}_${(_eventSeq += 1)}`;
 
 // Padding added on top of the remaining playback time before opening the mic
 // gate, to cover speaker->mic acoustic latency after the greeting audio ends.
-const GATE_DRAIN_PADDING_MS = 350;
+// Keep this generous — opening too early is a common cause of a second greeting.
+const GATE_DRAIN_PADDING_MS = 900;
 
 /**
  * Milliseconds of AI speech still scheduled ahead of the audio clock.
@@ -131,6 +132,41 @@ const GATE_DRAIN_PADDING_MS = 350;
  */
 export function remainingPlaybackMs(playHead: number, currentTime: number): number {
   return Math.max(0, (playHead - currentTime) * 1000);
+}
+
+/** Detect double-opening AI captions (same hello + role + first question restated). */
+export function isNearDuplicateOpening(a: string, b: string): boolean {
+  const norm = (s: string) =>
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  const na = norm(a);
+  const nb = norm(b);
+  if (!na || !nb) return false;
+  if (na === nb) return true;
+  // Both look like openings.
+  const openingHint =
+    /(hello|namaskar|namaskaram|hi |hey )/.test(na) &&
+    /(hello|namaskar|namaskaram|hi |hey )/.test(nb) &&
+    /(vivai|examiner|mock viva)/.test(na) &&
+    /(vivai|examiner|mock viva)/.test(nb);
+  if (!openingHint) return false;
+  // Overlap on a meaningful prefix (first ~80 chars of normalized text).
+  const pref = 80;
+  const pa = na.slice(0, pref);
+  const pb = nb.slice(0, pref);
+  if (pa.length >= 24 && pb.includes(pa.slice(0, 24))) return true;
+  if (pb.length >= 24 && pa.includes(pb.slice(0, 24))) return true;
+  // Token Jaccard on short openings
+  const ta = new Set(na.split(" ").filter((w) => w.length > 2));
+  const tb = new Set(nb.split(" ").filter((w) => w.length > 2));
+  if (ta.size === 0 || tb.size === 0) return false;
+  let inter = 0;
+  for (const w of ta) if (tb.has(w)) inter += 1;
+  const union = ta.size + tb.size - inter;
+  return union > 0 && inter / union >= 0.55;
 }
 
 export function useLiveSession(opts: UseLiveSessionOptions) {
@@ -175,6 +211,15 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
   const pausedRef = useRef(false);
   /** Mic mute state before pause, restored on resume. */
   const micMutedBeforePauseRef = useRef(false);
+  /**
+   * Synchronous start lock + generation counter.
+   * Root cause of double greetings: `start()` checked `wsRef` only after
+   * several `await`s, so two concurrent starts (React Strict Mode remount,
+   * double effect, fast double-click) each opened a Live WebSocket and each
+   * server sent its own greeting trigger.
+   */
+  const startInFlightRef = useRef(false);
+  const startGenerationRef = useRef(0);
 
   useEffect(() => {
     micMutedRef.current = micMuted;
@@ -198,12 +243,17 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
   }, []);
 
   const playChunk = useCallback((pcm: ArrayBuffer) => {
-    // Drop AI audio while paused so we don't queue speech for later.
-    if (pausedRef.current) return;
     const ctx = playbackCtxRef.current;
-    if (!ctx) return;
-    // Autoplay policy: if still suspended, try resume; surface a tap-to-unlock UI.
-    if (ctx.state === "suspended") {
+    // Closed/missing context → nothing can play; surface tap-to-unlock so we
+    // can recreate under a user gesture (autoplay policy).
+    if (!ctx || ctx.state === "closed") {
+      if (!pausedRef.current) setAudioBlocked(true);
+      return;
+    }
+    // While intentionally paused we leave the context suspended (currentTime
+    // frozen) but STILL schedule chunks so speech continues from the pause
+    // point on resume. Only treat suspended as "blocked" when not paused.
+    if (ctx.state === "suspended" && !pausedRef.current) {
       setAudioBlocked(true);
       void ctx.resume().then(() => {
         setAudioBlocked(playbackCtxRef.current?.state !== "running");
@@ -211,41 +261,57 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     } else if (ctx.state === "running") {
       setAudioBlocked(false);
     }
-    const int16 = new Int16Array(pcm);
-    if (int16.length === 0) return;
-    const float = new Float32Array(int16.length);
-    for (let i = 0; i < int16.length; i += 1) float[i] = int16[i] / 0x8000;
-    const buffer = ctx.createBuffer(1, float.length, PLAYBACK_SAMPLE_RATE);
-    buffer.copyToChannel(float, 0);
-    const src = ctx.createBufferSource();
-    src.buffer = buffer;
-    src.connect(ctx.destination);
-    const now = ctx.currentTime;
-    const startAt = Math.max(now, playHeadRef.current);
     try {
+      // PCM16 is 2 bytes/sample — odd-length buffers throw RangeError on Int16Array.
+      const usable = pcm.byteLength - (pcm.byteLength % 2);
+      if (usable <= 0) return;
+      const int16 = new Int16Array(pcm, 0, usable / 2);
+      if (int16.length === 0) return;
+      const float = new Float32Array(int16.length);
+      for (let i = 0; i < int16.length; i += 1) float[i] = int16[i] / 0x8000;
+      const buffer = ctx.createBuffer(1, float.length, PLAYBACK_SAMPLE_RATE);
+      buffer.copyToChannel(float, 0);
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      src.connect(ctx.destination);
+      // When suspended, currentTime is frozen — startAt stays stable so the
+      // queue lines up and resumes mid-phrase correctly.
+      const now = ctx.currentTime;
+      const startAt = Math.max(now, playHeadRef.current);
       src.start(startAt);
+      playHeadRef.current = startAt + buffer.duration;
+      activeSourcesRef.current.push(src);
+      src.onended = () => {
+        activeSourcesRef.current = activeSourcesRef.current.filter((s) => s !== src);
+      };
+      if (!pausedRef.current) {
+        setAiSpeaking(true);
+        if (speakingTimerRef.current) clearTimeout(speakingTimerRef.current);
+        speakingTimerRef.current = setTimeout(
+          () => setAiSpeaking(false),
+          Math.max(300, (playHeadRef.current - now) * 1000 + 150),
+        );
+      }
     } catch {
-      setAudioBlocked(true);
-      return;
+      if (!pausedRef.current) setAudioBlocked(true);
     }
-    playHeadRef.current = startAt + buffer.duration;
-    activeSourcesRef.current.push(src);
-    src.onended = () => {
-      activeSourcesRef.current = activeSourcesRef.current.filter((s) => s !== src);
-    };
-    setAiSpeaking(true);
-    if (speakingTimerRef.current) clearTimeout(speakingTimerRef.current);
-    speakingTimerRef.current = setTimeout(
-      () => setAiSpeaking(false),
-      Math.max(300, (playHeadRef.current - now) * 1000 + 150),
-    );
   }, []);
 
   /** Call from a click handler if the browser blocked AI audio. */
   const unlockAudio = useCallback(async () => {
-    const ctx = playbackCtxRef.current;
-    if (!ctx) return;
+    // Don't fight an intentional session pause (context is suspended on purpose).
+    if (pausedRef.current) return;
+    let ctx = playbackCtxRef.current;
     try {
+      // Recreate if missing/closed (cleanup or autoplay policy killed it).
+      if (!ctx || ctx.state === "closed") {
+        const PlaybackCtx =
+          window.AudioContext ??
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        ctx = new PlaybackCtx();
+        playbackCtxRef.current = ctx;
+        playHeadRef.current = 0;
+      }
       await ctx.resume();
       // Play a tiny silent buffer to fully unlock some browsers.
       const buf = ctx.createBuffer(1, 1, PLAYBACK_SAMPLE_RATE);
@@ -269,9 +335,17 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
 
   const commitAi = useCallback(() => {
     const text = aiBufRef.current.trim();
-    if (text) setCaptions((c) => [...c, { role: "examiner", text, ts: Date.now() }]);
     aiBufRef.current = "";
     setLiveAiText("");
+    if (!text) return;
+    setCaptions((c) => {
+      // Suppress near-duplicate opening captions (double "Hello… VivAI examiner…").
+      const last = [...c].reverse().find((x) => x.role === "examiner");
+      if (last && isNearDuplicateOpening(last.text, text)) {
+        return c;
+      }
+      return [...c, { role: "examiner", text, ts: Date.now() }];
+    });
   }, []);
 
   // --------------------------- mic gate --------------------------------- //
@@ -328,6 +402,19 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
       switch (msg.type) {
         case "ready":
           setStatus("live");
+          // Re-assert playback unlock when the socket is live — some browsers
+          // re-suspend AudioContext between the Start click and WS ready.
+          if (!pausedRef.current) {
+            const ctx = playbackCtxRef.current;
+            if (!ctx || ctx.state === "closed") {
+              setAudioBlocked(true);
+            } else if (ctx.state === "suspended") {
+              setAudioBlocked(true);
+              void ctx.resume().then(() => {
+                setAudioBlocked(playbackCtxRef.current?.state !== "running");
+              });
+            }
+          }
           break;
         case "user_transcript":
           userBufRef.current += String(msg.text ?? "");
@@ -337,6 +424,12 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
           if (userBufRef.current.trim()) commitUser();
           aiBufRef.current += String(msg.text ?? "");
           setLiveAiText(aiBufRef.current);
+          // Captions without sound almost always means autoplay blocked the
+          // AudioContext — surface the unlock banner immediately.
+          if (!pausedRef.current) {
+            const ctx = playbackCtxRef.current;
+            if (!ctx || ctx.state !== "running") setAudioBlocked(true);
+          }
           break;
         case "interrupted":
           stopPlayback();
@@ -429,7 +522,13 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
   // ------------------------------ start --------------------------------- //
   const start = useCallback(
     async ({ micStream, videoStream, videoSource, playbackAudioContext }: StartOptions) => {
-      if (wsRef.current) return;
+      // Sync guard BEFORE any await — prevents dual WebSockets / dual greetings.
+      if (wsRef.current || startInFlightRef.current) return;
+      startInFlightRef.current = true;
+      const generation = ++startGenerationRef.current;
+
+      const stillCurrent = () => generation === startGenerationRef.current;
+
       setStatus("connecting");
       setError("");
       setCaptions([]);
@@ -454,27 +553,43 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
       if (!token) {
         setError("You are not signed in.");
         setStatus("error");
+        startInFlightRef.current = false;
         return;
       }
 
       // Playback context — prefer the one unlocked under the preflight Start click.
       try {
-        if (playbackAudioContext) {
+        if (playbackAudioContext && playbackAudioContext.state !== "closed") {
           playbackCtxRef.current = playbackAudioContext;
-          await playbackCtxRef.current.resume().catch(() => {});
         } else {
           const PlaybackCtx =
             window.AudioContext ??
             (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
           playbackCtxRef.current = new PlaybackCtx();
-          await playbackCtxRef.current.resume().catch(() => {});
         }
-        if (playbackCtxRef.current.state === "suspended") {
+        await playbackCtxRef.current.resume().catch(() => {});
+        // Warm the output path under the (still recent) user gesture chain.
+        try {
+          const warm = playbackCtxRef.current.createBuffer(1, 1, PLAYBACK_SAMPLE_RATE);
+          const warmSrc = playbackCtxRef.current.createBufferSource();
+          warmSrc.buffer = warm;
+          warmSrc.connect(playbackCtxRef.current.destination);
+          warmSrc.start();
+        } catch {
+          /* ignore */
+        }
+        if (!stillCurrent()) {
+          startInFlightRef.current = false;
+          setStatus("idle");
+          return;
+        }
+        if (playbackCtxRef.current.state !== "running") {
           setAudioBlocked(true);
         }
       } catch {
         setError("Audio playback is not supported in this browser.");
         setStatus("error");
+        startInFlightRef.current = false;
         return;
       }
 
@@ -489,11 +604,23 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
         } catch {
           ctx = new CaptureCtx();
         }
+        if (!stillCurrent()) {
+          void ctx.close().catch(() => {});
+          startInFlightRef.current = false;
+          setStatus("idle");
+          return;
+        }
         captureCtxRef.current = ctx;
         const blob = new Blob([RECORDER_WORKLET], { type: "application/javascript" });
         const url = URL.createObjectURL(blob);
         await ctx.audioWorklet.addModule(url);
         URL.revokeObjectURL(url);
+        if (!stillCurrent()) {
+          void ctx.close().catch(() => {});
+          startInFlightRef.current = false;
+          setStatus("idle");
+          return;
+        }
         const source = ctx.createMediaStreamSource(micStream);
         micSourceRef.current = source;
         const node = new AudioWorkletNode(ctx, "recorder-processor");
@@ -522,6 +649,13 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
       } catch {
         setError("Could not access the microphone processor.");
         setStatus("error");
+        startInFlightRef.current = false;
+        return;
+      }
+
+      if (!stillCurrent()) {
+        startInFlightRef.current = false;
+        setStatus("idle");
         return;
       }
 
@@ -532,6 +666,11 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
         v.playsInline = true;
         v.srcObject = videoStream;
         await v.play().catch(() => {});
+        if (!stillCurrent()) {
+          startInFlightRef.current = false;
+          setStatus("idle");
+          return;
+        }
         frameVideoRef.current = v;
         frameCanvasRef.current = document.createElement("canvas");
         frameTimerRef.current = setInterval(sendFrame, FRAME_INTERVAL_MS);
@@ -545,9 +684,18 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
       const hasVideo = Boolean(videoStream && videoStream.getVideoTracks().length > 0);
       if (hasVideo) qs.set("video", videoSource ?? "1");
       qs.set("pv", "1"); // client protocol version (additive negotiation seam)
+
+      if (!stillCurrent() || wsRef.current) {
+        startInFlightRef.current = false;
+        if (!wsRef.current) setStatus("idle");
+        return;
+      }
+
       const ws = new WebSocket(wsUrl(`/ws/live/${mode}/${sessionId}?${qs.toString()}`));
       ws.binaryType = "arraybuffer";
+      // Set immediately so a concurrent start() is rejected.
       wsRef.current = ws;
+      startInFlightRef.current = false;
       ws.onmessage = handleMessage;
       ws.onerror = () => {
         setError("Connection error. The live AI engine may be busy — please retry.");
@@ -557,6 +705,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
         // Only treat a close as a clean end if the server actually sent the
         // final "ended" summary. A silent close means something failed —
         // never fabricate a completed 0% session out of it.
+        if (wsRef.current === ws) wsRef.current = null;
         setStatus((s) => {
           if (s === "ended" || s === "error") return s;
           if (endedReceivedRef.current) return "ended";
@@ -572,6 +721,9 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
 
   // ------------------------------ stop ---------------------------------- //
   const cleanup = useCallback(() => {
+    // Invalidate any in-flight start() so a remount cannot finish opening a 2nd socket.
+    startGenerationRef.current += 1;
+    startInFlightRef.current = false;
     if (frameTimerRef.current) clearInterval(frameTimerRef.current);
     frameTimerRef.current = null;
     if (speakingTimerRef.current) clearTimeout(speakingTimerRef.current);
@@ -591,6 +743,8 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     micSourceRef.current = null;
     captureCtxRef.current?.close().catch(() => {});
     captureCtxRef.current = null;
+    // Do not close playbackAudioContext handed from preflight if caller still owns it —
+    // still safe to close here for session teardown; preflight already transferred ownership.
     playbackCtxRef.current?.close().catch(() => {});
     playbackCtxRef.current = null;
     if (frameVideoRef.current) {
@@ -650,10 +804,10 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
   }, []);
 
   /**
-   * Pause the live session without ending it:
-   * - stops AI playback
-   * - stops sending mic audio
-   * - keeps the WebSocket open so Resume continues the same session
+   * Pause without ending the session.
+   * Freezes the AudioContext so AI speech that was mid-sentence continues
+   * from the same point on resume (do NOT stopPlayback — that discards audio).
+   * Mic stays off while paused; WebSocket stays open.
    */
   const pause = useCallback(() => {
     if (pausedRef.current) return;
@@ -661,17 +815,37 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     pausedRef.current = true;
     setPaused(true);
     setMicMuted(true);
-    stopPlayback();
     setAiSpeaking(false);
-  }, [stopPlayback]);
+    if (speakingTimerRef.current) {
+      clearTimeout(speakingTimerRef.current);
+      speakingTimerRef.current = null;
+    }
+    const ctx = playbackCtxRef.current;
+    if (ctx && ctx.state === "running") {
+      void ctx.suspend().catch(() => {});
+    }
+  }, []);
 
   const resume = useCallback(() => {
     if (!pausedRef.current) return;
     pausedRef.current = false;
     setPaused(false);
     setMicMuted(micMutedBeforePauseRef.current);
-    // Re-unlock playback in case the browser suspended the context while idle.
-    void playbackCtxRef.current?.resume().catch(() => {});
+    const ctx = playbackCtxRef.current;
+    if (!ctx) return;
+    void ctx
+      .resume()
+      .then(() => {
+        setAudioBlocked(ctx.state !== "running");
+        // If audio is still scheduled ahead of the clock, show "AI speaking".
+        const remaining = remainingPlaybackMs(playHeadRef.current, ctx.currentTime);
+        if (remaining > 50) {
+          setAiSpeaking(true);
+          if (speakingTimerRef.current) clearTimeout(speakingTimerRef.current);
+          speakingTimerRef.current = setTimeout(() => setAiSpeaking(false), remaining + 150);
+        }
+      })
+      .catch(() => setAudioBlocked(true));
   }, []);
 
   const togglePause = useCallback(() => {

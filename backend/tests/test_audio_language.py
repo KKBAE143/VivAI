@@ -108,3 +108,41 @@ def test_legacy_audio_data_stays_supported_without_double_forwarding():
     )
 
     assert _response_audio_chunks(response) == [b"legacy-pcm"]
+
+
+def test_base64_string_inline_audio_is_decoded():
+    """Some SDK/wire paths leave audio as base64 text — must not raise or drop."""
+    import base64
+
+    pcm = b"\x01\x02\x03\x04"
+    response = SimpleNamespace(
+        data=None,
+        server_content=SimpleNamespace(
+            model_turn=SimpleNamespace(
+                parts=[
+                    SimpleNamespace(
+                        inline_data=SimpleNamespace(
+                            data=base64.b64encode(pcm).decode("ascii"),
+                            mime_type="audio/pcm;rate=24000",
+                        )
+                    )
+                ]
+            )
+        ),
+    )
+    assert _response_audio_chunks(response) == [pcm]
+
+
+def test_non_audio_inline_parts_are_ignored():
+    response = SimpleNamespace(
+        data=None,
+        server_content=SimpleNamespace(
+            model_turn=SimpleNamespace(
+                parts=[
+                    SimpleNamespace(inline_data=SimpleNamespace(data=b"img", mime_type="image/jpeg")),
+                    SimpleNamespace(inline_data=SimpleNamespace(data=b"pcm-ok", mime_type="audio/pcm")),
+                ]
+            )
+        ),
+    )
+    assert _response_audio_chunks(response) == [b"pcm-ok"]

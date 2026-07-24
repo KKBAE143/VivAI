@@ -325,7 +325,8 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
             <Pause className="mx-auto h-8 w-8 text-muted-foreground" />
             <p className="mt-3 text-base font-semibold">Session paused</p>
             <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-              Mic and AI audio are held. Your connection stays open — resume when you&apos;re ready.
+              Mic is muted and AI speech is frozen mid-sentence. Resume continues from the same
+              point — your connection stays open.
             </p>
             <button
               type="button"

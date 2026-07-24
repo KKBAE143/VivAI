@@ -351,7 +351,7 @@ CRITICAL RULES:
 - ENDING THE SESSION: When the session is genuinely complete (you have covered enough and delivered your brief closing remark), you MUST call the `end_session` tool exactly once. This is what generates the student's report — do NOT just fall silent and wait. Speak your one-line closing, then call `end_session`.
 
 STRUCTURED LOGGING — MANDATORY, not optional (call these tools SILENTLY in the background — never read them aloud, never mention JSON, never let a tool call interrupt or delay your spoken turn):
-- `record_question`: REQUIRED every single time you ask the student a real question. Call it in the same turn as the question. Remember the question_id it returns.
+- `record_question`: REQUIRED every single time you ask the student a real question. Call it in the same turn as the question. Remember the question_id it returns. After the tool returns, stay SILENT until the student answers — do NOT greet again, do NOT re-ask the same question, do NOT re-introduce yourself.
 - `score_response`: REQUIRED right after you evaluate the student's answer to any recorded question — never move to the next question without scoring the previous one first. Pass question_id when you have it so the score attaches to the correct question.
 - `log_observation`: after each student turn, with a concise quote or concrete observed evidence.
 These tools are how the student's report and live feedback are built — skipping them means that moment is permanently lost from their feedback, not just delayed. Call them every time, exactly as specified, without exception."""
@@ -360,26 +360,20 @@ These tools are how the student's report and live feedback are built — skippin
 # Short user-role trigger that forces the model to produce its opening greeting
 # immediately (Live models stay silent until they receive a turn).
 _GREETING_TRIGGER = {
-    # Keep these conversational and explicit about SPOKEN output — overly
-    # mechanical "session start signal" phrasing made some Live models stay silent.
+    # Keep short — long triggers restate the system prompt and push the model
+    # into TWO spoken openings (hello+question, then hello+question again).
     "viva": (
-        "Please start the viva now. Speak out loud: say a short hello, introduce yourself "
-        "as the VivAI examiner in one sentence, then ask your first question. "
-        "If a CODEBASE KNOWLEDGE PACK is in context, first ask what the project is "
-        "(problem, users, goal) — do NOT ask about a specific file path. "
-        "One opening only — do not greet twice."
+        "Begin now in one short spoken reply only: hello + who you are, then your first question. "
+        "Then stop and wait. Do not speak a second opening."
     ),
     "presentation": (
-        "Please start now. Speak out loud: short greeting, then tell me when to begin presenting. "
-        "One opening only."
+        "Begin now in one short spoken reply only: hello, then invite them to present. Then stop and wait."
     ),
     "pitch": (
-        "Please start the pitch drill now. Speak out loud: short greeting, then give the challenge. "
-        "One opening only."
+        "Begin now in one short spoken reply only: hello, then give the pitch challenge. Then stop and wait."
     ),
     "coach": (
-        "Please start coaching now. Speak out loud: short greeting, name the scenario, and begin. "
-        "One opening only."
+        "Begin now in one short spoken reply only: hello, name the scenario, first prompt. Then stop and wait."
     ),
 }
 
@@ -753,31 +747,72 @@ def is_near_duplicate(a: str, b: str) -> bool:
     return len(shorter) > 8 and shorter in longer
 
 
+def _coerce_audio_bytes(raw) -> bytes | None:
+    """Normalize SDK audio payloads to raw PCM bytes. Never raises."""
+    if raw is None:
+        return None
+    if isinstance(raw, (bytes, bytearray, memoryview)):
+        b = bytes(raw)
+        return b or None
+    if isinstance(raw, str):
+        # Some wire/SDK paths leave base64 text instead of decoded bytes.
+        if not raw:
+            return None
+        try:
+            import base64
+
+            b = base64.b64decode(raw, validate=False)
+            return b or None
+        except Exception:
+            return None
+    try:
+        b = bytes(raw)
+        return b or None
+    except Exception:
+        return None
+
+
 def response_audio_chunks(response) -> list[bytes]:
     """Read Live audio from both SDK response layouts.
 
     Older ``google-genai`` releases exposed a convenience ``response.data``
-    attribute.  Current Live responses place the raw 24kHz PCM chunks in
-    ``server_content.model_turn.parts[].inline_data.data`` instead.  Output
-    transcription still arrives either way, which is why the UI could show AI
-    text while remaining silent.  Prefer the legacy convenience field when it
-    exists to avoid forwarding one chunk twice on SDKs that expose both.
-    """
-    legacy_data = getattr(response, "data", None)
-    if legacy_data:
-        return [bytes(legacy_data)]
+    attribute. On current SDKs that is a *property* that already concatenates
+    ``server_content.model_turn.parts[].inline_data.data``. Prefer it when
+    present so we never double-forward the same PCM to the browser (double
+    playback / garbled speech). Fall back to scanning model_turn parts when
+    ``data`` is empty — that is the layout that still yields transcription
+    while ``data`` is missing on some builds (UI text with silent speakers).
 
+    Always safe: bad/base64/odd payloads never raise into the receive loop.
+    """
+    # Prefer the convenience field / property when it has usable audio.
+    legacy = _coerce_audio_bytes(getattr(response, "data", None))
+    if legacy:
+        return [legacy]
+
+    chunks: list[bytes] = []
+    seen: set[int] = set()
     server_content = getattr(response, "server_content", None)
     model_turn = getattr(server_content, "model_turn", None)
-    chunks: list[bytes] = []
     for part in getattr(model_turn, "parts", None) or []:
         inline_data = getattr(part, "inline_data", None)
-        data = getattr(inline_data, "data", None)
+        data = _coerce_audio_bytes(getattr(inline_data, "data", None))
+        if not data:
+            continue
         mime_type = (getattr(inline_data, "mime_type", "") or "").lower()
-        # Live model turns can contain text/thought parts as well as audio.
-        # Only proxy audio bytes to the browser's PCM player.
-        if data and (not mime_type or mime_type.startswith("audio/")):
-            chunks.append(bytes(data))
+        # Live model turns can contain text/thought/image parts as well as audio.
+        # Only proxy audio (or untyped) bytes to the browser's PCM player.
+        if mime_type and not (
+            "audio" in mime_type
+            or mime_type.startswith("audio/")
+            or mime_type in ("application/octet-stream", "application/pcm")
+        ):
+            continue
+        key = hash(data)
+        if key in seen:
+            continue
+        seen.add(key)
+        chunks.append(data)
     return chunks
 
 
