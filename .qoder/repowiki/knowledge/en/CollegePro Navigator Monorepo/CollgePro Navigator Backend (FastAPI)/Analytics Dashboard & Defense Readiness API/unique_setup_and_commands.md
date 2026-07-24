@@ -1,0 +1,1 @@
+No build or test commands are defined in this scope; endpoints require an authenticated user (via `get_current_user`) and a configured Supabase connection through `core.database.get_supabase()`.

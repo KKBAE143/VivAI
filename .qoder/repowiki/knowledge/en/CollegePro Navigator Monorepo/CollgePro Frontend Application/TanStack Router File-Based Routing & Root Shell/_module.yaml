@@ -1,0 +1,23 @@
+schema_version: 1
+module_path: frontend/routing_entry
+title: TanStack Router File-Based Routing & Root Shell
+scope:
+    - src/router.tsx
+    - src/routeTree.gen.ts
+    - src/routes/__root.tsx
+    - src/routes/index.tsx
+    - src/routes/login.tsx
+    - src/routes/signup.tsx
+    - src/routes/onboarding.tsx
+    - src/routes/profile.tsx
+    - src/routes/leaderboard.tsx
+    - src/routes/progress.tsx
+    - src/routes/readiness.tsx
+    - src/routes/pitch-drill.tsx
+    - src/routes/files.tsx
+    - src/routes/ai.tsx
+    - src/routes/forgot-password.tsx
+    - src/routes/reset-password.tsx
+source_files: []
+depends_on: []
+related_to: []

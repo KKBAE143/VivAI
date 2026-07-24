@@ -75,3 +75,39 @@ def require_project_owner(project_id: str, user_id: str) -> dict:
     if project["owner_id"] != user_id:
         raise HTTPException(status_code=403, detail="Not your project")
     return project
+
+
+def require_consent(user: dict = Depends(get_current_user)) -> dict:
+    """Gate that ensures the user has accepted the current privacy policy.
+
+    Use on session-creating endpoints (viva start, presentation start, live WS).
+    Returns the user dict if consent is valid, raises 403 otherwise.
+    """
+    profile = user.get("profile") or {}
+    if not profile.get("consent_accepted_at"):
+        raise HTTPException(
+            status_code=403,
+            detail={"error": "consent_required", "message": "You must accept the Privacy Policy before starting a session."},
+        )
+    return user
+
+
+def require_admin(user: dict = Depends(get_current_user)) -> dict:
+    """Gate that ensures the user has an institutional admin or faculty role.
+
+    Used on all /api/institution/* routes. Returns user dict with institution_id
+    if authorized, raises 403 otherwise.
+    """
+    profile = user.get("profile") or {}
+    role = profile.get("role", "student")
+    if role not in ("faculty", "admin"):
+        raise HTTPException(
+            status_code=403,
+            detail={"error": "admin_required", "message": "Institutional admin or faculty access required."},
+        )
+    if not profile.get("institution_id"):
+        raise HTTPException(
+            status_code=403,
+            detail={"error": "no_institution", "message": "You are not linked to an institution."},
+        )
+    return user

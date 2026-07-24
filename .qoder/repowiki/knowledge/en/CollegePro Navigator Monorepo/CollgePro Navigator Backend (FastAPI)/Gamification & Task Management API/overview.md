@@ -1,0 +1,1 @@
+FastAPI endpoints and service layer that manage user XP/levels/streaks/badges gamification and project task CRUD with status transitions, reordering, and activity logging.

@@ -2,20 +2,40 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 
 from ai import gemini_service, prompts, viva_core
 from core.database import get_supabase
 from core.deps import get_current_user
 from models.schemas import PitchDrillSubmit
-from services import gamification_service, readiness_service
+from services import benchmark_service, gamification_service, readiness_service
 from services.activity_service import log_activity
 
 router = APIRouter(prefix="/api/readiness", tags=["readiness"])
 
 
+class ModelSwitch(BaseModel):
+    model: str  # v1 | v2
+
+
 @router.get("")
 def get_readiness(project_id: str | None = None, user=Depends(get_current_user)):
     return readiness_service.compute_readiness(user["id"], project_id)
+
+
+@router.put("/model")
+def switch_model(body: ModelSwitch, user=Depends(get_current_user)):
+    """Switch the user's active DRS model."""
+    if body.model not in ("v1", "v2"):
+        raise HTTPException(status_code=400, detail="Model must be 'v1' or 'v2'")
+    get_supabase().table("profiles").update({"drs_model": body.model}).eq("id", user["id"]).execute()
+    return {"ok": True, "model": body.model}
+
+
+@router.get("/benchmarks")
+def get_benchmarks(user=Depends(get_current_user)):
+    """Return the user's DRS percentile relative to peers."""
+    return benchmark_service.compute_benchmarks(user["id"])
 
 
 def _project_context(project_id: str | None) -> str:

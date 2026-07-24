@@ -21,6 +21,7 @@ import {
   Timer,
   Trophy,
   Video,
+  Building2,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTheme } from "@/lib/theme";
@@ -107,8 +108,10 @@ export function AppShell({
 function Sidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { logout } = useAuth();
+  const { data: profile } = useProfile();
   const navigate = useNavigate();
   const isActive = (to: string) => (to === "/" ? pathname === "/" : pathname.startsWith(to));
+  const isAdmin = profile?.role === "admin" || profile?.role === "faculty";
   return (
     <aside className="sticky top-6 hidden h-[calc(100vh-3rem)] w-[236px] shrink-0 flex-col justify-between overflow-y-auto rounded-3xl bg-card px-3 py-5 shadow-[var(--shadow-card)] lg:flex">
       <div>
@@ -146,6 +149,26 @@ function Sidebar() {
               </div>
             </div>
           ))}
+          {isAdmin && (
+            <div>
+              <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                Admin
+              </p>
+              <div className="flex flex-col gap-0.5">
+                <Link
+                  to="/admin"
+                  className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+                    isActive("/admin")
+                      ? "bg-foreground text-background"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  }`}
+                >
+                  <Building2 className="h-[18px] w-[18px] shrink-0" />
+                  Institution
+                </Link>
+              </div>
+            </div>
+          )}
         </nav>
       </div>
       <button
@@ -364,6 +387,8 @@ function pageTitle(pathname: string): string {
     "/teams": "Teams",
     "/files": "Files",
     "/profile": "Profile",
+    "/privacy": "Privacy Policy",
+    "/admin": "Institution Admin",
   };
   if (map[pathname]) return map[pathname];
   const match = Object.keys(map)

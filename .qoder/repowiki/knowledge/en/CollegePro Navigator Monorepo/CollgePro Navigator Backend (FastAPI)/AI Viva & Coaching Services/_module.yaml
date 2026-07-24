@@ -1,0 +1,16 @@
+schema_version: 1
+module_path: backend/ai_services
+title: AI Viva & Coaching Services
+scope:
+    - backend/ai/code_aware_viva.py
+    - backend/ai/gemini_service.py
+    - backend/ai/report_service.py
+    - backend/ai/sentiment_analyzer.py
+    - backend/ai/weakness_heatmap.py
+    - backend/ai/prompts.py
+    - backend/ai/registry.py
+    - backend/ai/viva_core.py
+    - backend/ai/delivery_metrics.py
+source_files: []
+depends_on: []
+related_to: []

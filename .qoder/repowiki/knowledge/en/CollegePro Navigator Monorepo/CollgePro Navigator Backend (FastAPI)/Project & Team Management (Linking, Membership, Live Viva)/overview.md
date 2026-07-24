@@ -1,0 +1,1 @@
+FastAPI routes and shared service for project CRUD, team membership/invites, project-team linking with pending-request workflow, and the AI-hosted live team viva WebSocket session.

@@ -1,0 +1,180 @@
+# 知识卡导出索引文件
+schema_version: 1
+locale: en-US
+branch: main
+nodes_managed: true
+exported_at: "2026-07-24T09:51:48Z"
+modules:
+    "":
+        dir_name: CollegePro Navigator Monorepo
+        title: CollegePro Navigator Monorepo
+        scope:
+            - README.md
+            - package.json
+            - tsconfig.json
+            - vite.config.ts
+            - bunfig.toml
+            - eslint.config.js
+            - .prettierrc
+            - .gitignore
+            - start-app.bat
+            - start-app.ps1
+            - components.json
+            - .prettierignore
+            - AGENTS.md
+            - PROMPT.md
+            - bun.lock
+        source_files: []
+        children:
+            - backend
+            - docs
+            - frontend
+        depends_on: []
+        related_to: []
+    backend:
+        dir_name: CollgePro Navigator Backend (FastAPI)
+        title: CollgePro Navigator Backend (FastAPI)
+        scope:
+            - backend/
+        source_files: []
+        children:
+            - backend/ai_services
+            - backend/analytics_readiness
+            - backend/files_catalog_templates
+            - backend/gamification_tasks
+            - backend/live_sessions
+            - backend/projects_teams
+        depends_on: []
+        related_to: []
+    backend/ai_services:
+        dir_name: AI Viva & Coaching Services
+        title: AI Viva & Coaching Services
+        scope:
+            - backend/ai/code_aware_viva.py
+            - backend/ai/gemini_service.py
+            - backend/ai/report_service.py
+            - backend/ai/sentiment_analyzer.py
+            - backend/ai/weakness_heatmap.py
+            - backend/ai/prompts.py
+            - backend/ai/registry.py
+            - backend/ai/viva_core.py
+            - backend/ai/delivery_metrics.py
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    backend/analytics_readiness:
+        dir_name: Analytics Dashboard & Defense Readiness API
+        title: Analytics Dashboard & Defense Readiness API
+        scope:
+            - backend/api/analytics.py
+            - backend/api/readiness.py
+            - backend/services/readiness_service.py
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    backend/files_catalog_templates:
+        dir_name: Files, Catalog & Presentation Practice APIs
+        title: Files, Catalog & Presentation Practice APIs
+        scope:
+            - backend/api/files.py
+            - backend/api/catalog.py
+            - backend/api/templates.py
+            - backend/api/presentation.py
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    backend/gamification_tasks:
+        dir_name: Gamification & Task Management API
+        title: Gamification & Task Management API
+        scope:
+            - backend/api/gamification.py
+            - backend/services/gamification_service.py
+            - backend/api/tasks.py
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    backend/live_sessions:
+        dir_name: Live AI Voice Sessions (Gemini Live Proxy & Team Viva)
+        title: Live AI Voice Sessions (Gemini Live Proxy & Team Viva)
+        scope:
+            - backend/api/live.py
+            - backend/api/viva.py
+            - backend/ai/live_service.py
+            - backend/ai/team_live_service.py
+            - backend/ai/team_room.py
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    backend/projects_teams:
+        dir_name: Project & Team Management (Linking, Membership, Live Viva)
+        title: Project & Team Management (Linking, Membership, Live Viva)
+        scope:
+            - backend/api/projects.py
+            - backend/api/team_live.py
+            - backend/api/teams.py
+            - backend/api/project_team.py
+            - backend/services/team_project_service.py
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    docs:
+        dir_name: VivAI Product Documentation & Strategy
+        title: VivAI Product Documentation & Strategy
+        scope:
+            - docs/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    frontend:
+        dir_name: CollgePro Frontend Application
+        title: CollgePro Frontend Application
+        scope:
+            - src/
+        source_files: []
+        children:
+            - frontend/components_business
+            - frontend/routing_entry
+        depends_on: []
+        related_to: []
+    frontend/components_business:
+        dir_name: Application Shell & Shared UI Chrome
+        title: Application Shell & Shared UI Chrome
+        scope:
+            - src/components/app-shell.tsx
+            - src/components/delivery-panel.tsx
+            - src/components/modal-shell.tsx
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    frontend/routing_entry:
+        dir_name: TanStack Router File-Based Routing & Root Shell
+        title: TanStack Router File-Based Routing & Root Shell
+        scope:
+            - src/router.tsx
+            - src/routeTree.gen.ts
+            - src/routes/__root.tsx
+            - src/routes/index.tsx
+            - src/routes/login.tsx
+            - src/routes/signup.tsx
+            - src/routes/onboarding.tsx
+            - src/routes/profile.tsx
+            - src/routes/leaderboard.tsx
+            - src/routes/progress.tsx
+            - src/routes/readiness.tsx
+            - src/routes/pitch-drill.tsx
+            - src/routes/files.tsx
+            - src/routes/ai.tsx
+            - src/routes/forgot-password.tsx
+            - src/routes/reset-password.tsx
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []

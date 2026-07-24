@@ -1,0 +1,1 @@
+FastAPI WebSocket proxy and Gemini Live engine that streams real-time voice + optional video between the browser and Google Gemini, powering solo viva/presentation/coach/pitch drills and multi-participant team vivas.

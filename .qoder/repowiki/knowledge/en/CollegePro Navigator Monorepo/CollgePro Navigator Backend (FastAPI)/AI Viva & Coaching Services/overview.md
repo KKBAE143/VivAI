@@ -1,0 +1,1 @@
+Backend AI layer that drives code-aware viva sessions, presentation coaching, sentiment analysis, delivery metrics, and evidence-constrained report generation via Google Gemini.

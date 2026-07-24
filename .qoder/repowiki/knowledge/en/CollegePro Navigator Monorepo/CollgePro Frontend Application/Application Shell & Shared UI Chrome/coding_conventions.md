@@ -1,0 +1,5 @@
+- Components accept their data via props and pull external state through custom hooks from `@/lib/*` rather than passing context down the tree.
+- UI feedback states follow a consistent pattern: show a loading placeholder while `isLoading`, return `null` when data is unavailable, otherwise render the content.
+- Navigation links use TanStack Router's `Link` component with `to` paths and derive active-state styling by comparing against `useRouterState({ select: s => s.location.pathname })`.
+- Reusable visual primitives (`Card`, `PageHeader`, `Badge`, `ModalShell`) are exported as named functions with explicit TypeScript prop types instead of inline JSX fragments.
+- Icons are imported from `lucide-react` and passed as components (e.g. `<Icon className=... />`) so they can be swapped per metric or menu item.

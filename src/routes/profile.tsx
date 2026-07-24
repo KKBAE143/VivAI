@@ -1,11 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Camera, LogOut, Bell, Lock, Globe, Sparkles } from "lucide-react";
+import { Camera, LogOut, Bell, Lock, Globe, Sparkles, Trash2, AlertTriangle, Gauge } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AppShell, Card, PageHeader, Badge } from "@/components/app-shell";
 import { ErrorState } from "@/components/error-state";
 import { CardSkeleton } from "@/components/loading-skeleton";
 import { useAuth, useRequireAuth } from "@/lib/auth-context";
 import { useProfile, useUpdateProfile } from "@/lib/hooks";
+import { useSwitchDrsModel } from "@/lib/hooks-features";
+import { api } from "@/lib/api";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
@@ -179,6 +181,34 @@ function Profile() {
           </div>
         </Card>
       </div>
+
+      {/* Readiness Model Preferences */}
+      <Card className="mt-5">
+        <div className="flex items-start gap-3">
+          <Gauge className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+          <div className="flex-1">
+            <h3 className="font-semibold">Readiness Model</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Choose how your Defense Readiness Score is calculated.
+            </p>
+            <DrsModelSelector currentModel={String(profile?.drs_model ?? "v1")} />
+          </div>
+        </div>
+      </Card>
+
+      {/* Danger Zone */}
+      <Card className="mt-5 border-destructive/20">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+          <div className="flex-1">
+            <h3 className="font-semibold text-destructive">Danger Zone</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Permanently erase all your sessions, transcripts, uploads, and scores. This action cannot be undone.
+            </p>
+            <DeleteDataButton />
+          </div>
+        </div>
+      </Card>
     </AppShell>
   );
 }
@@ -204,5 +234,123 @@ function Field({
         className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm disabled:bg-secondary disabled:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
       />
     </label>
+  );
+}
+
+function DrsModelSelector({ currentModel }: { currentModel: string }) {
+  const switchModel = useSwitchDrsModel();
+  const [selected, setSelected] = useState(currentModel);
+
+  useEffect(() => {
+    setSelected(currentModel);
+  }, [currentModel]);
+
+  const handleSwitch = (model: "v1" | "v2") => {
+    setSelected(model);
+    switchModel.mutate(model);
+  };
+
+  return (
+    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+      <button
+        onClick={() => handleSwitch("v1")}
+        className={`rounded-xl border p-4 text-left transition-colors ${
+          selected === "v1"
+            ? "border-primary bg-primary/5"
+            : "border-border hover:border-primary/40"
+        }`}
+      >
+        <div className="flex items-center gap-2">
+          <div className={`h-3 w-3 rounded-full border-2 ${selected === "v1" ? "border-primary bg-primary" : "border-muted-foreground"}`} />
+          <span className="text-sm font-semibold">Classic (v1)</span>
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Viva performance, Presentation skills, Topic coverage, Practice consistency, Project progress
+        </p>
+      </button>
+      <button
+        onClick={() => handleSwitch("v2")}
+        className={`rounded-xl border p-4 text-left transition-colors ${
+          selected === "v2"
+            ? "border-primary bg-primary/5"
+            : "border-border hover:border-primary/40"
+        }`}
+      >
+        <div className="flex items-center gap-2">
+          <div className={`h-3 w-3 rounded-full border-2 ${selected === "v2" ? "border-primary bg-primary" : "border-muted-foreground"}`} />
+          <span className="text-sm font-semibold">Defense Readiness Score (v2)</span>
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Technical Depth, Communication, Coverage, Confidence, Structure
+        </p>
+      </button>
+      {switchModel.isPending && <p className="text-xs text-muted-foreground sm:col-span-2">Switching model…</p>}
+    </div>
+  );
+}
+
+function DeleteDataButton() {
+  const [status, setStatus] = useState<"idle" | "confirming" | "deleting" | "done" | "error">("idle");
+
+  const handleDelete = async () => {
+    if (status === "idle") {
+      setStatus("confirming");
+      return;
+    }
+    if (status === "confirming") {
+      setStatus("deleting");
+      try {
+        await api("/api/privacy/delete-my-data", { method: "POST" });
+        setStatus("done");
+      } catch {
+        setStatus("error");
+      }
+    }
+  };
+
+  return (
+    <div className="mt-3">
+      {status === "idle" && (
+        <button
+          onClick={() => void handleDelete()}
+          className="inline-flex items-center gap-2 rounded-xl bg-destructive px-4 py-2.5 text-sm font-semibold text-destructive-foreground"
+        >
+          <Trash2 className="h-4 w-4" /> Delete All My Data
+        </button>
+      )}
+      {status === "confirming" && (
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-destructive">
+            Are you absolutely sure? All data will be permanently erased.
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => void handleDelete()}
+              className="rounded-xl bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground"
+            >
+              Yes, Delete Everything
+            </button>
+            <button
+              onClick={() => setStatus("idle")}
+              className="rounded-xl bg-secondary px-4 py-2 text-sm font-medium"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+      {status === "deleting" && <p className="text-sm text-muted-foreground">Deleting your data…</p>}
+      {status === "done" && (
+        <p className="text-sm font-medium text-success">Your data has been deleted. Your account has been anonymized.</p>
+      )}
+      {status === "error" && (
+        <div className="space-y-2">
+          <p className="text-sm text-destructive">Deletion failed. Please contact grievance@vivai.app</p>
+          <button onClick={() => setStatus("idle")} className="rounded-xl bg-secondary px-4 py-2 text-sm font-medium">
+            Try Again
+          </button>
+        </div>
+      )}
+    </div>
   );
 }

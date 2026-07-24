@@ -1,0 +1,4 @@
+- Route pages are colocated under `routes/<feature>/` with index and dynamic segments following TanStack Router's file-based conventions.
+- Shared UI primitives live in `components/ui/` and are composed by feature-specific components rather than being used directly in routes.
+- Cross-cutting state (auth, query client, theme) is provided through React context at the root shell (`__root.tsx`) and consumed via hooks from `lib/`.
+- Server-side error handling is centralized in a single middleware in `start.ts` that falls back to rendering an HTML error page.

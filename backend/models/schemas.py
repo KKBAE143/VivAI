@@ -198,6 +198,18 @@ class SentimentSessionCreate(BaseModel):
     duration_minutes: int = 10
 
 
+# ---------- Privacy / DPDP Compliance ----------
+class ConsentSubmit(BaseModel):
+    consent_type: str = "tos"  # tos | privacy | parental
+    is_minor: bool = False
+
+
+class DeletionStatusResponse(BaseModel):
+    status: str  # none | pending | processing | completed
+    requested_at: str | None = None
+    completed_at: str | None = None
+
+
 # ---------- Readiness: pitch drill ----------
 class PitchDrillSubmit(BaseModel):
     project_id: str | None = None

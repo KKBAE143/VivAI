@@ -1,0 +1,1 @@
+FastAPI routers with Pydantic schemas (`TaskCreate`, `TaskUpdate`, `TaskReorder`, `TaskStatusUpdate`) for request validation; Supabase client via `core.database.get_supabase()` for all persistence; Python `datetime`/`date` for streak computation.

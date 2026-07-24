@@ -1,0 +1,1 @@
+No build or setup steps required beyond the project's standard React tooling; components are imported directly by feature pages (e.g. `projects/$id.tsx` uses `ModalShell`).

@@ -23,6 +23,8 @@ function Signup() {
   const [branch, setBranch] = useState("CSE");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [agreedToConsent, setAgreedToConsent] = useState(false);
+  const [isMinor, setIsMinor] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
@@ -32,6 +34,10 @@ function Signup() {
   const handleSubmit = async () => {
     if (password !== confirmPassword) {
       setError("Passwords don't match");
+      return;
+    }
+    if (!agreedToConsent) {
+      setError("You must agree to the Terms of Service and Privacy Policy.");
       return;
     }
     setLoading(true);
@@ -45,6 +51,19 @@ function Signup() {
       }>("/api/auth/signup", { body: { name, email, password, college, year, branch } });
       if (res.access_token) {
         login(res.access_token, res.refresh_token ?? null);
+        // Record consent after successful signup
+        try {
+          await api("/api/privacy/consent", {
+            body: { consent_type: "tos", is_minor: isMinor },
+          });
+          if (isMinor) {
+            await api("/api/privacy/consent", {
+              body: { consent_type: "parental", is_minor: true },
+            });
+          }
+        } catch {
+          // Non-blocking: consent recorded server-side on next session start
+        }
         navigate({ to: "/onboarding" });
       } else {
         setInfo("Check your inbox to confirm your email, then sign in.");
@@ -98,6 +117,44 @@ function Signup() {
             </div>
             <Input label="Password" type="password" placeholder="Min 8 characters" value={password} onChange={(e) => setPassword(e.target.value)} />
             <Input label="Confirm Password" type="password" placeholder="Re-enter password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+
+            {/* Consent checkboxes */}
+            <div className="space-y-3 rounded-xl border border-border p-4">
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={agreedToConsent}
+                  onChange={(e) => setAgreedToConsent(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
+                />
+                <span className="text-sm text-muted-foreground">
+                  I agree to the{" "}
+                  <Link to="/privacy" className="font-medium text-primary hover:underline" target="_blank">
+                    Terms of Service
+                  </Link>{" "}
+                  and{" "}
+                  <Link to="/privacy" className="font-medium text-primary hover:underline" target="_blank">
+                    Privacy Policy
+                  </Link>
+                </span>
+              </label>
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={isMinor}
+                  onChange={(e) => setIsMinor(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
+                />
+                <span className="text-sm text-muted-foreground">I am under 18 years old</span>
+              </label>
+              {isMinor && (
+                <p className="rounded-lg bg-warning/10 px-3 py-2 text-xs text-warning">
+                  Parental/guardian consent is required. By signing up, you confirm that a parent or guardian
+                  has agreed to the Privacy Policy on your behalf.
+                </p>
+              )}
+            </div>
+
             {error && <p className="text-sm text-destructive">{error}</p>}
             {info && <p className="text-sm text-success">{info}</p>}
             <button

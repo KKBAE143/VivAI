@@ -29,6 +29,7 @@ export interface Readiness {
   score: number;
   band: "ready" | "almost" | "building" | "start";
   label: string;
+  model?: string;
   components: ReadinessComponent[];
   weak_topics: { topic: string; avg_score: number }[];
   viva_sessions: number;
@@ -36,9 +37,36 @@ export interface Readiness {
   actions: ReadinessAction[];
 }
 
+export interface Benchmarks {
+  available: boolean;
+  user_avg?: number;
+  percentile?: number;
+  peer_label?: string;
+  peer_description?: string;
+  college?: { name: string; avg: number; students: number };
+  branch?: { name: string; avg: number; count: number } | null;
+  year?: { name: string; avg: number; count: number } | null;
+  user_sessions?: number;
+}
+
 export function useReadiness(projectId?: string) {
   const suffix = projectId ? `?project_id=${encodeURIComponent(projectId)}` : "";
   return useAuthedQuery<Readiness>(["readiness", projectId ?? "all"], `/api/readiness${suffix}`);
+}
+
+export function useBenchmarks() {
+  return useAuthedQuery<Benchmarks>(["readiness", "benchmarks"], "/api/readiness/benchmarks");
+}
+
+export function useSwitchDrsModel() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (model: "v1" | "v2") =>
+      api<{ ok: boolean; model: string }>("/api/readiness/model", { method: "PUT", body: { model } }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["readiness"] });
+    },
+  });
 }
 
 // ---------- Gamification ----------
@@ -109,4 +137,85 @@ export interface DeliveryScorecard {
 
 export function useVivaDelivery(id: string) {
   return useAuthedQuery<DeliveryScorecard>(["viva-delivery", id], `/api/viva/sessions/${id}/delivery`, Boolean(id));
+}
+
+// ---------- Institution Admin ----------
+export interface InstitutionDashboard {
+  institution: {
+    name: string;
+    tier: string;
+    status: string;
+    seat_limit: number;
+    seats_used: number;
+  };
+  total_students: number;
+  active_this_week: number;
+  avg_drs: number;
+  avg_viva_score: number;
+  avg_pres_score: number;
+  total_vivas: number;
+  total_presentations: number;
+  readiness_distribution: Record<string, number>;
+  branch_breakdown: Record<string, number>;
+  year_breakdown: Record<string, number>;
+}
+
+export interface InstitutionStudent {
+  id: string;
+  full_name: string;
+  branch: string | null;
+  year: string | null;
+  drs_score: number;
+  drs_band: string;
+  drs_label: string;
+  viva_sessions: number;
+  avg_viva_score: number;
+  last_active: string | null;
+}
+
+export interface InstitutionStudentsResponse {
+  students: InstitutionStudent[];
+  total: number;
+  page: number;
+  per_page: number;
+}
+
+export interface InstitutionReadinessReport {
+  by_branch: { branch: string; avg_drs: number; students: number }[];
+  by_year: { year: string; avg_drs: number; students: number }[];
+  weak_topics: { topic: string; avg_score: number; questions: number }[];
+}
+
+export interface InstitutionWeakTopic {
+  topic: string;
+  avg_score: number;
+  question_count: number;
+}
+
+export function useInstitutionDashboard() {
+  return useAuthedQuery<InstitutionDashboard>(["institution", "dashboard"], "/api/institution/dashboard");
+}
+
+export function useInstitutionStudents(page = 1, branch?: string, year?: string) {
+  const params = new URLSearchParams({ page: String(page) });
+  if (branch) params.set("branch", branch);
+  if (year) params.set("year", year);
+  return useAuthedQuery<InstitutionStudentsResponse>(
+    ["institution", "students", String(page), branch ?? "", year ?? ""],
+    `/api/institution/students?${params}`,
+  );
+}
+
+export function useInstitutionReadinessReport() {
+  return useAuthedQuery<InstitutionReadinessReport>(["institution", "readiness-report"], "/api/institution/readiness-report");
+}
+
+export function useInstitutionWeakTopics() {
+  return useAuthedQuery<InstitutionWeakTopic[]>(["institution", "weak-topics"], "/api/institution/weak-topics");
+}
+
+export function useInstitutionInvite() {
+  return useMutation({
+    mutationFn: () => api<{ invite_code: string }>("/api/institution/invite", { method: "POST", body: {} }),
+  });
 }

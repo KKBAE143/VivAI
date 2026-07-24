@@ -16,8 +16,10 @@ from api import (
     catalog,
     files,
     gamification,
+    institution,
     live,
     presentation,
+    privacy,
     project_team,
     projects,
     readiness,
@@ -65,6 +67,8 @@ for router in (
     readiness.router,
     live.router,
     team_live.router,
+    privacy.router,
+    institution.router,
 ):
     app.include_router(router)
 

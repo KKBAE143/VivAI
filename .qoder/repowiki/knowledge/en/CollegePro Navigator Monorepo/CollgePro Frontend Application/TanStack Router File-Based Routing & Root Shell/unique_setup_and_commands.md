@@ -1,0 +1,1 @@
+Routes are declared as files under `src/routes/`; running the TanStack Router codegen regenerates `src/routeTree.gen.ts` to reflect any added/removed route files. The generated file must not be edited manually and should be excluded from linting/formatting.

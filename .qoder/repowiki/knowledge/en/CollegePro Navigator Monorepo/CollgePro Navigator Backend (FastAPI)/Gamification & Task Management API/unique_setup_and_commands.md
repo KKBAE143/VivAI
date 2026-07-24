@@ -1,0 +1,1 @@
+No special build or setup commands — routes are registered by importing the routers; the gamification service relies on migration 001 adding `xp`, `level`, `current_streak`, `longest_streak`, `last_activity_date` columns on `profiles` and an `achievements` table, but calls gracefully degrade when those columns are absent.

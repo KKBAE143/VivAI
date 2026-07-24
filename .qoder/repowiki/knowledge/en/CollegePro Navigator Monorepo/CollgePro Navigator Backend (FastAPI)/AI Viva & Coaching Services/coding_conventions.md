@@ -1,0 +1,5 @@
+- All LLM interactions go through `gemini_service.generate_json` / `generate_text` with system prompts sourced exclusively from `prompts.py` constants — no inline prompt strings in callers.
+- Model responses are always validated and clamped: numeric fields are bounded to 0–100, lists are truncated to fixed lengths, and invented file paths are filtered against the real file set before being accepted.
+- Scenario and persona metadata are defined as frozen `dataclass` objects in `registry.py` and exposed to the frontend only through dedicated `public_*` renderers that strip internal fields like rubrics and interaction policies.
+- Every Gemini call has a deterministic fallback path (e.g., `deterministic_knowledge_pack`, default dicts, or score capping) so the service remains functional when the free tier fails.
+- Evidence-referencing uses stable IDs (`turn_N` for transcript turns, explicit observation ids) collected upfront and revalidated through `_valid_evidence_refs` to prevent hallucinated citations in reports.

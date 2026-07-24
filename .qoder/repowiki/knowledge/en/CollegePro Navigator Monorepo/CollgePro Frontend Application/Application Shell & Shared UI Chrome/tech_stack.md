@@ -1,0 +1,1 @@
+React + TypeScript with TanStack Router for navigation, lucide-react for icons, and Tailwind CSS for styling. Auth and theme are consumed via context hooks from `@/lib/auth-context` and `@/lib/theme`.
