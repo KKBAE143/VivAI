@@ -14,6 +14,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ReadinessRouteImport } from './routes/readiness'
 import { Route as ProgressRouteImport } from './routes/progress'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PitchDrillRouteImport } from './routes/pitch-drill'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LoginRouteImport } from './routes/login'
@@ -28,6 +29,7 @@ import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
 import { Route as AiVivaIndexRouteImport } from './routes/ai-viva/index'
 import { Route as AiPresentationIndexRouteImport } from './routes/ai-presentation/index'
 import { Route as AdvancedIndexRouteImport } from './routes/advanced/index'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as TemplatesSlugRouteImport } from './routes/templates/$slug'
 import { Route as TeamsIdRouteImport } from './routes/teams/$id'
 import { Route as ProjectsNewRouteImport } from './routes/projects/new'
@@ -65,6 +67,11 @@ const ProgressRoute = ProgressRouteImport.update({
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PitchDrillRoute = PitchDrillRouteImport.update({
@@ -135,6 +142,11 @@ const AiPresentationIndexRoute = AiPresentationIndexRouteImport.update({
 const AdvancedIndexRoute = AdvancedIndexRouteImport.update({
   id: '/advanced/',
   path: '/advanced/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TemplatesSlugRoute = TemplatesSlugRouteImport.update({
@@ -215,6 +227,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/pitch-drill': typeof PitchDrillRoute
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/progress': typeof ProgressRoute
   '/readiness': typeof ReadinessRoute
@@ -229,6 +242,7 @@ export interface FileRoutesByFullPath {
   '/projects/new': typeof ProjectsNewRoute
   '/teams/$id': typeof TeamsIdRoute
   '/templates/$slug': typeof TemplatesSlugRoute
+  '/admin/': typeof AdminIndexRoute
   '/advanced/': typeof AdvancedIndexRoute
   '/ai-presentation/': typeof AiPresentationIndexRoute
   '/ai-viva/': typeof AiVivaIndexRoute
@@ -249,6 +263,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/pitch-drill': typeof PitchDrillRoute
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/progress': typeof ProgressRoute
   '/readiness': typeof ReadinessRoute
@@ -263,6 +278,7 @@ export interface FileRoutesByTo {
   '/projects/new': typeof ProjectsNewRoute
   '/teams/$id': typeof TeamsIdRoute
   '/templates/$slug': typeof TemplatesSlugRoute
+  '/admin': typeof AdminIndexRoute
   '/advanced': typeof AdvancedIndexRoute
   '/ai-presentation': typeof AiPresentationIndexRoute
   '/ai-viva': typeof AiVivaIndexRoute
@@ -284,6 +300,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/pitch-drill': typeof PitchDrillRoute
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/progress': typeof ProgressRoute
   '/readiness': typeof ReadinessRoute
@@ -298,6 +315,7 @@ export interface FileRoutesById {
   '/projects/new': typeof ProjectsNewRoute
   '/teams/$id': typeof TeamsIdRoute
   '/templates/$slug': typeof TemplatesSlugRoute
+  '/admin/': typeof AdminIndexRoute
   '/advanced/': typeof AdvancedIndexRoute
   '/ai-presentation/': typeof AiPresentationIndexRoute
   '/ai-viva/': typeof AiVivaIndexRoute
@@ -320,6 +338,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/pitch-drill'
+    | '/privacy'
     | '/profile'
     | '/progress'
     | '/readiness'
@@ -334,6 +353,7 @@ export interface FileRouteTypes {
     | '/projects/new'
     | '/teams/$id'
     | '/templates/$slug'
+    | '/admin/'
     | '/advanced/'
     | '/ai-presentation/'
     | '/ai-viva/'
@@ -354,6 +374,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/pitch-drill'
+    | '/privacy'
     | '/profile'
     | '/progress'
     | '/readiness'
@@ -368,6 +389,7 @@ export interface FileRouteTypes {
     | '/projects/new'
     | '/teams/$id'
     | '/templates/$slug'
+    | '/admin'
     | '/advanced'
     | '/ai-presentation'
     | '/ai-viva'
@@ -388,6 +410,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/pitch-drill'
+    | '/privacy'
     | '/profile'
     | '/progress'
     | '/readiness'
@@ -402,6 +425,7 @@ export interface FileRouteTypes {
     | '/projects/new'
     | '/teams/$id'
     | '/templates/$slug'
+    | '/admin/'
     | '/advanced/'
     | '/ai-presentation/'
     | '/ai-viva/'
@@ -423,6 +447,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
   PitchDrillRoute: typeof PitchDrillRoute
+  PrivacyRoute: typeof PrivacyRoute
   ProfileRoute: typeof ProfileRoute
   ProgressRoute: typeof ProgressRoute
   ReadinessRoute: typeof ReadinessRoute
@@ -437,6 +462,7 @@ export interface RootRouteChildren {
   ProjectsNewRoute: typeof ProjectsNewRoute
   TeamsIdRoute: typeof TeamsIdRoute
   TemplatesSlugRoute: typeof TemplatesSlugRoute
+  AdminIndexRoute: typeof AdminIndexRoute
   AdvancedIndexRoute: typeof AdvancedIndexRoute
   AiPresentationIndexRoute: typeof AiPresentationIndexRoute
   AiVivaIndexRoute: typeof AiVivaIndexRoute
@@ -484,6 +510,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pitch-drill': {
@@ -582,6 +615,13 @@ declare module '@tanstack/react-router' {
       path: '/advanced'
       fullPath: '/advanced/'
       preLoaderRoute: typeof AdvancedIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/templates/$slug': {
@@ -687,6 +727,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
   PitchDrillRoute: PitchDrillRoute,
+  PrivacyRoute: PrivacyRoute,
   ProfileRoute: ProfileRoute,
   ProgressRoute: ProgressRoute,
   ReadinessRoute: ReadinessRoute,
@@ -701,6 +742,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProjectsNewRoute: ProjectsNewRoute,
   TeamsIdRoute: TeamsIdRoute,
   TemplatesSlugRoute: TemplatesSlugRoute,
+  AdminIndexRoute: AdminIndexRoute,
   AdvancedIndexRoute: AdvancedIndexRoute,
   AiPresentationIndexRoute: AiPresentationIndexRoute,
   AiVivaIndexRoute: AiVivaIndexRoute,
