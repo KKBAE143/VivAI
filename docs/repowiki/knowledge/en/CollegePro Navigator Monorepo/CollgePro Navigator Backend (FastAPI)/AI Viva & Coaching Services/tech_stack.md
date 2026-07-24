@@ -1,0 +1,1 @@
+Google Gemini SDK (`google-genai`) with models `gemini-2.0-flash` for both text and vision; Supabase client via `core.database.get_supabase` for persistence; pure-Python regex/statistics for deterministic delivery metrics; no external ML libraries beyond the Gemini client.

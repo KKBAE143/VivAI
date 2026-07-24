@@ -1,0 +1,4 @@
+- Frontend feature pages live under `src/app/routes/*` following TanStack file-based routing conventions.
+- Backend endpoints are organized by domain under `backend/app/api/v1/endpoints/` with separate routers per feature.
+- Environment variables are kept in `.env` files per service (backend `.env`, frontend `.env.local`) rather than inline.
+- Database changes are additive, idempotent SQL migrations applied through the Supabase SQL editor rather than ORM auto-migrate.

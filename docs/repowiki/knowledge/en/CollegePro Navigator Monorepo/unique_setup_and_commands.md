@@ -1,0 +1,1 @@
+Run `bun install` then `bun run dev` from the repo root for the frontend (port 3000); start the backend separately with `cd backend && python -m venv .venv && pip install -r requirements.txt && uvicorn main:app --reload --port 8000`. Apply DB schema/migrations in Supabase SQL editor in order: `supabase_schema.sql`, `001_platform_enhancement.sql`, `002_quality_upgrade.sql`.

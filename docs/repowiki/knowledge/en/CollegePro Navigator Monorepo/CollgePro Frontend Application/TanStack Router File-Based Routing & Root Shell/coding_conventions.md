@@ -1,0 +1,4 @@
+- Each route file exports a named `Route` created via `createFileRoute("/<path>")({...})` with both `head` (meta/og/twitter tags) and `component` properties co-located.
+- Global app state (QueryClient, theme, auth) is provided at the root route via `createRootRouteWithContext` and consumed inside route components through `Route.useRouteContext()` or React context hooks rather than prop drilling.
+- Navigation between pages uses the typed `<Link to="..." params={{...}}>` component from TanStack Router instead of programmatic navigation or raw hrefs.
+- SEO metadata is defined per-route in the `head` option of `createFileRoute`, mirroring the root route's pattern of setting title, description, and OpenGraph/Twitter cards.

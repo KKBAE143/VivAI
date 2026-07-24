@@ -1,0 +1,1 @@
+Requires a `gemini_api_key` configured through `core.config.get_settings()`; the Gemini client is lazily instantiated and cached in a module-level `_client` singleton. Free-tier constraints are enforced via hard character caps (`MAX_TOTAL_CHARS=60000`, `LIVE_BRIEF_MAX_CHARS=4500`) and retry-attempt limits on JSON generation.

@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: frontend/components_business
+title: Application Shell & Shared UI Chrome
+scope:
+    - src/components/app-shell.tsx
+    - src/components/delivery-panel.tsx
+    - src/components/modal-shell.tsx
+source_files: []
+depends_on: []
+related_to: []

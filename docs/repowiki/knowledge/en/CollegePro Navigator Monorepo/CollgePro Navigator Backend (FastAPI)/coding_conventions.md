@@ -1,0 +1,5 @@
+- Each feature exposes a FastAPI `router` object imported and included centrally in `main.py` rather than mounting sub-apps.
+- Shared dependencies (DB session, settings, current user) are resolved through `core/deps.py` dependency functions injected into route handlers.
+- Pydantic models in `models/schemas.py` define the single source of truth for request/response shapes reused across API routes and services.
+- AI capabilities are implemented as pluggable services in `ai/` registered through `ai/registry.py` and invoked by API routes without direct Gemini coupling.
+- Errors are raised as typed exceptions caught by `core/errors.CatchAllErrorMiddleware` instead of ad-hoc HTTP responses.

@@ -1,0 +1,1 @@
+FastAPI + Pydantic for request/response validation, Supabase as the Postgres-backed datastore, Google Gemini SDK for AI services, WebSocket for live voice streaming, pytest with hypothesis for testing, and dotenv for configuration.

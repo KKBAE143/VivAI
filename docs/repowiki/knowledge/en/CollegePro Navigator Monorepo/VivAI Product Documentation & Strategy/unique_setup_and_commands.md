@@ -1,0 +1,1 @@
+No build or setup required — all files are plain text/markdown and can be viewed directly in any browser or markdown renderer. The HTML document is fully self-contained and can be opened locally without a server.

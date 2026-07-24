@@ -29,9 +29,10 @@ AI-powered companion app for college students — projects, teams, AI Mock Viva,
 │   ├── tests/            # pytest suite (backend/tests, run via backend/pytest.ini)
 │   ├── main.py           # FastAPI entry
 │   ├── supabase_schema.sql
-│   ├── migrations/       # 001_platform_enhancement.sql, 002_quality_upgrade.sql — run in order in Supabase SQL editor
+│   ├── migrations/       # 001–006 SQL migrations — run in order in Supabase SQL editor
 │   └── .env.example      # copy to .env and fill in
 ├── docs/                 # QUALITY-UPGRADE.md + architecture / API / setup / deployment notes
+│   └── repowiki/         # Auto-generated codebase wiki — architecture, modules, API ref, knowledge cards
 ├── vite.config.ts        # Nitro + TanStack Router plugin + Cloudflare preset
 └── package.json          # bun-based
 ```
@@ -88,3 +89,19 @@ pytest
 - `WS /ws/live/{mode}/{session_id}` — real-time voice engine shared by Viva, Presentation, Pitch and Coach (`backend/api/live.py`); persists timestamped transcripts + evidence-backed observations to `session_events` and writes a structured `report` JSON on session completion
 - `/api/college-predictor`, `/api/weakness-heatmap`
 - `/api/advanced/*` — advanced features (bridge, etc.)
+- `/api/privacy/*` — DPDP consent (log, status), data deletion (request, status), policy, grievance
+- `/api/institution/*` — admin dashboard, students, readiness-report, weak-topics, invite, export (requires faculty/admin role)
+- `/api/readiness/model` — PUT to switch DRS model (v1/v2); `/api/readiness/benchmarks` — peer percentile comparison
+
+## Documentation
+
+Detailed codebase documentation lives in `docs/repowiki/`:
+
+- `docs/repowiki/Architecture Overview/` — system design, backend/frontend architecture, database schema
+- `docs/repowiki/AI Services/` — Gemini integration, viva engine, sentiment analysis, code-aware intelligence
+- `docs/repowiki/API Reference/` — per-module API docs (auth, projects, teams, files, analytics, gamification, live)
+- `docs/repowiki/Features & Modules/` — feature breakdowns (viva, presentation, project mgmt, team collaboration)
+- `docs/repowiki/Frontend Application/` — routing, state management, component architecture, UI library
+- `docs/repowiki/Real-Time Collaboration/` — WebSocket layer, live session management, state sync
+- `docs/repowiki/knowledge/` — module-level knowledge cards (tech stack, coding conventions, build system, config)
+- Top-level: `Getting Started.md`, `Database Design.md`, `Security & Authentication.md`, `Testing Strategy.md`, `Deployment & DevOps.md`

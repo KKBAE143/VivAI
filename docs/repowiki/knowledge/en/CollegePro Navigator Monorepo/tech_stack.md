@@ -1,0 +1,1 @@
+Bun (package manager/runtime), Vite + TanStack Start/Router + React 19 on the frontend; FastAPI + Uvicorn + Supabase SDK + Google Gemini API on the backend; shared TypeScript config via `tsconfig.json` and ESLint/Prettier across the repo.

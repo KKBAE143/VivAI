@@ -1,0 +1,1 @@
+FastAPI `APIRouter` + Pydantic models (`AskRequest`, `PresentationAnswer`, `PresentationSessionCreate`), Supabase client for both Postgres tables and Storage buckets, Google Gemini via `ai.gemini_service` for multimodal slide analysis and JSON/text generation, UUID-based storage paths, ISO timestamps with UTC timezone.

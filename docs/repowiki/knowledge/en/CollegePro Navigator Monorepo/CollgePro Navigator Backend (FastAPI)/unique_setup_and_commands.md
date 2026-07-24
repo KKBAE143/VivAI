@@ -1,0 +1,1 @@
+Run with `python main.py` after setting up `.env` from `.env.example`; tests executed via `pytest` using `pytest.ini`; database schema applied through `supabase_schema.sql` and incremental migrations under `migrations/`.

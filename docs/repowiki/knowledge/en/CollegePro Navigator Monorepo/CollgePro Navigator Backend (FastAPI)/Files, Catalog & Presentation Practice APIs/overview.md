@@ -1,0 +1,1 @@
+FastAPI routers for file upload/download via Supabase Storage, public catalog endpoints for scenarios/personas, static template content, and an AI-driven presentation mock session with slide analysis and examiner Q&A.

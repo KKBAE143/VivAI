@@ -1,0 +1,1 @@
+React with TanStack Router (file-based routing via `routeTree.gen.ts`), TanStack Start for SSR/middleware, TanStack React Query for data fetching, and shadcn/ui primitives under `components/ui/`.

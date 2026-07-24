@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: backend/gamification_tasks
+title: Gamification & Task Management API
+scope:
+    - backend/api/gamification.py
+    - backend/services/gamification_service.py
+    - backend/api/tasks.py
+source_files: []
+depends_on: []
+related_to: []

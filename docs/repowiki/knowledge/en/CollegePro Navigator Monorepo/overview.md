@@ -1,0 +1,1 @@
+Single-repo full-stack application combining a TanStack Start/React frontend, a FastAPI backend with Supabase and Gemini AI, and internal product documentation under one Bun-managed workspace.

@@ -1,0 +1,5 @@
+- Each module defines a single `APIRouter(prefix="/api/<tag>", tags=["<tag>"])` and mounts it under the shared `/api` namespace.
+- User identity is enforced uniformly via `Depends(get_current_user)` injected as a function parameter on every protected endpoint.
+- Supabase queries follow a consistent pattern: `get_supabase().table("<table>").select("*").eq(...).order(...).execute().data` with `.data[0]` access after existence checks.
+- 404 responses are raised explicitly with `HTTPException(status_code=404, detail="... not found")` rather than returning empty lists.
+- Side effects such as activity logging and gamification rewards are invoked at the end of state-changing endpoints via `log_activity(user_id, event, message, project_id, resource_type, resource_id)` and `gamification_service.award_xp`.

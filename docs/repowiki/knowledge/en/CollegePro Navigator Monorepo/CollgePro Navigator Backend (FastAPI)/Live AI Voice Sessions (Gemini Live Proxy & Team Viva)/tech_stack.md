@@ -1,0 +1,1 @@
+Google GenAI SDK (`google.genai`) Live Realtime API with native-audio models (`gemini-3.1-flash-live-preview`, `gemini-2.5-flash-live-preview`), FastAPI `WebSocket` for bidirectional streaming, Supabase for persistence, and `google.genai.types.LiveConnectConfig` for speech config (voice, input/output transcription, realtime activity detection).

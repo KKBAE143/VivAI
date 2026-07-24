@@ -1,0 +1,5 @@
+- Route handlers accept authentication via `Depends(get_current_user)` and enforce ownership through `require_project_owner(project_id, user['id'])` before any data access.
+- All Supabase queries are wrapped in try/except blocks that return empty defaults or None, making the code resilient to missing migrations or tables.
+- Side effects such as activity tracking and XP awarding are delegated to dedicated service functions (`log_activity`, `award_xp`) rather than performed inline in route handlers.
+- Request bodies use Pydantic models from `models.schemas` and are serialized with `model_dump(exclude_none=True)` for creation and `model_dump(exclude_unset=True)` for partial updates.
+- Constants defining business rules (XP rewards, badge definitions, allowed statuses, sort order step) are declared as module-level constants near the top of each file.

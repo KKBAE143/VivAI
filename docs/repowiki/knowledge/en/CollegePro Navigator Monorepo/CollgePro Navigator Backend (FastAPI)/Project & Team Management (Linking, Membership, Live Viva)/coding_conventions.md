@@ -1,0 +1,5 @@
+- Route handlers authenticate users via `Depends(get_current_user)` and enforce ownership or membership by calling `require_project_owner(project_id, user['id'])` or a local `_membership(team_id, profile_id)` helper before touching data.
+- Database mutations are performed through `get_supabase().table(...).select/update/delete/insert(...).eq(...).execute()` and results are accessed via `.data[0]` rather than ORM models.
+- Every state-changing route records an audit entry by calling `log_activity(actor_id, verb, message, project_id, 'project'|'team', id, team_id=...)` from `services.activity_service`.
+- Concurrent-write races (unique-constraint violations on joins and request submissions) are handled by catching `Exception`, inspecting the error text via `_is_unique_violation`, and returning an idempotent success response instead of raising.
+- Optional legacy features (the `create_team_with_lead` RPC) are wrapped in try/except blocks that detect missing-function errors via `_rpc_is_missing` and fall back to equivalent table writes.

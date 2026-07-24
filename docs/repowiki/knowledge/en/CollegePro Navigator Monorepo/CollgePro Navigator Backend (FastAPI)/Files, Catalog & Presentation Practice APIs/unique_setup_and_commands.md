@@ -1,0 +1,1 @@
+Requires a Supabase project with a `files` table and a configured `storage_bucket` (from `core.config.get_settings().storage_bucket`); presentation sessions rely on a `presentation_sessions` table with a `topic_scores` JSON column. No build step — routers are imported by the application's main FastAPI app.
