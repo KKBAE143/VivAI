@@ -1,1 +1,0 @@
-Internal product documentation for VivAI covering the problem statement, platform overview, quality-upgrade retrospective, pilot outreach deck, and strategic business plan for Indian engineering college adoption.

@@ -1,0 +1,1 @@
+Provides the application layout shell with sidebar/topbar/mobile navigation, a reusable centered modal dialog wrapper, and a delivery scorecard panel that visualizes viva/presentation performance metrics.

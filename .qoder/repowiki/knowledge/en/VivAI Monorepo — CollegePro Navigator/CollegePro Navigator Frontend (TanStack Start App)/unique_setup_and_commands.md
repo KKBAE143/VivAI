@@ -1,0 +1,1 @@
+Entry point is `src/start.ts` exporting a `startInstance` created via `createStart`; the router factory in `src/router.tsx` constructs the TanStack Router with a shared `QueryClient` injected as router context.

@@ -1,1 +1,0 @@
-React + TanStack Router/Start frontend that wires file-based routes, shared UI components, and feature-specific pages behind a global QueryClient and Auth context.

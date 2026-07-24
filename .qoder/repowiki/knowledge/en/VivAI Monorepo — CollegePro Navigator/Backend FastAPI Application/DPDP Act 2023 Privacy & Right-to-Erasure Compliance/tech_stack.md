@@ -1,0 +1,1 @@
+FastAPI `APIRouter` with Supabase Python client; PostgreSQL-backed Supabase Storage (`sb.storage.from_('uploads').remove(...)`) for file/blob deletion alongside relational rows.

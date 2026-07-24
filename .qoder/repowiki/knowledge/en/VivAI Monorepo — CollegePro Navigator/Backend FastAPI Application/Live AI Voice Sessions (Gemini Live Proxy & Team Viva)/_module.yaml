@@ -1,0 +1,13 @@
+schema_version: 1
+module_path: backend/live_sessions
+title: Live AI Voice Sessions (Gemini Live Proxy & Team Viva)
+scope:
+    - backend/api/live.py
+    - backend/api/viva.py
+    - backend/ai/live_service.py
+    - backend/ai/team_live_service.py
+    - backend/ai/team_room.py
+source_files: []
+depends_on: []
+related_to:
+    - path: frontend/routing_entry

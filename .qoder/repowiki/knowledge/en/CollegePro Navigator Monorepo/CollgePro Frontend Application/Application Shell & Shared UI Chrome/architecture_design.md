@@ -1,5 +1,0 @@
-Three independent React components with no internal dependencies between them:
-- `app-shell.tsx` is the primary layout container. It renders either a full sidebar+topbar layout or a wide mode (sidebar hidden) via a `wide` prop, and exports shared chrome primitives (`Card`, `PageHeader`, `Badge`) used across feature pages. Navigation is driven by TanStack Router (`useRouterState`, `Link`, `useNavigate`) and auth state comes from `@/lib/auth-context` and `@/lib/hooks`.
-- `delivery-panel.tsx` is a self-contained scorecard component that fetches analysis data through the `useVivaDelivery` hook from `@/lib/hooks-features` and renders pace/fluency/clarity cards plus filler-word tips; it silently hides when no transcript data is available.
-- `modal-shell.tsx` is a minimal centered-dialog wrapper extracted to avoid duplicated modal code across features.
-All three depend only on `lucide-react` for icons and Tailwind utility classes — there is no cross-import between these files, keeping each composable as a leaf UI building block.

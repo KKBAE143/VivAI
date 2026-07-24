@@ -1,0 +1,1 @@
+FastAPI application that wires AI viva, live voice sessions, project/team management, analytics, gamification, and file/catalog services around a shared Supabase-backed data layer.

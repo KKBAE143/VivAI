@@ -1,0 +1,1 @@
+Documentation authored in Markdown and one self-contained HTML document (`platform-overview.html`) using DM Sans + Instrument Serif fonts from Google Fonts; the HTML uses CSS custom properties, CSS Grid, and vanilla JavaScript with no build step.

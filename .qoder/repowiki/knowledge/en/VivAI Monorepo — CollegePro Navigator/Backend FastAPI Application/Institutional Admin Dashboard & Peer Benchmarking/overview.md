@@ -1,0 +1,1 @@
+FastAPI endpoints and services that power the institutional admin dashboard (cohort analytics, readiness reports, weak topics, student listing, CSV export) and compute peer-benchmarked DRS percentiles relative to a college's branch and year cohorts.

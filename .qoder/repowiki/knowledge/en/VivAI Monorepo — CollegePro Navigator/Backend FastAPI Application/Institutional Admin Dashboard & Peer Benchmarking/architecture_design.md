@@ -1,0 +1,6 @@
+Three cooperating files implement the institutional admin feature set:
+- `backend/api/institution.py` defines a FastAPI `APIRouter` under `/api/institution` with endpoints (`/dashboard`, `/students`, `/readiness-report`, `/weak-topics`, `/invite`, `/export`) all gated by `require_admin`. Each endpoint resolves the caller's institution via `_get_institution_id` + `_get_institution`, then batches Supabase queries in 50-row chunks using `.in_()` to avoid query-size limits.
+- `backend/services/benchmark_service.py` is a stateless service exposing `compute_benchmarks(uid)` which aggregates completed viva scores across a college, computes per-student averages, and returns a percentile plus peer labels. It uses an in-process LRU-style dict cache keyed by college name with a 1-hour TTL.
+- `backend/migrations/006_institutional.sql` is the additive, idempotent schema migration that introduces the `profiles.role` enum (`student|faculty|admin`), `profiles.institution_id`, `institutions`, `institution_members`, and the `profiles.drs_model` column for hybrid DRS model selection.
+
+Dependency direction: API layer depends on `core.database.get_supabase`, `core.deps.require_admin`, and `services.readiness_service`; benchmark service depends only on `core.database.get_supabase`. No cross-imports between the three files keep concerns separated.

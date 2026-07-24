@@ -1,0 +1,4 @@
+- Route registration uses TanStack Router's `createFileRoute(path)({ head, component })` shape instead of a separate router config file.
+- Server data is consumed exclusively through feature-scoped hooks from `@/lib/hooks-features`; this route never calls `api()` for reads.
+- Client-only mutations (export CSV, generate invite code) invoke the raw `api()` client directly and handle the result imperatively inside the component.
+- Role-based gating is performed synchronously at render time by reading `profile.role` and calling `navigate()`, returning `null` to avoid rendering protected content during redirect.

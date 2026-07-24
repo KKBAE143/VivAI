@@ -1,0 +1,1 @@
+React + TanStack Start application that wires file-based routes, shared shadcn/ui primitives, feature components, and cross-cutting contexts into a single SSR-capable SPA.

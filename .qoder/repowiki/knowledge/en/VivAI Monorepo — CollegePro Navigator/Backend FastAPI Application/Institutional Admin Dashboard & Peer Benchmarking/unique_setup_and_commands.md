@@ -1,0 +1,1 @@
+The database schema must be applied via the Supabase SQL editor after running `005_dpdp_compliance.sql`; the migration is explicitly marked additive, idempotent, and forward-compatible with `IF EXISTS` / `IF NOT EXISTS` guards.

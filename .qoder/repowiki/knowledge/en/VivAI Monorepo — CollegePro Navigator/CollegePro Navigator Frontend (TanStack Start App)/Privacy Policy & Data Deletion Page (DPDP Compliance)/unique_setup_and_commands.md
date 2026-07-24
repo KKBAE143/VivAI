@@ -1,0 +1,1 @@
+No build or setup steps are required beyond the standard project bootstrap. The route is automatically picked up by TanStack Router's file-based convention at `src/routes/privacy.tsx`.

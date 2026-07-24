@@ -1,0 +1,4 @@
+- Policy and consent versioning is centralized as module-level constants (`POLICY_VERSION`, `PRIVACY_POLICY`) referenced by both the consent submission and status endpoints instead of being stored in the database.
+- Deletion operations wrap each table delete in its own try/except with `logger.warning`, so a failure on one table does not abort the cascade and the overall request can still reach 'completed' or be left in 'processing' for manual review.
+- Optional or future tables (e.g. `session_events`, `flashcards`, `bridge_gaps`) are deleted inside bare try/except blocks that silently pass, making the migration forward-compatible without requiring every table to exist.
+- Supabase queries guard against empty results with `.execute().data or []` before iterating, avoiding NoneType errors when a profile has no child rows.

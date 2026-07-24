@@ -1,0 +1,6 @@
+- Each router file defines a single `APIRouter` with an explicit `prefix` and `tags` parameter, keeping endpoints namespaced under `/api/analytics` and `/api/readiness`.
+- Authentication is injected uniformly through `Depends(get_current_user)` and the resolved user dict is accessed by key (e.g. `user['id']`, `user.get('profile')`).
+- Supabase queries are written as chained method calls on `get_supabase().table(...).select(...).eq(...).execute().data`, with `.or []` fallbacks to handle empty results.
+- Database operations are wrapped in try/except blocks that silently fall back to simpler queries when optional columns (e.g. `xp`, `current_streak`) do not exist yet, ensuring backward compatibility.
+- Composite scores are computed from named `WEIGHTS_V1`/`WEIGHTS_V2` dictionaries whose values sum to 1.0, with component labels stored in parallel `_LABELS` mappings (`V1_LABELS`, `V2_LABELS`).
+- Dual-model architecture is implemented by separating `_compute_v1` and `_compute_v2` functions sharing a common `_gather_data` helper, with model selection driven by the user's `profiles.drs_model` field defaulting to `v1`.

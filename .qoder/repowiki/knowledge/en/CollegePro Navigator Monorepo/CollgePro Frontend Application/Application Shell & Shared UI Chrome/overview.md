@@ -1,1 +1,0 @@
-Provides the app-wide layout shell (sidebar, top bar, mobile nav), a reusable modal dialog wrapper, and a delivery scorecard panel that visualizes viva/presentation performance metrics.

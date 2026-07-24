@@ -3,11 +3,11 @@ schema_version: 1
 locale: en-US
 branch: main
 nodes_managed: true
-exported_at: "2026-07-24T09:51:48Z"
+exported_at: "2026-07-24T10:09:26Z"
 modules:
     "":
-        dir_name: CollegePro Navigator Monorepo
-        title: CollegePro Navigator Monorepo
+        dir_name: VivAI Monorepo — CollegePro Navigator
+        title: VivAI Monorepo — CollegePro Navigator
         scope:
             - README.md
             - package.json
@@ -32,16 +32,18 @@ modules:
         depends_on: []
         related_to: []
     backend:
-        dir_name: CollgePro Navigator Backend (FastAPI)
-        title: CollgePro Navigator Backend (FastAPI)
+        dir_name: Backend FastAPI Application
+        title: Backend FastAPI Application
         scope:
             - backend/
         source_files: []
         children:
             - backend/ai_services
             - backend/analytics_readiness
+            - backend/dpdp_privacy
             - backend/files_catalog_templates
             - backend/gamification_tasks
+            - backend/institutional_admin
             - backend/live_sessions
             - backend/projects_teams
         depends_on: []
@@ -64,8 +66,8 @@ modules:
         depends_on: []
         related_to: []
     backend/analytics_readiness:
-        dir_name: Analytics Dashboard & Defense Readiness API
-        title: Analytics Dashboard & Defense Readiness API
+        dir_name: Analytics Dashboard & Defense Readiness Scoring API
+        title: Analytics Dashboard & Defense Readiness Scoring API
         scope:
             - backend/api/analytics.py
             - backend/api/readiness.py
@@ -73,7 +75,21 @@ modules:
         source_files: []
         children: []
         depends_on: []
-        related_to: []
+        related_to:
+            - path: frontend/components_business
+            - path: frontend/routing_entry
+    backend/dpdp_privacy:
+        dir_name: DPDP Act 2023 Privacy & Right-to-Erasure Compliance
+        title: DPDP Act 2023 Privacy & Right-to-Erasure Compliance
+        scope:
+            - backend/api/privacy.py
+            - backend/services/deletion_service.py
+            - backend/migrations/005_dpdp_compliance.sql
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: frontend/routes_privacy
     backend/files_catalog_templates:
         dir_name: Files, Catalog & Presentation Practice APIs
         title: Files, Catalog & Presentation Practice APIs
@@ -85,7 +101,8 @@ modules:
         source_files: []
         children: []
         depends_on: []
-        related_to: []
+        related_to:
+            - path: frontend/routing_entry
     backend/gamification_tasks:
         dir_name: Gamification & Task Management API
         title: Gamification & Task Management API
@@ -96,7 +113,20 @@ modules:
         source_files: []
         children: []
         depends_on: []
-        related_to: []
+        related_to:
+            - path: frontend/routing_entry
+    backend/institutional_admin:
+        dir_name: Institutional Admin Dashboard & Peer Benchmarking
+        title: Institutional Admin Dashboard & Peer Benchmarking
+        scope:
+            - backend/api/institution.py
+            - backend/services/benchmark_service.py
+            - backend/migrations/006_institutional.sql
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: frontend/routes_admin
     backend/live_sessions:
         dir_name: Live AI Voice Sessions (Gemini Live Proxy & Team Viva)
         title: Live AI Voice Sessions (Gemini Live Proxy & Team Viva)
@@ -109,7 +139,8 @@ modules:
         source_files: []
         children: []
         depends_on: []
-        related_to: []
+        related_to:
+            - path: frontend/routing_entry
     backend/projects_teams:
         dir_name: Project & Team Management (Linking, Membership, Live Viva)
         title: Project & Team Management (Linking, Membership, Live Viva)
@@ -122,7 +153,8 @@ modules:
         source_files: []
         children: []
         depends_on: []
-        related_to: []
+        related_to:
+            - path: frontend/routing_entry
     docs:
         dir_name: VivAI Product Documentation & Strategy
         title: VivAI Product Documentation & Strategy
@@ -133,19 +165,21 @@ modules:
         depends_on: []
         related_to: []
     frontend:
-        dir_name: CollgePro Frontend Application
-        title: CollgePro Frontend Application
+        dir_name: CollegePro Navigator Frontend (TanStack Start App)
+        title: CollegePro Navigator Frontend (TanStack Start App)
         scope:
             - src/
         source_files: []
         children:
             - frontend/components_business
+            - frontend/routes_admin
+            - frontend/routes_privacy
             - frontend/routing_entry
         depends_on: []
         related_to: []
     frontend/components_business:
-        dir_name: Application Shell & Shared UI Chrome
-        title: Application Shell & Shared UI Chrome
+        dir_name: App Shell, Modal & Delivery Scorecard Components
+        title: App Shell, Modal & Delivery Scorecard Components
         scope:
             - src/components/app-shell.tsx
             - src/components/delivery-panel.tsx
@@ -153,10 +187,31 @@ modules:
         source_files: []
         children: []
         depends_on: []
-        related_to: []
+        related_to:
+            - path: backend/analytics_readiness
+    frontend/routes_admin:
+        dir_name: Institution Admin Dashboard Route
+        title: Institution Admin Dashboard Route
+        scope:
+            - src/routes/admin/index.tsx
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: backend/institutional_admin
+    frontend/routes_privacy:
+        dir_name: Privacy Policy & Data Deletion Page (DPDP Compliance)
+        title: Privacy Policy & Data Deletion Page (DPDP Compliance)
+        scope:
+            - src/routes/privacy.tsx
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: backend/dpdp_privacy
     frontend/routing_entry:
-        dir_name: TanStack Router File-Based Routing & Root Shell
-        title: TanStack Router File-Based Routing & Root Shell
+        dir_name: TanStack Router File-Based Route Tree & Root Shell
+        title: TanStack Router File-Based Route Tree & Root Shell
         scope:
             - src/router.tsx
             - src/routeTree.gen.ts
@@ -177,4 +232,9 @@ modules:
         source_files: []
         children: []
         depends_on: []
-        related_to: []
+        related_to:
+            - path: backend/analytics_readiness
+            - path: backend/files_catalog_templates
+            - path: backend/gamification_tasks
+            - path: backend/live_sessions
+            - path: backend/projects_teams

@@ -1,0 +1,5 @@
+- Route components are declared with `createFileRoute(path)` and expose both a `head` function for meta tags and a `component` field pointing to the page function.
+- Static page content is modeled as arrays of plain objects (e.g., `POLICY_SECTIONS`) with typed fields like `icon`, `heading`, `body`, then rendered via `.map()` rather than inline JSX blocks.
+- User-facing destructive actions follow a two-step confirm-then-execute pattern: an initial click transitions to a `confirming` state with explicit Yes/Cancel buttons before invoking the API.
+- UI state for async operations uses a discriminated union string literal type (e.g., `"idle" | "confirming" | "deleting" | "done" | "error"`) driving conditional rendering instead of separate boolean flags.
+- Authentication-gated sections are wrapped in an `isAuthenticated && (...)` guard obtained from the `useAuth` context rather than server-side checks.

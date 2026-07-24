@@ -1,0 +1,12 @@
+schema_version: 1
+module_path: backend/files_catalog_templates
+title: Files, Catalog & Presentation Practice APIs
+scope:
+    - backend/api/files.py
+    - backend/api/catalog.py
+    - backend/api/templates.py
+    - backend/api/presentation.py
+source_files: []
+depends_on: []
+related_to:
+    - path: frontend/routing_entry

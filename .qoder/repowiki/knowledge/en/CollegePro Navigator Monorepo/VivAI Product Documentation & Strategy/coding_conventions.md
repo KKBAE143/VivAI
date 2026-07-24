@@ -1,4 +1,0 @@
-- Each document follows a consistent heading hierarchy with numbered sections (e.g., '01 · Problem', '02 · Solution') and pull-quote callouts for key positioning statements.
-- Technical references cite exact file paths and function names (e.g., `core/languages.py:audio_language_code()`, `api/live.py:_response_audio_chunks()`) rather than vague descriptions.
-- Business-facing documents use structured tables to compare alternatives, pricing tiers, and accreditation mappings instead of prose paragraphs.
-- Speaker notes are embedded inline within the deck using blockquote-style '> ' formatting beneath each slide's content.

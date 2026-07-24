@@ -1,0 +1,1 @@
+Bun-managed monorepo combining a TanStack Start/React frontend, a FastAPI backend with Supabase and Gemini AI, and internal product documentation under a shared Vite build pipeline.

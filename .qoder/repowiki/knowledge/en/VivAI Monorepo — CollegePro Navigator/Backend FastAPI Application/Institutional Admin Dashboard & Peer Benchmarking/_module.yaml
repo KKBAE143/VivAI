@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: backend/institutional_admin
+title: Institutional Admin Dashboard & Peer Benchmarking
+scope:
+    - backend/api/institution.py
+    - backend/services/benchmark_service.py
+    - backend/migrations/006_institutional.sql
+source_files: []
+depends_on: []
+related_to:
+    - path: frontend/routes_admin

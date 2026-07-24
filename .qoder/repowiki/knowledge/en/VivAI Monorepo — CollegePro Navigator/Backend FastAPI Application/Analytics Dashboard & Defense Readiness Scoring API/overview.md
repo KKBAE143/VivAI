@@ -1,0 +1,1 @@
+FastAPI endpoints serving per-user analytics (dashboard, activity feed, trends, leaderboard) and a defense-readiness scoring pipeline that combines viva, presentation, topic coverage, consistency, and project progress into a composite band with actionable recommendations.

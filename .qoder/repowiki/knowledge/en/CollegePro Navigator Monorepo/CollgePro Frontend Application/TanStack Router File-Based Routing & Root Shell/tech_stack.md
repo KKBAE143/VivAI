@@ -1,1 +1,0 @@
-TanStack Router v1 with file-based routing and codegen (`routeTree.gen.ts`), React Query (`@tanstack/react-query`) injected through router context, and Tailwind CSS via a globally imported stylesheet (`styles.css?url`).

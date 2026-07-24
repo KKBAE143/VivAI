@@ -1,0 +1,1 @@
+A TanStack Router page that displays the DPDP Act 2023-compliant privacy policy and provides authenticated users with a guided, multi-step data deletion flow calling the backend `/api/privacy/delete-my-data` endpoint.

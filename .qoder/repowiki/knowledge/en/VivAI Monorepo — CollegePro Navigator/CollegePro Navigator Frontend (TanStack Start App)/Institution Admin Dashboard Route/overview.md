@@ -1,0 +1,1 @@
+TanStack Router entry for the institution-facing admin dashboard that surfaces cohort readiness, weak topics, student roster with filters, CSV export, and invite-code generation.

@@ -1,0 +1,5 @@
+- Every institutional endpoint enforces admin access through `Depends(require_admin)` and derives the institution from the authenticated user's profile via `_get_institution_id`.
+- Supabase queries are batched in groups of 50 using `.in_("id", batch)` to stay within query-size limits, with `or []` fallbacks to handle empty result sets.
+- Readiness computation calls `readiness_service.compute_readiness(pid)` wrapped in try/except that falls back to default values (`score=0`, `band="start"`) so dashboard endpoints never fail on missing data.
+- Database mutations use Supabase's chained `.table(...).select(...).eq(...).execute()` style rather than raw SQL, keeping queries declarative and chainable.
+- Migration statements are written to be fully idempotent using `IF NOT EXISTS`, `DROP CONSTRAINT IF EXISTS`, and `UNIQUE` constraints so they can be re-run safely.

@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: frontend/routes_admin
+title: Institution Admin Dashboard Route
+scope:
+    - src/routes/admin/index.tsx
+source_files: []
+depends_on: []
+related_to:
+    - path: backend/institutional_admin

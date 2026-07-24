@@ -1,0 +1,1 @@
+React + TypeScript with TanStack Router for file-based routing, Lucide React icons, and Tailwind CSS classes for styling. Authentication is pulled from a custom `useAuth` context; HTTP requests use a shared `api` client.

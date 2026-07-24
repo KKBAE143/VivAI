@@ -1,0 +1,1 @@
+Internal product documentation for VivAI covering the problem statement, platform overview guide, quality-upgrade retrospective, pilot outreach sales deck, and B2B institutional strategy with DPDP compliance and Defense Readiness Score roadmap.

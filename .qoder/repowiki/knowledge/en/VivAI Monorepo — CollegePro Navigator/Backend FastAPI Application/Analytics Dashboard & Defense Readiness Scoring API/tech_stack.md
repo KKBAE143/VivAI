@@ -1,0 +1,1 @@
+FastAPI routers with Pydantic models (`PitchDrillSubmit`, `ModelSwitch`) for request validation; Supabase Python client for all data access; Google Gemini (`ai.gemini_service`) for JSON-structured pitch evaluation prompts using `prompts.PITCH_EVAL`; timezone-aware datetime handling via `datetime.timezone.utc`.

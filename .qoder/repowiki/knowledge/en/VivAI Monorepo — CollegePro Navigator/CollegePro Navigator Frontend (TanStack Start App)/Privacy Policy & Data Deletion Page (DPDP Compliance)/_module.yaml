@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: frontend/routes_privacy
+title: Privacy Policy & Data Deletion Page (DPDP Compliance)
+scope:
+    - src/routes/privacy.tsx
+source_files: []
+depends_on: []
+related_to:
+    - path: backend/dpdp_privacy

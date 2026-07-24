@@ -1,0 +1,1 @@
+Defines the TanStack Router file-based route tree, root HTML shell with global providers (QueryClient, Theme, Auth), and per-route page components for the CollgePro Navigator application.

@@ -1,0 +1,1 @@
+FastAPI (APIRouter, StreamingResponse, Depends), Supabase Python client with batched `.in_()` queries, Python `csv` + `io.StringIO` for CSV streaming, and an in-memory `dict` cache with `time.time()` TTL for benchmark results.

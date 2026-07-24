@@ -1,0 +1,1 @@
+Implements India's DPDP Act compliance by exposing consent, privacy-policy, and full data-deletion endpoints backed by Supabase tables for audit trails.

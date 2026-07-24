@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: backend/dpdp_privacy
+title: DPDP Act 2023 Privacy & Right-to-Erasure Compliance
+scope:
+    - backend/api/privacy.py
+    - backend/services/deletion_service.py
+    - backend/migrations/005_dpdp_compliance.sql
+source_files: []
+depends_on: []
+related_to:
+    - path: frontend/routes_privacy
