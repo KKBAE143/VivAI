@@ -70,11 +70,9 @@ jobs:
         run: bun test
 
       - name: Lint
-        # NOT blocking yet: the repo carries a large pre-existing Prettier
-        # backlog (~900 formatting errors). Run `bun run format` once and flip
-        # this to blocking — until then a red X here would be permanent and
-        # would teach everyone to ignore CI.
-        continue-on-error: true
+        # Blocking. The repo is at zero lint ERRORS; the 11 remaining
+        # react-refresh warnings are cosmetic (HMR granularity) and do not fail
+        # the build. Keep it blocking so the backlog cannot silently return.
         run: bun run lint
 
       - name: Production build
