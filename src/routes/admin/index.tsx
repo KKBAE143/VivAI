@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Users, Activity, BarChart3, Download, Share2, AlertTriangle } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { AppShell, Card, PageHeader, Badge } from "@/components/app-shell";
 import { ErrorState } from "@/components/error-state";
@@ -31,12 +31,19 @@ function AdminDashboard() {
   const { data: profile } = useProfile();
   const navigate = useNavigate();
   const role = profile?.role ?? "student";
+  const isBlocked = !authLoading && ready && role === "student";
 
-  // Redirect non-admins
-  if (!authLoading && ready && role === "student") {
-    navigate({ to: "/" });
-    return null;
-  }
+  // Redirect non-admins.
+  //
+  // This MUST be an effect with an unconditional early return kept below every
+  // hook. It used to `navigate()` and `return null` right here — above the
+  // eight hooks that follow. The first render (auth still loading) ran all
+  // eleven hooks; once auth resolved for a student the early return fired after
+  // three, and React — which tracks hooks by call index — threw "Rendered fewer
+  // hooks than expected". Every student who opened /admin crashed the app.
+  useEffect(() => {
+    if (isBlocked) navigate({ to: "/" });
+  }, [isBlocked, navigate]);
 
   const dashboard = useInstitutionDashboard();
   const [studentPage, setStudentPage] = useState(1);
@@ -46,6 +53,10 @@ function AdminDashboard() {
   const readinessReport = useInstitutionReadinessReport();
   const weakTopics = useInstitutionWeakTopics();
   const invite = useInstitutionInvite();
+
+  // Safe here: every hook above has already run, so the hook count is identical
+  // on every render regardless of which branch we take below.
+  if (isBlocked) return null;
 
   if (dashboard.isLoading) {
     return (
