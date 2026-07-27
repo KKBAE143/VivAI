@@ -130,9 +130,25 @@ export function PreflightSetup({
    * left their microphone open (recording indicator on) until a page reload.
    */
   const handedOffRef = useRef(false);
+  /** Canvas element created by native screen capture, cleaned up on unmount. */
+  const nativeCaptureCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // Clean up native capture resources if the user navigates away before going live.
+  useEffect(() => {
+    return () => {
+      nativeCaptureCanvasRef.current?.remove();
+      nativeCaptureCanvasRef.current = null;
+      // Remove global callbacks registered by the native ScreenShareBridge.
+      delete (window as unknown as Record<string, unknown>)["__wtaOnScreenFrame"];
+      delete (window as unknown as Record<string, unknown>)["__wtaOnScreenFrameStop"];
+    };
+  }, []);
 
   const screenSupported =
     typeof navigator !== "undefined" && Boolean(navigator.mediaDevices?.getDisplayMedia);
+  const nativeScreenShareAvailable =
+    typeof window !== "undefined" &&
+    typeof (window as unknown as Record<string, unknown>).ScreenShareBridge !== "undefined";
 
   // Acquire the mic up front so the student can see it working.
   useEffect(() => {
@@ -186,6 +202,112 @@ export function PreflightSetup({
     };
   }, []);
 
+  /**
+   * Start native screen capture via the WebToApp ScreenShareBridge.
+   * Creates a hidden canvas, starts the native MediaProjection capture,
+   * and returns a synthetic MediaStream via canvas.captureStream().
+   * Falls back to null if the bridge is unavailable or the user cancels.
+   */
+  const startNativeScreenCapture = useCallback(async (): Promise<MediaStream | null> => {
+    const bridge = (window as unknown as Record<string, unknown>).ScreenShareBridge as
+      | {
+          startCapture: (cb: string, quality: number) => void;
+          stopCapture: () => void;
+          isSupported: () => boolean;
+        }
+      | undefined;
+    if (!bridge) return null;
+
+    // Create a hidden canvas that the native bridge will draw into
+    const canvas = document.createElement("canvas");
+    canvas.width = 1;
+    canvas.height = 1;
+    canvas.style.position = "fixed";
+    canvas.style.top = "-9999px";
+    canvas.style.left = "-9999px";
+    canvas.style.pointerEvents = "none";
+    document.body.appendChild(canvas);
+
+    nativeCaptureCanvasRef.current = canvas;
+    const canvasRef = { current: canvas } as { current: HTMLCanvasElement };
+    let captureFailed = false;
+
+    // Set up the global frame callback
+    const frameCallbackName = "__wtaOnScreenFrame";
+    (window as unknown as Record<string, unknown>)[frameCallbackName] = (
+      base64Jpeg: string | null,
+      errorMsg?: string,
+    ) => {
+      if (!base64Jpeg || !canvasRef.current.parentNode) {
+        // null means error or stop, remove the canvas
+        captureFailed = true;
+        return;
+      }
+      const img = new Image();
+      img.onload = () => {
+        const c = canvasRef.current;
+        if (!c.parentNode) return;
+        if (c.width !== img.width || c.height !== img.height) {
+          c.width = img.width;
+          c.height = img.height;
+        }
+        const ctx = c.getContext("2d");
+        if (!ctx) return;
+        ctx.drawImage(img, 0, 0);
+      };
+      img.onerror = () => {
+        captureFailed = true;
+      };
+      img.src = "data:image/jpeg;base64," + base64Jpeg;
+    };
+    // Also handle the stop callback
+    const stopCallbackName = "__wtaOnScreenFrameStop";
+    let stoppedBySystem = false;
+    (window as unknown as Record<string, unknown>)[stopCallbackName] = () => {
+      stoppedBySystem = true;
+    };
+
+    // Start native capture
+    bridge.startCapture(frameCallbackName, 60);
+
+    // Wait briefly for the consent dialog and first frame
+    await new Promise<void>((resolve) => setTimeout(resolve, 500));
+
+    // Check if the bridge started the capture dialog
+    // We'll wait a bit more for the user to accept
+    let waited = 0;
+    const maxWait = 15000; // 15 seconds max for user to grant permission
+    while (waited < maxWait && !captureFailed && !stoppedBySystem && canvas.width <= 1) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 200));
+      waited += 200;
+    }
+
+    if (captureFailed || stoppedBySystem || canvas.width <= 1) {
+      canvas.remove();
+      nativeCaptureCanvasRef.current = null;
+      delete (window as unknown as Record<string, unknown>)[frameCallbackName];
+      delete (window as unknown as Record<string, unknown>)[stopCallbackName];
+      throw new DOMException("Screen capture was cancelled or unavailable", "NotAllowedError");
+    }
+
+    // Create a synthetic MediaStream from the canvas
+    // canvas.captureStream(fps) returns a MediaStream
+    const syntheticStream = (canvas as HTMLCanvasElement & { captureStream?: (fps: number) => MediaStream }).captureStream?.(1);
+    if (!syntheticStream) {
+      // captureStream not supported in this WebView — stop native capture and throw
+      bridge.stopCapture();
+      canvas.remove();
+      nativeCaptureCanvasRef.current = null;
+      delete (window as unknown as Record<string, unknown>)[frameCallbackName];
+      delete (window as unknown as Record<string, unknown>)[stopCallbackName];
+      throw new Error(
+        "Screen sharing uses canvas.captureStream() which is not supported in this version of Android System WebView. Please update WebView via Play Store or use Chrome browser.",
+      );
+    }
+
+    return syntheticStream;
+  }, []);
+
   const handleStart = useCallback(async () => {
     if (startingRef.current) return;
     setError("");
@@ -197,7 +319,12 @@ export function PreflightSetup({
     setStarting(true);
     try {
       let videoStream: MediaStream | null = null;
-      if (source === "screen") {
+      if (source === "screen" && nativeScreenShareAvailable) {
+        // Use native Android screen capture bridge in WebView APK.
+        // The bridge returns frames as base64 JPEG via a global callback;
+        // we draw them onto a canvas and create a synthetic MediaStream.
+        videoStream = await startNativeScreenCapture();
+      } else if (source === "screen") {
         videoStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
       } else if (source === "camera") {
         videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
@@ -253,8 +380,11 @@ export function PreflightSetup({
     { id: "camera", label: "Camera", icon: Camera },
     { id: "none", label: "Audio only", icon: Mic },
   ];
+  // In WebView APK, native ScreenShareBridge replaces getDisplayMedia().
+  // On desktop browsers, the standard getDisplayMedia() is used.
+  const canScreenShare = nativeScreenShareAvailable || screenSupported;
   const sources = ALL_SOURCES.filter(
-    (s) => availableSources.includes(s.id) && (s.id !== "screen" || screenSupported),
+    (s) => availableSources.includes(s.id) && (s.id !== "screen" || canScreenShare),
   );
 
   return (
