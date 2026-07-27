@@ -186,6 +186,15 @@ def from_transcript(turns: list[dict]) -> dict:
                 latencies.append(latency)
             previous_examiner_end = None
 
+    # Total spoken time across every timed turn — the talk_ratio denominator.
+    # This must be guarded on being non-ZERO, not merely on intervals existing:
+    # a turn that arrived as a single transcript fragment has start_ms ==
+    # end_ms, so a short session yields intervals that are all zero-length. The
+    # old truthiness check passed on those and divided by zero, and because
+    # finalize() calls this OUTSIDE a try/except that ZeroDivisionError took
+    # down the student's entire report.
+    total_spoken_ms = sum(end - start for _turn, value in timed if value for start, end in [value])
+
     return {
         "available": True,
         "estimate": True,
@@ -194,7 +203,7 @@ def from_transcript(turns: list[dict]) -> dict:
         "filler_ratio": round(filler_total / words, 3) if words else 0.0,
         "top_fillers": sorted(({"word": word, "count": count} for word, count in filler_agg.items()), key=lambda item: item["count"], reverse=True)[:5],
         "avg_wpm": round(sum(wpms) / len(wpms), 1) if wpms else None,
-        "talk_ratio": round(sum(student_durations) / sum(end - start for _turn, value in timed if value for start, end in [value]), 3) if student_durations and any(value for _turn, value in timed) else None,
+        "talk_ratio": round(sum(student_durations) / total_spoken_ms, 3) if total_spoken_ms > 0 else None,
         "avg_response_latency_ms": round(median(latencies)) if latencies else None,
         "longest_monologue_ms": max(student_durations) if student_durations else None,
         "turn_count": len(student_turns),

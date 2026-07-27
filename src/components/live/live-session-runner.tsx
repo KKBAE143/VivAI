@@ -53,8 +53,15 @@ export function LiveSessionRunner({
   const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
   const [videoSource, setVideoSource] = useState<VideoSource | null>(null);
   const endedRef = useRef(false);
-  /** Ensures we only call live.start once per "enter live phase" (Strict Mode safe). */
-  const startedForPhaseRef = useRef(false);
+  /**
+   * Identifies one "enter the live phase" attempt. Incremented by preflight and
+   * by retry; the start effect records the run it started so a React Strict
+   * Mode remount (effect -> cleanup -> effect) re-runs against the SAME token
+   * and declines to start a second time. A bare boolean could not distinguish
+   * "already started this run" from "a new run needs starting".
+   */
+  const liveRunRef = useRef(0);
+  const startedRunRef = useRef<number | null>(null);
 
   const live = useLiveSession({ mode, sessionId, language, persona, projectId, subject });
 
@@ -67,19 +74,22 @@ export function LiveSessionRunner({
     setLanguage(result.language);
     setPersona(result.persona);
     playbackCtxRef.current = result.playbackAudioContext;
-    startedForPhaseRef.current = false;
+    liveRunRef.current += 1;
+    startedRunRef.current = null;
     setPhase("live");
   }, []);
 
   // Start the live connection once we enter the live phase with fresh settings.
   // Do NOT reset() in this effect's cleanup — that races React Strict Mode and
-  // can open two Live sockets (two greetings) or close the preflight AudioContext
-  // mid-start. useLiveSession has a sync start lock + generation counter; the
-  // server also enforces one Live owner per session_id.
+  // can close the preflight AudioContext mid-start. Instead the effect is made
+  // idempotent per run token, so a Strict Mode remount is a no-op rather than a
+  // second socket. useLiveSession also holds a sync start lock + generation
+  // counter, and the server now closes any superseded connection outright.
   useEffect(() => {
     if (phase !== "live" || !micStreamRef.current) return;
-    if (startedForPhaseRef.current) return;
-    startedForPhaseRef.current = true;
+    const run = liveRunRef.current;
+    if (startedRunRef.current === run) return;
+    startedRunRef.current = run;
     // "none" (audio-only) carries no video source for the server to track.
     void live.start({
       micStream: micStreamRef.current,
@@ -90,14 +100,6 @@ export function LiveSessionRunner({
     // Only run when entering the live phase.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
-
-  // If start failed and left us idle/error while still "live" UI phase, allow retry.
-  useEffect(() => {
-    if (phase !== "live") return;
-    if (live.status === "error") {
-      startedForPhaseRef.current = false;
-    }
-  }, [phase, live.status]);
 
   // When the session ends cleanly, tear down media tracks and notify the parent once.
   // Errors do NOT complete the session — the student stays here and can retry.
@@ -122,7 +124,10 @@ export function LiveSessionRunner({
     setEnding(false);
     setVideoStream(null);
     setVideoSource(null);
-    startedForPhaseRef.current = false;
+    // A retry is a new run; preflight will bump the token again on its way back.
+    liveRunRef.current += 1;
+    startedRunRef.current = null;
+    endedRef.current = false;
     live.reset();
     setPhase("setup");
   }, [live]);

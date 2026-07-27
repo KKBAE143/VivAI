@@ -504,6 +504,16 @@ def _tools() -> list[types.Tool]:
     ]
 
 
+# Voice-activity detection tuning. `silence_duration_ms` is how long the student
+# must be quiet before Gemini treats their turn as finished. A student
+# formulating a technical answer routinely pauses 1-1.5s mid-sentence, so
+# anything under ~1.2s reads a thinking-pause as "turn complete" and the
+# examiner talks over them. Raising it much past 1.5s makes the examiner feel
+# sluggish once they HAVE genuinely finished. 1500ms is the tested compromise.
+VAD_SILENCE_DURATION_MS = 1500
+VAD_PREFIX_PADDING_MS = 300
+
+
 def build_config(
     mode: str,
     persona: str,
@@ -514,6 +524,7 @@ def build_config(
     scenario: Scenario | None = None,
     focus_topics: list[str] | None = None,
     practice_questions: list[str] | None = None,
+    resume_handle: str | None = None,
 ) -> types.LiveConnectConfig:
     settings = get_settings()
     voice = (settings.gemini_live_voice or DEFAULT_VOICE).strip() or DEFAULT_VOICE
@@ -563,23 +574,49 @@ def build_config(
         output_audio_transcription=types.AudioTranscriptionConfig(),
         tools=_tools(),
     )
+    # ---------------------------------------------------------------- #
+    # SESSION LIFETIME — the single most important setting here.
+    #
+    # The Live API hard-terminates a session on duration alone: 15 minutes for
+    # audio-only, and **2 MINUTES for any session that sends video**. Our
+    # presentation mode (shared screen) and coach mode (camera) both stream
+    # ~1fps JPEG, so without this they were being killed by Google roughly two
+    # minutes in — surfacing to students as "the session just ended", a report
+    # built from a near-empty transcript (hence ~0% scores), or the "nothing
+    # was recorded" error when they had not finished speaking yet.
+    #
+    # Context-window compression (sliding window) removes the duration cap
+    # entirely; it drops the oldest turns instead of dropping the connection.
+    # This is Google's documented mechanism for unlimited-duration sessions,
+    # not a workaround.
+    try:
+        kwargs["context_window_compression"] = types.ContextWindowCompressionConfig(
+            sliding_window=types.SlidingWindow(),
+        )
+    except Exception as exc:  # noqa: BLE001 — never fatal, but log loudly
+        print(f"[live] context window compression unavailable: {exc}")
+
+    # Independently of session duration, a single WebSocket connection to Gemini
+    # lives ~10 minutes. Session resumption lets us transparently reconnect and
+    # carry the conversation across that boundary (the server hands us a fresh
+    # handle periodically and sends `go_away` shortly before cutting us off).
+    # Without it, a routine connection recycle ended the student's exam.
+    try:
+        kwargs["session_resumption"] = types.SessionResumptionConfig(handle=resume_handle)
+    except Exception as exc:  # noqa: BLE001
+        print(f"[live] session resumption unavailable: {exc}")
+
     # Make voice-activity detection less trigger-happy so background noise (or
     # the student clearing their throat during the AI's opening greeting) does
     # not get treated as a full turn — a common cause of the AI greeting twice.
-    # silence_duration_ms is also the main lever against the AI cutting the
-    # student off mid-answer: a student formulating a technical answer often
-    # pauses 1-1.5s mid-sentence, and 900ms was short enough for that natural
-    # pause to be read as "turn complete" (an interruption, not a real end of
-    # turn). 1500ms gives real thinking-pauses room without making the AI feel
-    # sluggish once the student has genuinely finished.
     # Wrapped defensively: config shape varies across google-genai versions.
     try:
         realtime_cfg = types.RealtimeInputConfig(
             automatic_activity_detection=types.AutomaticActivityDetection(
                 start_of_speech_sensitivity=types.StartSensitivity.START_SENSITIVITY_LOW,
                 end_of_speech_sensitivity=types.EndSensitivity.END_SENSITIVITY_LOW,
-                prefix_padding_ms=300,
-                silence_duration_ms=1500,
+                prefix_padding_ms=VAD_PREFIX_PADDING_MS,
+                silence_duration_ms=VAD_SILENCE_DURATION_MS,
             )
         )
         kwargs["realtime_input_config"] = realtime_cfg

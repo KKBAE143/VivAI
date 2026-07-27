@@ -27,9 +27,11 @@ import asyncio
 import base64
 import json
 import time
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from google.genai import errors as genai_errors
 from google.genai import types
 
 from ai import delivery_metrics, live_service, report_service, viva_core
@@ -48,23 +50,144 @@ logger = get_logger("live")
 # so the session can never deadlock waiting for a greeting that isn't coming.
 _MIC_GATE_SAFETY_SECONDS = 20
 
-# One Live Gemini session + one greeting trigger per app session_id.
-# Root cause of double greetings: two browser WebSockets (Strict Mode remount /
-# concurrent start()) each connected and each called send_client_content(greeting).
-_active_live_owners: dict[str, str] = {}
+# Close code for a socket that a newer connection replaced. 4409 = "conflict".
+WS_SUPERSEDED_CODE = 4409
+# How long a superseded connection gets to finish tearing down before the new
+# one stops waiting for it. Bounded so one wedged socket can never block a
+# student's retry.
+SUPERSEDE_DRAIN_SECONDS = 5.0
+
+# Transparent-reconnect budget for the Gemini side of the bridge (see
+# _reconnect_delay). A Live *connection* lives ~10 minutes even though the
+# *session* is unlimited once context-window compression is on, so a long viva
+# legitimately crosses this boundary once or twice.
+MAX_GEMINI_RECONNECTS = 6
+# Mic audio buffered while a reconnect is in flight. ~512 chunks is well over a
+# reconnect's worth; past that we drop the OLDEST frames, because stale realtime
+# audio is worthless and unbounded growth is not an option.
+INBOUND_QUEUE_MAX = 512
+
+
+@dataclass
+class LiveOwner:
+    """A single browser WebSocket's claim on an app session_id.
+
+    Replaces the old ``dict[str, str]`` of connection ids, which recorded who
+    "owned" a session but had no way to act on it: a second socket simply
+    overwrote the first, leaving TWO live WebSockets and TWO Gemini sessions
+    running, each sending its own greeting trigger. That was the double
+    greeting. Holding the socket itself means a supersede can actually close
+    the loser.
+    """
+
+    connection_id: str
+    websocket: WebSocket
+    superseded: asyncio.Event = field(default_factory=asyncio.Event)
+    released: asyncio.Event = field(default_factory=asyncio.Event)
+
+
+_active_live_owners: dict[str, LiveOwner] = {}
 _active_live_lock = asyncio.Lock()
 
 
-async def _release_live_owner(session_id: str, connection_id: str) -> None:
+async def claim_live_owner(session_id: str, owner: LiveOwner) -> LiveOwner | None:
+    """Make `owner` the sole live connection for `session_id`.
+
+    Closes and drains any previous owner first, so exactly one WebSocket — and
+    therefore exactly one Gemini session and one greeting — can ever be running
+    for a session. Returns the superseded owner (for logging), if any.
+    """
     async with _active_live_lock:
-        if _active_live_owners.get(session_id) == connection_id:
+        previous = _active_live_owners.get(session_id)
+        _active_live_owners[session_id] = owner
+    if previous is None or previous is owner:
+        return None
+
+    previous.superseded.set()
+    try:
+        await previous.websocket.close(code=WS_SUPERSEDED_CODE)
+    except Exception:  # noqa: BLE001 — already gone is the outcome we wanted
+        pass
+    try:
+        await asyncio.wait_for(previous.released.wait(), timeout=SUPERSEDE_DRAIN_SECONDS)
+    except asyncio.TimeoutError:
+        logger.warning(
+            "superseded live connection did not drain in time",
+            extra={"session_id": session_id, "event": "live_ws_supersede_timeout"},
+        )
+    return previous
+
+
+async def release_live_owner(session_id: str, owner: LiveOwner) -> None:
+    """Give up the claim. Safe to call twice, and safe when already superseded."""
+    async with _active_live_lock:
+        if _active_live_owners.get(session_id) is owner:
             _active_live_owners.pop(session_id, None)
+    owner.released.set()
 
 
-async def _forward_turn_complete(websocket: WebSocket, first_turn_done: asyncio.Event) -> None:
-    """Notify the client before opening the server-side first-turn mic gate."""
+async def _forward_turn_complete(
+    websocket: WebSocket, first_turn_done: asyncio.Event, open_gate: bool = True
+) -> None:
+    """Notify the client before opening the server-side first-turn mic gate.
+
+    `open_gate=False` is used for clients that manage the gate themselves and
+    tell us when their greeting playback has actually drained (see the
+    `mic_open` message). Opening on turn_complete is several seconds too early
+    for those clients — the browser is still playing the greeting out loud.
+    """
     await websocket.send_json({"type": "turn_complete"})
-    first_turn_done.set()
+    if open_gate:
+        first_turn_done.set()
+
+
+def is_recoverable_live_error(exc: BaseException) -> bool:
+    """Is this a Gemini transport hiccup we should transparently reconnect from?
+
+    The Live API ends a *connection* roughly every 10 minutes and before that
+    sends `go_away`; the SDK surfaces that (and any network blip) by raising out
+    of `session.receive()`. Those are recoverable — the conversation continues on
+    a resumed connection. Authentication / quota / bad-request failures are not:
+    reconnecting would just fail identically in a loop.
+    """
+    if isinstance(exc, (asyncio.CancelledError, WebSocketDisconnect)):
+        return False
+    if isinstance(exc, genai_errors.ClientError):
+        # 4xx from the Live endpoint: 1008-style policy violations, bad config,
+        # expired key. A retry cannot fix these. 408/429 are the exceptions.
+        return getattr(exc, "code", None) in (408, 429)
+    if isinstance(exc, genai_errors.ServerError):
+        return True
+    if isinstance(exc, genai_errors.APIError):
+        # Non-HTTP close codes (1000 normal, 1006 abnormal, 1011 server error)
+        # all arrive here. Every one of them is a connection ending, not a
+        # permanent failure of the session.
+        return True
+    return isinstance(exc, (ConnectionError, OSError, asyncio.TimeoutError))
+
+
+def _reconnect_delay(attempt: int) -> float:
+    """Backoff before reconnect attempt `attempt` (1-based). Capped, not infinite."""
+    return min(5.0, 0.5 * (2 ** max(0, attempt - 1)))
+
+
+def should_finalize(*, superseded: bool, has_activity: bool) -> bool:
+    """Whether this connection should write a report at teardown.
+
+    Two rules, both learned from real failures:
+
+    - A SUPERSEDED connection never finalizes and never reverts. It lost the
+      session to a newer socket; touching the row would stomp on the connection
+      that is actually running the exam (the old code let a stale socket revert
+      a live session back to Pending).
+    - Otherwise, finalize whenever the student actually spoke — INCLUDING after
+      an engine error. A drop at minute twelve of a real viva must still produce
+      the student's report; throwing away a full conversation because the
+      transport died at the end is a worse failure than the one it guards.
+    """
+    if superseded:
+        return False
+    return has_activity
 
 
 _response_audio_chunks = live_service.response_audio_chunks
@@ -289,7 +412,15 @@ class LivePersistence:
         sb = get_supabase()
 
         turns = coalesce_turns(self.transcript)
-        metrics = delivery_metrics.from_transcript(turns)
+        # Defense in depth: delivery metrics are a nice-to-have section of the
+        # report, but they used to be computed outside any guard, so one bad
+        # arithmetic edge case (see delivery_metrics.total_spoken_ms) threw away
+        # the whole graded session. Never let an optional metric do that again.
+        try:
+            metrics = delivery_metrics.from_transcript(turns)
+        except Exception as exc:
+            print(f"[live] delivery metrics failed: {exc}")
+            metrics = {"available": False, "estimate": True}
         availability = {
             "audio": bool(turns),
             "camera": self.video_source == "camera" and self.frames_received > 0,
@@ -562,6 +693,14 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
     video_source = params.get("video") if params.get("video") in {"camera", "screen"} else None
     # Unique id for this WebSocket instance (for single-owner bookkeeping).
     connection_id = f"{id(websocket)}-{time.time_ns()}"
+    # Clients from protocol version 1 onward own the mic gate themselves and
+    # tell us when their greeting playback has actually drained. Older clients
+    # get the legacy turn_complete-based gate.
+    try:
+        client_protocol = int(params.get("pv") or 0)
+    except (TypeError, ValueError):
+        client_protocol = 0
+    client_owns_mic_gate = client_protocol >= 1
 
     user = user_from_token(token)
     if not user:
@@ -574,17 +713,17 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
         await websocket.close(code=4400)
         return
 
-    # Latest connection wins for this session_id (do not reject — a stale
-    # Strict-Mode / remount socket holding the lock caused "AI not speaking"
-    # when the real client was refused). Greeting is still once-per-socket.
-    async with _active_live_lock:
-        prev = _active_live_owners.get(session_id)
-        if prev and prev != connection_id:
-            logger.info(
-                "superseding previous live connection",
-                extra={"session_id": session_id, "event": "live_ws_supersede"},
-            )
-        _active_live_owners[session_id] = connection_id
+    # Latest connection wins for this session_id, and the loser is actually
+    # CLOSED and drained before we continue (do not merely reject the newcomer —
+    # a stale remount socket holding the lock used to cause "AI not speaking").
+    # This is what guarantees one Gemini session, and therefore one greeting.
+    owner = LiveOwner(connection_id=connection_id, websocket=websocket)
+    superseded_owner = await claim_live_owner(session_id, owner)
+    if superseded_owner is not None:
+        logger.info(
+            "superseded previous live connection",
+            extra={"session_id": session_id, "event": "live_ws_supersede"},
+        )
 
     # Resolve session + project context.
     sb = get_supabase()
@@ -653,7 +792,7 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
     except Exception as exc:
         await websocket.send_json({"type": "error", "message": f"Could not load session: {exc}"})
         await websocket.close(code=4404)
-        await _release_live_owner(session_id, connection_id)
+        await release_live_owner(session_id, owner)
         return
 
     # A subject explicitly sent by the client always wins (lets the student
@@ -684,233 +823,410 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
             )
         )
     persist = LivePersistence(mode, session_id, user["id"], project_id, project_context, subject, scenario.id if scenario else None, video_source, persona)
-    config = live_service.build_config(
-        mode,
-        persona,
-        language,
-        project_context,
-        subject,
-        student_name=user.get("name"),
-        scenario=scenario,
-        focus_topics=focus_topics or None,
-        practice_questions=practice_questions or None,
-    )
+
+    def make_config(handle: str | None):
+        return live_service.build_config(
+            mode,
+            persona,
+            language,
+            project_context,
+            subject,
+            student_name=user.get("name"),
+            scenario=scenario,
+            focus_topics=focus_topics or None,
+            practice_questions=practice_questions or None,
+            resume_handle=handle,
+        )
 
     errored = False
+    fatal_message = ""
+    ready_sent = False
+    reconnects = 0
+    resume_handle: str | None = None
     end_requested = asyncio.Event()
+    browser_gone = asyncio.Event()
     # Defense in depth for old/broken clients that lack the client gate-on-drain:
-    # drop only AUDIO frames until the first Gemini turn_complete is forwarded.
+    # drop only AUDIO frames until the client says its greeting playback drained
+    # (protocol v1+) or, for legacy clients, until the first turn_complete.
     first_turn_done = asyncio.Event()
-    try:
-        async with live_service.connect_with_fallback(config) as session:
-            await websocket.send_json({"type": "ready"})
+    # Everything the browser sends, decoupled from whichever Gemini connection
+    # currently happens to be live. This decoupling is what lets a Gemini
+    # reconnect happen without dropping the student mid-sentence.
+    inbound: asyncio.Queue = asyncio.Queue(maxsize=INBOUND_QUEUE_MAX)
 
-            # Make the AI speak FIRST. Live models stay silent until they receive
-            # a turn, so we send a short trigger to force the opening greeting.
-            # Exactly once per WebSocket (this connection).
-            try:
-                trigger = live_service.greeting_trigger(mode, language, scenario)
-                await session.send_client_content(
-                    turns=types.Content(
-                        role="user",
-                        parts=[types.Part(text=trigger)],
-                    ),
-                    turn_complete=True,
-                )
-                logger.info(
-                    "greeting trigger sent",
-                    extra={"session_id": session_id, "mode": mode, "event": "greeting_trigger"},
-                )
-            except Exception as exc:
-                logger.exception("greeting trigger failed session_id=%s", session_id)
-                try:
-                    await websocket.send_json(
-                        {
-                            "type": "error",
-                            "message": f"Could not start the examiner voice: {exc}",
-                        }
-                    )
-                except Exception:
-                    pass
+    def enqueue(item: tuple) -> None:
+        """Queue one item for Gemini, dropping the OLDEST frame when full.
 
-            async def client_to_gemini():
-                while True:
-                    msg = await websocket.receive()
-                    if msg.get("type") == "websocket.disconnect":
-                        break
-                    data = msg.get("bytes")
-                    if data is not None:
-                        # Server-side gate: drop the student's mic audio until the
-                        # first Gemini turn (the greeting) has completed, so the
-                        # greeting cannot echo back and trigger a second greeting.
-                        if not first_turn_done.is_set():
-                            continue
-                        await _send_audio(session, data)
-                        continue
-                    text = msg.get("text")
-                    if text is None:
-                        continue
-                    try:
-                        payload = json.loads(text)
-                    except (ValueError, TypeError):
-                        continue
-                    kind = payload.get("type")
-                    if kind == "image" and payload.get("data"):
-                        persist.frames_received += 1
-                        await _send_image(session, base64.b64decode(payload["data"]))
-                    elif kind == "text" and payload.get("text"):
-                        await _send_text(session, payload["text"])
-                    elif kind == "end":
-                        break
+        Realtime audio that is seconds stale is worthless, so shedding the
+        front of the queue keeps latency honest while a reconnect completes —
+        and keeps memory bounded no matter how long the stall lasts.
+        """
+        try:
+            inbound.put_nowait(item)
+            return
+        except asyncio.QueueFull:
+            pass
+        try:
+            inbound.get_nowait()
+        except asyncio.QueueEmpty:
+            return
+        try:
+            inbound.put_nowait(item)
+        except asyncio.QueueFull:
+            pass
 
-            async def gemini_to_client():
-                # IMPORTANT: `session.receive()` yields a SINGLE model turn and
-                # then ends (it breaks on turn_complete). We must re-enter it in
-                # an outer loop so the conversation continues across turns —
-                # otherwise the session dies right after the opening greeting.
-                #
-                # NOTE: Do not suppress AI audio here. An earlier "suppress second
-                # opening" path dropped real greeting audio when the first turn
-                # only had transcription / tool events, leaving the student silent.
-                # Double openings are prevented by: single client start lock +
-                # one greeting trigger per socket + client caption dedupe.
-                while True:
-                    got_turn = False
-                    async for response in session.receive():
-                        got_turn = True
-                        try:
-                            for audio_chunk in _response_audio_chunks(response):
-                                if audio_chunk:
-                                    await websocket.send_bytes(audio_chunk)
-                        except Exception as audio_exc:
-                            # Never let one bad PCM frame kill the whole receive
-                            # loop — that was a silent "AI voice not coming" mode
-                            # (transcripts could still arrive from later messages
-                            # until the task fully died).
-                            logger.warning(
-                                "audio forward failed: %s",
-                                audio_exc,
-                                extra={"session_id": session_id, "event": "audio_forward_error"},
-                            )
-                        sc = getattr(response, "server_content", None)
-                        if sc:
-                            it = getattr(sc, "input_transcription", None)
-                            if it and getattr(it, "text", None):
-                                persist.on_user_text(it.text)
-                                await websocket.send_json({"type": "user_transcript", "text": it.text})
-                            ot = getattr(sc, "output_transcription", None)
-                            if ot and getattr(ot, "text", None):
-                                persist.on_ai_text(ot.text)
-                                await websocket.send_json({"type": "ai_transcript", "text": ot.text})
-                            if getattr(sc, "interrupted", None):
-                                await websocket.send_json({"type": "interrupted"})
-                            if getattr(sc, "turn_complete", None):
-                                await _forward_turn_complete(websocket, first_turn_done)
-                        tc = getattr(response, "tool_call", None)
-                        if tc and tc.function_calls:
-                            responses = []
-                            for fc in tc.function_calls:
-                                if fc.name == "end_session":
-                                    end_requested.set()
-                                    responses.append(
-                                        types.FunctionResponse(id=fc.id, name=fc.name, response={"status": "ok"})
-                                    )
-                                    continue
-                                event = persist.on_tool(fc.name, dict(fc.args or {}))
-                                if event:
-                                    await websocket.send_json(event)
-                                tool_response = {"status": "ok"}
-                                if event and event.get("id"):
-                                    tool_response["question_id" if fc.name == "record_question" else "id"] = event["id"]
-                                if fc.name == "record_question":
-                                    # Do NOT tell the model to stay completely silent —
-                                    # if record_question fires before spoken audio for the
-                                    # first question, a hard "stay silent" kills AI voice.
-                                    tool_response["instruction"] = (
-                                        "Question logged. If you have not spoken this question "
-                                        "aloud yet, speak it once now, then wait for the student. "
-                                        "Do not greet again or re-introduce yourself."
-                                    )
-                                responses.append(
-                                    types.FunctionResponse(id=fc.id, name=fc.name, response=tool_response)
-                                )
-                            try:
-                                await session.send_tool_response(function_responses=responses)
-                            except Exception:
-                                pass
-                            if end_requested.is_set():
-                                await asyncio.sleep(0.5)
-                                return
-                    if not got_turn:
-                        break
+    async def browser_reader():
+        """Read the browser socket for the WHOLE session lifetime.
 
-            async def _mic_gate_safety():
-                # Never let a missing turn_complete keep the mic gated forever.
-                await asyncio.sleep(_MIC_GATE_SAFETY_SECONDS)
+        Wrapped so that ANY failure here still flags the browser as gone. This
+        task is nobody's `await` target, so an unobserved exception would leave
+        the supervisor waiting on a socket that is never going to speak again.
+        """
+        try:
+            await _browser_reader_loop()
+        except (WebSocketDisconnect, RuntimeError):
+            pass
+        except Exception:  # noqa: BLE001
+            logger.exception("browser reader failed session_id=%s", session_id)
+        finally:
+            # A clean "end" is the student finishing, not the browser vanishing;
+            # only the latter should look like a lost socket to the supervisor.
+            if not end_requested.is_set():
+                browser_gone.set()
+
+    async def _browser_reader_loop():
+        while True:
+            msg = await websocket.receive()
+            if msg.get("type") == "websocket.disconnect":
+                return
+            data = msg.get("bytes")
+            if data is not None:
+                # Server-side mic gate: drop the student's audio until the
+                # opening greeting has finished playing on their speakers, so
+                # it cannot echo back into the mic and be heard as a student
+                # turn — which is what makes the model greet a second time.
                 if not first_turn_done.is_set():
+                    continue
+                enqueue(("audio", data))
+                continue
+            text = msg.get("text")
+            if text is None:
+                continue
+            try:
+                payload = json.loads(text)
+            except (ValueError, TypeError):
+                continue
+            kind = payload.get("type")
+            if kind == "image" and payload.get("data"):
+                persist.frames_received += 1
+                enqueue(("image", base64.b64decode(payload["data"])))
+            elif kind == "text" and payload.get("text"):
+                enqueue(("text", payload["text"]))
+            elif kind == "mic_open":
+                # The client's greeting playback has genuinely drained. This —
+                # not turn_complete, which fires while seconds of greeting are
+                # still queued in the browser's audio graph — is the moment it
+                # is safe to accept mic audio. One source of truth, the side
+                # that actually knows when the speakers went quiet.
+                first_turn_done.set()
+            elif kind == "end":
+                end_requested.set()
+                return
+
+    async def pump_to_gemini(session):
+        """Drain the inbound queue into the currently-live Gemini session."""
+        while True:
+            kind, payload = await inbound.get()
+            if kind == "audio":
+                await _send_audio(session, payload)
+            elif kind == "image":
+                await _send_image(session, payload)
+            elif kind == "text":
+                await _send_text(session, payload)
+
+    async def gemini_to_client(session):
+        """Forward one Gemini connection's stream to the browser.
+
+        `session.receive()` yields a SINGLE model turn and then ends (it breaks
+        on turn_complete), so it is re-entered in an outer loop to continue the
+        conversation across turns. It never terminates by yielding nothing —
+        when the connection ends it RAISES — so there is deliberately no
+        "empty iteration" exit here; the supervisor below classifies the
+        exception and reconnects or finalizes.
+        """
+        nonlocal resume_handle
+        while True:
+            async for response in session.receive():
+                try:
+                    for audio_chunk in _response_audio_chunks(response):
+                        if audio_chunk:
+                            await websocket.send_bytes(audio_chunk)
+                except Exception as audio_exc:
+                    # Never let one bad PCM frame kill the whole receive loop —
+                    # that was a silent "AI voice not coming" mode.
                     logger.warning(
-                        "mic gate safety release fired (no turn_complete)",
-                        extra={"session_id": session_id, "mode": mode, "event": "mic_gate_safety"},
+                        "audio forward failed: %s",
+                        audio_exc,
+                        extra={"session_id": session_id, "event": "audio_forward_error"},
                     )
-                    first_turn_done.set()
+                # Keep the newest resumption handle so a dropped connection can
+                # pick the conversation up exactly where it left off.
+                sru = getattr(response, "session_resumption_update", None)
+                if sru is not None and getattr(sru, "resumable", None) and getattr(sru, "new_handle", None):
+                    resume_handle = sru.new_handle
+                go_away = getattr(response, "go_away", None)
+                if go_away is not None:
+                    logger.info(
+                        "gemini go_away received; connection will recycle",
+                        extra={
+                            "session_id": session_id,
+                            "event": "live_go_away",
+                            "time_left": str(getattr(go_away, "time_left", "")),
+                        },
+                    )
+                sc = getattr(response, "server_content", None)
+                if sc:
+                    it = getattr(sc, "input_transcription", None)
+                    if it and getattr(it, "text", None):
+                        persist.on_user_text(it.text)
+                        await websocket.send_json({"type": "user_transcript", "text": it.text})
+                    ot = getattr(sc, "output_transcription", None)
+                    if ot and getattr(ot, "text", None):
+                        persist.on_ai_text(ot.text)
+                        await websocket.send_json({"type": "ai_transcript", "text": ot.text})
+                    if getattr(sc, "interrupted", None):
+                        await websocket.send_json({"type": "interrupted"})
+                    if getattr(sc, "turn_complete", None):
+                        await _forward_turn_complete(
+                            websocket, first_turn_done, open_gate=not client_owns_mic_gate
+                        )
+                tc = getattr(response, "tool_call", None)
+                if tc and tc.function_calls:
+                    responses = []
+                    for fc in tc.function_calls:
+                        if fc.name == "end_session":
+                            end_requested.set()
+                            responses.append(
+                                types.FunctionResponse(id=fc.id, name=fc.name, response={"status": "ok"})
+                            )
+                            continue
+                        event = persist.on_tool(fc.name, dict(fc.args or {}))
+                        if event:
+                            await websocket.send_json(event)
+                        tool_response = {"status": "ok"}
+                        if event and event.get("id"):
+                            tool_response["question_id" if fc.name == "record_question" else "id"] = event["id"]
+                        if fc.name == "record_question":
+                            # Do NOT tell the model to stay completely silent —
+                            # if record_question fires before spoken audio for the
+                            # first question, a hard "stay silent" kills AI voice.
+                            tool_response["instruction"] = (
+                                "Question logged. If you have not spoken this question "
+                                "aloud yet, speak it once now, then wait for the student. "
+                                "Do not greet again or re-introduce yourself."
+                            )
+                        responses.append(
+                            types.FunctionResponse(id=fc.id, name=fc.name, response=tool_response)
+                        )
+                    try:
+                        await session.send_tool_response(function_responses=responses)
+                    except Exception:
+                        pass
+                    if end_requested.is_set():
+                        await asyncio.sleep(0.5)
+                        return
 
-            send_task = asyncio.create_task(client_to_gemini())
-            recv_task = asyncio.create_task(gemini_to_client())
-            safety_task = asyncio.create_task(_mic_gate_safety())
-            done, pending = await asyncio.wait(
-                {send_task, recv_task}, return_when=asyncio.FIRST_COMPLETED
+    async def send_greeting(session) -> None:
+        # Live models stay silent until they receive a turn, so a short trigger
+        # forces the opening greeting. Sent ONLY when starting a fresh Gemini
+        # session — a resumed connection already carries the conversation
+        # history, and re-triggering it there is literally a second greeting.
+        try:
+            trigger = live_service.greeting_trigger(mode, language, scenario)
+            await session.send_client_content(
+                turns=types.Content(role="user", parts=[types.Part(text=trigger)]),
+                turn_complete=True,
             )
-            if not safety_task.done():
-                safety_task.cancel()
-            for task in pending:
-                task.cancel()
-            for task in done:
-                exc = task.exception()
-                if exc and not isinstance(exc, (asyncio.CancelledError, WebSocketDisconnect)):
-                    print(f"[live] task error: {exc}")
+            logger.info(
+                "greeting trigger sent",
+                extra={"session_id": session_id, "mode": mode, "event": "greeting_trigger"},
+            )
+        except Exception as exc:
+            logger.exception("greeting trigger failed session_id=%s", session_id)
+            try:
+                await websocket.send_json(
+                    {"type": "error", "message": f"Could not start the examiner voice: {exc}"}
+                )
+            except Exception:
+                pass
 
-    except WebSocketDisconnect:
-        pass
-    except Exception as exc:
-        errored = True
-        print(f"[live] session error: {exc}")
+    async def run_gemini_connection() -> str:
+        """Run ONE Gemini connection until something ends it.
+
+        Returns the reason it stopped. Raises whatever the transport raised so
+        the supervisor can decide between reconnecting and giving up — the old
+        code printed that exception and silently walked into finalize(), which
+        is how a routine connection recycle became "your session ended".
+        """
+        nonlocal ready_sent
+        fresh = resume_handle is None
+        async with live_service.connect_with_fallback(make_config(resume_handle)) as session:
+            if not ready_sent:
+                await websocket.send_json({"type": "ready"})
+                ready_sent = True
+            else:
+                # A reconnect landed: tell the client to drop the
+                # "reconnecting" banner and go back to live.
+                await websocket.send_json({"type": "reconnected", "resumed": not fresh})
+            if fresh:
+                await send_greeting(session)
+
+            recv_task = asyncio.create_task(gemini_to_client(session))
+            pump_task = asyncio.create_task(pump_to_gemini(session))
+            end_task = asyncio.create_task(end_requested.wait())
+            gone_task = asyncio.create_task(browser_gone.wait())
+            super_task = asyncio.create_task(owner.superseded.wait())
+            watched = {recv_task, pump_task, end_task, gone_task, super_task}
+            try:
+                done, _ = await asyncio.wait(watched, return_when=asyncio.FIRST_COMPLETED)
+            finally:
+                for task in watched:
+                    if not task.done():
+                        task.cancel()
+                await asyncio.gather(*watched, return_exceptions=True)
+
+            # Surface a real transport failure instead of swallowing it.
+            for task in (recv_task, pump_task):
+                if task in done and not task.cancelled() and task.exception() is not None:
+                    raise task.exception()  # type: ignore[misc]
+
+            if owner.superseded.is_set():
+                return "superseded"
+            if end_requested.is_set():
+                return "ended"
+            if browser_gone.is_set():
+                return "browser_gone"
+            # The receive loop returned cleanly — the model closed the
+            # conversation itself.
+            return "ended"
+
+    async def mic_gate_safety():
+        # Never let a missing turn_complete / mic_open keep the mic gated forever.
+        await asyncio.sleep(_MIC_GATE_SAFETY_SECONDS)
+        if not first_turn_done.is_set():
+            logger.warning(
+                "mic gate safety release fired (no turn_complete)",
+                extra={"session_id": session_id, "mode": mode, "event": "mic_gate_safety"},
+            )
+            first_turn_done.set()
+
+    reader_task = asyncio.create_task(browser_reader())
+    safety_task = asyncio.create_task(mic_gate_safety())
+    stop_reason = "ended"
+    try:
+        while True:
+            try:
+                stop_reason = await run_gemini_connection()
+            except WebSocketDisconnect:
+                stop_reason = "browser_gone"
+                browser_gone.set()
+            except Exception as exc:  # noqa: BLE001 — classified immediately below
+                if owner.superseded.is_set():
+                    stop_reason = "superseded"
+                    break
+                if browser_gone.is_set():
+                    stop_reason = "browser_gone"
+                    break
+                if not (is_recoverable_live_error(exc) and reconnects < MAX_GEMINI_RECONNECTS):
+                    stop_reason = "failed"
+                    errored = True
+                    fatal_message = (
+                        f"Live AI engine error: {exc}. Check that GEMINI_API_KEY is set and "
+                        "google-genai>=2.10 is installed, then retry."
+                    )
+                    logger.exception("live session failed session_id=%s", session_id)
+                    break
+                reconnects += 1
+                logger.info(
+                    "reconnecting live session",
+                    extra={
+                        "session_id": session_id,
+                        "event": "live_reconnect",
+                        "attempt": reconnects,
+                        "resumable": resume_handle is not None,
+                    },
+                )
+                try:
+                    await websocket.send_json({"type": "reconnecting", "attempt": reconnects})
+                except Exception:
+                    stop_reason = "browser_gone"
+                    browser_gone.set()
+                    break
+                await asyncio.sleep(_reconnect_delay(reconnects))
+                continue
+            break
+    finally:
+        for task in (reader_task, safety_task):
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(reader_task, safety_task, return_exceptions=True)
+    logger.info(
+        "live session stopped",
+        extra={
+            "session_id": session_id,
+            "mode": mode,
+            "event": "live_ws_stop",
+            "reason": stop_reason,
+            "reconnects": reconnects,
+            "has_activity": persist.has_activity,
+        },
+    )
+
+    # A superseded connection lost this session to a newer socket. It must not
+    # finalize and must not revert — either would stomp on the connection that
+    # is actually running the student's exam right now.
+    if owner.superseded.is_set():
+        logger.info(
+            "superseded live connection exiting without finalize",
+            extra={"session_id": session_id, "event": "live_ws_superseded_exit"},
+        )
+        await release_live_owner(session_id, owner)
+        return
+
+    # Never fake a completed 0% session: with nothing the student actually said,
+    # put the row back to Pending so they can retry, rather than grading silence.
+    if not should_finalize(superseded=False, has_activity=persist.has_activity):
+        await asyncio.to_thread(persist.revert_status)
         try:
             await websocket.send_json({
                 "type": "error",
-                "message": f"Live AI engine error: {exc}. Check that GEMINI_API_KEY is set and google-genai>=2.10 is installed, then retry.",
+                "message": fatal_message or (
+                    "The session ended before you said anything, so there was nothing to "
+                    "record. Your session is still available — please try again."
+                ),
             })
-        except Exception:
-            pass
-
-    # Finalize + report back. Never fake a completed 0% session:
-    # - on engine error, put the session back to Pending and DON'T send "ended"
-    # - on a clean end with zero interaction, also revert instead of completing
-    if errored or not persist.has_activity:
-        await asyncio.to_thread(persist.revert_status)
-        try:
-            if not errored:
-                await websocket.send_json({
-                    "type": "error",
-                    "message": "The session ended before any conversation happened, so nothing was recorded. Please try again.",
-                })
             await websocket.close()
         except Exception:
             pass
-        await _release_live_owner(session_id, connection_id)
+        await release_live_owner(session_id, owner)
         return
 
-    # finalize() now does real work (transcript analysis + a report-generation
-    # LLM call), which can take longer than the teardown that already happened.
-    # Tell the client so it can extend its own force-close window from *this*
-    # point rather than from when "end" was first sent.
+    # The student genuinely spoke, so they get their report — even if the
+    # transport died late in the session. Throwing away a real conversation
+    # because the connection dropped at the end is the worse failure.
     try:
         await websocket.send_json({"type": "finalizing"})
     except Exception:
         pass
     summary = await asyncio.to_thread(persist.finalize)
     try:
-        await websocket.send_json({"type": "ended", "summary": summary})
+        # `ended_early` rides inside the summary so every existing report
+        # consumer receives it without a signature change.
+        await websocket.send_json({
+            "type": "ended",
+            "summary": {**summary, **({"ended_early": True} if errored else {})},
+        })
         await websocket.close()
     except Exception:
         pass
-    await _release_live_owner(session_id, connection_id)
+    await release_live_owner(session_id, owner)

@@ -55,6 +55,11 @@ export interface LiveSummary {
   weaknesses?: string[];
   recommendations?: string[];
   coach_metrics?: Record<string, number>;
+  /**
+   * The report is real but the conversation was cut short by a connection
+   * failure rather than by the examiner wrapping up.
+   */
+  ended_early?: boolean;
 }
 
 export interface StartOptions {
@@ -121,10 +126,23 @@ function floatToPCM16(input: Float32Array, inRate: number): ArrayBuffer {
 let _eventSeq = 0;
 const nextId = () => `ev_${Date.now()}_${(_eventSeq += 1)}`;
 
-// Padding added on top of the remaining playback time before opening the mic
-// gate, to cover speaker->mic acoustic latency after the greeting audio ends.
-// Keep this generous — opening too early is a common cause of a second greeting.
+// How long AI playback must be verifiably silent before we trust the mic, to
+// cover speaker->mic acoustic latency after the greeting audio ends.
 const GATE_DRAIN_PADDING_MS = 900;
+// How often to re-check whether AI playback has actually drained. The gate is
+// condition-based rather than a single up-front setTimeout: chunks of greeting
+// audio keep arriving AFTER turn_complete, so a one-shot timer computed from
+// the playhead at turn_complete opened the mic while the AI was still talking —
+// the greeting then leaked back in through the speakers and Gemini heard it as
+// a student turn, producing a second greeting.
+const GATE_POLL_INTERVAL_MS = 120;
+// Absolute ceiling so a stalled audio clock can never gate the mic forever.
+const GATE_MAX_WAIT_MS = 30000;
+// Safety net if `turn_complete` never arrives at all (failed greeting).
+const GATE_SAFETY_MS = 30000;
+// Last-resort socket close after the server said it was finalizing. Report
+// generation is an LLM call, so this must comfortably exceed it.
+const FORCE_CLOSE_MS = 60000;
 
 /**
  * Milliseconds of AI speech still scheduled ahead of the audio clock.
@@ -132,6 +150,46 @@ const GATE_DRAIN_PADDING_MS = 900;
  */
 export function remainingPlaybackMs(playHead: number, currentTime: number): number {
   return Math.max(0, (playHead - currentTime) * 1000);
+}
+
+/** Mutable state carried between mic-gate drain checks. */
+export interface GateDrainState {
+  /** When playback first went quiet, or null if it is (or was) still playing. */
+  quietSince: number | null;
+}
+
+/**
+ * One tick of the mic-gate drain check, as a pure function so the timing rule
+ * that gates the student's microphone is directly testable.
+ *
+ * The rule: the gate opens only after AI playback has been continuously
+ * drained for `paddingMs`. Any newly scheduled audio RESETS that window — this
+ * is what the old single up-front `setTimeout` could not express, and why the
+ * mic used to open while the greeting was still audible.
+ */
+export function gateDrainTick(
+  state: GateDrainState,
+  opts: {
+    now: number;
+    remainingMs: number;
+    paused: boolean;
+    paddingMs: number;
+    /** Absolute time after which we give up waiting and open regardless. */
+    deadline: number;
+  },
+): { open: boolean; state: GateDrainState } {
+  const { now, remainingMs, paused, paddingMs, deadline } = opts;
+  // While paused the audio clock is frozen; silence then means nothing.
+  if (paused) return { open: false, state: { quietSince: null } };
+  if (remainingMs > 0) {
+    if (now >= deadline) return { open: true, state };
+    return { open: false, state: { quietSince: null } };
+  }
+  const quietSince = state.quietSince ?? now;
+  if (now - quietSince >= paddingMs || now >= deadline) {
+    return { open: true, state: { quietSince } };
+  }
+  return { open: false, state: { quietSince } };
 }
 
 /** Detect double-opening AI captions (same hello + role + first question restated). */
@@ -182,6 +240,12 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
   const [liveUserText, setLiveUserText] = useState("");
   const [liveAiText, setLiveAiText] = useState("");
   const [summary, setSummary] = useState<LiveSummary | null>(null);
+  /**
+   * The session was finalized after the connection died rather than after the
+   * examiner wrapped up. The report is real — it is just built from a
+   * conversation that got cut short, and the student deserves to be told.
+   */
+  const [endedEarly, setEndedEarly] = useState(false);
   /** True when the browser is blocking AI audio until the user taps again. */
   const [audioBlocked, setAudioBlocked] = useState(false);
   /** Student paused the session (mic+playback held; socket stays open). */
@@ -207,7 +271,16 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
   // greeting. Streaming ambient noise during the greeting makes the Live model
   // treat it as a turn and greet a second time, and can destabilize the socket.
   const micGateOpenRef = useRef(false);
-  const gateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Poller that opens the gate once AI playback has genuinely drained. */
+  const gateTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  /** Opens the gate unconditionally if `turn_complete` never arrives. */
+  const gateSafetyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /**
+   * Last-resort socket close during finalize. Kept SEPARATE from the gate
+   * timers: they used to share one ref, so a "finalizing" message could cancel
+   * a pending mic-gate open (and vice versa) purely by aliasing.
+   */
+  const forceCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pausedRef = useRef(false);
   /** Mic mute state before pause, restored on resume. */
   const micMutedBeforePauseRef = useRef(false);
@@ -350,34 +423,64 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
 
   // --------------------------- mic gate --------------------------------- //
   /**
-   * Open the mic gate only AFTER the greeting audio has finished playing.
-   * `turn_complete` arrives while several seconds of 24kHz greeting are still
-   * scheduled in the playback graph; opening the gate immediately streams that
-   * greeting (leaking through the speakers, since capture/playback use separate
-   * AudioContexts that defeat echo cancellation) back to Gemini, which then
-   * greets again. We instead wait out the remaining scheduled playback plus a
-   * small acoustic-latency pad, then open. Idempotent.
+   * Open the gate right now and tell the server it may stop dropping mic audio.
+   *
+   * The browser is the only side that knows when the greeting actually stopped
+   * coming out of the speakers, so it owns this decision; the server's own gate
+   * is defense-in-depth for a broken/old client. Previously both sides guessed
+   * independently and the server opened at `turn_complete`, seconds early.
+   * Idempotent.
    */
-  const openGateWhenDrained = useCallback(() => {
-    if (micGateOpenRef.current) return;
-    const ctx = playbackCtxRef.current;
-    const remaining = ctx ? remainingPlaybackMs(playHeadRef.current, ctx.currentTime) : 0;
-    if (gateTimerRef.current) clearTimeout(gateTimerRef.current);
-    gateTimerRef.current = setTimeout(() => {
-      micGateOpenRef.current = true;
-      gateTimerRef.current = null;
-    }, remaining + GATE_DRAIN_PADDING_MS);
-  }, []);
-
-  /** Open the gate right now (used on barge-in — the model already heard us). */
-  const openGateNow = useCallback(() => {
+  const openGate = useCallback(() => {
     if (micGateOpenRef.current) return;
     micGateOpenRef.current = true;
     if (gateTimerRef.current) {
-      clearTimeout(gateTimerRef.current);
+      clearInterval(gateTimerRef.current);
       gateTimerRef.current = null;
     }
+    if (gateSafetyTimerRef.current) {
+      clearTimeout(gateSafetyTimerRef.current);
+      gateSafetyTimerRef.current = null;
+    }
+    const ws = wsRef.current;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      try {
+        ws.send(JSON.stringify({ type: "mic_open" }));
+      } catch {
+        /* the server's safety release covers this */
+      }
+    }
   }, []);
+
+  /**
+   * Open the mic gate only once the greeting audio has genuinely finished
+   * playing — checked by polling the playback clock, not predicted once.
+   *
+   * `turn_complete` arrives while several seconds of 24kHz greeting are still
+   * scheduled in the playback graph, and more chunks can still arrive after it.
+   * Computing a single deadline at `turn_complete` therefore opened the mic
+   * mid-greeting; the greeting leaked through the speakers (capture and
+   * playback use separate AudioContexts, which defeats echo cancellation),
+   * Gemini heard it as a student turn, and greeted again. Polling re-arms the
+   * acoustic pad every time more audio is scheduled, so that cannot happen.
+   */
+  const openGateWhenDrained = useCallback(() => {
+    if (micGateOpenRef.current || gateTimerRef.current) return;
+    const deadline = Date.now() + GATE_MAX_WAIT_MS;
+    let state: GateDrainState = { quietSince: null };
+    gateTimerRef.current = setInterval(() => {
+      const ctx = playbackCtxRef.current;
+      const result = gateDrainTick(state, {
+        now: Date.now(),
+        remainingMs: ctx ? remainingPlaybackMs(playHeadRef.current, ctx.currentTime) : 0,
+        paused: pausedRef.current,
+        paddingMs: GATE_DRAIN_PADDING_MS,
+        deadline,
+      });
+      state = result.state;
+      if (result.open) openGate();
+    }, GATE_POLL_INTERVAL_MS);
+  }, [openGate]);
 
   // --------------------------- socket events ---------------------------- //
   const handleMessage = useCallback(
@@ -436,7 +539,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
           setAiSpeaking(false);
           // Barge-in: the model clearly heard the student, so gating is moot —
           // open immediately (playHeadRef was just zeroed by stopPlayback).
-          openGateNow();
+          openGate();
           commitAi();
           break;
         case "turn_complete":
@@ -469,26 +572,45 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
           ]);
           break;
         }
+        case "reconnected":
+          // The resumed Gemini connection is live again; the conversation
+          // continues where it left off.
+          setStatus("live");
+          setError("");
+          break;
+        case "reconnecting":
+          // The Gemini connection recycled (it lives ~10 minutes) and the
+          // server is transparently resuming the SAME conversation. The socket
+          // to us stays open and the transcript is preserved — this is a blip
+          // to show, not a failure to recover from.
+          setStatus("reconnecting");
+          setError("");
+          break;
         case "finalizing":
           // The server is starting the expensive part (transcript analysis +
           // report generation). Re-arm the force-close safety net from this
           // point, not from when "end" was first sent, so a slow report is
           // never truncated by time already spent on teardown/flush.
-          if (gateTimerRef.current) clearTimeout(gateTimerRef.current);
-          gateTimerRef.current = setTimeout(() => {
+          if (forceCloseTimerRef.current) clearTimeout(forceCloseTimerRef.current);
+          forceCloseTimerRef.current = setTimeout(() => {
             try {
               wsRef.current?.close();
             } catch {
               /* noop */
             }
             wsRef.current = null;
-          }, 60000);
+          }, FORCE_CLOSE_MS);
           break;
-        case "ended":
+        case "ended": {
           endedReceivedRef.current = true;
-          setSummary((msg.summary as LiveSummary) ?? null);
+          const ended = (msg.summary as LiveSummary) ?? null;
+          setSummary(ended);
+          // The server still produced a real report; it just ran out of
+          // connection before the examiner wrapped up on its own.
+          setEndedEarly(Boolean(ended?.ended_early));
           setStatus("ended");
           break;
+        }
         case "error":
           setError(String(msg.message ?? "Live engine error"));
           setStatus("error");
@@ -497,7 +619,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
           break;
       }
     },
-    [playChunk, stopPlayback, commitUser, commitAi, openGateWhenDrained, openGateNow],
+    [playChunk, stopPlayback, commitUser, commitAi, openGateWhenDrained, openGate],
   );
 
   // ------------------------- frame sampling ----------------------------- //
@@ -534,20 +656,24 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
       setCaptions([]);
       setEvents([]);
       setSummary(null);
+      setEndedEarly(false);
       setAudioBlocked(false);
       videoEnabledRef.current = true;
       setVideoEnabled(true);
 
-      // Keep the mic gated until the AI's opening greeting completes (we open it
-      // on the first `turn_complete`). Streaming ambient noise DURING the
-      // greeting makes the Live model treat it as a turn and greet a second
-      // time. The safety net below only fires if `turn_complete` never arrives,
-      // so it's set well beyond a normal greeting to avoid opening mid-greeting.
+      // Keep the mic gated until the AI's opening greeting has actually drained
+      // (see openGateWhenDrained). Streaming ambient noise DURING the greeting
+      // makes the Live model treat it as a turn and greet a second time. This
+      // safety net only fires if `turn_complete` never arrives at all, so it is
+      // set well beyond a normal greeting.
       micGateOpenRef.current = false;
-      if (gateTimerRef.current) clearTimeout(gateTimerRef.current);
-      gateTimerRef.current = setTimeout(() => {
-        micGateOpenRef.current = true;
-      }, 30000);
+      if (gateTimerRef.current) clearInterval(gateTimerRef.current);
+      gateTimerRef.current = null;
+      if (gateSafetyTimerRef.current) clearTimeout(gateSafetyTimerRef.current);
+      gateSafetyTimerRef.current = setTimeout(() => {
+        gateSafetyTimerRef.current = null;
+        openGate();
+      }, GATE_SAFETY_MS);
 
       const token = getToken();
       if (!token) {
@@ -716,7 +842,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
         });
       };
     },
-    [mode, sessionId, language, persona, projectId, subject, handleMessage, sendFrame],
+    [mode, sessionId, language, persona, projectId, subject, handleMessage, sendFrame, openGate],
   );
 
   // ------------------------------ stop ---------------------------------- //
@@ -728,8 +854,12 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     frameTimerRef.current = null;
     if (speakingTimerRef.current) clearTimeout(speakingTimerRef.current);
     if (gateTimerRef.current) {
-      clearTimeout(gateTimerRef.current);
+      clearInterval(gateTimerRef.current);
       gateTimerRef.current = null;
+    }
+    if (gateSafetyTimerRef.current) {
+      clearTimeout(gateSafetyTimerRef.current);
+      gateSafetyTimerRef.current = null;
     }
     micGateOpenRef.current = false;
     stopPlayback();
@@ -769,17 +899,15 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     // analysis) can take several seconds; the server closes the socket itself
     // once it's done. Only force-close as a last-resort safety net well beyond
     // the expected finalize time, so we never truncate the report.
-    if (gateTimerRef.current) clearTimeout(gateTimerRef.current);
-    gateTimerRef.current = setTimeout(() => {
+    if (forceCloseTimerRef.current) clearTimeout(forceCloseTimerRef.current);
+    forceCloseTimerRef.current = setTimeout(() => {
       try {
         ws?.close();
       } catch {
         /* noop */
       }
       wsRef.current = null;
-    }, 60000); // 60s: report generation (an LLM call) can take a while; the
-    // server closes the socket itself once finalize() is done. Bumped from 30s
-    // so a slower evidence-based report is never truncated (WS3 / R6).
+    }, FORCE_CLOSE_MS);
   }, [cleanup]);
 
   const toggleMic = useCallback(() => {
@@ -856,6 +984,10 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
   /** Fully reset the hook so the session can be retried from pre-flight. */
   const reset = useCallback(() => {
     cleanup();
+    if (forceCloseTimerRef.current) {
+      clearTimeout(forceCloseTimerRef.current);
+      forceCloseTimerRef.current = null;
+    }
     try {
       wsRef.current?.close();
     } catch {
@@ -870,6 +1002,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     setLiveUserText("");
     setLiveAiText("");
     setSummary(null);
+    setEndedEarly(false);
     setMicMuted(false);
     setAudioBlocked(false);
     setPaused(false);
@@ -887,6 +1020,10 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
   useEffect(() => {
     return () => {
       cleanup();
+      if (forceCloseTimerRef.current) {
+        clearTimeout(forceCloseTimerRef.current);
+        forceCloseTimerRef.current = null;
+      }
       try {
         wsRef.current?.close();
       } catch {
@@ -907,6 +1044,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     liveUserText,
     liveAiText,
     summary,
+    endedEarly,
     audioBlocked,
     paused,
     start,

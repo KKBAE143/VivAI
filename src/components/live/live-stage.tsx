@@ -286,6 +286,10 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
   const progressPct = Math.min(100, Math.round((qaItems.length / expectedQuestions) * 100));
 
   const connecting = live.status === "connecting" || live.status === "idle";
+  // A Gemini connection recycles roughly every 10 minutes; the server resumes
+  // the same conversation transparently. Show it, but never treat it as a
+  // failure — the transcript and the report survive it.
+  const reconnecting = live.status === "reconnecting";
   const userIsSpeaking = !connecting && !live.aiSpeaking && !live.micMuted && live.liveUserText.length > 0;
   const aiThinking =
     live.status === "live" &&
@@ -297,7 +301,7 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
   // Network quality is derived honestly from the connection state we actually
   // observe — never a fabricated signal-strength number.
   const networkQuality: "good" | "checking" | "poor" =
-    live.status === "error" ? "poor" : connecting ? "checking" : "good";
+    live.status === "error" ? "poor" : connecting || reconnecting ? "checking" : "good";
 
   const submitText = () => {
     if (!text.trim() || live.paused) return;
@@ -318,6 +322,12 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
         >
           Tap here to enable AI voice (browser blocked sound)
         </button>
+      )}
+      {reconnecting && (
+        <div className="absolute inset-x-0 top-0 z-40 flex items-center justify-center gap-2 border-b border-warning/40 bg-warning/15 px-4 py-2.5 text-sm font-semibold text-foreground backdrop-blur">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Reconnecting to the examiner — your conversation is saved, hold on a moment.
+        </div>
       )}
       {live.paused && (
         <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-background/80 p-6 backdrop-blur-sm">

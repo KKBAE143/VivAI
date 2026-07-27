@@ -20,3 +20,29 @@ def test_timestamped_metrics_are_honest_without_student_turns():
     metrics = from_transcript([{"role": "examiner", "text": "Hello", "start_ms": 0, "end_ms": 1_000}])
     assert metrics["available"] is False
     assert metrics["avg_wpm"] is None
+
+
+def test_instantaneous_turns_do_not_crash_the_report():
+    """Regression: a short session yields turns whose start_ms == end_ms
+    (coalesce_turns collapses a single transcript fragment to a point in time).
+    The talk_ratio guard checked that intervals EXISTED rather than that they
+    summed to a non-zero duration, so this raised ZeroDivisionError — and
+    because finalize() computed metrics outside a try/except, that destroyed
+    the student's entire graded report."""
+    metrics = from_transcript([
+        {"role": "examiner", "text": "First question?", "start_ms": 1_000, "end_ms": 1_000},
+        {"role": "student", "text": "Indexes speed up lookups.", "start_ms": 4_000, "end_ms": 4_000},
+    ])
+    assert metrics["available"] is True
+    assert metrics["turn_count"] == 1
+    # No duration was observed, so the ratio is honestly unknown — not zero.
+    assert metrics["talk_ratio"] is None
+    assert metrics["longest_monologue_ms"] == 0
+
+
+def test_talk_ratio_is_still_computed_when_durations_are_real():
+    metrics = from_transcript([
+        {"role": "examiner", "text": "Go on", "start_ms": 0, "end_ms": 2_000},
+        {"role": "student", "text": "I built a scheduler", "start_ms": 2_000, "end_ms": 8_000},
+    ])
+    assert metrics["talk_ratio"] == 0.75

@@ -114,6 +114,14 @@ export function PreflightSetup({
   const micStreamRef = useRef<MediaStream | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const rafRef = useRef<number | null>(null);
+  /**
+   * Synchronous single-start latch. `starting` disables the button, but state
+   * updates are async: two clicks landing in the same tick both passed the
+   * disabled check, each ran getDisplayMedia and each created a playback
+   * AudioContext, handing the session two of everything. A ref closes that
+   * window because it takes effect before the next line runs.
+   */
+  const startingRef = useRef(false);
 
   const screenSupported =
     typeof navigator !== "undefined" && Boolean(navigator.mediaDevices?.getDisplayMedia);
@@ -166,11 +174,13 @@ export function PreflightSetup({
   }, []);
 
   const handleStart = useCallback(async () => {
+    if (startingRef.current) return;
     setError("");
     if (!micStreamRef.current) {
       setError("Microphone is not ready yet.");
       return;
     }
+    startingRef.current = true;
     setStarting(true);
     try {
       let videoStream: MediaStream | null = null;
@@ -207,6 +217,9 @@ export function PreflightSetup({
       } else {
         setError("Could not start capture. Try a different source.");
       }
+      // Release the latch only on failure — on success this component is
+      // replaced by the live stage and must never start a second session.
+      startingRef.current = false;
       setStarting(false);
     }
   }, [source, language, persona, onReady]);
