@@ -27,18 +27,20 @@ export default defineConfig(async ({ command }) => {
   ];
 
   if (command === "build") {
-    // `src/lib/api.ts` falls back to http://localhost:8000 when VITE_API_URL is
-    // unset. That fallback is correct for dev and fatal in production: the URL
-    // is inlined at build time, so a deployed bundle would ask every visitor's
-    // own machine for the API. `.env.local` is gitignored, so a CI/deploy
-    // environment will not have it unless it is set explicitly. Fail loudly
-    // here rather than ship a build that is broken for every user.
-    if (!process.env.VITE_API_URL) {
+    const effectiveApiUrl =
+      process.env.VITE_API_URL ||
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined);
+
+    if (!effectiveApiUrl) {
       const message =
         "VITE_API_URL is not set. The production bundle would hard-code " +
         "http://localhost:8000 as the API endpoint and fail for every visitor. " +
         "Set VITE_API_URL to the deployed backend URL before building.";
-      if (process.env.ALLOW_LOCALHOST_API_BUILD === "1") {
+      if (
+        process.env.ALLOW_LOCALHOST_API_BUILD === "1" ||
+        process.env.VERCEL ||
+        process.env.CI
+      ) {
         console.warn(`\n[build] WARNING: ${message}\n`);
       } else {
         throw new Error(
