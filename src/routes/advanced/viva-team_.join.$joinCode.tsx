@@ -20,7 +20,10 @@ function JoinTeamViva() {
 
   return (
     <AppShell>
-      <PageHeader title="Join Team Viva" subtitle="You've been invited to a live team viva session." />
+      <PageHeader
+        title="Join Team Viva"
+        subtitle="You've been invited to a live team viva session."
+      />
       {preview.isLoading ? (
         <div className="mt-5 max-w-lg">
           <Card>
@@ -34,9 +37,13 @@ function JoinTeamViva() {
           <Card>
             <div className="flex items-center gap-2 text-sm text-destructive">
               <AlertCircle className="h-4 w-4" />
-              {(preview.error as Error)?.message || "This invite link is invalid or you're not on this team."}
+              {(preview.error as Error)?.message ||
+                "This invite link is invalid or you're not on this team."}
             </div>
-            <Link to="/advanced/viva-team" className="mt-3 inline-block text-xs font-semibold text-primary">
+            <Link
+              to="/advanced/viva-team"
+              className="mt-3 inline-block text-xs font-semibold text-primary"
+            >
               Start your own team viva instead
             </Link>
           </Card>
@@ -44,7 +51,9 @@ function JoinTeamViva() {
       ) : !joined ? (
         <div className="mt-5 max-w-lg">
           <Card>
-            <h3 className="text-base font-semibold">{String(preview.data.team_name)}'s Team Viva</h3>
+            <h3 className="text-base font-semibold">
+              {String(preview.data.team_name)}'s Team Viva
+            </h3>
             <p className="mt-1 text-sm text-muted-foreground">
               Hosted by {String(preview.data.lead_name)}
               {preview.data.subject ? ` — focused on ${String(preview.data.subject)}` : ""}.

@@ -33,8 +33,8 @@ function TeamViva() {
             <Users className="h-4 w-4" /> Create a lobby
           </h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            Only a team lead can start a team viva lobby. Once created, you'll get a link to share with your
-            teammates.
+            Only a team lead can start a team viva lobby. Once created, you'll get a link to share
+            with your teammates.
           </p>
           <div className="mt-4 space-y-3">
             <select
@@ -66,7 +66,8 @@ function TeamViva() {
                 createSession.mutate(
                   { team_id: teamId, subject: subject || null },
                   {
-                    onSuccess: (s) => setSession({ id: String(s.id), join_code: String(s.join_code) }),
+                    onSuccess: (s) =>
+                      setSession({ id: String(s.id), join_code: String(s.join_code) }),
                   },
                 )
               }

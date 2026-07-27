@@ -63,9 +63,12 @@ function CodeAwareVivaPage() {
         form.append("persona", persona);
         form.append("duration_minutes", String(duration));
 
-        const res = await api<{ session: { id: string } }>("/api/advanced/code-aware/prepare-viva", {
-          body: form,
-        });
+        const res = await api<{ session: { id: string } }>(
+          "/api/advanced/code-aware/prepare-viva",
+          {
+            body: form,
+          },
+        );
         const sessionId = res.session?.id;
         if (!sessionId) throw new Error("No session returned");
 
@@ -89,8 +92,8 @@ function CodeAwareVivaPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Code-Aware Viva</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Upload a project ZIP and jump straight into a live mock viva. The examiner studies a compact
-            knowledge pack of your code — no confusing architecture graphs.
+            Upload a project ZIP and jump straight into a live mock viva. The examiner studies a
+            compact knowledge pack of your code — no confusing architecture graphs.
           </p>
         </div>
 
@@ -155,7 +158,9 @@ function CodeAwareVivaPage() {
         <ol className="space-y-1.5 text-xs text-muted-foreground">
           <li>1. Choose language, persona, and length</li>
           <li>2. Drop your project ZIP (analyzed in your browser, then uploaded once)</li>
-          <li>3. Live 3-pane mock viva: controls · conversation · scores — same style as Mock Viva</li>
+          <li>
+            3. Live 3-pane mock viva: controls · conversation · scores — same style as Mock Viva
+          </li>
         </ol>
       </div>
     </AppShell>

@@ -24,7 +24,9 @@ function Panel({
     <div className="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
       <div className="flex items-center gap-2">
         <Icon className={`h-4 w-4 ${toneCls}`} />
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          {title}
+        </h3>
       </div>
       <div className="mt-3">{children}</div>
     </div>
@@ -54,12 +56,22 @@ export function SessionReport({ report }: { report: SessionReport }) {
       <section className="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Evidence-based report</p>
-            <h2 className="mt-1 text-2xl font-bold">{overall != null ? `${overall}% overall` : "Score unavailable"}</h2>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Evidence-based report
+            </p>
+            <h2 className="mt-1 text-2xl font-bold">
+              {overall != null ? `${overall}% overall` : "Score unavailable"}
+            </h2>
           </div>
-          {report.framework && <span className="rounded-full bg-secondary px-3 py-1 text-xs font-medium">{report.framework.replaceAll("_", " ")}</span>}
+          {report.framework && (
+            <span className="rounded-full bg-secondary px-3 py-1 text-xs font-medium">
+              {report.framework.replaceAll("_", " ")}
+            </span>
+          )}
         </div>
-        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{report.executive_summary}</p>
+        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+          {report.executive_summary}
+        </p>
       </section>
 
       {dimensions.length > 0 && (
@@ -69,7 +81,12 @@ export function SessionReport({ report }: { report: SessionReport }) {
               <RadarChart data={data}>
                 <PolarGrid />
                 <PolarAngleAxis dataKey="label" tick={{ fontSize: 11 }} />
-                <Radar dataKey="score" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.25} />
+                <Radar
+                  dataKey="score"
+                  stroke="hsl(var(--primary))"
+                  fill="hsl(var(--primary))"
+                  fillOpacity={0.25}
+                />
               </RadarChart>
             </ResponsiveContainer>
           </div>
@@ -78,12 +95,18 @@ export function SessionReport({ report }: { report: SessionReport }) {
               <div key={dimension.id}>
                 <div className="flex justify-between gap-3 text-sm">
                   <span className="font-medium">
-                    {dimension.label} <span className="text-xs text-muted-foreground">{Math.round(dimension.weight * 100)}%</span>
+                    {dimension.label}{" "}
+                    <span className="text-xs text-muted-foreground">
+                      {Math.round(dimension.weight * 100)}%
+                    </span>
                   </span>
                   <span>{dimension.score}%</span>
                 </div>
                 <div className="mt-1 h-2 overflow-hidden rounded bg-secondary">
-                  <div className="h-full rounded bg-primary" style={{ width: `${dimension.score}%` }} />
+                  <div
+                    className="h-full rounded bg-primary"
+                    style={{ width: `${dimension.score}%` }}
+                  />
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">{dimension.explanation}</p>
               </div>
@@ -140,7 +163,9 @@ export function SessionReport({ report }: { report: SessionReport }) {
 
       {report.industry_expectations && (
         <Panel icon={TrendingUp} title="Industry expectations" tone="muted">
-          <p className="text-sm leading-relaxed text-muted-foreground">{report.industry_expectations}</p>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            {report.industry_expectations}
+          </p>
         </Panel>
       )}
 
@@ -185,7 +210,9 @@ export function SessionReport({ report }: { report: SessionReport }) {
                   <li key={index} className="rounded-xl bg-secondary p-3">
                     <span className="font-medium capitalize">{finding.kind}</span> · {finding.text}
                     {finding.quote ? (
-                      <p className="mt-1 text-xs text-muted-foreground">Evidence: “{finding.quote}”</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Evidence: “{finding.quote}”
+                      </p>
                     ) : null}
                   </li>
                 ))}
@@ -207,7 +234,8 @@ export function SessionReport({ report }: { report: SessionReport }) {
                 <li key={i} className="relative text-sm">
                   <span className="absolute -left-[19px] top-1 h-2 w-2 rounded-full bg-primary" />
                   <span className="text-xs text-muted-foreground">
-                    {Math.floor(item.ts_ms / 60000)}:{String(Math.floor((item.ts_ms % 60000) / 1000)).padStart(2, "0")}
+                    {Math.floor(item.ts_ms / 60000)}:
+                    {String(Math.floor((item.ts_ms % 60000) / 1000)).padStart(2, "0")}
                   </span>{" "}
                   {item.label}
                 </li>

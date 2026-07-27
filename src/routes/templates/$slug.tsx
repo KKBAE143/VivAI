@@ -43,13 +43,29 @@ function renderContent(content: string) {
     }
     flushList(`ul-${idx}`);
     if (line.startsWith("### ")) {
-      blocks.push(<h4 key={idx} className="text-base font-semibold">{line.slice(4)}</h4>);
+      blocks.push(
+        <h4 key={idx} className="text-base font-semibold">
+          {line.slice(4)}
+        </h4>,
+      );
     } else if (line.startsWith("## ")) {
-      blocks.push(<h3 key={idx} className="mt-2 text-lg font-semibold">{line.slice(3)}</h3>);
+      blocks.push(
+        <h3 key={idx} className="mt-2 text-lg font-semibold">
+          {line.slice(3)}
+        </h3>,
+      );
     } else if (line.startsWith("# ")) {
-      blocks.push(<h2 key={idx} className="text-xl font-bold">{line.slice(2)}</h2>);
+      blocks.push(
+        <h2 key={idx} className="text-xl font-bold">
+          {line.slice(2)}
+        </h2>,
+      );
     } else {
-      blocks.push(<p key={idx} className="text-sm leading-relaxed text-muted-foreground">{line}</p>);
+      blocks.push(
+        <p key={idx} className="text-sm leading-relaxed text-muted-foreground">
+          {line}
+        </p>,
+      );
     }
   });
   flushList("ul-final");
@@ -81,7 +97,10 @@ function TemplateDetail() {
   return (
     <AppShell>
       <div className="flex items-center gap-3">
-        <Link to="/templates" className="grid h-9 w-9 place-items-center rounded-xl bg-card shadow-[var(--shadow-card)]">
+        <Link
+          to="/templates"
+          className="grid h-9 w-9 place-items-center rounded-xl bg-card shadow-[var(--shadow-card)]"
+        >
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <div className="flex-1">
@@ -140,12 +159,16 @@ function TemplateDetail() {
                   >
                     <span
                       className={`mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded border ${
-                        checked[i] ? "border-primary bg-primary text-primary-foreground" : "border-border"
+                        checked[i]
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border"
                       }`}
                     >
                       {checked[i] && <Check className="h-3 w-3" />}
                     </span>
-                    <span className={checked[i] ? "text-muted-foreground line-through" : ""}>{item}</span>
+                    <span className={checked[i] ? "text-muted-foreground line-through" : ""}>
+                      {item}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -154,7 +177,9 @@ function TemplateDetail() {
 
           <Card className="bg-primary text-primary-foreground">
             <h3 className="text-base font-semibold">Ready to practice?</h3>
-            <p className="mt-1 text-xs text-primary-foreground/85">Run an AI mock viva to test yourself on this guide.</p>
+            <p className="mt-1 text-xs text-primary-foreground/85">
+              Run an AI mock viva to test yourself on this guide.
+            </p>
             <Link
               to="/ai-viva/new"
               className="mt-4 block rounded-xl bg-primary-foreground px-4 py-2.5 text-center text-sm font-semibold text-primary"

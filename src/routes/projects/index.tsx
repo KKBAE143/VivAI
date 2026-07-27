@@ -24,7 +24,8 @@ function Projects() {
   useRequireAuth();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
   const [search, setSearch] = useState("");
-  const typeFilter = filter === "PBL" || filter === "Major" || filter === "Mini" ? filter : undefined;
+  const typeFilter =
+    filter === "PBL" || filter === "Major" || filter === "Mini" ? filter : undefined;
   const { data, isLoading, error, refetch } = useProjects(typeFilter);
 
   let projects = data ?? [];
@@ -32,7 +33,13 @@ function Projects() {
   if (search.trim()) {
     const q = search.trim().toLowerCase();
     projects = projects.filter(
-      (p) => String(p.title ?? "").toLowerCase().includes(q) || String(p.subject ?? "").toLowerCase().includes(q),
+      (p) =>
+        String(p.title ?? "")
+          .toLowerCase()
+          .includes(q) ||
+        String(p.subject ?? "")
+          .toLowerCase()
+          .includes(q),
     );
   }
 
@@ -42,7 +49,10 @@ function Projects() {
         title="My Projects"
         subtitle="Manage your PBL, Major, and Mini projects."
         action={
-          <Link to="/projects/new" className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-transform active:scale-95">
+          <Link
+            to="/projects/new"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-transform active:scale-95"
+          >
             <Plus className="h-4 w-4" /> New Project
           </Link>
         }
@@ -55,7 +65,9 @@ function Projects() {
                 key={t}
                 onClick={() => setFilter(t)}
                 className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
-                  filter === t ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+                  filter === t
+                    ? "bg-foreground text-background"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {t}
@@ -89,7 +101,11 @@ function Projects() {
         ) : projects.length === 0 ? (
           <EmptyState
             title="No projects found"
-            description={search || filter !== "All" ? "Try a different filter or search term." : "Create your first project to get started."}
+            description={
+              search || filter !== "All"
+                ? "Try a different filter or search term."
+                : "Create your first project to get started."
+            }
           />
         ) : (
           <div className="mt-5 overflow-x-auto">
@@ -112,15 +128,26 @@ function Projects() {
                   const type = String(p.type ?? "PBL");
                   const tech = ((p.tech_stack as string[] | null | undefined) ?? []).slice(0, 3);
                   return (
-                    <tr key={String(p.id)} className="border-b border-border last:border-0 hover:bg-secondary/40">
+                    <tr
+                      key={String(p.id)}
+                      className="border-b border-border last:border-0 hover:bg-secondary/40"
+                    >
                       <td className="py-3.5 pr-3">
                         <Link to="/projects/$id" params={{ id: String(p.id) }} className="block">
                           <div className="font-semibold">{String(p.title)}</div>
-                          <div className="text-xs text-muted-foreground">{String(p.subject ?? "—")}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {String(p.subject ?? "—")}
+                          </div>
                         </Link>
                       </td>
                       <td className="py-3.5 pr-3">
-                        <Badge tone={type === "Major" ? "primary" : type === "Mini" ? "muted" : "warning"}>{type}</Badge>
+                        <Badge
+                          tone={
+                            type === "Major" ? "primary" : type === "Mini" ? "muted" : "warning"
+                          }
+                        >
+                          {type}
+                        </Badge>
                       </td>
                       <td className="py-3.5 pr-3">
                         <div className="flex items-center gap-2">
@@ -130,11 +157,21 @@ function Projects() {
                               style={{ width: `${progress}%` }}
                             />
                           </div>
-                          <span className="text-xs font-medium text-muted-foreground">{progress}%</span>
+                          <span className="text-xs font-medium text-muted-foreground">
+                            {progress}%
+                          </span>
                         </div>
                       </td>
                       <td className="py-3.5 pr-3">
-                        <Badge tone={status === "Completed" ? "success" : status === "Under Review" ? "warning" : "primary"}>
+                        <Badge
+                          tone={
+                            status === "Completed"
+                              ? "success"
+                              : status === "Under Review"
+                                ? "warning"
+                                : "primary"
+                          }
+                        >
                           <span className="h-1.5 w-1.5 rounded-full bg-current" /> {status}
                         </Badge>
                       </td>
@@ -143,11 +180,22 @@ function Projects() {
                       </td>
                       <td className="py-3.5 pr-3">
                         <div className="flex flex-wrap gap-1">
-                          {tech.length ? tech.map((t) => <Badge key={t} tone="muted">{t}</Badge>) : <span className="text-xs text-muted-foreground">—</span>}
+                          {tech.length ? (
+                            tech.map((t) => (
+                              <Badge key={t} tone="muted">
+                                {t}
+                              </Badge>
+                            ))
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
                         </div>
                       </td>
                       <td className="py-3.5 text-right">
-                        <button aria-label="More" className="text-muted-foreground hover:text-foreground">
+                        <button
+                          aria-label="More"
+                          className="text-muted-foreground hover:text-foreground"
+                        >
                           <MoreHorizontal className="h-4 w-4" />
                         </button>
                       </td>
@@ -166,9 +214,13 @@ function Projects() {
           </div>
           <h3 className="mt-3 text-base font-semibold">Start something new</h3>
           <p className="mt-1 max-w-md text-sm text-muted-foreground">
-            Spin up a new PBL, Major, or Mini project with templates, milestones and AI-ready viva prep.
+            Spin up a new PBL, Major, or Mini project with templates, milestones and AI-ready viva
+            prep.
           </p>
-          <Link to="/projects/new" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-foreground px-4 py-2.5 text-sm font-medium text-background">
+          <Link
+            to="/projects/new"
+            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-foreground px-4 py-2.5 text-sm font-medium text-background"
+          >
             <Plus className="h-4 w-4" /> Create Project
           </Link>
         </div>

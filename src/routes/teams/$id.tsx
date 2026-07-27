@@ -1,7 +1,21 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
-  ArrowLeft, Users, Crown, Copy, Check, Pencil, Trash2, UserMinus, LogOut, ArrowUpDown,
-  FolderKanban, ListChecks, Activity as ActivityIcon, Settings as SettingsIcon, Clock, CheckCircle2,
+  ArrowLeft,
+  Users,
+  Crown,
+  Copy,
+  Check,
+  Pencil,
+  Trash2,
+  UserMinus,
+  LogOut,
+  ArrowUpDown,
+  FolderKanban,
+  ListChecks,
+  Activity as ActivityIcon,
+  Settings as SettingsIcon,
+  Clock,
+  CheckCircle2,
 } from "lucide-react";
 import { useState } from "react";
 import { AppShell, Card, Badge } from "@/components/app-shell";
@@ -57,16 +71,22 @@ function TeamDashboard() {
   return (
     <AppShell>
       <div className="flex items-start gap-3">
-        <Link to="/teams" className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-card shadow-[var(--shadow-card)]">
+        <Link
+          to="/teams"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-card shadow-[var(--shadow-card)]"
+        >
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-2xl font-bold tracking-tight">{String(team.name)}</h1>
-            <Badge tone={team.status === "Actively working" ? "success" : "muted"}>{String(team.status)}</Badge>
+            <Badge tone={team.status === "Actively working" ? "success" : "muted"}>
+              {String(team.status)}
+            </Badge>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            {Number(team.member_count ?? members.length)} member{Number(team.member_count ?? members.length) === 1 ? "" : "s"}
+            {Number(team.member_count ?? members.length)} member
+            {Number(team.member_count ?? members.length) === 1 ? "" : "s"}
           </p>
         </div>
       </div>
@@ -78,7 +98,9 @@ function TeamDashboard() {
               key={t}
               onClick={() => setTab(t)}
               className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
-                t === tab ? "bg-foreground text-background" : "text-muted-foreground hover:bg-secondary"
+                t === tab
+                  ? "bg-foreground text-background"
+                  : "text-muted-foreground hover:bg-secondary"
               }`}
             >
               {t}
@@ -89,7 +111,14 @@ function TeamDashboard() {
 
       <div className="mt-5">
         {tab === "Overview" && <OverviewTab team={team} isLead={isLead} />}
-        {tab === "Members" && <MembersTab teamId={id} team={team} meId={me?.id ? String(me.id) : null} isLead={isLead} />}
+        {tab === "Members" && (
+          <MembersTab
+            teamId={id}
+            team={team}
+            meId={me?.id ? String(me.id) : null}
+            isLead={isLead}
+          />
+        )}
         {tab === "Projects" && <ProjectsTab team={team} />}
         {tab === "Tasks" && <TasksTab team={team} />}
         {tab === "Activity" && <ActivityTab teamId={id} />}
@@ -127,7 +156,13 @@ function OverviewTab({ team, isLead }: { team: ApiRecord; isLead: boolean }) {
             <StatTile label="Active projects" value={activeProjects.length} />
             <StatTile label="Completed" value={completedProjects.length} />
             <StatTile label="Members" value={Number(team.member_count ?? 0)} />
-            <StatTile label="Open tasks" value={workload.reduce((sum, w) => sum + Number(w.total ?? 0) - Number(w.done ?? 0), 0)} />
+            <StatTile
+              label="Open tasks"
+              value={workload.reduce(
+                (sum, w) => sum + Number(w.total ?? 0) - Number(w.done ?? 0),
+                0,
+              )}
+            />
           </div>
         </Card>
 
@@ -138,7 +173,10 @@ function OverviewTab({ team, isLead }: { team: ApiRecord; isLead: boolean }) {
               {pendingRequests.map((r) => {
                 const project = (r.projects as ApiRecord | undefined) ?? {};
                 return (
-                  <div key={String(r.id)} className="flex items-center justify-between rounded-xl bg-secondary p-3">
+                  <div
+                    key={String(r.id)}
+                    className="flex items-center justify-between rounded-xl bg-secondary p-3"
+                  >
                     <div className="text-sm">
                       <span className="font-medium">{String(project.title ?? "A project")}</span>{" "}
                       <span className="text-xs text-muted-foreground">wants to link this team</span>
@@ -167,7 +205,9 @@ function OverviewTab({ team, isLead }: { team: ApiRecord; isLead: boolean }) {
         <Card>
           <h3 className="text-sm font-semibold">Recent activity</h3>
           <div className="mt-3 space-y-2">
-            {recentActivity.length === 0 && <p className="text-xs text-muted-foreground">Nothing yet.</p>}
+            {recentActivity.length === 0 && (
+              <p className="text-xs text-muted-foreground">Nothing yet.</p>
+            )}
             {recentActivity.map((a) => (
               <ActivityRow key={String(a.id)} entry={a} />
             ))}
@@ -187,7 +227,9 @@ function OverviewTab({ team, isLead }: { team: ApiRecord; isLead: boolean }) {
                 <div key={String(w.profile_id)}>
                   <div className="flex justify-between text-xs">
                     <span className="font-medium text-foreground">{String(w.name)}</span>
-                    <span className="text-muted-foreground">{done}/{total} done</span>
+                    <span className="text-muted-foreground">
+                      {done}/{total} done
+                    </span>
                   </div>
                   <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
                     <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
@@ -195,7 +237,9 @@ function OverviewTab({ team, isLead }: { team: ApiRecord; isLead: boolean }) {
                 </div>
               );
             })}
-            {workload.length === 0 && <p className="text-xs text-muted-foreground">No tasks assigned yet.</p>}
+            {workload.length === 0 && (
+              <p className="text-xs text-muted-foreground">No tasks assigned yet.</p>
+            )}
           </div>
         </Card>
       </div>
@@ -208,7 +252,9 @@ function ActivityRow({ entry }: { entry: ApiRecord }) {
   return (
     <div className="flex items-start gap-2.5 rounded-xl bg-secondary p-2.5 text-sm">
       <div className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-card text-[10px] font-semibold">
-        {String(profile.full_name ?? "?").charAt(0).toUpperCase()}
+        {String(profile.full_name ?? "?")
+          .charAt(0)
+          .toUpperCase()}
       </div>
       <div className="min-w-0">
         <p className="leading-snug">{String(entry.activity_text)}</p>
@@ -221,8 +267,16 @@ function ActivityRow({ entry }: { entry: ApiRecord }) {
 }
 
 function MembersTab({
-  teamId, team, meId, isLead,
-}: { teamId: string; team: ApiRecord; meId: string | null; isLead: boolean }) {
+  teamId,
+  team,
+  meId,
+  isLead,
+}: {
+  teamId: string;
+  team: ApiRecord;
+  meId: string | null;
+  isLead: boolean;
+}) {
   const removeMember = useRemoveMember();
   const updateRole = useUpdateMemberRole();
   const [copied, setCopied] = useState(false);
@@ -245,7 +299,9 @@ function MembersTab({
         <Card>
           <div className="text-xs font-medium text-muted-foreground">Invite code</div>
           <div className="mt-1 flex items-center justify-between gap-2">
-            <code className="rounded-lg bg-secondary px-3 py-1.5 text-sm font-semibold tracking-wider">{inviteCode}</code>
+            <code className="rounded-lg bg-secondary px-3 py-1.5 text-sm font-semibold tracking-wider">
+              {inviteCode}
+            </code>
             <button
               onClick={() => {
                 void navigator.clipboard.writeText(inviteCode);
@@ -270,7 +326,10 @@ function MembersTab({
             const role = String(m.role ?? "Member");
             const isMe = pid === meId;
             return (
-              <div key={pid} className="flex items-center justify-between rounded-xl border border-border p-2.5">
+              <div
+                key={pid}
+                className="flex items-center justify-between rounded-xl border border-border p-2.5"
+              >
                 <div className="flex min-w-0 items-center gap-2.5">
                   <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-secondary text-xs font-semibold">
                     {fullName.charAt(0).toUpperCase()}
@@ -291,7 +350,11 @@ function MembersTab({
                     <button
                       onClick={() =>
                         void run(() =>
-                          updateRole.mutateAsync({ teamId, profileId: pid, role: role === "Lead" ? "Member" : "Lead" }),
+                          updateRole.mutateAsync({
+                            teamId,
+                            profileId: pid,
+                            role: role === "Lead" ? "Member" : "Lead",
+                          }),
                         )
                       }
                       aria-label="Toggle role"
@@ -313,7 +376,11 @@ function MembersTab({
                       title={isMe ? "Leave team" : "Remove member"}
                       className="grid h-8 w-8 place-items-center rounded-lg bg-secondary text-destructive hover:bg-destructive/10"
                     >
-                      {isMe ? <LogOut className="h-3.5 w-3.5" /> : <UserMinus className="h-3.5 w-3.5" />}
+                      {isMe ? (
+                        <LogOut className="h-3.5 w-3.5" />
+                      ) : (
+                        <UserMinus className="h-3.5 w-3.5" />
+                      )}
                     </button>
                   )}
                 </div>
@@ -345,7 +412,10 @@ function ProjectsTab({ team }: { team: ApiRecord }) {
       </div>
       <div className="flex shrink-0 items-center gap-3">
         <div className="h-1.5 w-20 overflow-hidden rounded-full bg-secondary">
-          <div className="h-full rounded-full bg-primary" style={{ width: `${Number(p.progress ?? 0)}%` }} />
+          <div
+            className="h-full rounded-full bg-primary"
+            style={{ width: `${Number(p.progress ?? 0)}%` }}
+          />
         </div>
         <span className="text-xs font-medium">{Number(p.progress ?? 0)}%</span>
       </div>
@@ -357,15 +427,21 @@ function ProjectsTab({ team }: { team: ApiRecord }) {
       <Card>
         <h3 className="text-sm font-semibold">Active projects</h3>
         <div className="mt-3 space-y-2">
-          {active.length === 0 && <p className="text-xs text-muted-foreground">No active projects right now.</p>}
-          {active.map((p) => <ProjectRow key={String(p.id)} p={p} />)}
+          {active.length === 0 && (
+            <p className="text-xs text-muted-foreground">No active projects right now.</p>
+          )}
+          {active.map((p) => (
+            <ProjectRow key={String(p.id)} p={p} />
+          ))}
         </div>
       </Card>
       {completed.length > 0 && (
         <Card>
           <h3 className="text-sm font-semibold">Completed</h3>
           <div className="mt-3 space-y-2">
-            {completed.map((p) => <ProjectRow key={String(p.id)} p={p} />)}
+            {completed.map((p) => (
+              <ProjectRow key={String(p.id)} p={p} />
+            ))}
           </div>
         </Card>
       )}
@@ -393,14 +469,22 @@ function TasksTab({ team }: { team: ApiRecord }) {
     return m ? String((m.profiles as ApiRecord | undefined)?.full_name ?? "Member") : "Unassigned";
   };
   const toneFor = (status: string) =>
-    status === "Done" ? "success" : status === "Review" ? "warning" : status === "In Progress" ? "primary" : "muted";
+    status === "Done"
+      ? "success"
+      : status === "Review"
+        ? "warning"
+        : status === "In Progress"
+          ? "primary"
+          : "muted";
 
   if (tasks.length === 0) {
     return (
       <Card>
         <div className="flex flex-col items-center py-6 text-center">
           <ListChecks className="h-8 w-8 text-muted-foreground" />
-          <p className="mt-2 text-sm text-muted-foreground">No tasks on this team&apos;s current projects yet.</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            No tasks on this team&apos;s current projects yet.
+          </p>
         </div>
       </Card>
     );
@@ -411,11 +495,15 @@ function TasksTab({ team }: { team: ApiRecord }) {
       <h3 className="text-sm font-semibold">Tasks across current projects</h3>
       <div className="mt-3 space-y-2">
         {tasks.map((t) => (
-          <div key={String(t.id)} className="flex items-center justify-between gap-3 rounded-xl border border-border p-2.5">
+          <div
+            key={String(t.id)}
+            className="flex items-center justify-between gap-3 rounded-xl border border-border p-2.5"
+          >
             <div className="min-w-0">
               <div className="truncate text-sm font-medium">{String(t.title)}</div>
               <div className="mt-0.5 truncate text-xs text-muted-foreground">
-                {projectTitle(t.project_id) ? `${projectTitle(t.project_id)} · ` : ""}{nameOf(t.assignee_id)}
+                {projectTitle(t.project_id) ? `${projectTitle(t.project_id)} · ` : ""}
+                {nameOf(t.assignee_id)}
               </div>
             </div>
             <Badge tone={toneFor(String(t.status))}>{String(t.status)}</Badge>
@@ -437,14 +525,26 @@ function ActivityTab({ teamId }: { teamId: string }) {
       </div>
       <div className="mt-3 space-y-2">
         {isLoading && <p className="text-xs text-muted-foreground">Loading…</p>}
-        {!isLoading && entries.length === 0 && <p className="text-xs text-muted-foreground">No activity yet.</p>}
-        {entries.map((a) => <ActivityRow key={String(a.id)} entry={a} />)}
+        {!isLoading && entries.length === 0 && (
+          <p className="text-xs text-muted-foreground">No activity yet.</p>
+        )}
+        {entries.map((a) => (
+          <ActivityRow key={String(a.id)} entry={a} />
+        ))}
       </div>
     </Card>
   );
 }
 
-function SettingsTab({ teamId, team, isLead }: { teamId: string; team: ApiRecord; isLead: boolean }) {
+function SettingsTab({
+  teamId,
+  team,
+  isLead,
+}: {
+  teamId: string;
+  team: ApiRecord;
+  isLead: boolean;
+}) {
   const navigate = useNavigate();
   const renameTeam = useRenameTeam();
   const deleteTeam = useDeleteTeam();
@@ -479,7 +579,8 @@ function SettingsTab({ teamId, team, isLead }: { teamId: string; team: ApiRecord
               onClick={async () => {
                 setError("");
                 try {
-                  if (newName.trim()) await renameTeam.mutateAsync({ teamId, name: newName.trim() });
+                  if (newName.trim())
+                    await renameTeam.mutateAsync({ teamId, name: newName.trim() });
                   setEditingName(false);
                 } catch (e) {
                   setError(e instanceof Error ? e.message : "Could not rename the team");
@@ -504,8 +605,8 @@ function SettingsTab({ teamId, team, isLead }: { teamId: string; team: ApiRecord
       <Card className="border border-destructive/30">
         <h3 className="text-sm font-semibold text-destructive">Danger zone</h3>
         <p className="mt-1 text-xs text-muted-foreground">
-          Deleting this team removes it for every member. Any linked project just loses its team — the project itself
-          is not affected.
+          Deleting this team removes it for every member. Any linked project just loses its team —
+          the project itself is not affected.
         </p>
         <button
           onClick={() => setConfirmDelete(true)}
@@ -518,11 +619,14 @@ function SettingsTab({ teamId, team, isLead }: { teamId: string; team: ApiRecord
       {confirmDelete && (
         <ModalShell title="Delete this team?" onClose={() => setConfirmDelete(false)}>
           <p className="text-sm text-muted-foreground">
-            This cannot be undone. <strong className="text-foreground">{String(team.name)}</strong> and its membership
-            will be permanently removed.
+            This cannot be undone. <strong className="text-foreground">{String(team.name)}</strong>{" "}
+            and its membership will be permanently removed.
           </p>
           <div className="mt-5 flex justify-end gap-2">
-            <button onClick={() => setConfirmDelete(false)} className="rounded-xl bg-secondary px-4 py-2 text-sm font-medium">
+            <button
+              onClick={() => setConfirmDelete(false)}
+              className="rounded-xl bg-secondary px-4 py-2 text-sm font-medium"
+            >
               Cancel
             </button>
             <button

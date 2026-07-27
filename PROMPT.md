@@ -69,11 +69,13 @@ C:\Users\kkbae\Downloads\vision-agent-main\vision-agent-main\
 **⚠️ CRITICAL — Vision-Agent import paths:**
 
 There is **NO** `plugins/gemini/` or `agents-core/` directory. Do NOT use:
+
 ```python
 from vision_agents.plugins.gemini import GeminiLLM  # WRONG
 ```
 
 Use `google-genai` directly:
+
 ```python
 from google import genai
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
@@ -171,70 +173,77 @@ collgepro-navigator-main/
 ## 🔌 CORE API ENDPOINTS
 
 ### 1. Authentication
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| POST | `/api/auth/signup` | Create account (name, email, college, year, branch, password) |
-| POST | `/api/auth/login` | Sign in (email, password) |
-| POST | `/api/auth/logout` | Sign out |
-| POST | `/api/auth/forgot-password` | Send reset email |
-| POST | `/api/auth/reset-password` | Reset with token |
-| GET | `/api/auth/me` | Get current user profile |
-| PUT | `/api/auth/profile` | Update profile |
+
+| Method | Endpoint                    | Purpose                                                       |
+| ------ | --------------------------- | ------------------------------------------------------------- |
+| POST   | `/api/auth/signup`          | Create account (name, email, college, year, branch, password) |
+| POST   | `/api/auth/login`           | Sign in (email, password)                                     |
+| POST   | `/api/auth/logout`          | Sign out                                                      |
+| POST   | `/api/auth/forgot-password` | Send reset email                                              |
+| POST   | `/api/auth/reset-password`  | Reset with token                                              |
+| GET    | `/api/auth/me`              | Get current user profile                                      |
+| PUT    | `/api/auth/profile`         | Update profile                                                |
 
 ### 2. Projects
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| GET | `/api/projects` | List user's projects (filter by type: PBL/Major/Mini) |
-| POST | `/api/projects` | Create project (title, type, subject, tech stack, problem statement) |
-| GET | `/api/projects/{id}` | Get project detail (tasks, milestones, team, progress) |
-| PUT | `/api/projects/{id}` | Update project |
-| DELETE | `/api/projects/{id}` | Delete project |
-| PUT | `/api/projects/{id}/progress` | Update project progress % |
+
+| Method | Endpoint                      | Purpose                                                              |
+| ------ | ----------------------------- | -------------------------------------------------------------------- |
+| GET    | `/api/projects`               | List user's projects (filter by type: PBL/Major/Mini)                |
+| POST   | `/api/projects`               | Create project (title, type, subject, tech stack, problem statement) |
+| GET    | `/api/projects/{id}`          | Get project detail (tasks, milestones, team, progress)               |
+| PUT    | `/api/projects/{id}`          | Update project                                                       |
+| DELETE | `/api/projects/{id}`          | Delete project                                                       |
+| PUT    | `/api/projects/{id}/progress` | Update project progress %                                            |
 
 ### 3. Teams
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| GET | `/api/teams` | List user's teams |
-| POST | `/api/teams` | Create team (name, project_id) |
-| GET | `/api/teams/{id}` | Get team detail |
-| POST | `/api/teams/{id}/invite` | Invite member by email |
-| POST | `/api/teams/{id}/join` | Accept invite (code/token) |
-| DELETE | `/api/teams/{id}/members/{userId}` | Remove member |
-| PUT | `/api/teams/{id}/members/{userId}/role` | Change member role |
+
+| Method | Endpoint                                | Purpose                        |
+| ------ | --------------------------------------- | ------------------------------ |
+| GET    | `/api/teams`                            | List user's teams              |
+| POST   | `/api/teams`                            | Create team (name, project_id) |
+| GET    | `/api/teams/{id}`                       | Get team detail                |
+| POST   | `/api/teams/{id}/invite`                | Invite member by email         |
+| POST   | `/api/teams/{id}/join`                  | Accept invite (code/token)     |
+| DELETE | `/api/teams/{id}/members/{userId}`      | Remove member                  |
+| PUT    | `/api/teams/{id}/members/{userId}/role` | Change member role             |
 
 ### 4. Tasks
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| GET | `/api/projects/{projectId}/tasks` | List tasks for project |
-| POST | `/api/projects/{projectId}/tasks` | Create task (title, assignee, priority, due_date) |
-| PUT | `/api/tasks/{id}` | Update task (status, assignee, priority) |
-| PUT | `/api/tasks/{id}/status` | Toggle complete/in-progress |
-| DELETE | `/api/tasks/{id}` | Delete task |
+
+| Method | Endpoint                          | Purpose                                           |
+| ------ | --------------------------------- | ------------------------------------------------- |
+| GET    | `/api/projects/{projectId}/tasks` | List tasks for project                            |
+| POST   | `/api/projects/{projectId}/tasks` | Create task (title, assignee, priority, due_date) |
+| PUT    | `/api/tasks/{id}`                 | Update task (status, assignee, priority)          |
+| PUT    | `/api/tasks/{id}/status`          | Toggle complete/in-progress                       |
+| DELETE | `/api/tasks/{id}`                 | Delete task                                       |
 
 ### 5. Files
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| POST | `/api/files/upload` | Upload file (PDF, DOCX, PPTX, images, ZIP) |
-| GET | `/api/files` | List user's files across projects |
-| GET | `/api/files/{id}` | Download file |
-| DELETE | `/api/files/{id}` | Delete file |
-| GET | `/api/projects/{projectId}/files` | List project files |
+
+| Method | Endpoint                          | Purpose                                    |
+| ------ | --------------------------------- | ------------------------------------------ |
+| POST   | `/api/files/upload`               | Upload file (PDF, DOCX, PPTX, images, ZIP) |
+| GET    | `/api/files`                      | List user's files across projects          |
+| GET    | `/api/files/{id}`                 | Download file                              |
+| DELETE | `/api/files/{id}`                 | Delete file                                |
+| GET    | `/api/projects/{projectId}/files` | List project files                         |
 
 ### 6. AI Mock Viva
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| POST | `/api/viva/sessions` | Create session (type, duration, difficulty, language, subject, project_id) |
-| GET | `/api/viva/sessions` | List user's viva sessions with scores |
-| GET | `/api/viva/sessions/{id}` | Get session detail (questions, answers, score) |
-| POST | `/api/viva/sessions/{id}/start` | Start session, get first question |
-| POST | `/api/viva/sessions/{id}/answer` | Submit answer, get next question |
-| POST | `/api/viva/sessions/{id}/skip` | Skip question |
-| POST | `/api/viva/sessions/{id}/hint` | Get hint for current question |
-| POST | `/api/viva/sessions/{id}/end` | End session, get summary + score |
-| GET | `/api/viva/sessions/{id}/transcript` | Get full transcript |
-| GET | `/api/viva/stats` | Get overall stats (total sessions, avg score, strengths, weaknesses) |
+
+| Method | Endpoint                             | Purpose                                                                    |
+| ------ | ------------------------------------ | -------------------------------------------------------------------------- |
+| POST   | `/api/viva/sessions`                 | Create session (type, duration, difficulty, language, subject, project_id) |
+| GET    | `/api/viva/sessions`                 | List user's viva sessions with scores                                      |
+| GET    | `/api/viva/sessions/{id}`            | Get session detail (questions, answers, score)                             |
+| POST   | `/api/viva/sessions/{id}/start`      | Start session, get first question                                          |
+| POST   | `/api/viva/sessions/{id}/answer`     | Submit answer, get next question                                           |
+| POST   | `/api/viva/sessions/{id}/skip`       | Skip question                                                              |
+| POST   | `/api/viva/sessions/{id}/hint`       | Get hint for current question                                              |
+| POST   | `/api/viva/sessions/{id}/end`        | End session, get summary + score                                           |
+| GET    | `/api/viva/sessions/{id}/transcript` | Get full transcript                                                        |
+| GET    | `/api/viva/stats`                    | Get overall stats (total sessions, avg score, strengths, weaknesses)       |
 
 **Viva AI logic:**
+
 - Use `google-genai` directly
 - Use Gemini Free Tier models: `gemini-2.0-flash` or `gemini-2.5-flash-preview-04-17`
 - Build a system prompt that instructs the AI to act as a faculty member
@@ -246,42 +255,47 @@ collgepro-navigator-main/
 - Adaptive difficulty: if correct → harder; if wrong → stay/review
 
 ### 7. AI Presentation Mock
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| POST | `/api/presentation/sessions` | Create session (project_id, duration, type) |
-| GET | `/api/presentation/sessions` | List past sessions |
-| GET | `/api/presentation/sessions/{id}` | Get session detail |
-| POST | `/api/presentation/sessions/{id}/start` | Start session |
-| POST | `/api/presentation/sessions/{id}/upload-slide` | Upload slide image, get feedback |
-| POST | `/api/presentation/sessions/{id}/ask` | Ask a follow-up question during presentation |
-| POST | `/api/presentation/sessions/{id}/end` | End, get full feedback report (clarity, confidence, coverage, gaps) |
+
+| Method | Endpoint                                       | Purpose                                                             |
+| ------ | ---------------------------------------------- | ------------------------------------------------------------------- |
+| POST   | `/api/presentation/sessions`                   | Create session (project_id, duration, type)                         |
+| GET    | `/api/presentation/sessions`                   | List past sessions                                                  |
+| GET    | `/api/presentation/sessions/{id}`              | Get session detail                                                  |
+| POST   | `/api/presentation/sessions/{id}/start`        | Start session                                                       |
+| POST   | `/api/presentation/sessions/{id}/upload-slide` | Upload slide image, get feedback                                    |
+| POST   | `/api/presentation/sessions/{id}/ask`          | Ask a follow-up question during presentation                        |
+| POST   | `/api/presentation/sessions/{id}/end`          | End, get full feedback report (clarity, confidence, coverage, gaps) |
 
 ### 8. Templates & Guidelines
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| GET | `/api/templates` | List all templates/guides (PBL, Major, Mini, Viva) |
-| GET | `/api/templates/{slug}` | Get template content (markdown) |
-| GET | `/api/templates/{slug}/checklist` | Get checklist items for template |
+
+| Method | Endpoint                          | Purpose                                            |
+| ------ | --------------------------------- | -------------------------------------------------- |
+| GET    | `/api/templates`                  | List all templates/guides (PBL, Major, Mini, Viva) |
+| GET    | `/api/templates/{slug}`           | Get template content (markdown)                    |
+| GET    | `/api/templates/{slug}/checklist` | Get checklist items for template                   |
 
 ### 9. Activity Log & Dashboard Stats
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| GET | `/api/analytics/dashboard` | Get dashboard stats (active projects, pending tasks, session counts) |
-| GET | `/api/analytics/activity` | Get recent activity feed |
-| GET | `/api/analytics/trends` | Get weekly/monthly trends |
-| GET | `/api/analytics/leaderboard` | Get college/branch leaderboard |
+
+| Method | Endpoint                     | Purpose                                                              |
+| ------ | ---------------------------- | -------------------------------------------------------------------- |
+| GET    | `/api/analytics/dashboard`   | Get dashboard stats (active projects, pending tasks, session counts) |
+| GET    | `/api/analytics/activity`    | Get recent activity feed                                             |
+| GET    | `/api/analytics/trends`      | Get weekly/monthly trends                                            |
+| GET    | `/api/analytics/leaderboard` | Get college/branch leaderboard                                       |
 
 ### 10. Onboarding Data
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| POST | `/api/onboarding/complete` | Save onboarding answers (branch, year, goals) |
-| GET | `/api/onboarding/status` | Check if onboarding is complete |
+
+| Method | Endpoint                   | Purpose                                       |
+| ------ | -------------------------- | --------------------------------------------- |
+| POST   | `/api/onboarding/complete` | Save onboarding answers (branch, year, goals) |
+| GET    | `/api/onboarding/status`   | Check if onboarding is complete               |
 
 ---
 
 ## 🚀 ADVANCED FEATURES (UNIQUE — extends core platform)
 
 These 7 features are what make CollgePro Navigator truly unique. Each one requires:
+
 1. **New frontend route page(s)** in `src/routes/advanced/`
 2. **New backend API endpoints** in `api/advanced.py`
 3. **New AI logic** in `ai/` directory
@@ -291,11 +305,12 @@ These 7 features are what make CollgePro Navigator truly unique. Each one requir
 
 ### A. Code-Aware Viva Mode 🔥 (KILLER FEATURE)
 
-**What it does:** The viva AI reads the student's actual project source code (from uploaded ZIPs or GitHub links) and asks targeted, implementation-specific questions. Unlike generic viva tools that ask textbook questions, this one asks: *"In your app.py line 47, you're using ThreadPoolExecutor — why that over asyncio?"* or *"Your CNN has 3 convolutional layers. Why not 4? What's the trade-off?"*
+**What it does:** The viva AI reads the student's actual project source code (from uploaded ZIPs or GitHub links) and asks targeted, implementation-specific questions. Unlike generic viva tools that ask textbook questions, this one asks: _"In your app.py line 47, you're using ThreadPoolExecutor — why that over asyncio?"_ or _"Your CNN has 3 convolutional layers. Why not 4? What's the trade-off?"_
 
 **Why it's unique:** No other mock viva platform reads actual student code. This simulates real faculty who review your project files before the viva.
 
 **New Frontend Routes:**
+
 - `src/routes/advanced/viva-code-aware.tsx` — Upload code / link GitHub repo, select project, start code-aware viva session. Shows the source code side-by-side with the AI question.
 
 **Backend Endpoints:**
@@ -314,11 +329,12 @@ These 7 features are what make CollgePro Navigator truly unique. Each one requir
 
 ### B. Presentation → Viva Bridge
 
-**What it does:** After completing an AI presentation practice session, the system automatically generates targeted viva questions based on what the student presented poorly, skipped, or showed weak understanding of. *"You scored only 60% on clarity about your CNN architecture. Here are 5 targeted viva questions to practice that topic."* It closes the loop between presentation prep and viva prep.
+**What it does:** After completing an AI presentation practice session, the system automatically generates targeted viva questions based on what the student presented poorly, skipped, or showed weak understanding of. _"You scored only 60% on clarity about your CNN architecture. Here are 5 targeted viva questions to practice that topic."_ It closes the loop between presentation prep and viva prep.
 
 **Why it's unique:** Most platforms treat presentations and vivas as separate. This one connects them intelligently.
 
 **New Frontend Routes:**
+
 - `src/routes/advanced/presentation-bridge.tsx` — Shows past presentations, weak topics detected, and the auto-generated viva questions for each gap area. "Practice these now" button directly launches a focused viva session.
 
 **Backend Endpoints:**
@@ -340,6 +356,7 @@ These 7 features are what make CollgePro Navigator truly unique. Each one requir
 **Why it's unique:** Group vivas are a real B.Tech pain point (some members don't prepare, faculty asks cross-questions). No existing tool simulates this.
 
 **New Frontend Routes:**
+
 - `src/routes/advanced/viva-team.tsx` — Real-time team viva lobby with member list, start button, live question/answer feed showing who answered first, individual scores, team score tally.
 
 **Backend Endpoints (WebSocket + REST):**
@@ -362,6 +379,7 @@ These 7 features are what make CollgePro Navigator truly unique. Each one requir
 **Why it's unique:** Hyper-personalized to the actual examiner. This goes far beyond generic "AI as faculty."
 
 **New Frontend Routes:**
+
 - `src/routes/advanced/faculty-sim.tsx` — Browse/search faculty profiles (crowd-sourced from college), view prof details, start a simulation, rate how accurate the simulation was after.
 
 **Backend Endpoints:**
@@ -376,17 +394,18 @@ These 7 features are what make CollgePro Navigator truly unique. Each one requir
 | POST | `/api/advanced/faculty-sim/sessions/{id}/end` | End, rate simulation accuracy |
 | GET | `/api/advanced/faculty-sim/my-sessions` | List past simulations |
 
-**Logic:** Faculty profile contains: name, subjects taught, known tough topics, question style (direct/conversational/grilling), typical first-question patterns, expected depth level, tags from student ratings (e.g. "strict", "gives hints", "interrupts"). Gemini receives profile as system prompt context: *"You are Prof. Sharma, teaching DBMS for 8 years. Your style: start with normalization, interrupt vague answers, expect concrete examples."*
+**Logic:** Faculty profile contains: name, subjects taught, known tough topics, question style (direct/conversational/grilling), typical first-question patterns, expected depth level, tags from student ratings (e.g. "strict", "gives hints", "interrupts"). Gemini receives profile as system prompt context: _"You are Prof. Sharma, teaching DBMS for 8 years. Your style: start with normalization, interrupt vague answers, expect concrete examples."_
 
 ---
 
 ### E. Viva Weakness Heatmap
 
-**What it does:** Across ALL of a student's viva sessions, the AI generates a per-project heatmap of weak topics. On any project page, it shows: *"You've answered 15 questions across 3 sessions on Smart Traffic. Weakest areas: database indexing (3/10), thread safety (4/10), API design (5/10). Recommended: 2 more sessions on database topics."*
+**What it does:** Across ALL of a student's viva sessions, the AI generates a per-project heatmap of weak topics. On any project page, it shows: _"You've answered 15 questions across 3 sessions on Smart Traffic. Weakest areas: database indexing (3/10), thread safety (4/10), API design (5/10). Recommended: 2 more sessions on database topics."_
 
 **Why it's unique:** Most viva tools score per-session and move on. This one aggregates learning across every single session to build a dynamic weak-topic profile.
 
 **New Frontend Routes:**
+
 - `src/routes/advanced/weakness-heatmap.tsx` — Interactive heatmap grid (topics × projects) with color intensity for weakness. Click a weak spot to see detailed history + recommended practice. Each project page gets a "Weakness Heatmap" embed section.
 
 **Backend Endpoints:**
@@ -403,11 +422,12 @@ These 7 features are what make CollgePro Navigator truly unique. Each one requir
 
 ### F. College Viva Predictor
 
-**What it does:** AI analyzes anonymized data from ALL viva sessions across the college to predict which topics are most likely to appear in upcoming exams. *"Based on 127 DBMS viva sessions this semester across CSE batch 2026, 83% of students were asked about normalization. 71% were asked about transaction properties. Prepare these first."*
+**What it does:** AI analyzes anonymized data from ALL viva sessions across the college to predict which topics are most likely to appear in upcoming exams. _"Based on 127 DBMS viva sessions this semester across CSE batch 2026, 83% of students were asked about normalization. 71% were asked about transaction properties. Prepare these first."_
 
 **Why it's unique:** Gets better as more students use the platform — network effects. A single student's practice benefits from the entire college's viva history.
 
 **New Frontend Routes:**
+
 - `src/routes/advanced/college-predictor.tsx` — Dashboard showing predicted topic probability, recent college-wide trends, "most asked questions this week", filter by subject/semester.
 
 **Backend Endpoints:**
@@ -424,11 +444,12 @@ These 7 features are what make CollgePro Navigator truly unique. Each one requir
 
 ### G. Real-Time Presentation Sentiment
 
-**What it does:** During AI presentation practice, the AI analyzes the presenter's webcam feed (via Gemini VLM) for confidence, speaking pace, eye contact, and body language — and gives real-time nudges during the session. *"You're speaking too fast. Pause. Take a breath. Now explain the architecture diagram."*
+**What it does:** During AI presentation practice, the AI analyzes the presenter's webcam feed (via Gemini VLM) for confidence, speaking pace, eye contact, and body language — and gives real-time nudges during the session. _"You're speaking too fast. Pause. Take a breath. Now explain the architecture diagram."_
 
 **Why it's unique:** Real-time multimodal (slide content + video of presenter) feedback during practice. Most platforms only analyze slides.
 
 **New Frontend Routes:**
+
 - `src/routes/advanced/sentiment-analysis.tsx` — Full-screen presentation mode with webcam preview, real-time sentiment metrics (confidence meter, pace indicator, eye-contact gauge), and nudge popups during the session. Post-session sentiment report.
 
 **Backend Endpoints:**
@@ -734,6 +755,7 @@ def stream_text(prompt: str, system_instruction: str | None = None):
 ```
 
 **Free Tier Models:**
+
 - `gemini-2.0-flash` — text + vision, 15 RPM free
 - `gemini-2.5-flash-preview-04-17` — newer, also free
 
@@ -742,6 +764,7 @@ def stream_text(prompt: str, system_instruction: str | None = None):
 ## 🏃 RUNNING THE PROJECT
 
 ### Backend
+
 ```bash
 cd collgepro-navigator-main
 python -m venv backend/venv
@@ -753,6 +776,7 @@ uvicorn main:app --reload --port 8000
 ```
 
 ### Frontend
+
 ```bash
 cd collgepro-navigator-main
 npm install
@@ -760,6 +784,7 @@ npm run dev    # Runs on http://localhost:8080
 ```
 
 ### Connection
+
 - Frontend `.env`: `VITE_API_URL=http://localhost:8000`
 - CORS: allow `http://localhost:8080` and `http://localhost:5173`
 
@@ -768,7 +793,9 @@ npm run dev    # Runs on http://localhost:8080
 ## ✅ ORDERED IMPLEMENTATION STEPS
 
 ### Phase 1: Foundation (Steps 1-3)
+
 **Step 1:** Create backend directory structure + `requirements.txt`
+
 ```
 fastapi>=0.115.0
 uvicorn[standard]>=0.32.0
@@ -788,48 +815,59 @@ opencv-python>=4.9.0      # For webcam frame capture (sentiment)
 **Step 3:** Build auth routes (signup, login, me, profile)
 
 ### Phase 2: Core CRUD (Steps 4-7)
+
 **Step 4:** Project CRUD routes with activity logging
 **Step 5:** Team management routes (create, invite, join, manage members)
 **Step 6:** Task routes (CRUD with project association, status filtering)
 **Step 7:** File upload routes (Supabase Storage + metadata)
 
 ### Phase 3: Core AI Features (Steps 8-9)
+
 **Step 8:** AI Viva routes (session lifecycle, question gen, scoring, hints, stats)
 **Step 9:** AI Presentation routes (slide upload, VLM analysis, feedback, session management)
 
 ### Phase 4: Templates & Activity (Steps 10-11)
+
 **Step 10:** Templates routes (serve static guide content + checklists)
 **Step 11:** Activity logging + dashboard analytics
 
 ### Phase 5: Advanced Feature: Code-Aware Viva (Step 12)
+
 **Step 12a:** Backend — code upload/parse, Gemini code analysis, code-aware question generation
 **Step 12b:** Frontend — `src/routes/advanced/viva-code-aware.tsx` with code upload UI, side-by-side code+question layout
 
 ### Phase 6: Advanced Feature: Viva Weakness Heatmap (Step 13)
+
 **Step 13a:** Backend — aggregate session data, compute per-topic scores, heatmap API
 **Step 13b:** Frontend — `src/routes/advanced/weakness-heatmap.tsx` with interactive heatmap grid
 
 ### Phase 7: Advanced Feature: Team Viva Mode (Step 14)
+
 **Step 14a:** Backend — WebSocket real-time game loop, team scoring logic
 **Step 14b:** Frontend — `src/routes/advanced/viva-team.tsx` with lobby, live Q&A feed, scoreboard
 
 ### Phase 8: Advanced Feature: Presentation→Viva Bridge (Step 15)
+
 **Step 15a:** Backend — gap detection from presentation scores, bridge question generation
 **Step 15b:** Frontend — `src/routes/advanced/presentation-bridge.tsx` with gap list + "practice now" flow
 
 ### Phase 9: Advanced Feature: Faculty Simulation (Step 16)
+
 **Step 16a:** Backend — faculty profile CRUD, persona-driven viva engine
 **Step 16b:** Frontend — `src/routes/advanced/faculty-sim.tsx` with profile browser + simulation UI
 
 ### Phase 10: Advanced Feature: College Viva Predictor (Step 17)
+
 **Step 17a:** Backend — cross-user aggregation, topic probability engine
 **Step 17b:** Frontend — `src/routes/advanced/college-predictor.tsx` with prediction dashboard
 
 ### Phase 11: Advanced Feature: Real-Time Sentiment (Step 18)
+
 **Step 18a:** Backend — WebSocket for webcam frames, Gemini VLM analysis, nudge triggers
 **Step 18b:** Frontend — `src/routes/advanced/sentiment-analysis.tsx` with webcam capture, live metrics, nudge display
 
 ### Phase 12: Frontend Connection & Advanced Hub (Step 19)
+
 **Step 19a:** Create `src/lib/supabase.ts` — Supabase client for frontend auth
 **Step 19b:** Create `src/lib/api.ts` — centralized API client
 **Step 19c:** Create `src/lib/hooks.ts` + `src/lib/hooks-advanced.ts` — TanStack Query hooks
@@ -864,6 +902,7 @@ opencv-python>=4.9.0      # For webcam frame capture (sentiment)
 ## 📊 SUCCESS CRITERIA
 
 All core + all 7 advanced features work end-to-end:
+
 - [x] Auth (signup → login → protected routes → logout)
 - [x] Projects, teams, tasks, files CRUD correctly
 - [x] AI Viva generates questions, evaluates answers, gives hints, scores

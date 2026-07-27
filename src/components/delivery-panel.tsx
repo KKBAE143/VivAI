@@ -20,10 +20,25 @@ export function DeliveryPanel({ sessionId }: { sessionId: string }) {
   if (!data || !data.available) return null;
 
   const metrics = [
-    { label: "Pace", value: data.pace_score, icon: Timer, hint: data.avg_wpm != null ? `${data.avg_wpm} wpm` : "—" },
-    { label: "Fluency", value: data.fluency_score, icon: Gauge, hint: `${Math.round(data.filler_ratio * 100)}% fillers` },
+    {
+      label: "Pace",
+      value: data.pace_score,
+      icon: Timer,
+      hint: data.avg_wpm != null ? `${data.avg_wpm} wpm` : "—",
+    },
+    {
+      label: "Fluency",
+      value: data.fluency_score,
+      icon: Gauge,
+      hint: `${Math.round(data.filler_ratio * 100)}% fillers`,
+    },
     { label: "Clarity", value: data.clarity_score, icon: Sparkles, hint: `${data.words} words` },
-  ].filter((m) => m.value != null) as { label: string; value: number; icon: typeof Gauge; hint: string }[];
+  ].filter((m) => m.value != null) as {
+    label: string;
+    value: number;
+    icon: typeof Gauge;
+    hint: string;
+  }[];
 
   return (
     <div className="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
@@ -35,7 +50,8 @@ export function DeliveryPanel({ sessionId }: { sessionId: string }) {
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         {metrics.map((m) => {
           const Icon = m.icon;
-          const tone = m.value >= 75 ? "text-success" : m.value >= 50 ? "text-warning" : "text-destructive";
+          const tone =
+            m.value >= 75 ? "text-success" : m.value >= 50 ? "text-warning" : "text-destructive";
           return (
             <div key={m.label} className="rounded-xl bg-secondary/50 p-4">
               <div className="flex items-center justify-between">
@@ -56,7 +72,10 @@ export function DeliveryPanel({ sessionId }: { sessionId: string }) {
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
             {data.top_fillers.map((f) => (
-              <span key={f.word} className="rounded-full bg-warning/15 px-2.5 py-1 text-xs font-medium text-warning">
+              <span
+                key={f.word}
+                className="rounded-full bg-warning/15 px-2.5 py-1 text-xs font-medium text-warning"
+              >
                 {f.word} · {f.count}
               </span>
             ))}

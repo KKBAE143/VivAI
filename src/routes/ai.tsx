@@ -17,7 +17,11 @@ export const Route = createFileRoute("/ai")({
   head: () => ({
     meta: [
       { title: "AI Hub — CollgePro Navigator" },
-      { name: "description", content: "All your AI study tools in one place: mock viva, presentation practice, code-aware viva, team viva, weakness heatmap and real-time sentiment coaching." },
+      {
+        name: "description",
+        content:
+          "All your AI study tools in one place: mock viva, presentation practice, code-aware viva, team viva, weakness heatmap and real-time sentiment coaching.",
+      },
     ],
   }),
   component: AIHub,
@@ -41,15 +45,51 @@ const hero = [
 ] as const;
 
 const essentials = [
-  { to: "/pitch-drill", title: "90-Second Pitch Drill", desc: "Nail the elevator pitch examiners ask for first. Timed, AI-scored.", icon: Timer, tag: "New" },
-  { to: "/readiness", title: "Defense Readiness", desc: "See how ready you are to defend, and exactly what to fix next.", icon: Gauge, tag: "New" },
+  {
+    to: "/pitch-drill",
+    title: "90-Second Pitch Drill",
+    desc: "Nail the elevator pitch examiners ask for first. Timed, AI-scored.",
+    icon: Timer,
+    tag: "New",
+  },
+  {
+    to: "/readiness",
+    title: "Defense Readiness",
+    desc: "See how ready you are to defend, and exactly what to fix next.",
+    icon: Gauge,
+    tag: "New",
+  },
 ] as const;
 
 const tools = [
-  { to: "/advanced/viva-code-aware", title: "Code-Aware Viva", desc: "Upload a ZIP, then the same live viva layout as Mock Viva — examiner already knows your code.", icon: Code2, tag: "New" },
-  { to: "/advanced/viva-team", title: "Team Viva Mode", desc: "Real-time group viva — race to answer, team scores.", icon: Users, tag: "New" },
-  { to: "/advanced/weakness-heatmap", title: "Weakness Heatmap", desc: "Per-topic weak spots aggregated across every session.", icon: Grid3X3, tag: "New" },
-  { to: "/advanced/sentiment-analysis", title: "AI Communication Coach", desc: "Live role-play for interviews, GD, pitch & more with real-time delivery coaching.", icon: Video, tag: "New" },
+  {
+    to: "/advanced/viva-code-aware",
+    title: "Code-Aware Viva",
+    desc: "Upload a ZIP, then the same live viva layout as Mock Viva — examiner already knows your code.",
+    icon: Code2,
+    tag: "New",
+  },
+  {
+    to: "/advanced/viva-team",
+    title: "Team Viva Mode",
+    desc: "Real-time group viva — race to answer, team scores.",
+    icon: Users,
+    tag: "New",
+  },
+  {
+    to: "/advanced/weakness-heatmap",
+    title: "Weakness Heatmap",
+    desc: "Per-topic weak spots aggregated across every session.",
+    icon: Grid3X3,
+    tag: "New",
+  },
+  {
+    to: "/advanced/sentiment-analysis",
+    title: "AI Communication Coach",
+    desc: "Live role-play for interviews, GD, pitch & more with real-time delivery coaching.",
+    icon: Video,
+    tag: "New",
+  },
 ] as const;
 
 function AIHub() {
@@ -92,7 +132,9 @@ function AIHub() {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-base font-semibold">Prep essentials</h3>
-            <p className="mt-1 text-xs text-muted-foreground">The everyday tools that get you defense-ready.</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              The everyday tools that get you defense-ready.
+            </p>
           </div>
           <Badge tone="primary">3 new</Badge>
         </div>
@@ -126,7 +168,9 @@ function AIHub() {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-base font-semibold">Advanced AI features</h3>
-            <p className="mt-1 text-xs text-muted-foreground">Unique tools that connect your code, presentations and vivas.</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Unique tools that connect your code, presentations and vivas.
+            </p>
           </div>
           <Badge tone="primary">7 new</Badge>
         </div>

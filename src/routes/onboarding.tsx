@@ -1,6 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { GraduationCap, FolderKanban, Target, ChevronRight, ChevronLeft, Check } from "lucide-react";
+import {
+  GraduationCap,
+  FolderKanban,
+  Target,
+  ChevronRight,
+  ChevronLeft,
+  Check,
+} from "lucide-react";
 import { useRequireAuth } from "@/lib/auth-context";
 import { useCompleteOnboarding, useCreateProject } from "@/lib/hooks";
 
@@ -8,7 +15,10 @@ export const Route = createFileRoute("/onboarding")({
   head: () => ({
     meta: [
       { title: "Get started — CollgePro Navigator" },
-      { name: "description", content: "Tell us about your major, project type, and goals to personalize your dashboard." },
+      {
+        name: "description",
+        content: "Tell us about your major, project type, and goals to personalize your dashboard.",
+      },
     ],
   }),
   component: Onboarding,
@@ -109,7 +119,9 @@ function Onboarding() {
                 <GraduationCap className="h-6 w-6 text-primary" />
                 <h1 className="text-2xl font-bold">What are you studying?</h1>
               </div>
-              <p className="mt-1 text-sm text-muted-foreground">We'll tune templates and mock vivas to your branch.</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                We'll tune templates and mock vivas to your branch.
+              </p>
               <div className="mt-6">
                 <div className="text-sm font-semibold">Branch</div>
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -118,7 +130,9 @@ function Onboarding() {
                       key={b}
                       onClick={() => setBranch(b)}
                       className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                        branch === b ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"
+                        branch === b
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary text-foreground"
                       }`}
                     >
                       {b}
@@ -134,7 +148,9 @@ function Onboarding() {
                       key={y}
                       onClick={() => setYear(y)}
                       className={`rounded-xl border px-3 py-3 text-sm font-medium ${
-                        year === y ? "border-primary bg-primary-soft text-accent-foreground" : "border-border"
+                        year === y
+                          ? "border-primary bg-primary-soft text-accent-foreground"
+                          : "border-border"
                       }`}
                     >
                       {y}
@@ -151,7 +167,9 @@ function Onboarding() {
                 <FolderKanban className="h-6 w-6 text-primary" />
                 <h1 className="text-2xl font-bold">What kind of project are you starting?</h1>
               </div>
-              <p className="mt-1 text-sm text-muted-foreground">You can switch anytime — this just seeds your first project.</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                You can switch anytime — this just seeds your first project.
+              </p>
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
                 {projectTypes.map((p) => {
                   const active = type === p.id;
@@ -160,7 +178,9 @@ function Onboarding() {
                       key={p.id}
                       onClick={() => setType(p.id)}
                       className={`rounded-xl border p-4 text-left transition-colors ${
-                        active ? "border-primary bg-primary-soft" : "border-border hover:border-primary"
+                        active
+                          ? "border-primary bg-primary-soft"
+                          : "border-border hover:border-primary"
                       }`}
                     >
                       <div className="flex items-center justify-between">
@@ -181,7 +201,9 @@ function Onboarding() {
                 <Target className="h-6 w-6 text-primary" />
                 <h1 className="text-2xl font-bold">Pick a few goals for this semester</h1>
               </div>
-              <p className="mt-1 text-sm text-muted-foreground">Multi-select. We'll surface AI tools that match these.</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Multi-select. We'll surface AI tools that match these.
+              </p>
               <div className="mt-6 flex flex-wrap gap-2">
                 {goalOptions.map((g) => {
                   const active = goals.includes(g);
@@ -190,10 +212,13 @@ function Onboarding() {
                       key={g}
                       onClick={() => toggleGoal(g)}
                       className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                        active ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"
+                        active
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary text-foreground"
                       }`}
                     >
-                      {active && "✓ "}{g}
+                      {active && "✓ "}
+                      {g}
                     </button>
                   );
                 })}

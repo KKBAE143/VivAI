@@ -32,19 +32,19 @@ idempotent (safe to re-run).
 
 Backend (`backend/.env`):
 
-| Var | Notes |
-|---|---|
-| `SUPABASE_URL` | Your Supabase project URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | Service-role key (server-only, never expose) |
-| `SUPABASE_ANON_KEY` | Anon key |
-| `STORAGE_BUCKET` | Default `uploads` |
-| `GEMINI_API_KEY` | Google Gemini API key (used by Viva + Presentation VLM) |
-| `CORS_ORIGINS` | Comma-separated allowed origins |
+| Var                         | Notes                                                   |
+| --------------------------- | ------------------------------------------------------- |
+| `SUPABASE_URL`              | Your Supabase project URL                               |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service-role key (server-only, never expose)            |
+| `SUPABASE_ANON_KEY`         | Anon key                                                |
+| `STORAGE_BUCKET`            | Default `uploads`                                       |
+| `GEMINI_API_KEY`            | Google Gemini API key (used by Viva + Presentation VLM) |
+| `CORS_ORIGINS`              | Comma-separated allowed origins                         |
 
 Frontend (`.env.local` at repo root):
 
-| Var | Notes |
-|---|---|
+| Var            | Notes                                              |
+| -------------- | -------------------------------------------------- |
 | `VITE_API_URL` | Backend base URL (default `http://localhost:8000`) |
 
 ## Features

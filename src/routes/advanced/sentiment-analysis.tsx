@@ -94,7 +94,12 @@ function CommunicationCoach() {
         return;
       }
       const session = await api<{ id: string }>("/api/presentation/sessions", {
-        body: { session_type: "Coach", scenario_id: scenario.id, subject: scenario.label, duration_minutes: scenario.default_duration_min },
+        body: {
+          session_type: "Coach",
+          scenario_id: scenario.id,
+          subject: scenario.label,
+          duration_minutes: scenario.default_duration_min,
+        },
       });
       setSessionId(session.id);
       setPhase("live");
@@ -149,19 +154,36 @@ function CommunicationCoach() {
           1. Choose a scenario
         </h3>
         {scenariosQuery.isLoading ? (
-          <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading practice scenarios…</div>
+          <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading practice scenarios…
+          </div>
         ) : (
           <div className="mt-3 space-y-5">
             {Object.entries(scenarioGroups).map(([category, items]) => (
               <section key={category}>
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{category}</h4>
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {category}
+                </h4>
                 <div className="mt-2 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {items.map((item) => {
                     const active = scenario?.id === item.id;
                     return (
-                      <button key={item.id} onClick={() => setScenarioId(item.id)} className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-colors ${active ? "border-primary bg-primary/10" : "border-border bg-secondary hover:border-primary/50"}`}>
-                        <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg ${active ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`}><ScenarioIcon scenario={item} /></span>
-                        <span><span className="block text-sm font-semibold">{item.label}</span><span className="mt-0.5 block text-xs text-muted-foreground">{item.description}</span></span>
+                      <button
+                        key={item.id}
+                        onClick={() => setScenarioId(item.id)}
+                        className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-colors ${active ? "border-primary bg-primary/10" : "border-border bg-secondary hover:border-primary/50"}`}
+                      >
+                        <span
+                          className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg ${active ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`}
+                        >
+                          <ScenarioIcon scenario={item} />
+                        </span>
+                        <span>
+                          <span className="block text-sm font-semibold">{item.label}</span>
+                          <span className="mt-0.5 block text-xs text-muted-foreground">
+                            {item.description}
+                          </span>
+                        </span>
                       </button>
                     );
                   })}

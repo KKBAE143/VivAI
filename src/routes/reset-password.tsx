@@ -12,7 +12,9 @@ export const Route = createFileRoute("/reset-password")({
 /** Supabase recovery links redirect here with the token in the URL hash. */
 function readRecoveryToken(): string {
   if (typeof window === "undefined") return "";
-  const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : window.location.hash;
+  const hash = window.location.hash.startsWith("#")
+    ? window.location.hash.slice(1)
+    : window.location.hash;
   const fromHash = new URLSearchParams(hash).get("access_token");
   if (fromHash) return fromHash;
   return new URLSearchParams(window.location.search).get("access_token") ?? "";
@@ -70,7 +72,9 @@ function ResetPassword() {
           <GraduationCap className="h-6 w-6" />
         </div>
         <h1 className="mt-6 text-2xl font-bold tracking-tight">Set a new password</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Choose a strong password you&apos;ll remember.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Choose a strong password you&apos;ll remember.
+        </p>
 
         {done ? (
           <p className="mt-6 flex items-center gap-2 rounded-xl bg-success/10 p-4 text-sm text-success">
@@ -79,8 +83,7 @@ function ResetPassword() {
           </p>
         ) : !accessToken ? (
           <p className="mt-6 rounded-xl bg-destructive/10 p-4 text-sm text-destructive">
-            This reset link is invalid or has expired. Please request a new one from the
-            {" "}
+            This reset link is invalid or has expired. Please request a new one from the{" "}
             <Link to="/forgot-password" className="font-semibold underline">
               forgot password
             </Link>{" "}
@@ -125,7 +128,10 @@ function ResetPassword() {
           </form>
         )}
 
-        <Link to="/login" className="mt-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+        <Link
+          to="/login"
+          className="mt-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+        >
           <ArrowLeft className="h-4 w-4" /> Back to login
         </Link>
       </div>

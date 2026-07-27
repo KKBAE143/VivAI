@@ -1,5 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Upload, FileText, Download, Image as ImageIcon, FileArchive, FileSpreadsheet, Trash2 } from "lucide-react";
+import {
+  Upload,
+  FileText,
+  Download,
+  Image as ImageIcon,
+  FileArchive,
+  FileSpreadsheet,
+  Trash2,
+} from "lucide-react";
 import { useRef, useState } from "react";
 import { AppShell, Card, PageHeader, Badge } from "@/components/app-shell";
 import { EmptyState } from "@/components/empty-state";
@@ -13,7 +21,10 @@ export const Route = createFileRoute("/files")({
   head: () => ({
     meta: [
       { title: "Files & Resources — CollgePro Navigator" },
-      { name: "description", content: "All your project documents, reports, and slides in one place." },
+      {
+        name: "description",
+        content: "All your project documents, reports, and slides in one place.",
+      },
     ],
   }),
   component: Files,
@@ -100,7 +111,9 @@ function Files() {
           if (file) void doUpload(file);
         }}
       >
-        <Card className={`border-2 border-dashed bg-transparent shadow-none transition-colors ${dragging ? "border-primary" : "border-border"}`}>
+        <Card
+          className={`border-2 border-dashed bg-transparent shadow-none transition-colors ${dragging ? "border-primary" : "border-border"}`}
+        >
           <div className="flex flex-col items-center justify-center py-6 text-center">
             <div className="grid h-12 w-12 place-items-center rounded-2xl bg-primary-soft text-primary">
               <Upload className="h-5 w-5" />
@@ -108,7 +121,9 @@ function Files() {
             <div className="mt-3 text-sm font-semibold">
               {uploadFile.isPending ? "Uploading…" : "Drag & drop files here"}
             </div>
-            <div className="mt-1 text-xs text-muted-foreground">PDF, DOCX, PPTX, images, ZIP up to 25 MB</div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              PDF, DOCX, PPTX, images, ZIP up to 25 MB
+            </div>
           </div>
         </Card>
       </button>
@@ -125,19 +140,27 @@ function Files() {
             onRetry={() => void refetch()}
           />
         ) : (files ?? []).length === 0 ? (
-          <EmptyState title="No files yet" description="Upload your first document, report or slide deck." />
+          <EmptyState
+            title="No files yet"
+            description="Upload your first document, report or slide deck."
+          />
         ) : (
           <div className="mt-4 divide-y divide-border">
             {(files ?? []).map((f) => {
               const I = iconFor(String(f.mime_type ?? ""));
               const fileId = String(f.id);
               return (
-                <div key={fileId} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 py-3.5">
+                <div
+                  key={fileId}
+                  className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 py-3.5"
+                >
                   <div className="grid h-10 w-10 place-items-center rounded-xl bg-secondary">
                     <I className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold">{String(f.original_name ?? f.name)}</div>
+                    <div className="truncate text-sm font-semibold">
+                      {String(f.original_name ?? f.name)}
+                    </div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       <Badge>{f.project_id ? "Project file" : "General"}</Badge>
                       <span>{formatSize(Number(f.size_bytes ?? 0))}</span>

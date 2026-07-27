@@ -68,7 +68,11 @@ function Progress() {
   if (filter !== "All") visible = visible.filter((t) => String(t.status ?? "To Do") === filter);
   if (search.trim()) {
     const q = search.trim().toLowerCase();
-    visible = visible.filter((t) => String(t.title ?? "").toLowerCase().includes(q));
+    visible = visible.filter((t) =>
+      String(t.title ?? "")
+        .toLowerCase()
+        .includes(q),
+    );
   }
 
   const projectTitle = String(projects.find((p) => String(p.id) === projectId)?.title ?? "—");
@@ -99,8 +103,18 @@ function Progress() {
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[
           { l: "Completed", v: String(done), t: "tasks done", tone: "success" },
-          { l: "Pending", v: String(pending), t: pending ? "in flight" : "all clear", tone: "warning" },
-          { l: "Overdue", v: String(overdue), t: overdue ? "action needed" : "none overdue", tone: "destructive" },
+          {
+            l: "Pending",
+            v: String(pending),
+            t: pending ? "in flight" : "all clear",
+            tone: "warning",
+          },
+          {
+            l: "Overdue",
+            v: String(overdue),
+            t: overdue ? "action needed" : "none overdue",
+            tone: "destructive",
+          },
           { l: "Completion", v: `${completion}%`, t: projectTitle, tone: "primary" },
         ].map((s) => (
           <Card key={s.l}>
@@ -120,7 +134,9 @@ function Progress() {
             >
               {projects.length === 0 && <option value="">No projects yet</option>}
               {projects.map((p) => (
-                <option key={String(p.id)} value={String(p.id)}>{String(p.title)}</option>
+                <option key={String(p.id)} value={String(p.id)}>
+                  {String(p.title)}
+                </option>
               ))}
             </select>
             <div className="flex items-center gap-1 rounded-full bg-secondary p-1">
@@ -177,11 +193,18 @@ function Progress() {
             onRetry={() => void refetch()}
           />
         ) : !projectId ? (
-          <EmptyState title="No projects yet" description="Create a project first, then track its tasks here." />
+          <EmptyState
+            title="No projects yet"
+            description="Create a project first, then track its tasks here."
+          />
         ) : visible.length === 0 ? (
           <EmptyState
             title="No tasks found"
-            description={filter !== "All" || search ? "Try a different filter or search term." : "Add your first task to get moving."}
+            description={
+              filter !== "All" || search
+                ? "Try a different filter or search term."
+                : "Add your first task to get moving."
+            }
           />
         ) : (
           <div className="mt-5 overflow-x-auto">
@@ -202,8 +225,13 @@ function Progress() {
                   const priority = String(t.priority ?? "med");
                   const taskId = String(t.id);
                   return (
-                    <tr key={taskId} className="border-b border-border last:border-0 hover:bg-secondary/40">
-                      <td className="py-3.5 pr-3 text-xs font-medium text-muted-foreground">T-{taskId.slice(0, 4)}</td>
+                    <tr
+                      key={taskId}
+                      className="border-b border-border last:border-0 hover:bg-secondary/40"
+                    >
+                      <td className="py-3.5 pr-3 text-xs font-medium text-muted-foreground">
+                        T-{taskId.slice(0, 4)}
+                      </td>
                       <td className="py-3.5 pr-3">
                         <label className="flex items-center gap-3">
                           <input
@@ -211,21 +239,50 @@ function Progress() {
                             checked={status === "Done"}
                             disabled={updateStatus.isPending}
                             onChange={(e) =>
-                              updateStatus.mutate({ taskId, status: e.target.checked ? "Done" : "To Do" })
+                              updateStatus.mutate({
+                                taskId,
+                                status: e.target.checked ? "Done" : "To Do",
+                              })
                             }
                             className="h-4 w-4 rounded border-border"
                           />
-                          <span className={status === "Done" ? "text-muted-foreground line-through" : "font-medium"}>
+                          <span
+                            className={
+                              status === "Done"
+                                ? "text-muted-foreground line-through"
+                                : "font-medium"
+                            }
+                          >
                             {String(t.title)}
                           </span>
                         </label>
                       </td>
                       <td className="py-3.5 pr-3 text-muted-foreground">{projectTitle}</td>
                       <td className="py-3.5 pr-3">
-                        <Badge tone={status === "Done" ? "success" : status === "In Progress" ? "primary" : "muted"}>{status}</Badge>
+                        <Badge
+                          tone={
+                            status === "Done"
+                              ? "success"
+                              : status === "In Progress"
+                                ? "primary"
+                                : "muted"
+                          }
+                        >
+                          {status}
+                        </Badge>
                       </td>
                       <td className="py-3.5 pr-3">
-                        <Badge tone={priority === "high" ? "destructive" : priority === "med" ? "warning" : "muted"}>{priority}</Badge>
+                        <Badge
+                          tone={
+                            priority === "high"
+                              ? "destructive"
+                              : priority === "med"
+                                ? "warning"
+                                : "muted"
+                          }
+                        >
+                          {priority}
+                        </Badge>
                       </td>
                       <td className="py-3.5 pr-3 text-xs text-muted-foreground">
                         {t.due_date ? String(t.due_date).slice(0, 10) : "—"}
@@ -267,7 +324,9 @@ function TrendsCard({ query }: { query: QueryLike<ApiRecord[]> }) {
         <TrendingUp className="h-4 w-4 text-primary" />
         <h3 className="text-base font-semibold">Viva score trend</h3>
       </div>
-      <p className="mt-1 text-xs text-muted-foreground">Average score across your completed viva sessions, by week.</p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Average score across your completed viva sessions, by week.
+      </p>
       {query.isLoading ? (
         <div className="mt-4">
           <TableSkeleton rows={3} />
@@ -288,8 +347,16 @@ function TrendsCard({ query }: { query: QueryLike<ApiRecord[]> }) {
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
-              <XAxis dataKey="week" tick={{ fontSize: 11 }} stroke="var(--color-muted-foreground)" />
-              <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} stroke="var(--color-muted-foreground)" />
+              <XAxis
+                dataKey="week"
+                tick={{ fontSize: 11 }}
+                stroke="var(--color-muted-foreground)"
+              />
+              <YAxis
+                domain={[0, 100]}
+                tick={{ fontSize: 11 }}
+                stroke="var(--color-muted-foreground)"
+              />
               <Tooltip
                 contentStyle={{
                   borderRadius: 12,
@@ -323,7 +390,9 @@ function LeaderboardCard({ query }: { query: QueryLike<ApiRecord[]> }) {
         <Trophy className="h-4 w-4 text-warning" />
         <h3 className="text-base font-semibold">College leaderboard</h3>
       </div>
-      <p className="mt-1 text-xs text-muted-foreground">Top students at your college, ranked by XP earned.</p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Top students at your college, ranked by XP earned.
+      </p>
       {query.isLoading ? (
         <div className="mt-4">
           <TableSkeleton rows={4} />

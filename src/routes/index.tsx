@@ -35,9 +35,16 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Dashboard — CollgePro Navigator" },
-      { name: "description", content: "Stay on top of your tasks, monitor progress, and track status across all your academic projects." },
+      {
+        name: "description",
+        content:
+          "Stay on top of your tasks, monitor progress, and track status across all your academic projects.",
+      },
       { property: "og:title", content: "CollgePro Navigator" },
-      { property: "og:description", content: "The smarter way for B.Tech students to manage projects and prep for vivas." },
+      {
+        property: "og:description",
+        content: "The smarter way for B.Tech students to manage projects and prep for vivas.",
+      },
     ],
   }),
   component: Dashboard,
@@ -79,7 +86,9 @@ function Dashboard() {
         <DashboardSkeleton />
       ) : failed ? (
         <ErrorState
-          message={failed.error instanceof Error ? failed.error.message : "Could not load your dashboard"}
+          message={
+            failed.error instanceof Error ? failed.error.message : "Could not load your dashboard"
+          }
           onRetry={() => {
             for (const q of queries) void q.refetch();
           }}
@@ -88,7 +97,9 @@ function Dashboard() {
         <>
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">{`Good ${greeting}, ${firstName}`}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Here&apos;s your defense readiness and what to practice next.</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Here&apos;s your defense readiness and what to practice next.
+            </p>
           </div>
 
           <ReadinessHero readiness={readinessQuery.data} />
@@ -126,9 +137,14 @@ function ReadinessHero({ readiness }: { readiness?: import("@/lib/hooks-features
         <div className="flex items-center gap-5">
           <ReadinessGauge score={score} label="Ready" />
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Defense Readiness</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Defense Readiness
+            </p>
             <p className="mt-1 text-lg font-bold leading-tight text-balance">{label}</p>
-            <Link to="/readiness" className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary">
+            <Link
+              to="/readiness"
+              className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary"
+            >
               See full breakdown <ChevronRight className="h-3.5 w-3.5" />
             </Link>
           </div>
@@ -143,7 +159,10 @@ function ReadinessHero({ readiness }: { readiness?: import("@/lib/hooks-features
                     <span className="font-semibold">{Math.round(c.score)}</span>
                   </div>
                   <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-secondary">
-                    <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, c.score)}%` }} />
+                    <div
+                      className="h-full rounded-full bg-primary"
+                      style={{ width: `${Math.min(100, c.score)}%` }}
+                    />
                   </div>
                 </div>
               ))}
@@ -208,7 +227,10 @@ function StatRow({ stats }: { stats?: DashboardStats }) {
     {
       label: "Practice Sessions",
       value: String((stats?.viva_sessions ?? 0) + (stats?.presentation_sessions ?? 0)),
-      delta: stats?.avg_viva_score != null ? `${stats.avg_viva_score}% avg viva score` : "start practicing",
+      delta:
+        stats?.avg_viva_score != null
+          ? `${stats.avg_viva_score}% avg viva score`
+          : "start practicing",
       tone: "up",
       icon: BrainCircuit,
       tint: "primary",
@@ -231,8 +253,11 @@ function StatRow({ stats }: { stats?: DashboardStats }) {
               <I className={`h-4 w-4 ${primary ? "text-primary" : "text-muted-foreground"}`} />
             </div>
             <div className="mt-4 text-3xl font-bold tracking-tight text-foreground">{s.value}</div>
-            <div className={`mt-1 flex items-center gap-1 text-xs font-medium ${s.tone === "up" ? "text-success" : "text-warning"}`}>
-              <ArrowUpRight className={`h-3 w-3 ${s.tone === "down" ? "rotate-180" : ""}`} /> {s.delta}
+            <div
+              className={`mt-1 flex items-center gap-1 text-xs font-medium ${s.tone === "up" ? "text-success" : "text-warning"}`}
+            >
+              <ArrowUpRight className={`h-3 w-3 ${s.tone === "down" ? "rotate-180" : ""}`} />{" "}
+              {s.delta}
             </div>
           </div>
         );
@@ -247,7 +272,10 @@ function ActiveProjectsCard({ projects }: { projects: ApiRecord[] }) {
     <Card>
       <div className="flex items-center justify-between">
         <h3 className="text-base font-semibold">Your Active Projects</h3>
-        <Link to="/projects" className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
+        <Link
+          to="/projects"
+          className="inline-flex items-center gap-1 text-xs font-semibold text-primary"
+        >
           View All <ChevronRight className="h-3.5 w-3.5" />
         </Link>
       </div>
@@ -256,7 +284,10 @@ function ActiveProjectsCard({ projects }: { projects: ApiRecord[] }) {
           title="No projects yet"
           description="Create your first PBL, Major or Mini project to get started."
           action={
-            <Link to="/projects/new" className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
+            <Link
+              to="/projects/new"
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+            >
               <Plus className="h-4 w-4" /> New Project
             </Link>
           }
@@ -281,9 +312,14 @@ function ActiveProjectsCard({ projects }: { projects: ApiRecord[] }) {
                   <span className="font-semibold">{progress}%</span>
                 </div>
                 <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-secondary">
-                  <div className="h-full rounded-full bg-primary" style={{ width: `${progress}%` }} />
+                  <div
+                    className="h-full rounded-full bg-primary"
+                    style={{ width: `${progress}%` }}
+                  />
                 </div>
-                <div className={`mt-3 flex items-center gap-1 text-[11px] ${due.days !== null && due.days < 3 ? "text-destructive" : "text-success"}`}>
+                <div
+                  className={`mt-3 flex items-center gap-1 text-[11px] ${due.days !== null && due.days < 3 ? "text-destructive" : "text-success"}`}
+                >
                   <Calendar className="h-3 w-3" /> {due.label}
                 </div>
               </Link>
@@ -306,17 +342,24 @@ function UpcomingThisWeekCard({ projects }: { projects: ApiRecord[] }) {
     <Card>
       <h3 className="text-base font-semibold">Upcoming Deadlines</h3>
       {upcoming.length === 0 ? (
-        <p className="mt-4 text-sm text-muted-foreground">No upcoming deadlines — add deadlines to your projects to see them here.</p>
+        <p className="mt-4 text-sm text-muted-foreground">
+          No upcoming deadlines — add deadlines to your projects to see them here.
+        </p>
       ) : (
         <div className="mt-4 divide-y divide-border">
           {upcoming.map(({ record, dueDate }) => {
             const days = Math.ceil((dueDate.getTime() - Date.now()) / 86_400_000);
             const dotClass = days < 3 ? "bg-destructive" : days < 7 ? "bg-warning" : "bg-success";
             return (
-              <div key={String(record.id)} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 py-3">
+              <div
+                key={String(record.id)}
+                className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 py-3"
+              >
                 <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary-soft text-center">
                   <div>
-                    <div className="text-sm font-bold leading-none text-accent-foreground">{String(dueDate.getDate()).padStart(2, "0")}</div>
+                    <div className="text-sm font-bold leading-none text-accent-foreground">
+                      {String(dueDate.getDate()).padStart(2, "0")}
+                    </div>
                     <div className="text-[9px] font-semibold uppercase tracking-wider text-accent-foreground/80">
                       {dueDate.toLocaleString("en", { month: "short" }).toUpperCase()}
                     </div>
@@ -325,7 +368,8 @@ function UpcomingThisWeekCard({ projects }: { projects: ApiRecord[] }) {
                 <div className="min-w-0">
                   <div className="truncate text-sm font-semibold">{String(record.title)}</div>
                   <div className="mt-0.5 truncate text-xs text-muted-foreground">
-                    {String(record.type ?? "")}{record.subject ? ` · ${String(record.subject)}` : ""}
+                    {String(record.type ?? "")}
+                    {record.subject ? ` · ${String(record.subject)}` : ""}
                   </div>
                 </div>
                 <span className={`h-2 w-2 rounded-full ${dotClass}`} />
@@ -372,12 +416,17 @@ function RecentSessionsCard({ sessions }: { sessions: ApiRecord[] }) {
     <Card>
       <div className="flex items-center justify-between">
         <h3 className="text-base font-semibold">Recent Sessions</h3>
-        <Link to="/ai-viva" className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
+        <Link
+          to="/ai-viva"
+          className="inline-flex items-center gap-1 text-xs font-semibold text-primary"
+        >
           View All <ChevronRight className="h-3.5 w-3.5" />
         </Link>
       </div>
       {visible.length === 0 ? (
-        <p className="mt-4 text-sm text-muted-foreground">No sessions yet — start a mock viva to see your history here.</p>
+        <p className="mt-4 text-sm text-muted-foreground">
+          No sessions yet — start a mock viva to see your history here.
+        </p>
       ) : (
         <div className="mt-4 space-y-3">
           {visible.map((s) => {
@@ -424,7 +473,10 @@ function YourTeamsCard({ teams, meId }: { teams: ApiRecord[]; meId: string | nul
     <Card>
       <div className="flex items-center justify-between">
         <h3 className="text-base font-semibold">Your Teams</h3>
-        <Link to="/teams" className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
+        <Link
+          to="/teams"
+          className="inline-flex items-center gap-1 text-xs font-semibold text-primary"
+        >
           View All <ChevronRight className="h-3.5 w-3.5" />
         </Link>
       </div>
@@ -436,7 +488,11 @@ function YourTeamsCard({ teams, meId }: { teams: ApiRecord[]; meId: string | nul
             <div key={String(t.id)} className="rounded-xl border border-border p-4">
               <div className="flex items-center justify-between">
                 <div className="font-semibold">{String(t.name)}</div>
-                {lead && <Badge tone="warning"><Crown className="h-3 w-3" /> Lead</Badge>}
+                {lead && (
+                  <Badge tone="warning">
+                    <Crown className="h-3 w-3" /> Lead
+                  </Badge>
+                )}
               </div>
               <div className="mt-1 text-xs text-muted-foreground">
                 {t.project_id ? "Linked to a project" : "No project linked yet"}
@@ -445,9 +501,14 @@ function YourTeamsCard({ teams, meId }: { teams: ApiRecord[]; meId: string | nul
                 <div className="flex -space-x-2">
                   {members.slice(0, 4).map((m, i) => {
                     const profile = m.profiles as ApiRecord | null | undefined;
-                    const initial = String(profile?.full_name ?? "M").charAt(0).toUpperCase();
+                    const initial = String(profile?.full_name ?? "M")
+                      .charAt(0)
+                      .toUpperCase();
                     return (
-                      <div key={i} className="grid h-6 w-6 place-items-center rounded-full border-2 border-card bg-secondary text-[9px] font-semibold">
+                      <div
+                        key={i}
+                        className="grid h-6 w-6 place-items-center rounded-full border-2 border-card bg-secondary text-[9px] font-semibold"
+                      >
                         {initial}
                       </div>
                     );

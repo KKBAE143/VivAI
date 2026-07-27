@@ -23,14 +23,21 @@ function LeaderboardPage() {
 
   return (
     <AppShell>
-      <PageHeader title="Leaderboard" subtitle="Earn XP by practicing — vivas, presentations and pitches all count." />
+      <PageHeader
+        title="Leaderboard"
+        subtitle="Earn XP by practicing — vivas, presentations and pitches all count."
+      />
 
       {game.data && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <StatTile icon={Star} label="Your XP" value={String(game.data.xp)} tint />
           <StatTile icon={Award} label="Level" value={String(game.data.level)} />
           <StatTile icon={Flame} label="Current Streak" value={`${game.data.current_streak}d`} />
-          <StatTile icon={Trophy} label="Badges" value={`${game.data.badges_earned}/${game.data.badges_total}`} />
+          <StatTile
+            icon={Trophy}
+            label="Badges"
+            value={`${game.data.badges_earned}/${game.data.badges_total}`}
+          />
         </div>
       )}
 
@@ -41,7 +48,9 @@ function LeaderboardPage() {
           <h3 className="text-base font-semibold">Top Students</h3>
           <div className="mt-4 space-y-1">
             {(board.data ?? []).length === 0 && (
-              <p className="py-6 text-center text-sm text-muted-foreground">No ranked students yet — be the first to practice.</p>
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                No ranked students yet — be the first to practice.
+              </p>
             )}
             {(board.data ?? []).map((row: ApiRecord, i: number) => {
               const isMe = row.id === me.data?.id;
@@ -53,15 +62,20 @@ function LeaderboardPage() {
                     isMe ? "bg-primary-soft" : "hover:bg-secondary/60"
                   }`}
                 >
-                  <span className={`grid h-8 w-8 place-items-center rounded-full text-sm font-bold ${rankTone(rank)}`}>
+                  <span
+                    className={`grid h-8 w-8 place-items-center rounded-full text-sm font-bold ${rankTone(rank)}`}
+                  >
                     {rank}
                   </span>
                   <div className="min-w-0">
                     <div className="truncate text-sm font-semibold">
-                      {String(row.full_name ?? "Student")} {isMe && <span className="text-primary">(You)</span>}
+                      {String(row.full_name ?? "Student")}{" "}
+                      {isMe && <span className="text-primary">(You)</span>}
                     </div>
                     <div className="truncate text-[11px] text-muted-foreground">
-                      {[row.branch, row.year ? `${String(row.year)} Yr` : null].filter(Boolean).join(" · ") || "—"}
+                      {[row.branch, row.year ? `${String(row.year)} Yr` : null]
+                        .filter(Boolean)
+                        .join(" · ") || "—"}
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -89,9 +103,21 @@ function rankTone(rank: number): string {
   return "bg-secondary text-muted-foreground";
 }
 
-function StatTile({ icon: Icon, label, value, tint }: { icon: typeof Star; label: string; value: string; tint?: boolean }) {
+function StatTile({
+  icon: Icon,
+  label,
+  value,
+  tint,
+}: {
+  icon: typeof Star;
+  label: string;
+  value: string;
+  tint?: boolean;
+}) {
   return (
-    <div className={`rounded-2xl p-4 shadow-[var(--shadow-card)] ${tint ? "bg-primary-soft" : "bg-card"}`}>
+    <div
+      className={`rounded-2xl p-4 shadow-[var(--shadow-card)] ${tint ? "bg-primary-soft" : "bg-card"}`}
+    >
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium text-muted-foreground">{label}</span>
         <Icon className={`h-4 w-4 ${tint ? "text-primary" : "text-muted-foreground"}`} />

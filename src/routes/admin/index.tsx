@@ -20,7 +20,10 @@ export const Route = createFileRoute("/admin/")({
   head: () => ({
     meta: [
       { title: "Institution Admin — VivAI" },
-      { name: "description", content: "Cohort readiness dashboard for institutional administrators." },
+      {
+        name: "description",
+        content: "Cohort readiness dashboard for institutional administrators.",
+      },
     ],
   }),
   component: AdminDashboard,
@@ -49,7 +52,11 @@ function AdminDashboard() {
   const [studentPage, setStudentPage] = useState(1);
   const [branchFilter, setBranchFilter] = useState("");
   const [yearFilter, setYearFilter] = useState("");
-  const students = useInstitutionStudents(studentPage, branchFilter || undefined, yearFilter || undefined);
+  const students = useInstitutionStudents(
+    studentPage,
+    branchFilter || undefined,
+    yearFilter || undefined,
+  );
   const readinessReport = useInstitutionReadinessReport();
   const weakTopics = useInstitutionWeakTopics();
   const invite = useInstitutionInvite();
@@ -76,7 +83,11 @@ function AdminDashboard() {
     return (
       <AppShell>
         <ErrorState
-          message={dashboard.error instanceof Error ? dashboard.error.message : "Failed to load institution data"}
+          message={
+            dashboard.error instanceof Error
+              ? dashboard.error.message
+              : "Failed to load institution data"
+          }
           onRetry={() => void dashboard.refetch()}
         />
       </AppShell>
@@ -111,10 +122,30 @@ function AdminDashboard() {
 
       {/* Overview cards */}
       <div className="grid gap-4 md:grid-cols-4">
-        <StatCard icon={Users} label="Total Students" value={String(d.total_students)} sub={`${d.institution.seats_used}/${d.institution.seat_limit} seats`} />
-        <StatCard icon={Activity} label="Active This Week" value={String(d.active_this_week)} sub={`${d.total_students ? Math.round((d.active_this_week / d.total_students) * 100) : 0}% engagement`} />
-        <StatCard icon={BarChart3} label="Avg DRS" value={String(d.avg_drs)} sub="Defense Readiness Score" />
-        <StatCard icon={BarChart3} label="Avg Viva Score" value={d.avg_viva_score ? `${d.avg_viva_score}%` : "N/A"} sub={`${d.total_vivas} sessions`} />
+        <StatCard
+          icon={Users}
+          label="Total Students"
+          value={String(d.total_students)}
+          sub={`${d.institution.seats_used}/${d.institution.seat_limit} seats`}
+        />
+        <StatCard
+          icon={Activity}
+          label="Active This Week"
+          value={String(d.active_this_week)}
+          sub={`${d.total_students ? Math.round((d.active_this_week / d.total_students) * 100) : 0}% engagement`}
+        />
+        <StatCard
+          icon={BarChart3}
+          label="Avg DRS"
+          value={String(d.avg_drs)}
+          sub="Defense Readiness Score"
+        />
+        <StatCard
+          icon={BarChart3}
+          label="Avg Viva Score"
+          value={d.avg_viva_score ? `${d.avg_viva_score}%` : "N/A"}
+          sub={`${d.total_vivas} sessions`}
+        />
       </div>
 
       <div className="mt-5 grid gap-5 lg:grid-cols-2">
@@ -149,14 +180,23 @@ function AdminDashboard() {
           <h3 className="text-base font-semibold">College-Wide Weak Topics</h3>
           <div className="mt-4 space-y-2">
             {(weakTopics.data ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">No topic data yet — students need to complete vivas first.</p>
+              <p className="text-sm text-muted-foreground">
+                No topic data yet — students need to complete vivas first.
+              </p>
             ) : (
               (weakTopics.data ?? []).slice(0, 8).map((t, i) => (
-                <div key={i} className="flex items-center justify-between rounded-xl bg-secondary/50 px-4 py-3">
+                <div
+                  key={i}
+                  className="flex items-center justify-between rounded-xl bg-secondary/50 px-4 py-3"
+                >
                   <span className="flex items-center gap-2 text-sm font-medium">
                     <AlertTriangle className="h-4 w-4 text-warning" /> {t.topic}
                   </span>
-                  <Badge tone={t.avg_score < 40 ? "destructive" : t.avg_score < 60 ? "warning" : "success"}>
+                  <Badge
+                    tone={
+                      t.avg_score < 40 ? "destructive" : t.avg_score < 60 ? "warning" : "success"
+                    }
+                  >
                     {Math.round(t.avg_score)}%
                   </Badge>
                 </div>
@@ -172,7 +212,10 @@ function AdminDashboard() {
                 <span className="text-muted-foreground">{y.year}</span>
                 <div className="flex items-center gap-2">
                   <div className="h-1.5 w-24 overflow-hidden rounded-full bg-secondary">
-                    <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, y.avg_drs)}%` }} />
+                    <div
+                      className="h-full rounded-full bg-primary"
+                      style={{ width: `${Math.min(100, y.avg_drs)}%` }}
+                    />
                   </div>
                   <span className="font-medium">{y.avg_drs}</span>
                 </div>
@@ -191,7 +234,9 @@ function AdminDashboard() {
           <Download className="h-4 w-4" /> Export CSV
         </button>
         <button
-          onClick={() => void invite.mutateAsync().then((r) => navigator.clipboard.writeText(r.invite_code))}
+          onClick={() =>
+            void invite.mutateAsync().then((r) => navigator.clipboard.writeText(r.invite_code))
+          }
           className="inline-flex items-center gap-2 rounded-xl bg-secondary px-4 py-2.5 text-sm font-medium"
         >
           <Share2 className="h-4 w-4" /> {invite.isPending ? "Generating…" : "Copy Invite Code"}
@@ -205,22 +250,32 @@ function AdminDashboard() {
           <div className="flex gap-2">
             <select
               value={branchFilter}
-              onChange={(e) => { setBranchFilter(e.target.value); setStudentPage(1); }}
+              onChange={(e) => {
+                setBranchFilter(e.target.value);
+                setStudentPage(1);
+              }}
               className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs"
             >
               <option value="">All Branches</option>
               {["CSE", "ECE", "EEE", "Mech", "Civil", "IT"].map((b) => (
-                <option key={b} value={b}>{b}</option>
+                <option key={b} value={b}>
+                  {b}
+                </option>
               ))}
             </select>
             <select
               value={yearFilter}
-              onChange={(e) => { setYearFilter(e.target.value); setStudentPage(1); }}
+              onChange={(e) => {
+                setYearFilter(e.target.value);
+                setStudentPage(1);
+              }}
               className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs"
             >
               <option value="">All Years</option>
               {["1st", "2nd", "3rd", "4th"].map((y) => (
-                <option key={y} value={y}>{y}</option>
+                <option key={y} value={y}>
+                  {y}
+                </option>
               ))}
             </select>
           </div>
@@ -247,12 +302,22 @@ function AdminDashboard() {
                   <td className="py-3 pr-4 text-muted-foreground">{s.year ?? "—"}</td>
                   <td className="py-3 pr-4 font-bold">{s.drs_score}</td>
                   <td className="py-3 pr-4">
-                    <Badge tone={s.drs_band === "ready" ? "success" : s.drs_band === "almost" ? "warning" : "destructive"}>
+                    <Badge
+                      tone={
+                        s.drs_band === "ready"
+                          ? "success"
+                          : s.drs_band === "almost"
+                            ? "warning"
+                            : "destructive"
+                      }
+                    >
                       {s.drs_label}
                     </Badge>
                   </td>
                   <td className="py-3 pr-4 text-muted-foreground">{s.viva_sessions}</td>
-                  <td className="py-3 pr-4 text-muted-foreground">{s.avg_viva_score ? `${s.avg_viva_score}%` : "—"}</td>
+                  <td className="py-3 pr-4 text-muted-foreground">
+                    {s.avg_viva_score ? `${s.avg_viva_score}%` : "—"}
+                  </td>
                   <td className="py-3 text-muted-foreground">
                     {s.last_active ? new Date(s.last_active).toLocaleDateString() : "Never"}
                   </td>
@@ -288,7 +353,17 @@ function AdminDashboard() {
   );
 }
 
-function StatCard({ icon: Icon, label, value, sub }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string; sub: string }) {
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  sub,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+  sub: string;
+}) {
   return (
     <Card className="!p-4">
       <div className="flex items-center gap-3">
@@ -307,9 +382,13 @@ function StatCard({ icon: Icon, label, value, sub }: { icon: React.ComponentType
 
 function bandColor(band: string): string {
   switch (band) {
-    case "ready": return "bg-success";
-    case "almost": return "bg-warning";
-    case "building": return "bg-primary";
-    default: return "bg-muted-foreground";
+    case "ready":
+      return "bg-success";
+    case "almost":
+      return "bg-warning";
+    case "building":
+      return "bg-primary";
+    default:
+      return "bg-muted-foreground";
   }
 }

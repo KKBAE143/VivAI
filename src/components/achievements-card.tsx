@@ -20,7 +20,9 @@ export function AchievementsCard() {
           </span>
         )}
       </div>
-      <p className="mt-1 text-xs text-muted-foreground">Earn badges by practicing consistently and hitting milestones.</p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Earn badges by practicing consistently and hitting milestones.
+      </p>
 
       {isLoading ? (
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -34,7 +36,9 @@ export function AchievementsCard() {
             <div
               key={b.id}
               className={`flex flex-col gap-1 rounded-xl border p-3 ${
-                b.earned ? "border-primary/40 bg-primary-soft" : "border-border bg-secondary/40 opacity-70"
+                b.earned
+                  ? "border-primary/40 bg-primary-soft"
+                  : "border-border bg-secondary/40 opacity-70"
               }`}
             >
               <div className="flex items-center gap-1.5">

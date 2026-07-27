@@ -43,9 +43,14 @@ export function GamificationStrip({ data }: { data?: Gamification }) {
           <span className="text-xs text-muted-foreground">{xp} XP</span>
         </div>
         <div className="mt-3 h-2 overflow-hidden rounded-full bg-secondary">
-          <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+          <div
+            className="h-full rounded-full bg-primary transition-all"
+            style={{ width: `${pct}%` }}
+          />
         </div>
-        <div className="mt-1.5 text-[11px] text-muted-foreground">{span - into} XP to level {level + 1}</div>
+        <div className="mt-1.5 text-[11px] text-muted-foreground">
+          {span - into} XP to level {level + 1}
+        </div>
       </div>
 
       {items.map((it) => {

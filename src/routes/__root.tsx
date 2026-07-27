@@ -83,10 +83,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "CollgePro Navigator — Academic OS for B.Tech students" },
-      { name: "description", content: "Manage projects, prep mock vivas & presentations with AI, and collaborate with your team — built for B.Tech students." },
+      {
+        name: "description",
+        content:
+          "Manage projects, prep mock vivas & presentations with AI, and collaborate with your team — built for B.Tech students.",
+      },
       { name: "author", content: "CollgePro Navigator" },
       { property: "og:title", content: "CollgePro Navigator" },
-      { property: "og:description", content: "Academic OS for B.Tech students — AI mock viva, presentation practice, projects and teams." },
+      {
+        property: "og:description",
+        content:
+          "Academic OS for B.Tech students — AI mock viva, presentation practice, projects and teams.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],

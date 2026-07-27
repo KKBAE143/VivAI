@@ -365,8 +365,8 @@ export function PreflightSetup({
               </select>
             </label>
           )}
-          {showPersona && (
-            configLocked ? (
+          {showPersona &&
+            (configLocked ? (
               <div className="rounded-xl bg-secondary px-4 py-3">
                 <span className="text-xs text-muted-foreground">Examiner style</span>
                 <div className="mt-1 text-sm font-semibold">
@@ -388,12 +388,12 @@ export function PreflightSetup({
                   ))}
                 </select>
               </label>
-            )
-          )}
+            ))}
         </div>
         {configLocked && (
           <p className="mt-2 text-[11px] text-muted-foreground">
-            Set when you configured this session — change them from the session setup screen instead.
+            Set when you configured this session — change them from the session setup screen
+            instead.
           </p>
         )}
 

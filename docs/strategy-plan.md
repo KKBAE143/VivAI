@@ -12,16 +12,16 @@
 
 - Target **Tier-2/3 engineering colleges** (not IITs/NITs who already have resources). These 200,000+ institutions are desperate to improve placement rates and accreditation scores (NBA, NAAC).
 - Offer a **free semester-long pilot** to the dean/T&P office: full platform access for 200 students + campus-wide usage analytics
-- ROI hook for the college: *"Your placement % goes up because students walk into vivas having practiced 7+ times with an AI that knows their project"*
+- ROI hook for the college: _"Your placement % goes up because students walk into vivas having practiced 7+ times with an AI that knows their project"_
 
 ### Phase 2 — Pricing model (research-backed)
 
-| Tier | Buyer | Price (annual) | What they get |
-|------|-------|---------------|---------------|
-| **Institution Lite** | College T&P dept | ₹1–3L/yr | 500 student seats, admin dashboard, cohort readiness reports, basic heatmap |
-| **Institution Pro** | College + Dept HoDs | ₹5–10L/yr | Unlimited seats, code-aware viva, team viva, faculty simulation, college predictor |
-| **B2C Freemium** | Individual students | Free / ₹999/yr | 3 free sessions / month or unlimited with basic features |
-| **B2C Premium** | Individual students | ₹199/mo or ₹1,999/yr | Unlimited live sessions, full reports, all modes |
+| Tier                 | Buyer               | Price (annual)       | What they get                                                                      |
+| -------------------- | ------------------- | -------------------- | ---------------------------------------------------------------------------------- |
+| **Institution Lite** | College T&P dept    | ₹1–3L/yr             | 500 student seats, admin dashboard, cohort readiness reports, basic heatmap        |
+| **Institution Pro**  | College + Dept HoDs | ₹5–10L/yr            | Unlimited seats, code-aware viva, team viva, faculty simulation, college predictor |
+| **B2C Freemium**     | Individual students | Free / ₹999/yr       | 3 free sessions / month or unlimited with basic features                           |
+| **B2C Premium**      | Individual students | ₹199/mo or ₹1,999/yr | Unlimited live sessions, full reports, all modes                                   |
 
 **Benchmark:** byteXL charges colleges ₹2–5L/yr per institution. HackerRank's campus plan is $5K–20K/yr. VivAI's differentiation (defense-readiness + code-aware viva) justifies a premium.
 
@@ -32,7 +32,8 @@
 - **NAAC/NBA alignment**: Map VivAI sessions to NBA accreditation criteria (Student Performance, Teaching-Learning Process) — colleges will pay for accreditation prep
 
 **Example playbook** (byteXL model): Approach college with "We'll run a 2-week free mock viva drive for your final-year batch." After the drive, present the department with:
-- *"Your students averaged 52% readiness. Here's which subjects are weakest."* → Close the college-wide license.
+
+- _"Your students averaged 52% readiness. Here's which subjects are weakest."_ → Close the college-wide license.
 
 ---
 
@@ -43,28 +44,32 @@
 ### 1. Name the category
 
 Stop calling it "AI Mock Viva" (sounds like yet another interview bot). Instead, **create a new category name**:
-- **"Defense Readiness Platform"** — names the *outcome*, not the feature
+
+- **"Defense Readiness Platform"** — names the _outcome_, not the feature
 - **"Project-Native Oral Practice"** — highlights the differentiation
 - **"Academic Defense Simulator"** — frames it as essential prep, not optional practice
 
 ### 2. Win with "invisible competitors" (not direct ones)
 
 You don't need direct competitors to validate. Your real competitors are:
+
 - **The Status Quo**: Students practicing alone in hostel rooms with no feedback
 - **Manual Workarounds**: Friends giving fake mock vivas, YouTube videos, generic interview prep
 - **Adjacent Tools**: HackerRank (coding prep only), Pramp (generic interview), Yocket (study abroad)
 
-**Validation strategy** — prove students are *already* trying to solve this problem manually:
-- Run a **survey with 500+ engineering students**: *"Have you ever felt unprepared for a viva? What did you do about it?"*
+**Validation strategy** — prove students are _already_ trying to solve this problem manually:
+
+- Run a **survey with 500+ engineering students**: _"Have you ever felt unprepared for a viva? What did you do about it?"_
 - If ≥70% say "yes" and "nothing worked well," you have validated demand
 - Track **persistence**, not signups — do students come back for a second session?
 
 ### 3. Build a lighthouse case study
 
 Instead of mass marketing, **find 1 college where you produce extraordinary results**:
+
 - Run a controlled test: 50 students use VivAI for 4 weeks before a real viva, 50 students do nothing
 - Measure: confidence scores, actual viva grades, placement call rates
-- Publish the results as *"The first-ever quantified Defense Readiness study"*
+- Publish the results as _"The first-ever quantified Defense Readiness study"_
 - Use this case study to sell to the next 20 colleges
 
 ### 4. Category creation narrative (for investors)
@@ -90,14 +95,14 @@ nobody else connected project workspaces to oral practice."
 
 ### Phase 1 — Immediate compliance (ship with this)
 
-| Requirement | Implementation |
-|-------------|---------------|
-| **Consent** | Add a 2-step consent flow: (1) Student agrees to VivAI ToS + privacy policy on signup (2) For <18, sends WhatsApp/email to parent for verifiable consent |
-| **Data Minimization** | Never store raw audio/video after session. Process → extract metrics → delete media. Only keep transcripts + scores + report JSON |
-| **Purpose Limitation** | Privacy policy must state explicitly: *"We use your code/project data only to generate viva questions during your session. We never train AI models on your code."* |
-| **Right to Erasure** | Add a "Delete My Data" button in profile — deletes all sessions, transcripts, uploads within 72 hours |
-| **Grievance Officer** | Publish a grievance officer email + name on website (required by DPDP Act) |
-| **Breach Notification** | Add breach notification flow to the backend (email + SMS within 72 hours) |
+| Requirement             | Implementation                                                                                                                                                      |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Consent**             | Add a 2-step consent flow: (1) Student agrees to VivAI ToS + privacy policy on signup (2) For <18, sends WhatsApp/email to parent for verifiable consent            |
+| **Data Minimization**   | Never store raw audio/video after session. Process → extract metrics → delete media. Only keep transcripts + scores + report JSON                                   |
+| **Purpose Limitation**  | Privacy policy must state explicitly: _"We use your code/project data only to generate viva questions during your session. We never train AI models on your code."_ |
+| **Right to Erasure**    | Add a "Delete My Data" button in profile — deletes all sessions, transcripts, uploads within 72 hours                                                               |
+| **Grievance Officer**   | Publish a grievance officer email + name on website (required by DPDP Act)                                                                                          |
+| **Breach Notification** | Add breach notification flow to the backend (email + SMS within 72 hours)                                                                                           |
 
 ### Phase 2 — Institutional compliance (before closing B2B deals)
 
@@ -116,7 +121,7 @@ nobody else connected project workspaces to oral practice."
 
 ## Challenge 4: Code Security & IP Protection
 
-**Research finding:** This is mostly a *perception* problem that requires both technical and messaging solutions. GitHub Copilot solved this by offering explicit opt-out tiers.
+**Research finding:** This is mostly a _perception_ problem that requires both technical and messaging solutions. GitHub Copilot solved this by offering explicit opt-out tiers.
 
 ### Technical architecture
 
@@ -135,12 +140,13 @@ Student uploads ZIP/GitHub link
 1. **"We never train on your code."** — Put this on the pricing page in bold. Offer a signed contractual guarantee to colleges.
 2. **Ephemeral processing** — Code is loaded into memory, used for the session, and raw files are garbage-collected within 7 days. Only anonymized topic coverage percentages persist in reports.
 3. **Optional client-side processing** — For security-conscious colleges, offer a **self-hosted / air-gapped deployment** where the entire AI runs on the college's own infrastructure. (Use Ollama + open-source models for this tier.)
-4. **GitHub integration** — Read-only access with a fine-grained PAT (Personal Access Token). VivAI can *read* the repo during session, never *writes*, never *forks*.
+4. **GitHub integration** — Read-only access with a fine-grained PAT (Personal Access Token). VivAI can _read_ the repo during session, never _writes_, never _forks_.
 
 ### The messaging (critical)
 
-The *fear* is "my project code gets stolen." Combat this with:
-- *"Your project is encrypted end-to-end. Only you and the AI see it — during the session and in your private report."*
+The _fear_ is "my project code gets stolen." Combat this with:
+
+- _"Your project is encrypted end-to-end. Only you and the AI see it — during the session and in your private report."_
 - Get a **security audit from a recognized firm** and publish the results
 - GDPR/DPDP Act compliance badge on the signup page
 
@@ -154,19 +160,20 @@ The *fear* is "my project code gets stolen." Combat this with:
 
 A composite score (0–100) calculated after each practice session:
 
-| Dimension | Weight | What it measures | How it's scored |
-|-----------|--------|------------------|-----------------|
-| **Technical Depth** | 30% | Can student explain *why* not just *what* | AI evaluates answer specificity, accuracy, ability to handle follow-ups |
-| **Communication** | 25% | WPM, filler words, pacing, clarity | Delivery metrics engine (fillers / WPM / monologue length / speech gaps) |
-| **Coverage** | 20% | How much of the project/syllabus was touched | % of key topics the AI asked about that student could address |
-| **Confidence** | 15% | Hesitation patterns, barge-in resistance, interruption recovery | Speech latency analysis + willingness to hold ground |
-| **Structure** | 10% | Logical flow, STAR-like answers, conciseness | NLP analysis of answer structure (problem → approach → result) |
+| Dimension           | Weight | What it measures                                                | How it's scored                                                          |
+| ------------------- | ------ | --------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| **Technical Depth** | 30%    | Can student explain _why_ not just _what_                       | AI evaluates answer specificity, accuracy, ability to handle follow-ups  |
+| **Communication**   | 25%    | WPM, filler words, pacing, clarity                              | Delivery metrics engine (fillers / WPM / monologue length / speech gaps) |
+| **Coverage**        | 20%    | How much of the project/syllabus was touched                    | % of key topics the AI asked about that student could address            |
+| **Confidence**      | 15%    | Hesitation patterns, barge-in resistance, interruption recovery | Speech latency analysis + willingness to hold ground                     |
+| **Structure**       | 10%    | Logical flow, STAR-like answers, conciseness                    | NLP analysis of answer structure (problem → approach → result)           |
 
 ### Readiness Benchmarks (built from session data)
 
 VivAI's network effect: As more students practice, you build **anonymized benchmarks**:
-- *"Students from Tier-2 CSE departments average DRS 58. You're at 72 — top 15% of your peer group."*
-- *"Students who score DRS ≥75 pass their real viva 92% of the time."* (Validate this claim with exit surveys)
+
+- _"Students from Tier-2 CSE departments average DRS 58. You're at 72 — top 15% of your peer group."_
+- _"Students who score DRS ≥75 pass their real viva 92% of the time."_ (Validate this claim with exit surveys)
 
 ### The Readiness Timeline
 
@@ -181,18 +188,18 @@ Defense in 7 days      ██████████  DRS 84  (Target: 80 ✅)
 ### Validating the metric
 
 - **Step 1**: After each VivAI session, ask students to self-rate confidence (1–5 scale)
-- **Step 2**: Cross-reference DRS with scores from *real* college vivas (ask permission to follow up)
-- **Step 3**: Publish *"The VivAI Defense Readiness Validation Study"* — the first academic paper quantifying defense preparation
+- **Step 2**: Cross-reference DRS with scores from _real_ college vivas (ask permission to follow up)
+- **Step 3**: Publish _"The VivAI Defense Readiness Validation Study"_ — the first academic paper quantifying defense preparation
 
 ---
 
 ## Summary: The 6-Month Roadmap
 
-| Month | Focus | Key Milestone |
-|-------|-------|---------------|
-| **1–2** | DPDP compliance + architecture hardening | Privacy policy, consent flow, DPA template, ephemeral code processing |
-| **2–3** | Defense Readiness Score™ launch | DRS goes live on all session reports |
-| **2–3** | Survey + pilot outreach | 500-student survey; 2 pilot colleges signed |
-| **3–4** | First college pilot runs | Full semester pilot with readiness analytics |
-| **4–5** | Case study + ISO 27001 start | "Readiness Gap in Indian Engineering" report published; ISO audit begins |
-| **5–6** | B2B pricing + sales rollout | Tiered pricing live; 10 college partnerships by end of month 6 |
+| Month   | Focus                                    | Key Milestone                                                            |
+| ------- | ---------------------------------------- | ------------------------------------------------------------------------ |
+| **1–2** | DPDP compliance + architecture hardening | Privacy policy, consent flow, DPA template, ephemeral code processing    |
+| **2–3** | Defense Readiness Score™ launch          | DRS goes live on all session reports                                     |
+| **2–3** | Survey + pilot outreach                  | 500-student survey; 2 pilot colleges signed                              |
+| **3–4** | First college pilot runs                 | Full semester pilot with readiness analytics                             |
+| **4–5** | Case study + ISO 27001 start             | "Readiness Gap in Indian Engineering" report published; ISO audit begins |
+| **5–6** | B2B pricing + sales rollout              | Tiered pricing live; 10 college partnerships by end of month 6           |

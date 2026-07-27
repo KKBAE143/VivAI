@@ -1,5 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { BookOpen, GraduationCap, Sparkles, Mic, ChevronRight, type LucideIcon } from "lucide-react";
+import {
+  BookOpen,
+  GraduationCap,
+  Sparkles,
+  Mic,
+  ChevronRight,
+  type LucideIcon,
+} from "lucide-react";
 import { AppShell, Card, PageHeader, Badge } from "@/components/app-shell";
 import { useTemplates } from "@/lib/hooks";
 
@@ -7,7 +14,10 @@ export const Route = createFileRoute("/templates/")({
   head: () => ({
     meta: [
       { title: "Templates & Guidelines — CollgePro Navigator" },
-      { name: "description", content: "Learn what PBL, Major and Mini projects are, and how to prepare for vivas." },
+      {
+        name: "description",
+        content: "Learn what PBL, Major and Mini projects are, and how to prepare for vivas.",
+      },
     ],
   }),
   component: Templates,
@@ -25,7 +35,10 @@ function Templates() {
 
   return (
     <AppShell>
-      <PageHeader title="Templates & Guidelines" subtitle="Everything you need to understand and ace your academic milestones." />
+      <PageHeader
+        title="Templates & Guidelines"
+        subtitle="Everything you need to understand and ace your academic milestones."
+      />
 
       {isLoading && (
         <div className="grid gap-5 md:grid-cols-2">
@@ -38,7 +51,9 @@ function Templates() {
       )}
 
       {isError && (
-        <Card className="text-sm text-destructive">Could not load guides. Please try again shortly.</Card>
+        <Card className="text-sm text-destructive">
+          Could not load guides. Please try again shortly.
+        </Card>
       )}
 
       {!isLoading && !isError && (

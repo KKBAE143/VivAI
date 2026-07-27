@@ -7,12 +7,13 @@ Kanban, and Teams. Migration: `backend/migrations/002_quality_upgrade.sql`.
 ## Per-issue root cause
 
 ### 1. Double greeting
+
 The client opened its mic gate on Gemini's `turn_complete` while several
 seconds of greeting audio were still scheduled in the playback `AudioContext`.
 Capture and playback use separate `AudioContext`s (defeating the browser's
 echo cancellation), so the tail of the greeting leaked into the mic and Gemini
 heard itself, greeting a second time. Secondary cause: two independent
-greeting mechanisms (`SPEAK FIRST` in the system prompt *and* an explicit
+greeting mechanisms (`SPEAK FIRST` in the system prompt _and_ an explicit
 greeting-trigger turn) that could both fire.
 
 **Fix:** the client now opens the mic gate only after the scheduled playback
@@ -25,7 +26,8 @@ mic gate as defense-in-depth for old/broken clients (`api/live.py`,
 `first_turn_done` event, 20s safety release so it can never deadlock).
 
 ### 2. Configured (project-based / non-English) Mock Viva connected but produced no audio
-Discovered and fixed *during* this upgrade (not present in the original issue
+
+Discovered and fixed _during_ this upgrade (not present in the original issue
 list, but a direct regression surfaced once the "backend is not running" bug —
 issue 6 below — was fixed and non-English sessions could finally reach Gemini).
 Gemini's half-cascade Live models synthesize speech via TTS, which needs an
@@ -44,6 +46,7 @@ rejects it. `api/live.py:_response_audio_chunks()` reads audio from both SDK
 response shapes so the app is robust to `google-genai` version drift.
 
 ### 3. Shallow scenarios and personas
+
 Personas were a single tone sentence; all coach scenarios shared one
 generic playbook, defined only in the frontend.
 
@@ -55,6 +58,7 @@ weighted rubric. 5 personas (`friendly`, `calm`, `balanced`, `strict`,
 via `GET /api/catalog/scenarios` / `/personas` (prompt text stays private).
 
 ### 4. Generic feedback
+
 Live tips came from a sparse, undeduped `flag_moment` tool with no evidence
 requirement; the final report was one text-model pass with no citation
 discipline; pitch persisted nothing.
@@ -76,6 +80,7 @@ rubric-weighted mean (fixing the old bug where
 through the same path as Presentation and Coach.
 
 ### 5. Fake Kanban / orphaned teams
+
 Tasks board was 3 columns with a "move to next" button and no persisted
 order; `create_team` inserted the membership row without checking the
 result, so a failed insert could return 201 with an orphaned team invisible
@@ -95,9 +100,10 @@ never return 201 with an orphan again. `list_teams` also self-heals: any
 so historical orphans become visible and functional.
 
 ### 6. "Backend is not running" on non-English project viva
+
 `viva_sessions.language` CHECK allowed only 3 languages against 13 offered in
 the UI. The failed insert became an unhandled 500, and because FastAPI's
-`ServerErrorMiddleware` sits *outside* `CORSMiddleware`, that 500 carried no
+`ServerErrorMiddleware` sits _outside_ `CORSMiddleware`, that 500 carried no
 CORS headers — the browser blocked the response outright, and every fetch
 rejection was mapped to a generic "backend is not running" message.
 
@@ -113,7 +119,7 @@ CORS blocked the response."
 ## Architecture decisions
 
 - **Evidence-log pattern (WS3).** The live model is only ever asked to
-  *observe*, never to *score*. Scoring happens once, post-session, from
+  _observe_, never to _score_. Scoring happens once, post-session, from
   persisted evidence (transcript + observation log + deterministic metrics).
   This mirrors the dominant production pattern in realtime AI coaching
   (LiveKit Agents' thin-conversation/fat-analysis split; Yoodli/Orai-style
@@ -125,14 +131,14 @@ CORS blocked the response."
 - **Registry composition (WS2).** Scenario and persona are orthogonal
   dataclasses composed into the live system prompt (`render_scenario_block` +
   `render_persona_block`), not string interpolation into one blob. This is
-  what makes personas *observably* different (a 7-axis behavioral contract,
+  what makes personas _observably_ different (a 7-axis behavioral contract,
   not one adjective) while keeping the catalog unit-testable (rubric weights
   sum to 1.0, every `report_framework` reference resolves, every scenario ×
   persona × mode combination fits the live instruction budget — enforced by
   `tests/test_registry.py`).
 
 - **Error-middleware ordering.** `app.add_middleware()` calls stack
-  last-added-outermost. The catch-all is added *before* `CORSMiddleware` so
+  last-added-outermost. The catch-all is added _before_ `CORSMiddleware` so
   CORS wraps it. This is the one ordering that makes an unhandled exception
   produce a CORS-visible response — the alternative
   (`@app.exception_handler(Exception)`) runs in Starlette's
@@ -152,7 +158,7 @@ CORS blocked the response."
   comfortable headroom today, but a good scenario/persona addition should
   re-run that test, not just eyeball length.
 - **Server-side mic gate is unconditional but narrow.** It only ever gates
-  audio frames before the *first* `turn_complete`, with a 20s safety release —
+  audio frames before the _first_ `turn_complete`, with a 20s safety release —
   bounded and tested (`test_live_gate.py`), but it is new production surface.
 - **`_validate_report` degrades gracefully, not silently.** If the model
   fabricates a claim with no matching evidence id, the finding is dropped —

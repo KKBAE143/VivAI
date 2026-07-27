@@ -43,7 +43,10 @@ function NewProject() {
         title: title.trim(),
         type,
         subject,
-        tech_stack: techStack.split(",").map((s) => s.trim()).filter(Boolean),
+        tech_stack: techStack
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
         problem_statement: problemStatement || null,
       });
       navigate({ to: "/projects/$id", params: { id: String(res.id) } });
@@ -55,20 +58,40 @@ function NewProject() {
   return (
     <AppShell>
       <div className="flex items-center gap-3">
-        <Link to="/projects" className="grid h-9 w-9 place-items-center rounded-xl bg-card shadow-[var(--shadow-card)]">
+        <Link
+          to="/projects"
+          className="grid h-9 w-9 place-items-center rounded-xl bg-card shadow-[var(--shadow-card)]"
+        >
           <ArrowLeft className="h-4 w-4" />
         </Link>
-        <PageHeader title="Create Project" subtitle="Set up your new academic project in 4 quick steps." />
+        <PageHeader
+          title="Create Project"
+          subtitle="Set up your new academic project in 4 quick steps."
+        />
       </div>
       <Card>
         <div className="grid grid-cols-4 gap-3">
           {steps.map((s, i) => (
             <div key={s} className="space-y-2">
               <div className="flex items-center gap-2">
-                <div className={`grid h-7 w-7 place-items-center rounded-full text-xs font-semibold ${i === 0 ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
-                  {i === 0 ? "1" : i === 1 ? "2" : i === 2 ? "3" : <Check className="h-3.5 w-3.5" />}
+                <div
+                  className={`grid h-7 w-7 place-items-center rounded-full text-xs font-semibold ${i === 0 ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}
+                >
+                  {i === 0 ? (
+                    "1"
+                  ) : i === 1 ? (
+                    "2"
+                  ) : i === 2 ? (
+                    "3"
+                  ) : (
+                    <Check className="h-3.5 w-3.5" />
+                  )}
                 </div>
-                <span className={`text-xs font-medium ${i === 0 ? "text-foreground" : "text-muted-foreground"}`}>{s}</span>
+                <span
+                  className={`text-xs font-medium ${i === 0 ? "text-foreground" : "text-muted-foreground"}`}
+                >
+                  {s}
+                </span>
               </div>
               <div className={`h-1 rounded-full ${i === 0 ? "bg-primary" : "bg-secondary"}`} />
             </div>
@@ -94,7 +117,10 @@ function NewProject() {
                 { t: "Major", d: "Final year capstone project" },
                 { t: "Mini", d: "Short scope, learn-a-tech project" },
               ].map((p) => (
-                <label key={p.t} className={`cursor-pointer rounded-xl border p-4 transition-colors ${type === p.t ? "border-primary bg-primary-soft" : "border-border hover:border-primary"}`}>
+                <label
+                  key={p.t}
+                  className={`cursor-pointer rounded-xl border p-4 transition-colors ${type === p.t ? "border-primary bg-primary-soft" : "border-border hover:border-primary"}`}
+                >
                   <input
                     type="radio"
                     name="type"
@@ -140,7 +166,12 @@ function NewProject() {
           </Field>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <div className="flex items-center justify-end gap-3 pt-2">
-            <Link to="/projects" className="rounded-xl bg-secondary px-4 py-2.5 text-sm font-medium">Cancel</Link>
+            <Link
+              to="/projects"
+              className="rounded-xl bg-secondary px-4 py-2.5 text-sm font-medium"
+            >
+              Cancel
+            </Link>
             <button
               disabled={createMutation.isPending}
               onClick={() => void handleCreate()}

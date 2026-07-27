@@ -52,7 +52,7 @@ export default defineConfig(async ({ command }) => {
     plugins.push(
       nitro({
         defaultPreset: "cloudflare-module",
-      })
+      }),
     );
   }
 

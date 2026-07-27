@@ -251,14 +251,23 @@ function TopBar() {
       <div className="flex items-center gap-2">
         <ThemeToggle />
         <div className="flex items-center gap-1 rounded-full bg-secondary p-1">
-          <button aria-label="Search" className="grid h-9 w-9 place-items-center rounded-full hover:bg-card">
+          <button
+            aria-label="Search"
+            className="grid h-9 w-9 place-items-center rounded-full hover:bg-card"
+          >
             <Search className="h-4 w-4" />
           </button>
-          <button aria-label="Notifications" className="relative grid h-9 w-9 place-items-center rounded-full hover:bg-card">
+          <button
+            aria-label="Notifications"
+            className="relative grid h-9 w-9 place-items-center rounded-full hover:bg-card"
+          >
             <Bell className="h-4 w-4" />
             <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />
           </button>
-          <button aria-label="Info" className="grid h-9 w-9 place-items-center rounded-full hover:bg-card">
+          <button
+            aria-label="Info"
+            className="grid h-9 w-9 place-items-center rounded-full hover:bg-card"
+          >
             <HelpCircle className="h-4 w-4" />
           </button>
         </div>
@@ -325,7 +334,9 @@ function MobileNav() {
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`rounded-2xl bg-card p-6 shadow-[var(--shadow-card)] ${className}`}>{children}</div>
+    <div className={`rounded-2xl bg-card p-6 shadow-[var(--shadow-card)] ${className}`}>
+      {children}
+    </div>
   );
 }
 
@@ -364,7 +375,9 @@ export function Badge({
     destructive: "bg-destructive/10 text-destructive",
   } as const;
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${tones[tone]}`}>
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${tones[tone]}`}
+    >
       {children}
     </span>
   );

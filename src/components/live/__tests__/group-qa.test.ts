@@ -10,7 +10,14 @@ function ev(partial: Partial<LiveEvent> & Pick<LiveEvent, "id" | "kind" | "ts">)
 describe("groupQuestionsAndScores", () => {
   it("merges a question and its later score into one evolving item", () => {
     const events: LiveEvent[] = [
-      ev({ id: "e1", refId: "q_1", kind: "question", text: "What is a primary key?", topic: "DBMS", ts: 1 }),
+      ev({
+        id: "e1",
+        refId: "q_1",
+        kind: "question",
+        text: "What is a primary key?",
+        topic: "DBMS",
+        ts: 1,
+      }),
       ev({ id: "e2", refId: "q_1", kind: "score", text: "Clear and correct.", score: 90, ts: 2 }),
     ];
     const grouped = groupQuestionsAndScores(events);
@@ -36,7 +43,9 @@ describe("groupQuestionsAndScores", () => {
   });
 
   it("shows an unscored question as pending, not missing", () => {
-    const events: LiveEvent[] = [ev({ id: "e1", refId: "q_1", kind: "question", text: "Q1", ts: 1 })];
+    const events: LiveEvent[] = [
+      ev({ id: "e1", refId: "q_1", kind: "question", text: "Q1", ts: 1 }),
+    ];
     const grouped = groupQuestionsAndScores(events);
     expect(grouped).toHaveLength(1);
     expect(grouped[0].score).toBeNull();
@@ -44,7 +53,15 @@ describe("groupQuestionsAndScores", () => {
 
   it("falls back to a standalone entry for a score with no matching question", () => {
     const events: LiveEvent[] = [
-      ev({ id: "e1", refId: null, kind: "score", text: "General feedback.", score: 60, topic: "Delivery", ts: 1 }),
+      ev({
+        id: "e1",
+        refId: null,
+        kind: "score",
+        text: "General feedback.",
+        score: 60,
+        topic: "Delivery",
+        ts: 1,
+      }),
     ];
     const grouped = groupQuestionsAndScores(events);
     expect(grouped).toHaveLength(1);

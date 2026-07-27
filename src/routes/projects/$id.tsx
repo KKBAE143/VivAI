@@ -77,14 +77,19 @@ function ProjectDetail() {
   const status = String(project.status ?? "In Progress");
   const type = String(project.type ?? "PBL");
   const techStack = (project.tech_stack as string[] | null | undefined) ?? [];
-  const about = String(project.description ?? project.problem_statement ?? "No description added yet.");
+  const about = String(
+    project.description ?? project.problem_statement ?? "No description added yet.",
+  );
   const due = project.deadline ? String(project.deadline).slice(0, 10) : "—";
 
   return (
     <AppShell>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-start gap-3">
-          <Link to="/projects" className="grid h-9 w-9 place-items-center rounded-xl bg-card shadow-[var(--shadow-card)]">
+          <Link
+            to="/projects"
+            className="grid h-9 w-9 place-items-center rounded-xl bg-card shadow-[var(--shadow-card)]"
+          >
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <div>
@@ -118,7 +123,9 @@ function ProjectDetail() {
               key={t}
               onClick={() => setTab(t)}
               className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
-                t === tab ? "bg-foreground text-background" : "text-muted-foreground hover:bg-secondary"
+                t === tab
+                  ? "bg-foreground text-background"
+                  : "text-muted-foreground hover:bg-secondary"
               }`}
             >
               {t}
@@ -136,7 +143,9 @@ function ProjectDetail() {
               {techStack.map((t) => (
                 <Badge key={t}>{t}</Badge>
               ))}
-              {techStack.length === 0 && <span className="text-xs text-muted-foreground">No tech stack listed</span>}
+              {techStack.length === 0 && (
+                <span className="text-xs text-muted-foreground">No tech stack listed</span>
+              )}
             </div>
             <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
               {[
@@ -243,7 +252,11 @@ function ProgressCard({
         onClick={() => updateProgress.mutate({ id: projectId, progress: value })}
         className="mt-3 block w-full rounded-xl bg-primary-foreground px-4 py-2.5 text-center text-sm font-semibold text-primary disabled:opacity-50"
       >
-        {updateProgress.isPending ? "Saving…" : value === progress ? "Progress saved" : "Save progress"}
+        {updateProgress.isPending
+          ? "Saving…"
+          : value === progress
+            ? "Progress saved"
+            : "Save progress"}
       </button>
       <Link
         to="/ai-viva/new"
@@ -256,8 +269,14 @@ function ProgressCard({
 }
 
 function TasksBoard({
-  projectId, tasks, teamMembers,
-}: { projectId: string; tasks: ApiRecord[]; teamMembers: ApiRecord[] }) {
+  projectId,
+  tasks,
+  teamMembers,
+}: {
+  projectId: string;
+  tasks: ApiRecord[];
+  teamMembers: ApiRecord[];
+}) {
   const [showAdd, setShowAdd] = useState(false);
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState("med");
@@ -349,15 +368,28 @@ function TasksBoard({
         onDelete={(task) => deleteTask.mutate({ taskId: String(task.id), projectId })}
       />
       {editTask && (
-        <EditTaskModal task={editTask} projectId={projectId} teamMembers={teamMembers} onClose={() => setEditTask(null)} />
+        <EditTaskModal
+          task={editTask}
+          projectId={projectId}
+          teamMembers={teamMembers}
+          onClose={() => setEditTask(null)}
+        />
       )}
     </Card>
   );
 }
 
 function EditTaskModal({
-  task, projectId, teamMembers, onClose,
-}: { task: ApiRecord; projectId: string; teamMembers: ApiRecord[]; onClose: () => void }) {
+  task,
+  projectId,
+  teamMembers,
+  onClose,
+}: {
+  task: ApiRecord;
+  projectId: string;
+  teamMembers: ApiRecord[];
+  onClose: () => void;
+}) {
   const updateTask = useUpdateTask();
   const [title, setTitle] = useState(String(task.title ?? ""));
   const [description, setDescription] = useState(String(task.description ?? ""));
@@ -450,7 +482,9 @@ function EditProjectModal({ project, onClose }: { project: ApiRecord; onClose: (
   const [subject, setSubject] = useState(String(project.subject ?? ""));
   const [description, setDescription] = useState(String(project.description ?? ""));
   const [status, setStatus] = useState(String(project.status ?? "In Progress"));
-  const [deadline, setDeadline] = useState(project.deadline ? String(project.deadline).slice(0, 10) : "");
+  const [deadline, setDeadline] = useState(
+    project.deadline ? String(project.deadline).slice(0, 10) : "",
+  );
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const save = async () => {
@@ -524,7 +558,9 @@ function EditProjectModal({ project, onClose }: { project: ApiRecord; onClose: (
       <div className="mt-4 border-t border-border pt-4">
         {confirmDelete ? (
           <div className="space-y-2">
-            <p className="text-sm text-destructive">Delete this project and all its tasks? This cannot be undone.</p>
+            <p className="text-sm text-destructive">
+              Delete this project and all its tasks? This cannot be undone.
+            </p>
             <div className="flex gap-2">
               <button
                 onClick={() => setConfirmDelete(false)}
@@ -554,7 +590,6 @@ function EditProjectModal({ project, onClose }: { project: ApiRecord; onClose: (
   );
 }
 
-
 function FilesTab({ files }: { files: ApiRecord[] }) {
   if (files.length === 0) {
     return (
@@ -574,7 +609,10 @@ function FilesTab({ files }: { files: ApiRecord[] }) {
       <h3 className="text-base font-semibold">Files</h3>
       <div className="mt-3 space-y-2">
         {files.map((f) => (
-          <div key={String(f.id)} className="flex items-center justify-between rounded-xl bg-secondary p-3">
+          <div
+            key={String(f.id)}
+            className="flex items-center justify-between rounded-xl bg-secondary p-3"
+          >
             <div className="flex items-center gap-3">
               <FileText className="h-4 w-4 text-muted-foreground" />
               <div>
@@ -634,7 +672,9 @@ function VivaTab({ vivas, projectId }: { vivas: ApiRecord[]; projectId: string }
           </Link>
         ))}
         {vivas.length === 0 && (
-          <p className="text-sm text-muted-foreground">No viva sessions yet. Start one to practice for this project.</p>
+          <p className="text-sm text-muted-foreground">
+            No viva sessions yet. Start one to practice for this project.
+          </p>
         )}
       </div>
     </Card>

@@ -7,7 +7,17 @@
  * voice session, then the ended summary.
  */
 import { useEffect, useRef, useState } from "react";
-import { Bot, Copy, Crown, Mic, MicOff, PhoneOff, Trophy, Loader2, CheckCircle2 } from "lucide-react";
+import {
+  Bot,
+  Copy,
+  Crown,
+  Mic,
+  MicOff,
+  PhoneOff,
+  Trophy,
+  Loader2,
+  CheckCircle2,
+} from "lucide-react";
 import { Badge, Card } from "@/components/app-shell";
 import { PreflightSetup } from "@/components/live/preflight-setup";
 import { useTeamViva } from "@/lib/useTeamViva";
@@ -54,7 +64,8 @@ export function TeamVivaRoom({ sessionId, myProfileId, inviteUrl }: TeamVivaRoom
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [micStream, status]);
 
-  const nameFor = (pid: string | null) => members.find((m) => m.profile_id === pid)?.name ?? "Someone";
+  const nameFor = (pid: string | null) =>
+    members.find((m) => m.profile_id === pid)?.name ?? "Someone";
   const isLead = leadId === myProfileId;
   const canStart = members.length >= 3 && members.length <= 5;
 
@@ -97,18 +108,26 @@ export function TeamVivaRoom({ sessionId, myProfileId, inviteUrl }: TeamVivaRoom
         <h3 className="flex items-center gap-2 text-base font-semibold">
           <Trophy className="h-4 w-4" /> Team Viva Complete
         </h3>
-        <p className="mt-1 text-sm text-muted-foreground">Team score: {summary?.team_score ?? 0}%</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Team score: {summary?.team_score ?? 0}%
+        </p>
         <div className="mt-4 space-y-2">
           {memberResults.map((m) => (
-            <div key={m.profile_id} className="flex items-center justify-between rounded-lg border p-3 text-sm">
+            <div
+              key={m.profile_id}
+              className="flex items-center justify-between rounded-lg border p-3 text-sm"
+            >
               <span className="font-medium">{m.name}</span>
               <span className="text-muted-foreground">
-                {m.questions_answered} question{m.questions_answered === 1 ? "" : "s"} — {m.individual_score}%
+                {m.questions_answered} question{m.questions_answered === 1 ? "" : "s"} —{" "}
+                {m.individual_score}%
               </span>
             </div>
           ))}
           {!memberResults.length && (
-            <p className="text-xs text-muted-foreground">No one answered a question, so there's nothing to score.</p>
+            <p className="text-xs text-muted-foreground">
+              No one answered a question, so there's nothing to score.
+            </p>
           )}
         </div>
       </Card>
@@ -128,7 +147,9 @@ export function TeamVivaRoom({ sessionId, myProfileId, inviteUrl }: TeamVivaRoom
         </button>
       )}
       <Card className="lg:col-span-8">
-        <h3 className="text-base font-semibold">{status === "lobby" ? "Lobby" : "Live Team Viva"}</h3>
+        <h3 className="text-base font-semibold">
+          {status === "lobby" ? "Lobby" : "Live Team Viva"}
+        </h3>
 
         {inviteUrl && status === "lobby" && (
           <div className="mt-3 flex items-center gap-2 rounded-lg border bg-secondary px-3 py-2 text-xs">
@@ -167,7 +188,9 @@ export function TeamVivaRoom({ sessionId, myProfileId, inviteUrl }: TeamVivaRoom
               </div>
             );
           })}
-          <div className={`rounded-xl border p-3 text-center text-sm ${aiSpeaking ? "border-primary bg-primary/10" : "border-border"}`}>
+          <div
+            className={`rounded-xl border p-3 text-center text-sm ${aiSpeaking ? "border-primary bg-primary/10" : "border-border"}`}
+          >
             <div className="flex items-center justify-center gap-1 font-medium">
               <Bot className="h-3.5 w-3.5" /> AI Examiner
             </div>
@@ -195,7 +218,9 @@ export function TeamVivaRoom({ sessionId, myProfileId, inviteUrl }: TeamVivaRoom
                 </p>
               </>
             ) : (
-              <p className="text-sm text-muted-foreground">Waiting for the team lead to start the viva…</p>
+              <p className="text-sm text-muted-foreground">
+                Waiting for the team lead to start the viva…
+              </p>
             )}
           </div>
         )}
@@ -206,7 +231,9 @@ export function TeamVivaRoom({ sessionId, myProfileId, inviteUrl }: TeamVivaRoom
               onClick={() => room.toggleMic()}
               disabled={!isMyFloor}
               className="flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold disabled:opacity-40"
-              title={isMyFloor ? "Mute/unmute yourself" : "You can only speak when the AI calls on you"}
+              title={
+                isMyFloor ? "Mute/unmute yourself" : "You can only speak when the AI calls on you"
+              }
             >
               {micMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
               {isMyFloor ? (micMuted ? "Unmute" : "Mute") : "Not your turn"}
@@ -238,7 +265,11 @@ export function TeamVivaRoom({ sessionId, myProfileId, inviteUrl }: TeamVivaRoom
               )}
             </div>
           ))}
-          {!events.length && <p className="text-xs text-muted-foreground">Questions will appear here once the AI starts calling on people.</p>}
+          {!events.length && (
+            <p className="text-xs text-muted-foreground">
+              Questions will appear here once the AI starts calling on people.
+            </p>
+          )}
         </div>
       </Card>
     </div>

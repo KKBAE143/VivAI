@@ -147,7 +147,10 @@ function PresentationSession() {
                   {answeredExam.map((q, i) => {
                     const score = q.score == null ? null : Number(q.score);
                     return (
-                      <article key={i} className="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
+                      <article
+                        key={i}
+                        className="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]"
+                      >
                         <div className="flex items-center justify-between">
                           <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
                             Q{i + 1}
@@ -164,7 +167,9 @@ function PresentationSession() {
                         <h4 className="mt-2 text-base font-semibold leading-snug">{q.question}</h4>
                         <p className="mt-2 text-sm">
                           <span className="text-muted-foreground">Your answer: </span>
-                          {q.answer || <span className="italic text-muted-foreground">No answer</span>}
+                          {q.answer || (
+                            <span className="italic text-muted-foreground">No answer</span>
+                          )}
                         </p>
                         {q.feedback && (
                           <p className="mt-2 rounded-xl bg-secondary p-3 text-sm">{q.feedback}</p>

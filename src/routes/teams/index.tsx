@@ -11,7 +11,10 @@ export const Route = createFileRoute("/teams/")({
   head: () => ({
     meta: [
       { title: "My Teams — CollgePro Navigator" },
-      { name: "description", content: "Manage your project teams and collaborate with classmates." },
+      {
+        name: "description",
+        content: "Manage your project teams and collaborate with classmates.",
+      },
     ],
   }),
   component: Teams,
@@ -97,7 +100,9 @@ function Teams() {
 
         <Card>
           <h3 className="text-base font-semibold">Join a team</h3>
-          <p className="mt-1 text-xs text-muted-foreground">Got an invite code from a teammate? Enter it here.</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Got an invite code from a teammate? Enter it here.
+          </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <input
               value={joinCode}
@@ -114,7 +119,9 @@ function Teams() {
             </button>
           </div>
           {joinMsg && (
-            <p className={`mt-2 text-sm ${joinMsg.ok ? "text-success" : "text-destructive"}`}>{joinMsg.text}</p>
+            <p className={`mt-2 text-sm ${joinMsg.ok ? "text-success" : "text-destructive"}`}>
+              {joinMsg.text}
+            </p>
           )}
         </Card>
       </div>
@@ -161,7 +168,9 @@ function Teams() {
                       <div className="flex -space-x-2">
                         {members.slice(0, 4).map((m, i) => {
                           const profile = m.profiles as ApiRecord | null | undefined;
-                          const initial = String(profile?.full_name ?? "M").charAt(0).toUpperCase();
+                          const initial = String(profile?.full_name ?? "M")
+                            .charAt(0)
+                            .toUpperCase();
                           return (
                             <div
                               key={i}

@@ -10,7 +10,10 @@ export const Route = createFileRoute("/privacy")({
   head: () => ({
     meta: [
       { title: "Privacy Policy — VivAI" },
-      { name: "description", content: "VivAI Privacy Policy — DPDP Act 2023 compliant. We never train on your code." },
+      {
+        name: "description",
+        content: "VivAI Privacy Policy — DPDP Act 2023 compliant. We never train on your code.",
+      },
     ],
   }),
   component: PrivacyPage,
@@ -51,7 +54,9 @@ const POLICY_SECTIONS = [
 
 function PrivacyPage() {
   const { isAuthenticated } = useAuth();
-  const [deleteStatus, setDeleteStatus] = useState<"idle" | "confirming" | "deleting" | "done" | "error">("idle");
+  const [deleteStatus, setDeleteStatus] = useState<
+    "idle" | "confirming" | "deleting" | "done" | "error"
+  >("idle");
 
   const handleDelete = async () => {
     if (deleteStatus === "idle") {
@@ -84,7 +89,8 @@ function PrivacyPage() {
             <div>
               <p className="font-semibold text-primary">We never train on your code.</p>
               <p className="text-sm text-muted-foreground">
-                Your project is encrypted end-to-end. Only you and the AI see it — during the session and in your private report.
+                Your project is encrypted end-to-end. Only you and the AI see it — during the
+                session and in your private report.
               </p>
             </div>
           </div>
@@ -99,7 +105,9 @@ function PrivacyPage() {
                 <Icon className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
                 <div>
                   <h3 className="font-semibold">{section.heading}</h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{section.body}</p>
+                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                    {section.body}
+                  </p>
                 </div>
               </div>
             </Card>
@@ -133,7 +141,8 @@ function PrivacyPage() {
               <div className="flex-1">
                 <h3 className="font-semibold text-destructive">Delete My Data</h3>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Permanently erase all your sessions, transcripts, uploads, and scores. This cannot be undone.
+                  Permanently erase all your sessions, transcripts, uploads, and scores. This cannot
+                  be undone.
                 </p>
                 <div className="mt-3">
                   {deleteStatus === "idle" && (
@@ -175,7 +184,9 @@ function PrivacyPage() {
                   )}
                   {deleteStatus === "error" && (
                     <div className="space-y-2">
-                      <p className="text-sm text-destructive">Deletion failed. Please contact grievance@vivai.app</p>
+                      <p className="text-sm text-destructive">
+                        Deletion failed. Please contact grievance@vivai.app
+                      </p>
                       <button
                         onClick={() => setDeleteStatus("idle")}
                         className="rounded-xl bg-secondary px-4 py-2 text-sm font-medium"
@@ -192,7 +203,10 @@ function PrivacyPage() {
 
         {/* Back link */}
         <div className="pb-8">
-          <Link to="/" className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+          >
             <ArrowLeft className="h-4 w-4" /> Back to Dashboard
           </Link>
         </div>

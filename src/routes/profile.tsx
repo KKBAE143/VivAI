@@ -1,5 +1,15 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Camera, LogOut, Bell, Lock, Globe, Sparkles, Trash2, AlertTriangle, Gauge } from "lucide-react";
+import {
+  Camera,
+  LogOut,
+  Bell,
+  Lock,
+  Globe,
+  Sparkles,
+  Trash2,
+  AlertTriangle,
+  Gauge,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { AppShell, Card, PageHeader, Badge } from "@/components/app-shell";
 import { ErrorState } from "@/components/error-state";
@@ -79,7 +89,10 @@ function Profile() {
   if (isLoading) {
     return (
       <AppShell>
-        <PageHeader title="Profile & Settings" subtitle="Manage your account, preferences, and notifications." />
+        <PageHeader
+          title="Profile & Settings"
+          subtitle="Manage your account, preferences, and notifications."
+        />
         <div className="grid gap-5 lg:grid-cols-[280px_1fr]">
           <CardSkeleton className="h-72" />
           <CardSkeleton className="h-96" />
@@ -100,7 +113,10 @@ function Profile() {
 
   return (
     <AppShell>
-      <PageHeader title="Profile & Settings" subtitle="Manage your account, preferences, and notifications." />
+      <PageHeader
+        title="Profile & Settings"
+        subtitle="Manage your account, preferences, and notifications."
+      />
       <div className="grid gap-5 lg:grid-cols-[280px_1fr]">
         <Card className="h-fit">
           <div className="flex flex-col items-center text-center">
@@ -115,7 +131,10 @@ function Profile() {
             <div className="mt-4 text-lg font-bold">{String(profile?.full_name ?? "Student")}</div>
             <div className="text-xs text-muted-foreground">{String(profile?.email ?? "")}</div>
             <Badge tone="primary">
-              {[profile?.year ? `${String(profile.year)} Year` : null, profile?.branch ? String(profile.branch) : null]
+              {[
+                profile?.year ? `${String(profile.year)} Year` : null,
+                profile?.branch ? String(profile.branch) : null,
+              ]
                 .filter(Boolean)
                 .join(" · ") || "Set up your profile"}
             </Badge>
@@ -132,7 +151,9 @@ function Profile() {
                 <button
                   key={t.l}
                   className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium ${
-                    t.active ? "bg-secondary text-foreground" : "text-muted-foreground hover:bg-secondary/60"
+                    t.active
+                      ? "bg-secondary text-foreground"
+                      : "text-muted-foreground hover:bg-secondary/60"
                   }`}
                 >
                   <I className="h-4 w-4" /> {t.l}
@@ -149,10 +170,17 @@ function Profile() {
         </Card>
         <Card>
           <h3 className="text-lg font-semibold">Profile Information</h3>
-          <p className="mt-1 text-sm text-muted-foreground">Update your personal details and academic info.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Update your personal details and academic info.
+          </p>
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <Field label="Full Name" value={fullName} onChange={setFullName} />
-            <Field label="Email" value={String(profile?.email ?? "")} onChange={() => undefined} disabled />
+            <Field
+              label="Email"
+              value={String(profile?.email ?? "")}
+              onChange={() => undefined}
+              disabled
+            />
             <Field label="College Name" value={college} onChange={setCollege} />
             <Field label="Branch" value={branch} onChange={setBranch} />
             <Field label="Year of Study" value={year} onChange={setYear} />
@@ -170,7 +198,12 @@ function Profile() {
           {saveError && <p className="mt-3 text-sm text-destructive">{saveError}</p>}
           {saved && <p className="mt-3 text-sm text-success">Profile saved.</p>}
           <div className="mt-6 flex flex-wrap justify-end gap-3">
-            <button onClick={() => void refetch()} className="rounded-xl bg-secondary px-4 py-2.5 text-sm font-medium">Cancel</button>
+            <button
+              onClick={() => void refetch()}
+              className="rounded-xl bg-secondary px-4 py-2.5 text-sm font-medium"
+            >
+              Cancel
+            </button>
             <button
               disabled={updateProfile.isPending}
               onClick={() => void handleSave()}
@@ -203,7 +236,8 @@ function Profile() {
           <div className="flex-1">
             <h3 className="font-semibold text-destructive">Danger Zone</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Permanently erase all your sessions, transcripts, uploads, and scores. This action cannot be undone.
+              Permanently erase all your sessions, transcripts, uploads, and scores. This action
+              cannot be undone.
             </p>
             <DeleteDataButton />
           </div>
@@ -261,11 +295,14 @@ function DrsModelSelector({ currentModel }: { currentModel: string }) {
         }`}
       >
         <div className="flex items-center gap-2">
-          <div className={`h-3 w-3 rounded-full border-2 ${selected === "v1" ? "border-primary bg-primary" : "border-muted-foreground"}`} />
+          <div
+            className={`h-3 w-3 rounded-full border-2 ${selected === "v1" ? "border-primary bg-primary" : "border-muted-foreground"}`}
+          />
           <span className="text-sm font-semibold">Classic (v1)</span>
         </div>
         <p className="mt-2 text-xs text-muted-foreground">
-          Viva performance, Presentation skills, Topic coverage, Practice consistency, Project progress
+          Viva performance, Presentation skills, Topic coverage, Practice consistency, Project
+          progress
         </p>
       </button>
       <button
@@ -277,20 +314,26 @@ function DrsModelSelector({ currentModel }: { currentModel: string }) {
         }`}
       >
         <div className="flex items-center gap-2">
-          <div className={`h-3 w-3 rounded-full border-2 ${selected === "v2" ? "border-primary bg-primary" : "border-muted-foreground"}`} />
+          <div
+            className={`h-3 w-3 rounded-full border-2 ${selected === "v2" ? "border-primary bg-primary" : "border-muted-foreground"}`}
+          />
           <span className="text-sm font-semibold">Defense Readiness Score (v2)</span>
         </div>
         <p className="mt-2 text-xs text-muted-foreground">
           Technical Depth, Communication, Coverage, Confidence, Structure
         </p>
       </button>
-      {switchModel.isPending && <p className="text-xs text-muted-foreground sm:col-span-2">Switching model…</p>}
+      {switchModel.isPending && (
+        <p className="text-xs text-muted-foreground sm:col-span-2">Switching model…</p>
+      )}
     </div>
   );
 }
 
 function DeleteDataButton() {
-  const [status, setStatus] = useState<"idle" | "confirming" | "deleting" | "done" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "confirming" | "deleting" | "done" | "error">(
+    "idle",
+  );
 
   const handleDelete = async () => {
     if (status === "idle") {
@@ -339,14 +382,23 @@ function DeleteDataButton() {
           </div>
         </div>
       )}
-      {status === "deleting" && <p className="text-sm text-muted-foreground">Deleting your data…</p>}
+      {status === "deleting" && (
+        <p className="text-sm text-muted-foreground">Deleting your data…</p>
+      )}
       {status === "done" && (
-        <p className="text-sm font-medium text-success">Your data has been deleted. Your account has been anonymized.</p>
+        <p className="text-sm font-medium text-success">
+          Your data has been deleted. Your account has been anonymized.
+        </p>
       )}
       {status === "error" && (
         <div className="space-y-2">
-          <p className="text-sm text-destructive">Deletion failed. Please contact grievance@vivai.app</p>
-          <button onClick={() => setStatus("idle")} className="rounded-xl bg-secondary px-4 py-2 text-sm font-medium">
+          <p className="text-sm text-destructive">
+            Deletion failed. Please contact grievance@vivai.app
+          </p>
+          <button
+            onClick={() => setStatus("idle")}
+            className="rounded-xl bg-secondary px-4 py-2 text-sm font-medium"
+          >
             Try Again
           </button>
         </div>

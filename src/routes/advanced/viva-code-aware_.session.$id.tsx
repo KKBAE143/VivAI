@@ -63,7 +63,10 @@ function CodeAwareSessionPage() {
         <div className="mx-auto max-w-4xl space-y-4 px-4 py-8">
           {report ? <SessionReport report={report} /> : <DeliveryPanel sessionId={id} />}
           {allQuestions.map((q, i) => (
-            <article key={String(q.id)} className="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
+            <article
+              key={String(q.id)}
+              className="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]"
+            >
               <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
                 Q{Number(q.question_number ?? i + 1)}
                 {q.topic ? ` · ${String(q.topic)}` : ""}
@@ -73,7 +76,9 @@ function CodeAwareSessionPage() {
                 <p className="mt-2 text-sm text-muted-foreground">{String(q.answer_text)}</p>
               )}
               {q.score != null && (
-                <p className="mt-2 text-xs font-semibold text-primary">Score {String(q.score)}/100</p>
+                <p className="mt-2 text-xs font-semibold text-primary">
+                  Score {String(q.score)}/100
+                </p>
               )}
               {q.feedback != null && String(q.feedback) !== "" && (
                 <p className="mt-1 text-xs text-muted-foreground">{String(q.feedback)}</p>

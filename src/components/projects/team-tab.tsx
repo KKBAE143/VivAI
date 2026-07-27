@@ -9,7 +9,17 @@
  */
 import { useState } from "react";
 import {
-  Users, Crown, Copy, Check, Loader2, Link2, Plus, UserMinus, RefreshCw, Clock, X,
+  Users,
+  Crown,
+  Copy,
+  Check,
+  Loader2,
+  Link2,
+  Plus,
+  UserMinus,
+  RefreshCw,
+  Clock,
+  X,
 } from "lucide-react";
 import { Card, Badge } from "@/components/app-shell";
 import { ModalShell } from "@/components/modal-shell";
@@ -37,7 +47,11 @@ function InviteCodeChip({ code }: { code: string }) {
       className="flex items-center gap-1.5 rounded-lg bg-secondary px-2.5 py-1.5 font-mono text-xs font-semibold tracking-wide"
     >
       {code}
-      {copied ? <Check className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3 text-muted-foreground" />}
+      {copied ? (
+        <Check className="h-3 w-3 text-success" />
+      ) : (
+        <Copy className="h-3 w-3 text-muted-foreground" />
+      )}
     </button>
   );
 }
@@ -49,7 +63,9 @@ function LinkedTeamCard({ projectId, team }: { projectId: string; team: ApiRecor
   const unlink = useUnlinkTeam(projectId);
   const members = (team.team_members as ApiRecord[] | undefined) ?? [];
   const lead = members.find((m) => String(m.role) === "Lead");
-  const leadName = String(((lead?.profiles as ApiRecord | undefined)?.full_name as string | undefined) ?? "—");
+  const leadName = String(
+    ((lead?.profiles as ApiRecord | undefined)?.full_name as string | undefined) ?? "—",
+  );
   // Computed, not stored: mirrors the same rule the backend's Team Dashboard
   // uses, so the two surfaces never disagree.
   const status = "Actively working";
@@ -65,7 +81,9 @@ function LinkedTeamCard({ projectId, team }: { projectId: string; team: ApiRecor
             <div>
               <h3 className="text-base font-semibold">{String(team.name)}</h3>
               <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                <span>{members.length} member{members.length === 1 ? "" : "s"}</span>
+                <span>
+                  {members.length} member{members.length === 1 ? "" : "s"}
+                </span>
                 <span>Lead: {leadName}</span>
                 <Badge tone="success">{status}</Badge>
               </div>
@@ -92,11 +110,16 @@ function LinkedTeamCard({ projectId, team }: { projectId: string; team: ApiRecor
           {members.map((m) => {
             const profile = (m.profiles as ApiRecord | undefined) ?? {};
             return (
-              <div key={String(m.id)} className="flex items-center justify-between rounded-xl bg-secondary p-2.5">
+              <div
+                key={String(m.id)}
+                className="flex items-center justify-between rounded-xl bg-secondary p-2.5"
+              >
                 <span className="text-sm font-medium">{String(profile.full_name ?? "Member")}</span>
                 <Badge tone={String(m.role) === "Lead" ? "primary" : "muted"}>
                   {String(m.role) === "Lead" ? (
-                    <span className="flex items-center gap-1"><Crown className="h-3 w-3" /> Lead</span>
+                    <span className="flex items-center gap-1">
+                      <Crown className="h-3 w-3" /> Lead
+                    </span>
                   ) : (
                     "Member"
                   )}
@@ -120,8 +143,8 @@ function LinkedTeamCard({ projectId, team }: { projectId: string; team: ApiRecor
       {confirmRemove && (
         <ModalShell title="Remove linked team?" onClose={() => setConfirmRemove(false)}>
           <p className="text-sm text-muted-foreground">
-            <strong className="text-foreground">{String(team.name)}</strong> will no longer be linked to this
-            project. The team itself isn&apos;t affected — you can relink it anytime.
+            <strong className="text-foreground">{String(team.name)}</strong> will no longer be
+            linked to this project. The team itself isn&apos;t affected — you can relink it anytime.
           </p>
           <div className="mt-5 flex justify-end gap-2">
             <button
@@ -227,8 +250,8 @@ function LinkTeamModal({
               <span>
                 <span className="font-medium">{String(t.name)}</span>{" "}
                 <span className="text-xs text-muted-foreground">
-                  {Number(t.member_count ?? 0)} member{Number(t.member_count ?? 0) === 1 ? "" : "s"} ·{" "}
-                  {String(t.my_role ?? "Member")}
+                  {Number(t.member_count ?? 0)} member{Number(t.member_count ?? 0) === 1 ? "" : "s"}{" "}
+                  · {String(t.my_role ?? "Member")}
                 </span>
               </span>
               <Link2 className="h-4 w-4 text-muted-foreground" />
@@ -240,7 +263,8 @@ function LinkTeamModal({
       {mode === "code" && (
         <div className="mt-4 space-y-3">
           <p className="text-xs text-muted-foreground">
-            For a team you&apos;re not a member of. The team&apos;s lead will need to accept before it links.
+            For a team you&apos;re not a member of. The team&apos;s lead will need to accept before
+            it links.
           </p>
           <input
             value={inviteCode}
@@ -288,12 +312,17 @@ function PendingRequests({ projectId }: { projectId: string }) {
   if (pending.length === 0) return null;
   return (
     <Card>
-      <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Join requests</h4>
+      <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        Join requests
+      </h4>
       <div className="mt-3 space-y-2">
         {pending.map((r) => {
           const team = (r.teams as ApiRecord | undefined) ?? {};
           return (
-            <div key={String(r.id)} className="flex items-center justify-between rounded-xl bg-secondary p-3">
+            <div
+              key={String(r.id)}
+              className="flex items-center justify-between rounded-xl bg-secondary p-3"
+            >
               <div className="flex items-center gap-2 text-sm">
                 <Clock className="h-4 w-4 text-warning" />
                 <span>
@@ -330,7 +359,8 @@ export function ProjectTeamTab({ projectId, teams }: { projectId: string; teams:
           <div>
             <h3 className="text-sm font-semibold">No team linked yet</h3>
             <p className="mt-1 text-xs text-muted-foreground">
-              Link one of your teams, send a request to another, or start a new one for this project.
+              Link one of your teams, send a request to another, or start a new one for this
+              project.
             </p>
           </div>
           <button

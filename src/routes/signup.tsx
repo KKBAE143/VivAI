@@ -93,13 +93,17 @@ function Signup() {
             <li>✓ Team collaboration that works</li>
           </ul>
         </div>
-        <div className="text-sm text-primary-foreground/80">12,000+ students from 200+ colleges.</div>
+        <div className="text-sm text-primary-foreground/80">
+          12,000+ students from 200+ colleges.
+        </div>
       </div>
       <div className="flex items-center justify-center p-6 sm:p-12">
         <div className="w-full max-w-md space-y-5">
           <div>
             <h2 className="text-3xl font-bold tracking-tight">Create your account</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Join thousands of students preparing smarter.</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Join thousands of students preparing smarter.
+            </p>
           </div>
           <form
             className="space-y-4"
@@ -108,15 +112,53 @@ function Signup() {
               void handleSubmit();
             }}
           >
-            <Input label="Full Name" placeholder="Your full name" value={name} onChange={(e) => setName(e.target.value)} />
-            <Input label="Email" type="email" placeholder="you@college.edu.in" value={email} onChange={(e) => setEmail(e.target.value)} />
-            <Input label="College Name" placeholder="Your college name" value={college} onChange={(e) => setCollege(e.target.value)} />
+            <Input
+              label="Full Name"
+              placeholder="Your full name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+            <Input
+              label="Email"
+              type="email"
+              placeholder="you@college.edu.in"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <Input
+              label="College Name"
+              placeholder="Your college name"
+              value={college}
+              onChange={(e) => setCollege(e.target.value)}
+            />
             <div className="grid grid-cols-2 gap-3">
-              <Select label="Year" options={["1st", "2nd", "3rd", "4th"]} value={year} onChange={(e) => setYear(e.target.value)} />
-              <Select label="Branch" options={["CSE", "ECE", "EEE", "Mech", "Civil", "IT", "Other"]} value={branch} onChange={(e) => setBranch(e.target.value)} />
+              <Select
+                label="Year"
+                options={["1st", "2nd", "3rd", "4th"]}
+                value={year}
+                onChange={(e) => setYear(e.target.value)}
+              />
+              <Select
+                label="Branch"
+                options={["CSE", "ECE", "EEE", "Mech", "Civil", "IT", "Other"]}
+                value={branch}
+                onChange={(e) => setBranch(e.target.value)}
+              />
             </div>
-            <Input label="Password" type="password" placeholder="Min 8 characters" value={password} onChange={(e) => setPassword(e.target.value)} />
-            <Input label="Confirm Password" type="password" placeholder="Re-enter password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+            <Input
+              label="Password"
+              type="password"
+              placeholder="Min 8 characters"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <Input
+              label="Confirm Password"
+              type="password"
+              placeholder="Re-enter password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
 
             {/* Consent checkboxes */}
             <div className="space-y-3 rounded-xl border border-border p-4">
@@ -129,11 +171,19 @@ function Signup() {
                 />
                 <span className="text-sm text-muted-foreground">
                   I agree to the{" "}
-                  <Link to="/privacy" className="font-medium text-primary hover:underline" target="_blank">
+                  <Link
+                    to="/privacy"
+                    className="font-medium text-primary hover:underline"
+                    target="_blank"
+                  >
                     Terms of Service
                   </Link>{" "}
                   and{" "}
-                  <Link to="/privacy" className="font-medium text-primary hover:underline" target="_blank">
+                  <Link
+                    to="/privacy"
+                    className="font-medium text-primary hover:underline"
+                    target="_blank"
+                  >
                     Privacy Policy
                   </Link>
                 </span>
@@ -149,8 +199,8 @@ function Signup() {
               </label>
               {isMinor && (
                 <p className="rounded-lg bg-warning/10 px-3 py-2 text-xs text-warning">
-                  Parental/guardian consent is required. By signing up, you confirm that a parent or guardian
-                  has agreed to the Privacy Policy on your behalf.
+                  Parental/guardian consent is required. By signing up, you confirm that a parent or
+                  guardian has agreed to the Privacy Policy on your behalf.
                 </p>
               )}
             </div>
@@ -167,7 +217,9 @@ function Signup() {
           </form>
           <p className="text-center text-sm text-muted-foreground">
             Already have an account?{" "}
-            <Link to="/login" className="font-semibold text-primary hover:underline">Sign in</Link>
+            <Link to="/login" className="font-semibold text-primary hover:underline">
+              Sign in
+            </Link>
           </p>
         </div>
       </div>
@@ -221,7 +273,9 @@ function Select({
         onChange={onChange}
         className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
       >
-        {options.map((o) => <option key={o}>{o}</option>)}
+        {options.map((o) => (
+          <option key={o}>{o}</option>
+        ))}
       </select>
     </label>
   );

@@ -35,7 +35,9 @@ function ForgotPassword() {
           <GraduationCap className="h-6 w-6" />
         </div>
         <h1 className="mt-6 text-2xl font-bold tracking-tight">Reset your password</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Enter your email and we'll send you a reset link.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Enter your email and we'll send you a reset link.
+        </p>
         {sent ? (
           <p className="mt-6 rounded-xl bg-success/10 p-4 text-sm text-success">
             If an account exists for {email}, a reset link is on its way. Check your inbox.
@@ -65,7 +67,10 @@ function ForgotPassword() {
             </button>
           </form>
         )}
-        <Link to="/login" className="mt-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+        <Link
+          to="/login"
+          className="mt-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+        >
           <ArrowLeft className="h-4 w-4" /> Back to login
         </Link>
       </div>
