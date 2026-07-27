@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { api, wsUrl } from "./api";
+import { api, getToken, wsUrl } from "./api";
 import { useAuth } from "./auth-context";
 import { useAuthedQuery } from "./query";
+import { report } from "@/diagnostics/client";
+import { traceQuery } from "@/diagnostics/trace";
 
 export type ApiRecord = Record<string, unknown>;
 
@@ -111,10 +113,31 @@ export function useSentimentSocket(sessionId: string | null) {
       setConnected(false);
       return;
     }
-    const socket = new WebSocket(wsUrl(`/api/advanced/ws/sentiment/${sessionId}`));
+    // The route authenticates and scopes to the caller's own session, so the
+    // JWT has to travel here. The browser WebSocket API cannot set an
+    // Authorization header, so it goes in the query string — same convention
+    // as /ws/live and /ws/team-viva.
+    const token = getToken();
+    if (!token) {
+      setConnected(false);
+      return;
+    }
+    const qs = new URLSearchParams({ token });
+    if (import.meta.env.DEV) {
+      for (const [key, value] of Object.entries(traceQuery())) qs.set(key, value);
+    }
+    const socket = new WebSocket(wsUrl(`/api/advanced/ws/sentiment/${sessionId}?${qs.toString()}`));
     socketRef.current = socket;
     socket.onopen = () => setConnected(true);
     socket.onclose = () => setConnected(false);
+    socket.onerror = () => {
+      // Never pass the socket URL to diagnostics — it embeds the JWT.
+      report("sentiment websocket error", {
+        kind: "ws_error",
+        context: { feature: "sentiment", url_path: "/api/advanced/ws/sentiment" },
+      });
+      setConnected(false);
+    };
     socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data as string) as {

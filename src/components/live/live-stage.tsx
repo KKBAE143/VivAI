@@ -1,5 +1,10 @@
 /**
- * LiveStage — a dedicated three-pane desktop workspace for the live session.
+ * LiveStage — the live session workspace.
+ *
+ * Three panes side by side from `lg` up. Below that the fixed-width sidebars
+ * cannot fit, so small screens show ONE pane at a time behind a tab bar, with
+ * mic / pause / end hoisted into a persistent action bar so they are never more
+ * than one tap away.
  *
  * LEFT   — camera & session control (fixed, always visible: video, AI/user
  *          speaking indicators, mic/camera toggles, network, timer, progress).
@@ -102,7 +107,14 @@ export function groupQuestionsAndScores(events: LiveEvent[]): QAItem[] {
   for (const ev of events) {
     if (ev.kind === "question") {
       const id = ev.refId ?? ev.id;
-      byId.set(id, { id, question: ev.text, topic: ev.topic, score: null, feedback: null, ts: ev.ts });
+      byId.set(id, {
+        id,
+        question: ev.text,
+        topic: ev.topic,
+        score: null,
+        feedback: null,
+        ts: ev.ts,
+      });
       order.push(id);
     } else if (ev.kind === "score") {
       const existing = ev.refId ? byId.get(ev.refId) : undefined;
@@ -169,18 +181,46 @@ function IndicatorRow({
       >
         <Icon className={`h-3.5 w-3.5 ${active ? activeTone : "text-muted-foreground/50"}`} />
       </span>
-      <span className={active ? "font-medium text-foreground" : "text-muted-foreground"}>{label}</span>
-      {active && <span className={`ml-auto h-1.5 w-1.5 animate-pulse rounded-full ${activeTone.replace("text-", "bg-")}`} />}
+      <span className={active ? "font-medium text-foreground" : "text-muted-foreground"}>
+        {label}
+      </span>
+      {active && (
+        <span
+          className={`ml-auto h-1.5 w-1.5 animate-pulse rounded-full ${activeTone.replace("text-", "bg-")}`}
+        />
+      )}
     </div>
   );
 }
 
-export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onRetry, onUnlockAudio }: LiveStageProps) {
+export function LiveStage({
+  live,
+  mode,
+  videoStream,
+  title,
+  subtitle,
+  onEnd,
+  onRetry,
+  onUnlockAudio,
+}: LiveStageProps) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const transcriptRef = useRef<HTMLDivElement | null>(null);
   const [text, setText] = useState("");
   const [isAtBottom, setIsAtBottom] = useState(true);
+  /**
+   * Which pane is visible below `lg`.
+   *
+   * The three-pane desktop layout uses fixed-width sidebars (w-72 / w-96) inside
+   * `h-dvh overflow-hidden`; on a phone those do not shrink, they just overflow.
+   * Stacking all three vertically would give each a third of the viewport, which
+   * is unusable for a live conversation — so small screens get one pane at a
+   * time with a tab bar. At `lg` and above this state is ignored entirely and
+   * the original layout renders unchanged.
+   *
+   * Defaults to the conversation: that is the session.
+   */
+  const [mobilePane, setMobilePane] = useState<"session" | "chat" | "insights">("chat");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fullscreenError, setFullscreenError] = useState("");
   /** Accumulated seconds while unpaused — freezes the clock during pause. */
@@ -247,7 +287,10 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
   // never force-scroll past a message they scrolled up to read.
   useEffect(() => {
     if (!isAtBottom) return;
-    transcriptRef.current?.scrollTo({ top: transcriptRef.current.scrollHeight, behavior: "smooth" });
+    transcriptRef.current?.scrollTo({
+      top: transcriptRef.current.scrollHeight,
+      behavior: "smooth",
+    });
   }, [live.captions, live.liveUserText, live.liveAiText, isAtBottom]);
 
   const handleTranscriptScroll = () => {
@@ -258,7 +301,10 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
   };
 
   const scrollToBottom = () => {
-    transcriptRef.current?.scrollTo({ top: transcriptRef.current.scrollHeight, behavior: "smooth" });
+    transcriptRef.current?.scrollTo({
+      top: transcriptRef.current.scrollHeight,
+      behavior: "smooth",
+    });
     setIsAtBottom(true);
   };
 
@@ -268,14 +314,29 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
     [live.events],
   );
   const strengths = useMemo(
-    () => observationEvents.filter((ev) => ev.observationKind === "strength").slice(-4).reverse(),
+    () =>
+      observationEvents
+        .filter((ev) => ev.observationKind === "strength")
+        .slice(-4)
+        .reverse(),
     [observationEvents],
   );
   const weaknesses = useMemo(
-    () => observationEvents.filter((ev) => ev.observationKind === "issue").slice(-4).reverse(),
+    () =>
+      observationEvents
+        .filter((ev) => ev.observationKind === "issue")
+        .slice(-4)
+        .reverse(),
     [observationEvents],
   );
-  const tips = useMemo(() => observationEvents.filter((ev) => ev.tip).slice(-3).reverse(), [observationEvents]);
+  const tips = useMemo(
+    () =>
+      observationEvents
+        .filter((ev) => ev.tip)
+        .slice(-3)
+        .reverse(),
+    [observationEvents],
+  );
   const scoredValues = useMemo(
     () => qaItems.map((q) => q.score).filter((s): s is number => s != null),
     [qaItems],
@@ -290,7 +351,8 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
   // the same conversation transparently. Show it, but never treat it as a
   // failure — the transcript and the report survive it.
   const reconnecting = live.status === "reconnecting";
-  const userIsSpeaking = !connecting && !live.aiSpeaking && !live.micMuted && live.liveUserText.length > 0;
+  const userIsSpeaking =
+    !connecting && !live.aiSpeaking && !live.micMuted && live.liveUserText.length > 0;
   const aiThinking =
     live.status === "live" &&
     !live.aiSpeaking &&
@@ -313,7 +375,10 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
   const ss = String(elapsedSec % 60).padStart(2, "0");
 
   return (
-    <div ref={rootRef} className="relative flex h-dvh overflow-hidden bg-background">
+    <div
+      ref={rootRef}
+      className="relative flex h-dvh flex-col overflow-hidden bg-background lg:flex-row"
+    >
       {live.audioBlocked && onUnlockAudio && (
         <button
           type="button"
@@ -348,8 +413,54 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
           </div>
         </div>
       )}
+      {/* ===================== MOBILE ACTION BAR (< lg) ====================== */}
+      {/* The End button lives at the bottom of the left pane on desktop. On a
+          phone the student may be on any tab, so the controls that must never
+          be more than one tap away are hoisted into a persistent bar. */}
+      <div className="flex shrink-0 items-center gap-2 border-b border-border bg-card/60 px-3 py-2 lg:hidden">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs font-semibold">{title}</p>
+          <p className="font-mono text-[11px] tabular-nums text-muted-foreground">
+            {mm}:{ss}
+            {live.paused ? " · paused" : ""}
+          </p>
+        </div>
+        <button
+          onClick={live.toggleMic}
+          disabled={live.paused}
+          aria-label={live.micMuted ? "Unmute microphone" : "Mute microphone"}
+          className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl disabled:opacity-50 ${
+            live.micMuted ? "bg-destructive text-destructive-foreground" : "bg-secondary"
+          }`}
+        >
+          {live.micMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+        </button>
+        <button
+          type="button"
+          onClick={() => live.togglePause()}
+          disabled={connecting || live.status === "error"}
+          aria-label={live.paused ? "Resume session" : "Pause session"}
+          className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl disabled:opacity-50 ${
+            live.paused ? "bg-primary text-primary-foreground" : "bg-secondary"
+          }`}
+        >
+          {live.paused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+        </button>
+        <button
+          onClick={onEnd}
+          aria-label="End session and see report"
+          className="flex shrink-0 items-center gap-1.5 rounded-xl bg-destructive px-3 py-2 text-xs font-semibold text-destructive-foreground"
+        >
+          <X className="h-3.5 w-3.5" /> End
+        </button>
+      </div>
+
       {/* ============================= LEFT PANE ============================= */}
-      <aside className="flex w-72 shrink-0 flex-col gap-4 overflow-y-auto border-r border-border bg-card/60 p-4 xl:w-80">
+      <aside
+        className={`${
+          mobilePane === "session" ? "flex" : "hidden"
+        } min-h-0 w-full shrink-0 flex-col gap-4 overflow-y-auto border-border bg-card/60 p-4 lg:flex lg:w-72 lg:border-r xl:w-80`}
+      >
         <div>
           <p className="truncate text-sm font-semibold">{title}</p>
           {subtitle && <p className="mt-0.5 truncate text-xs text-muted-foreground">{subtitle}</p>}
@@ -358,7 +469,12 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
         {/* Same left rail as Mock Viva / pitch: media tile + controls (no camera for viva). */}
         <div className="relative overflow-hidden rounded-2xl border border-border bg-foreground/5">
           {videoStream && live.videoEnabled ? (
-            <video ref={videoRef} muted playsInline className="aspect-video w-full bg-foreground/5 object-cover" />
+            <video
+              ref={videoRef}
+              muted
+              playsInline
+              className="aspect-video w-full bg-foreground/5 object-cover"
+            />
           ) : (
             <div className="grid aspect-video place-items-center bg-secondary/50 text-muted-foreground">
               {videoStream ? <VideoOff className="h-6 w-6" /> : <Sparkles className="h-6 w-6" />}
@@ -370,16 +486,33 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
             </div>
           )}
           <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-background/85 px-2 py-0.5 text-[10px] font-semibold backdrop-blur">
-            <span className={`h-1.5 w-1.5 rounded-full ${connecting ? "bg-muted-foreground" : "bg-success animate-pulse"}`} />
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${connecting ? "bg-muted-foreground" : "bg-success animate-pulse"}`}
+            />
             {mode === "viva" ? "Oral exam" : "AI watching"}
           </span>
         </div>
 
         {/* Live indicators */}
         <div className="space-y-1.5 rounded-xl bg-secondary/40 p-2.5">
-          <IndicatorRow icon={Sparkles} label="AI speaking" active={live.aiSpeaking} activeTone="text-primary" />
-          <IndicatorRow icon={Ear} label="Listening for you" active={!connecting && !live.aiSpeaking && !live.micMuted} activeTone="text-success" />
-          <IndicatorRow icon={Eye} label="You are speaking" active={userIsSpeaking} activeTone="text-success" />
+          <IndicatorRow
+            icon={Sparkles}
+            label="AI speaking"
+            active={live.aiSpeaking}
+            activeTone="text-primary"
+          />
+          <IndicatorRow
+            icon={Ear}
+            label="Listening for you"
+            active={!connecting && !live.aiSpeaking && !live.micMuted}
+            activeTone="text-success"
+          />
+          <IndicatorRow
+            icon={Eye}
+            label="You are speaking"
+            active={userIsSpeaking}
+            activeTone="text-success"
+          />
         </div>
 
         {/* Controls */}
@@ -414,12 +547,20 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div className="rounded-xl bg-secondary/40 p-2.5">
             <div className="flex items-center gap-1.5 text-muted-foreground">
-              {networkQuality === "poor" ? <WifiOff className="h-3.5 w-3.5" /> : <Wifi className="h-3.5 w-3.5" />}
+              {networkQuality === "poor" ? (
+                <WifiOff className="h-3.5 w-3.5" />
+              ) : (
+                <Wifi className="h-3.5 w-3.5" />
+              )}
               Network
             </div>
             <p
               className={`mt-1 font-semibold capitalize ${
-                networkQuality === "good" ? "text-success" : networkQuality === "poor" ? "text-destructive" : "text-muted-foreground"
+                networkQuality === "good"
+                  ? "text-success"
+                  : networkQuality === "poor"
+                    ? "text-destructive"
+                    : "text-muted-foreground"
               }`}
             >
               {networkQuality === "checking" ? "Connecting" : networkQuality}
@@ -429,7 +570,9 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
             <div className="flex items-center gap-1.5 text-muted-foreground">
               <Clock className="h-3.5 w-3.5" /> Time
             </div>
-            <p className="mt-1 font-mono font-semibold tabular-nums">{mm}:{ss}</p>
+            <p className="mt-1 font-mono font-semibold tabular-nums">
+              {mm}:{ss}
+            </p>
           </div>
         </div>
 
@@ -444,7 +587,10 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
             <span className="font-semibold">{progressPct}%</span>
           </div>
           <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
-            <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progressPct}%` }} />
+            <div
+              className="h-full rounded-full bg-primary transition-all"
+              style={{ width: `${progressPct}%` }}
+            />
           </div>
         </div>
 
@@ -456,7 +602,11 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
               aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
               className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-secondary py-2 text-xs font-semibold hover:bg-secondary/80"
             >
-              {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+              {isFullscreen ? (
+                <Minimize2 className="h-3.5 w-3.5" />
+              ) : (
+                <Maximize2 className="h-3.5 w-3.5" />
+              )}
               {isFullscreen ? "Exit" : "Fullscreen"}
             </button>
             <button
@@ -465,16 +615,16 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
               disabled={connecting || live.status === "error"}
               aria-label={live.paused ? "Resume session" : "Pause session"}
               className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold disabled:opacity-50 ${
-                live.paused ? "bg-primary text-primary-foreground" : "bg-secondary hover:bg-secondary/80"
+                live.paused
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary hover:bg-secondary/80"
               }`}
             >
               {live.paused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
               {live.paused ? "Resume" : "Pause"}
             </button>
           </div>
-          {fullscreenError && (
-            <p className="text-[11px] text-destructive">{fullscreenError}</p>
-          )}
+          {fullscreenError && <p className="text-[11px] text-destructive">{fullscreenError}</p>}
           <button
             onClick={onEnd}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-destructive py-2.5 text-sm font-semibold text-destructive-foreground"
@@ -485,7 +635,11 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
       </aside>
 
       {/* ============================ CENTER PANE ============================ */}
-      <main className="flex min-w-0 flex-1 flex-col">
+      <main
+        className={`${
+          mobilePane === "chat" ? "flex" : "hidden"
+        } min-h-0 min-w-0 flex-1 flex-col lg:flex`}
+      >
         <div className="relative min-h-0 flex-1">
           <div
             ref={transcriptRef}
@@ -495,7 +649,9 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
             {live.captions.length === 0 && !live.liveAiText && !live.liveUserText ? (
               <div className="grid h-full place-items-center">
                 <p className="max-w-sm text-center text-sm text-muted-foreground">
-                  {connecting ? "Connecting to the examiner…" : "The examiner will greet you shortly. Start speaking when you're ready."}
+                  {connecting
+                    ? "Connecting to the examiner…"
+                    : "The examiner will greet you shortly. Start speaking when you're ready."}
                 </p>
               </div>
             ) : null}
@@ -508,10 +664,15 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
               </div>
             )}
             {live.captions.map((c, i) => (
-              <div key={i} className={`flex ${c.role === "student" ? "justify-end" : "justify-start"}`}>
+              <div
+                key={i}
+                className={`flex ${c.role === "student" ? "justify-end" : "justify-start"}`}
+              >
                 <div
                   className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-                    c.role === "student" ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"
+                    c.role === "student"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-foreground"
                   }`}
                 >
                   {c.text}
@@ -527,7 +688,9 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
             )}
             {live.liveAiText && (
               <div className="flex justify-start">
-                <div className="max-w-[70%] rounded-2xl bg-secondary/70 px-4 py-2.5 text-sm italic">{live.liveAiText}</div>
+                <div className="max-w-[70%] rounded-2xl bg-secondary/70 px-4 py-2.5 text-sm italic">
+                  {live.liveAiText}
+                </div>
               </div>
             )}
             {aiThinking && (
@@ -546,7 +709,9 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
             {live.status === "error" && (
               <div className="flex justify-center">
                 <div className="max-w-md rounded-xl bg-destructive/10 px-4 py-3 text-center">
-                  <p className="text-sm font-medium text-destructive">{live.error || "The live connection failed."}</p>
+                  <p className="text-sm font-medium text-destructive">
+                    {live.error || "The live connection failed."}
+                  </p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     Nothing was recorded — your session isn&apos;t marked as completed.
                   </p>
@@ -571,7 +736,8 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.nativeEvent.isComposing && e.keyCode !== 229) submitText();
+              if (e.key === "Enter" && !e.nativeEvent.isComposing && e.keyCode !== 229)
+                submitText();
             }}
             placeholder={live.paused ? "Resume to type or speak…" : "Type instead of speaking…"}
             disabled={live.paused}
@@ -589,17 +755,26 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
       </main>
 
       {/* ============================= RIGHT PANE ============================= */}
-      <aside className="flex w-96 shrink-0 flex-col gap-4 overflow-y-auto border-l border-border bg-card/40 p-4">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{MODE_EVAL_LABEL[mode] ?? "Live evaluation"}</h2>
+      <aside
+        className={`${
+          mobilePane === "insights" ? "flex" : "hidden"
+        } min-h-0 w-full shrink-0 flex-col gap-4 overflow-y-auto border-border bg-card/40 p-4 lg:flex lg:w-96 lg:border-l`}
+      >
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          {MODE_EVAL_LABEL[mode] ?? "Live evaluation"}
+        </h2>
 
         {currentQuestion ? (
           <div className="rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
             <div className="flex items-center justify-between gap-2">
               <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                <MessageCircleQuestion className="h-3.5 w-3.5 text-warning" /> {MODE_QUESTION_LABEL[mode] ?? "Current question"}
+                <MessageCircleQuestion className="h-3.5 w-3.5 text-warning" />{" "}
+                {MODE_QUESTION_LABEL[mode] ?? "Current question"}
               </span>
               {currentQuestion.score != null ? (
-                <span className={`text-sm font-bold ${currentQuestion.score >= 60 ? "text-success" : "text-warning"}`}>
+                <span
+                  className={`text-sm font-bold ${currentQuestion.score >= 60 ? "text-success" : "text-warning"}`}
+                >
                   {currentQuestion.score}/100
                 </span>
               ) : (
@@ -609,7 +784,9 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
               )}
             </div>
             <p className="mt-1.5 text-sm leading-snug">{currentQuestion.question}</p>
-            {currentQuestion.feedback && <p className="mt-1.5 text-xs leading-snug text-primary">{currentQuestion.feedback}</p>}
+            {currentQuestion.feedback && (
+              <p className="mt-1.5 text-xs leading-snug text-primary">{currentQuestion.feedback}</p>
+            )}
           </div>
         ) : (
           <div className="rounded-2xl bg-card p-4 text-center text-xs text-muted-foreground shadow-[var(--shadow-card)]">
@@ -657,7 +834,9 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
             </h3>
             <ul className="mt-2 space-y-1.5 text-xs">
               {tips.map((t) => (
-                <li key={t.id} className="rounded-lg bg-secondary px-2.5 py-1.5">{t.tip}</li>
+                <li key={t.id} className="rounded-lg bg-secondary px-2.5 py-1.5">
+                  {t.tip}
+                </li>
               ))}
             </ul>
           </div>
@@ -672,20 +851,37 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
               {trend && (
                 <span
                   className={`flex items-center gap-1 text-[11px] font-medium ${
-                    trend === "up" ? "text-success" : trend === "down" ? "text-destructive" : "text-muted-foreground"
+                    trend === "up"
+                      ? "text-success"
+                      : trend === "down"
+                        ? "text-destructive"
+                        : "text-muted-foreground"
                   }`}
                 >
-                  {trend === "up" ? <TrendingUp className="h-3 w-3" /> : trend === "down" ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
+                  {trend === "up" ? (
+                    <TrendingUp className="h-3 w-3" />
+                  ) : trend === "down" ? (
+                    <TrendingDown className="h-3 w-3" />
+                  ) : (
+                    <Minus className="h-3 w-3" />
+                  )}
                   {trend === "up" ? "Improving" : trend === "down" ? "Slipping" : "Steady"}
                 </span>
               )}
             </div>
             <ul className="mt-2 space-y-1.5">
               {[...qaItems].reverse().map((q) => (
-                <li key={q.id} className="flex items-center justify-between gap-2 rounded-lg bg-secondary px-2.5 py-1.5 text-xs">
+                <li
+                  key={q.id}
+                  className="flex items-center justify-between gap-2 rounded-lg bg-secondary px-2.5 py-1.5 text-xs"
+                >
                   <span className="min-w-0 truncate">{q.question}</span>
                   {q.score != null ? (
-                    <span className={`shrink-0 font-semibold ${q.score >= 60 ? "text-success" : "text-warning"}`}>{q.score}</span>
+                    <span
+                      className={`shrink-0 font-semibold ${q.score >= 60 ? "text-success" : "text-warning"}`}
+                    >
+                      {q.score}
+                    </span>
                   ) : (
                     <span className="shrink-0 text-muted-foreground">
                       <Award className="h-3 w-3 opacity-40" />
@@ -703,6 +899,45 @@ export function LiveStage({ live, mode, videoStream, title, subtitle, onEnd, onR
           </p>
         )}
       </aside>
+
+      {/* ======================= MOBILE TAB BAR (< lg) ======================= */}
+      <nav
+        aria-label="Session panels"
+        className="flex shrink-0 items-stretch gap-1 border-t border-border bg-card/80 p-1.5 lg:hidden"
+      >
+        {(
+          [
+            { id: "session", label: mode === "viva" ? "Session" : "Camera", icon: Video },
+            { id: "chat", label: "Conversation", icon: MessageCircleQuestion },
+            { id: "insights", label: "Evaluation", icon: Award },
+          ] as const
+        ).map((tab) => {
+          const active = mobilePane === tab.id;
+          const Icon = tab.icon;
+          // Unanswered questions are the reason to look at the Evaluation tab,
+          // so surface the count rather than making the student go and check.
+          const badge = tab.id === "insights" ? qaItems.length : 0;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setMobilePane(tab.id)}
+              aria-current={active ? "page" : undefined}
+              className={`relative flex flex-1 flex-col items-center gap-0.5 rounded-xl py-2 text-[11px] font-semibold transition-colors ${
+                active ? "bg-secondary text-foreground" : "text-muted-foreground"
+              }`}
+            >
+              <Icon className="h-4 w-4" />
+              {tab.label}
+              {badge > 0 && !active && (
+                <span className="absolute right-2 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[9px] text-primary-foreground">
+                  {badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </nav>
     </div>
   );
 }

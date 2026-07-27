@@ -21,7 +21,8 @@ from ai import (
 )
 from core.config import get_settings
 from core.database import get_supabase
-from core.deps import get_current_user
+from core.deps import get_current_user, user_from_token
+from core.logging import get_logger
 from models.schemas import (
     CodeAwareSessionCreate,
     SentimentSessionCreate,
@@ -29,6 +30,7 @@ from models.schemas import (
 from services.activity_service import log_activity
 
 router = APIRouter(prefix="/api/advanced", tags=["advanced"])
+logger = get_logger("advanced")
 
 
 # =====================================================
@@ -337,20 +339,85 @@ def sentiment_report(session_id: str, user=Depends(get_current_user)):
 # =====================================================
 # WebSockets (registered on the same router)
 # =====================================================
+def _merge_sentiment_state(existing, history: list[dict], nudge_log: list[dict]) -> dict:
+    """Merge sentiment samples into topic_scores WITHOUT clobbering the rest.
+
+    `topic_scores` is a shared JSONB blob: LivePersistence.finalize() stores
+    `slides`, `topics`, `qa` and the generated `report` in it. Writing
+    `{"samples": ..., "nudges": ...}` wholesale — as this route used to — erased
+    a completed presentation's entire report the next time a sentiment session
+    ran against it.
+
+    Pure, so the merge rule is testable without a socket or a database.
+    """
+    state = existing or {}
+    if isinstance(state, str):
+        try:
+            state = json.loads(state)
+        except (ValueError, TypeError):
+            state = {}
+    if not isinstance(state, dict):
+        state = {}
+    merged = dict(state)
+    merged["samples"] = history
+    merged["nudges"] = nudge_log
+    return merged
+
+
 @router.websocket("/ws/sentiment/{session_id}")
 async def ws_sentiment(websocket: WebSocket, session_id: str):
+    """Live camera sentiment analysis for a presentation the CALLER owns.
+
+    Authentication mirrors the other WebSocket routes (`live.py`,
+    `team_live.py`): the JWT arrives as a `?token=` query param because the
+    browser WebSocket API cannot set an Authorization header.
+    """
     import base64
 
+    await websocket.accept()
+    token = websocket.query_params.get("token", "")
+    user = user_from_token(token)
+    if not user:
+        await websocket.send_json({"type": "error", "message": "Authentication failed"})
+        await websocket.close(code=4401)
+        return
+
     sb = get_supabase()
-    res = sb.table("presentation_sessions").select("*").eq("id", session_id).execute()
+    # Ownership-scoped: a valid token for user A must not reach user B's
+    # session. Without this the route accepted any session id from anyone and
+    # then WROTE to it.
+    res = (
+        sb.table("presentation_sessions").select("*")
+        .eq("id", session_id).eq("profile_id", user["id"]).execute()
+    )
     if not res.data:
+        await websocket.send_json({"type": "error", "message": "Session not found"})
         await websocket.close(code=4404)
         return
-    await websocket.accept()
+
     history: list[dict] = []
     nudge_log: list[dict] = []
     frame_count = 0
     ANALYZE_EVERY = 3  # throttle for Gemini free-tier rate limits
+
+    def persist() -> None:
+        """Read-modify-write so concurrently written report data survives."""
+        try:
+            row = (
+                sb.table("presentation_sessions").select("topic_scores")
+                .eq("id", session_id).eq("profile_id", user["id"]).execute()
+            )
+            existing = row.data[0].get("topic_scores") if row.data else None
+            sb.table("presentation_sessions").update(
+                {"topic_scores": _merge_sentiment_state(existing, history, nudge_log)}
+            ).eq("id", session_id).eq("profile_id", user["id"]).execute()
+        except Exception:
+            logger.warning(
+                "sentiment state persist failed",
+                exc_info=True,
+                extra={"session_id": session_id, "event": "sentiment_persist_failed"},
+            )
+
     try:
         while True:
             message = await websocket.receive_json()
@@ -370,10 +437,6 @@ async def ws_sentiment(websocket: WebSocket, session_id: str):
                 nudge_log.append({"at_frame": frame_count, "message": nudge})
             await websocket.send_json({"type": "metrics", "metrics": metrics, "nudges": nudges})
             if len(history) % 5 == 0:
-                sb.table("presentation_sessions").update(
-                    {"topic_scores": {"samples": history, "nudges": nudge_log}}
-                ).eq("id", session_id).execute()
+                persist()
     except WebSocketDisconnect:
-        sb.table("presentation_sessions").update(
-            {"topic_scores": {"samples": history, "nudges": nudge_log}}
-        ).eq("id", session_id).execute()
+        persist()
