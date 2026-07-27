@@ -6,7 +6,22 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", ".output", ".vinxi"] },
+  // `backend/.venv` holds vendored third-party JS shipped inside Python
+  // packages (urllib3's emscripten worker); linting a virtualenv is never
+  // useful and it was the last source of unfixable errors.
+  // The generated wikis and diagnostics sink are likewise not ours to format.
+  {
+    ignores: [
+      "dist",
+      ".output",
+      ".vinxi",
+      "backend/.venv",
+      "**/__pycache__",
+      ".qoder",
+      "docs/repowiki",
+      "diagnostics",
+    ],
+  },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],

@@ -6,3 +6,12 @@ pnpm-lock.yaml
 package-lock.json
 bun.lock
 routeTree.gen.ts
+
+# Machine-generated documentation wikis. Reformatting these produces hundreds of
+# files of pure churn that the generator overwrites on its next run, and it
+# buries real changes in review. `bun run format` used to rewrite 426 of them.
+.qoder/
+docs/repowiki/
+
+# Local diagnostics capture (gitignored data + its generated report).
+diagnostics/
