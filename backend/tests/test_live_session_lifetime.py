@@ -177,6 +177,17 @@ def test_connection_recycles_are_treated_as_recoverable():
     assert live_api.is_recoverable_live_error(ConnectionResetError("reset"))
 
 
+def test_a_send_racing_the_close_classifies_like_the_receive_side():
+    """Only the RECEIVE path converts a closed socket into an APIError; a send
+    that loses the race raises websockets' ConnectionClosed raw. Both are the
+    same event, so treating the send as fatal would abort a reconnect the
+    receive side would have handled."""
+    from websockets.exceptions import ConnectionClosedError, ConnectionClosedOK
+
+    assert live_api.is_recoverable_live_error(ConnectionClosedError(None, None))
+    assert live_api.is_recoverable_live_error(ConnectionClosedOK(None, None))
+
+
 def test_auth_and_config_failures_are_not_retried_forever():
     from google.genai import errors as genai_errors
 

@@ -62,7 +62,10 @@ export function useSwitchDrsModel() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (model: "v1" | "v2") =>
-      api<{ ok: boolean; model: string }>("/api/readiness/model", { method: "PUT", body: { model } }),
+      api<{ ok: boolean; model: string }>("/api/readiness/model", {
+        method: "PUT",
+        body: { model },
+      }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["readiness"] });
     },
@@ -111,8 +114,12 @@ export interface PitchResult {
 export function useEvaluatePitch() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: { project_id?: string | null; target_seconds: number; transcript: string; actual_seconds: number }) =>
-      api<PitchResult>("/api/readiness/pitch", { body }),
+    mutationFn: (body: {
+      project_id?: string | null;
+      target_seconds: number;
+      transcript: string;
+      actual_seconds: number;
+    }) => api<PitchResult>("/api/readiness/pitch", { body }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["gamification"] });
       qc.invalidateQueries({ queryKey: ["readiness"] });
@@ -136,7 +143,11 @@ export interface DeliveryScorecard {
 }
 
 export function useVivaDelivery(id: string) {
-  return useAuthedQuery<DeliveryScorecard>(["viva-delivery", id], `/api/viva/sessions/${id}/delivery`, Boolean(id));
+  return useAuthedQuery<DeliveryScorecard>(
+    ["viva-delivery", id],
+    `/api/viva/sessions/${id}/delivery`,
+    Boolean(id),
+  );
 }
 
 // ---------- Institution Admin ----------
@@ -193,7 +204,10 @@ export interface InstitutionWeakTopic {
 }
 
 export function useInstitutionDashboard() {
-  return useAuthedQuery<InstitutionDashboard>(["institution", "dashboard"], "/api/institution/dashboard");
+  return useAuthedQuery<InstitutionDashboard>(
+    ["institution", "dashboard"],
+    "/api/institution/dashboard",
+  );
 }
 
 export function useInstitutionStudents(page = 1, branch?: string, year?: string) {
@@ -207,15 +221,22 @@ export function useInstitutionStudents(page = 1, branch?: string, year?: string)
 }
 
 export function useInstitutionReadinessReport() {
-  return useAuthedQuery<InstitutionReadinessReport>(["institution", "readiness-report"], "/api/institution/readiness-report");
+  return useAuthedQuery<InstitutionReadinessReport>(
+    ["institution", "readiness-report"],
+    "/api/institution/readiness-report",
+  );
 }
 
 export function useInstitutionWeakTopics() {
-  return useAuthedQuery<InstitutionWeakTopic[]>(["institution", "weak-topics"], "/api/institution/weak-topics");
+  return useAuthedQuery<InstitutionWeakTopic[]>(
+    ["institution", "weak-topics"],
+    "/api/institution/weak-topics",
+  );
 }
 
 export function useInstitutionInvite() {
   return useMutation({
-    mutationFn: () => api<{ invite_code: string }>("/api/institution/invite", { method: "POST", body: {} }),
+    mutationFn: () =>
+      api<{ invite_code: string }>("/api/institution/invite", { method: "POST", body: {} }),
   });
 }

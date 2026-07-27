@@ -48,7 +48,12 @@ export function layerForPath(path: string): Layer {
   ) {
     return "services";
   }
-  if (l.includes("/util") || l.includes("/helper") || l.includes("/lib/") || l.includes("/common/")) {
+  if (
+    l.includes("/util") ||
+    l.includes("/helper") ||
+    l.includes("/lib/") ||
+    l.includes("/common/")
+  ) {
     return "utils";
   }
   if (

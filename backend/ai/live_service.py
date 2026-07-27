@@ -20,13 +20,19 @@ via GEMINI_LIVE_MODEL env var.
 """
 from __future__ import annotations
 
+import asyncio
 from contextlib import asynccontextmanager
 
 from google import genai
+from google.genai import errors as genai_errors
 from google.genai import types
 
 from core.config import get_settings
 from ai.registry import DEFAULT_PERSONA_ID, PERSONAS, Scenario, render_persona_block, render_scenario_block
+from core.logging import get_logger
+
+
+logger = get_logger("live_service")
 
 # Current Live API models (2026), tried in order. gemini-3.1-flash-live-preview
 # is the recommended low-latency voice model; 2.5-flash-live-preview is the
@@ -562,7 +568,11 @@ def build_config(
             )
         )
     except Exception as exc:  # noqa: BLE001 — optional accuracy tuning, never fatal
-        print(f"[live] input transcription language hints unavailable, using defaults: {exc}")
+        logger.warning(
+            "input transcription language hints unavailable, using defaults",
+            exc_info=True,
+            extra={"event": "config_hints_unavailable"},
+        )
         input_transcription_cfg = types.AudioTranscriptionConfig()
 
     kwargs = dict(
@@ -594,7 +604,11 @@ def build_config(
             sliding_window=types.SlidingWindow(),
         )
     except Exception as exc:  # noqa: BLE001 — never fatal, but log loudly
-        print(f"[live] context window compression unavailable: {exc}")
+        logger.warning(
+            "context window compression unavailable",
+            exc_info=True,
+            extra={"event": "config_compression_unavailable"},
+        )
 
     # Independently of session duration, a single WebSocket connection to Gemini
     # lives ~10 minutes. Session resumption lets us transparently reconnect and
@@ -604,7 +618,11 @@ def build_config(
     try:
         kwargs["session_resumption"] = types.SessionResumptionConfig(handle=resume_handle)
     except Exception as exc:  # noqa: BLE001
-        print(f"[live] session resumption unavailable: {exc}")
+        logger.warning(
+            "session resumption unavailable",
+            exc_info=True,
+            extra={"event": "config_resumption_unavailable"},
+        )
 
     # Make voice-activity detection less trigger-happy so background noise (or
     # the student clearing their throat during the AI's opening greeting) does
@@ -621,8 +639,64 @@ def build_config(
         )
         kwargs["realtime_input_config"] = realtime_cfg
     except Exception as exc:  # noqa: BLE001 — optional tuning, never fatal
-        print(f"[live] VAD tuning unavailable, using defaults: {exc}")
+        logger.warning(
+            "VAD tuning unavailable, using defaults",
+            exc_info=True,
+            extra={"event": "config_vad_unavailable"},
+        )
     return types.LiveConnectConfig(**kwargs)
+
+
+# --------------------------------------------------------------------------- #
+# Reconnect policy — shared by the solo bridge (api/live.py) and the Team Viva
+# room (ai/team_room.py) so both classify a dropped Gemini connection the same
+# way. Lives here rather than in the API layer because ai/ must not import api/.
+# --------------------------------------------------------------------------- #
+# A Live *connection* lives ~10 minutes even though the *session* is unlimited
+# once context-window compression is on, so a long viva legitimately crosses
+# that boundary once or twice.
+MAX_GEMINI_RECONNECTS = 6
+
+try:  # websockets is a hard dependency of google-genai's live transport
+    from websockets.exceptions import WebSocketException as _WEBSOCKET_EXCEPTION
+except Exception:  # noqa: BLE001 — classification degrades, never crashes
+    _WEBSOCKET_EXCEPTION = None
+
+
+def is_recoverable_live_error(exc: BaseException) -> bool:
+    """Is this a Gemini transport hiccup we should transparently reconnect from?
+
+    The Live API ends a *connection* roughly every 10 minutes and before that
+    sends `go_away`; the SDK surfaces that (and any network blip) by raising out
+    of `session.receive()` — it never signals the end by yielding nothing.
+    Those are recoverable. Authentication / quota / bad-request failures are
+    not: reconnecting would just fail identically in a loop.
+    """
+    if isinstance(exc, asyncio.CancelledError):
+        return False
+    if isinstance(exc, genai_errors.ClientError):
+        # 4xx from the Live endpoint: bad config, expired key, policy
+        # violation. A retry cannot fix these. 408/429 are the exceptions.
+        return getattr(exc, "code", None) in (408, 429)
+    if isinstance(exc, genai_errors.ServerError):
+        return True
+    if isinstance(exc, genai_errors.APIError):
+        # Non-HTTP close codes (1000 normal, 1006 abnormal, 1011 server error)
+        # all arrive here. Every one of them is a connection ending, not a
+        # permanent failure of the session.
+        return True
+    if _WEBSOCKET_EXCEPTION is not None and isinstance(exc, _WEBSOCKET_EXCEPTION):
+        # Only the RECEIVE path converts a closed socket into an APIError; a
+        # send that races the close raises websockets' ConnectionClosed raw.
+        # Same event, so it must classify the same way — otherwise a reconnect
+        # that the receive side would have handled gets aborted by the sender.
+        return True
+    return isinstance(exc, (ConnectionError, OSError, asyncio.TimeoutError))
+
+
+def reconnect_delay(attempt: int) -> float:
+    """Backoff before reconnect attempt `attempt` (1-based). Capped, not infinite."""
+    return min(5.0, 0.5 * (2 ** max(0, attempt - 1)))
 
 
 def analyze_transcript(mode: str, transcript: list[dict], project_context: str, subject: str | None) -> dict:
@@ -888,21 +962,35 @@ async def connect_with_fallback(config: types.LiveConnectConfig):
     Model availability changes while the Live API is in preview; a retired or
     region-restricted model must not kill the whole feature.
     """
+    from core.diagnostics import context as diag_context
+
     last_exc: Exception | None = None
     for model in _model_candidates():
         connected = False
         try:
-            async with get_client().aio.live.connect(model=model, config=config) as session:
-                connected = True
-                print(f"[live] connected with model {model}")
-                yield session
-                return
+            # A span so everything logged for the lifetime of this Gemini
+            # connection — the receive loop, reconnects, tool failures — is
+            # attributable to the WebSocket, and through it to the click that
+            # started the session.
+            with diag_context.span("gemini.live.connect", model=model):
+                async with get_client().aio.live.connect(model=model, config=config) as session:
+                    connected = True
+                    logger.info(
+                        "connected to live model",
+                        extra={"event": "live_model_connected", "model": model},
+                    )
+                    yield session
+                    return
         except Exception as exc:
             if connected:
                 # Failure AFTER a successful connect (mid-session) — surface it,
                 # don't silently restart on another model.
                 raise
-            print(f"[live] model {model} failed to connect: {exc}")
+            logger.warning(
+                "live model failed to connect, trying the next candidate",
+                exc_info=True,
+                extra={"event": "live_model_connect_failed", "model": model},
+            )
             last_exc = exc
     raise RuntimeError(
         f"No Gemini Live model is available for this API key. Last error: {last_exc}"

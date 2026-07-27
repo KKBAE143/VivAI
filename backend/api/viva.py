@@ -12,6 +12,10 @@ from core.languages import normalize_language
 from models.schemas import AnswerSubmit, VivaSessionCreate
 from services import gamification_service
 from services.activity_service import log_activity
+from core.logging import get_logger
+
+
+logger = get_logger("viva")
 
 router = APIRouter(prefix="/api/viva", tags=["viva"])
 
@@ -135,7 +139,11 @@ def list_sessions(user=Depends(get_current_user)):
             .eq("profile_id", user["id"]).order("created_at", desc=True).execute().data
         )
     except Exception as exc:
-        print(f"Warning: Failed to fetch viva_sessions: {exc}")
+        logger.warning(
+            "failed to fetch viva_sessions",
+            exc_info=True,
+            extra={"event": "viva_sessions_fetch_failed"},
+        )
         return []
 
 

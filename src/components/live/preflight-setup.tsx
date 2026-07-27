@@ -122,6 +122,14 @@ export function PreflightSetup({
    * window because it takes effect before the next line runs.
    */
   const startingRef = useRef(false);
+  /**
+   * Set once onReady() has actually taken ownership of the mic stream. Until
+   * then this component still owns it, and unmounting must release it — the
+   * cleanup below used to skip stopping the tracks unconditionally, so a
+   * student who opened the preflight and navigated away instead of going live
+   * left their microphone open (recording indicator on) until a page reload.
+   */
+  const handedOffRef = useRef(false);
 
   const screenSupported =
     typeof navigator !== "undefined" && Boolean(navigator.mediaDevices?.getDisplayMedia);
@@ -169,7 +177,12 @@ export function PreflightSetup({
       cancelled = true;
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       audioCtxRef.current?.close().catch(() => {});
-      // Do not stop the mic stream here — it's handed off to the live session on start.
+      audioCtxRef.current = null;
+      // Release the mic UNLESS the live session took ownership of it on start.
+      if (!handedOffRef.current) {
+        micStreamRef.current?.getTracks().forEach((t) => t.stop());
+        micStreamRef.current = null;
+      }
     };
   }, []);
 
@@ -203,14 +216,24 @@ export function PreflightSetup({
       const playbackAudioContext = new PlaybackCtor();
       await playbackAudioContext.resume().catch(() => {});
 
-      onReady({
-        micStream: micStreamRef.current,
-        videoStream,
-        videoSource: videoStream ? source : null,
-        language,
-        persona,
-        playbackAudioContext,
-      });
+      try {
+        onReady({
+          micStream: micStreamRef.current,
+          videoStream,
+          videoSource: videoStream ? source : null,
+          language,
+          persona,
+          playbackAudioContext,
+        });
+        handedOffRef.current = true;
+      } catch (handoffError) {
+        // Nobody took ownership, so nobody will ever close these. Browsers cap
+        // a page at roughly six AudioContexts; leaking one per failed attempt
+        // eventually makes every future session silent.
+        void playbackAudioContext.close().catch(() => {});
+        videoStream?.getTracks().forEach((t) => t.stop());
+        throw handoffError;
+      }
     } catch (e) {
       if (e instanceof DOMException && e.name === "NotAllowedError") {
         setError("Permission was denied. Please allow access and try again.");

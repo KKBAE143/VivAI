@@ -40,9 +40,7 @@ export function detectPatterns(files: CodeFile[]): PatternHit[] {
     "Factory",
     "Creates objects without specifying exact class. Enables loose coupling and extensibility.",
     code.filter(
-      (f) =>
-        f.name.toLowerCase().includes("factory") ||
-        /create[A-Z]\w*\s*\(/.test(f.content),
+      (f) => f.name.toLowerCase().includes("factory") || /create[A-Z]\w*\s*\(/.test(f.content),
     ),
   );
 
@@ -95,9 +93,7 @@ export function detectPatterns(files: CodeFile[]): PatternHit[] {
     "Middleware",
     "Request/response middleware for cross-cutting concerns.",
     code.filter(
-      (f) =>
-        f.name.toLowerCase().includes("middleware") ||
-        /class\s+\w*Middleware/.test(f.content),
+      (f) => f.name.toLowerCase().includes("middleware") || /class\s+\w*Middleware/.test(f.content),
     ),
   );
 
@@ -117,8 +113,9 @@ export function detectPatterns(files: CodeFile[]): PatternHit[] {
   );
 
   const dense = code.filter((f) => {
-    const fnApprox = (f.content.match(/\b(?:function|def|const\s+\w+\s*=\s*(?:async\s*)?\()/g) || [])
-      .length;
+    const fnApprox = (
+      f.content.match(/\b(?:function|def|const\s+\w+\s*=\s*(?:async\s*)?\()/g) || []
+    ).length;
     return fnApprox > 15;
   });
   push(

@@ -3,9 +3,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from core import diagnostics
 from core.config import get_settings
 from core.errors import CatchAllErrorMiddleware
 from core.logging import configure_logging
@@ -33,7 +36,30 @@ from api import (
 settings = get_settings()
 configure_logging()
 
-app = FastAPI(title="CollgePro Navigator API", version="1.0.0")
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """Start and stop local diagnostics capture.
+
+    Entirely optional and fail-open: if any of this raises, the app must still
+    serve. The one genuinely valuable piece is the asyncio exception handler —
+    "Task exception was never retrieved" is otherwise invisible, and the live
+    session subsystem runs a lot of background tasks.
+    """
+    try:
+        diagnostics.install_runtime_hooks()
+    except Exception as exc:  # noqa: BLE001
+        print(f"[diagnostics] runtime hooks unavailable: {exc}")
+    try:
+        yield
+    finally:
+        try:
+            diagnostics.shutdown()
+        except Exception:  # noqa: BLE001
+            pass
+
+
+app = FastAPI(title="CollgePro Navigator API", version="1.0.0", lifespan=lifespan)
 
 # Middleware order matters: the LAST middleware added is the OUTERMOST wrapper.
 # We add the catch-all FIRST (inner) and CORS LAST (outer) so that every
@@ -47,6 +73,9 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    # Lets the browser read the id of the backend failure behind a 500, so a
+    # frontend diagnostics event can be joined to its backend counterpart.
+    expose_headers=["X-Request-Id"],
 )
 
 for router in (

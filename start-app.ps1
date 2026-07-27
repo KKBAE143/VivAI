@@ -187,11 +187,17 @@ Write-Host ""
 # --- 5. Launch both servers in their own windows ----------------------------
 Write-Host "[5/5] Starting servers..." -ForegroundColor Cyan
 
+# One id per launch, shared by BOTH windows, so a browser error and the backend
+# error behind it can be tied to the same run in the diagnostics report.
+$RunId = "run-" + (Get-Date -Format "yyyyMMdd-HHmmss")
+
 $backendCmd = "Set-Location '$BackendDir'; " +
+              "`$env:HORUX_RUN_ID='$RunId'; " +
               "Write-Host 'Backend  -> http://localhost:$BackendPort' -ForegroundColor Green; " +
               "& '$VenvPython' -m uvicorn main:app --reload --port $BackendPort"
 
 $frontendCmd = "Set-Location '$Root'; " +
+               "`$env:HORUX_RUN_ID='$RunId'; " +
                "Write-Host 'Frontend -> http://localhost:$FrontendPort' -ForegroundColor Green; " +
                "bun run dev"
 
@@ -200,6 +206,7 @@ Start-Process powershell -ArgumentList "-NoExit", "-Command", $frontendCmd | Out
 
 Write-Host "  Backend  window opened -> http://localhost:$BackendPort  (API docs: /docs)" -ForegroundColor Green
 Write-Host "  Frontend window opened -> http://localhost:$FrontendPort" -ForegroundColor Green
+Write-Host "  Errors are captured to diagnostics\  ->  run diagnose.bat to build a report" -ForegroundColor Gray
 Write-Host ""
 Write-Host "Waiting for the frontend to boot, then opening your browser..." -ForegroundColor Cyan
 

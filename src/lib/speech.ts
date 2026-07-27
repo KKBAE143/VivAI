@@ -14,18 +14,43 @@ type SpeechRecognitionInstance = any;
 
 function getRecognitionCtor(): (new () => SpeechRecognitionInstance) | null {
   if (typeof window === "undefined") return null;
-  return (
-    (window as any).SpeechRecognition ??
-    (window as any).webkitSpeechRecognition ??
-    null
-  );
+  return (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition ?? null;
 }
 
+/**
+ * BCP-47 codes for the Web Speech API, one entry per label in
+ * `LIVE_LANGUAGES` (src/lib/languages.ts).
+ *
+ * This previously listed only English/Hindi/Hinglish, so the other ten offered
+ * languages silently fell through to `en-IN` — a Telugu student's dictation and
+ * read-aloud both ran as English, with no error to notice. The codes match the
+ * backend's `_REGIONAL_CODE` map in ai/live_service.py so browser speech and
+ * Gemini transcription agree on what language is being spoken.
+ *
+ * The "-lish" blends are code-mixed with English and no engine has a code for
+ * them; `en-IN` is the honest best match, since Indian-English recognizers
+ * handle the borrowed regional words better than the pure regional locale does.
+ */
 const LANG_MAP: Record<string, string> = {
   English: "en-IN",
   Hindi: "hi-IN",
   Hinglish: "en-IN",
+  Telugu: "te-IN",
+  Tenglish: "en-IN",
+  Tamil: "ta-IN",
+  Tanglish: "en-IN",
+  Kannada: "kn-IN",
+  Malayalam: "ml-IN",
+  Marathi: "mr-IN",
+  Bengali: "bn-IN",
+  Gujarati: "gu-IN",
+  Punjabi: "pa-IN",
 };
+
+/** Exported for tests: the code the browser speech engines will be given. */
+export function speechLangCode(language: string): string {
+  return LANG_MAP[language] ?? "en-IN";
+}
 
 export interface SpeechToText {
   supported: boolean;
@@ -53,7 +78,7 @@ export function useSpeechToText(language = "English"): SpeechToText {
     const recognition: SpeechRecognitionInstance = new Ctor();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = LANG_MAP[language] ?? "en-IN";
+    recognition.lang = speechLangCode(language);
 
     recognition.onresult = (event: any) => {
       let interimText = "";
@@ -83,6 +108,10 @@ export function useSpeechToText(language = "English"): SpeechToText {
         // no-op
       }
       recognitionRef.current = null;
+      // `onend` was just detached, so stopping the old instance can no longer
+      // clear this itself. Without it, changing language mid-dictation left
+      // the UI showing "listening" against an instance that was torn down.
+      setListening(false);
     };
   }, [language]);
 
@@ -127,9 +156,7 @@ export interface TextToSpeech {
 }
 
 export function useTextToSpeech(language = "English"): TextToSpeech {
-  const [supported] = useState(
-    () => typeof window !== "undefined" && "speechSynthesis" in window,
-  );
+  const [supported] = useState(() => typeof window !== "undefined" && "speechSynthesis" in window);
   const [speaking, setSpeaking] = useState(false);
   const [muted, setMuted] = useState(false);
   const mutedRef = useRef(false);
@@ -149,7 +176,7 @@ export function useTextToSpeech(language = "English"): TextToSpeech {
       if (!supported || mutedRef.current || !text.trim()) return;
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = LANG_MAP[language] ?? "en-IN";
+      utterance.lang = speechLangCode(language);
       utterance.rate = 0.98;
       utterance.onstart = () => setSpeaking(true);
       utterance.onend = () => setSpeaking(false);

@@ -27,6 +27,23 @@ class Settings(BaseSettings):
     # JSON is the durable artifact; raw per-turn events are operational data.
     session_events_retention_days: int = 90
 
+    # --- Local diagnostics capture ---
+    # Writes redacted error events to <repo>/diagnostics/ so a failure can be
+    # handed over as a file instead of remembered. Local-developer tooling: the
+    # directory is gitignored, and the whole subsystem is fail-open, so turning
+    # it off (or having it fail) changes nothing else about how the app runs.
+    diagnostics_enabled: bool = True
+    diagnostics_dir: str = "diagnostics"
+    # Only WARNING and above are captured; INFO is far too chatty for a file
+    # that a human is expected to read end to end.
+    diagnostics_level: str = "WARNING"
+    diagnostics_max_file_mb: int = 20
+    diagnostics_max_files: int = 10
+    diagnostics_retention_days: int = 7
+    # Comma-separated extra literals to scrub — an escape hatch for a secret
+    # the redactor does not recognise by shape or env-var name.
+    diagnostics_extra_redactions: str = ""
+
     model_config = {"env_file": ("backend/.env", ".env"), "extra": "ignore"}
 
     @property

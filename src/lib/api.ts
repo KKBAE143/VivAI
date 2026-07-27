@@ -1,4 +1,8 @@
-const API_URL: string = (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:8000";
+import { breadcrumb, report } from "@/diagnostics/client";
+import { currentTrace, traceHeaders } from "@/diagnostics/trace";
+
+const API_URL: string =
+  (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:8000";
 
 const TOKEN_KEY = "cpn_token";
 const REFRESH_KEY = "cpn_refresh";
@@ -112,6 +116,9 @@ export async function api<T = unknown>(path: string, options: ApiOptions = {}): 
     if (body !== undefined && !(body instanceof FormData)) {
       headers["Content-Type"] = "application/json";
     }
+    // Trace propagation, dev only, so the production request shape is
+    // byte-identical to what it was before diagnostics existed.
+    if (import.meta.env.DEV) Object.assign(headers, traceHeaders());
     return headers;
   };
 
@@ -135,6 +142,13 @@ export async function api<T = unknown>(path: string, options: ApiOptions = {}): 
       // so the browser blocked it. The message names the method + path and both
       // realities so the user/logs can tell which one happened.
       const reason = err instanceof Error ? err.message : String(err);
+      // Observe only — the thrown message below is rendered verbatim by ~24
+      // call sites and must not change.
+      try {
+        report(err, { kind: "network_error", context: { method, url_path: path, status: 0 } });
+      } catch {
+        /* diagnostics must never alter this path */
+      }
       throw new ApiError(
         0,
         `Network error calling ${method} ${path}: ${reason}. Either the backend at ${API_URL} is unreachable, ` +
@@ -144,6 +158,7 @@ export async function api<T = unknown>(path: string, options: ApiOptions = {}): 
     }
   };
 
+  const startedAt = Date.now();
   let res = await doFetch();
 
   // Access token likely expired — try a one-time silent refresh, then retry.
@@ -155,20 +170,46 @@ export async function api<T = unknown>(path: string, options: ApiOptions = {}): 
     }
   }
 
+  breadcrumb("http", `${method} ${path} -> ${res.status} (${Date.now() - startedAt}ms)`);
+
   if (!res.ok) {
     let message = `Request failed (${res.status})`;
+    // The backend stamps every response with the id of the failure behind it;
+    // carrying it here is what lets a browser event be joined to its backend
+    // counterpart in the report.
+    let requestId = res.headers.get("x-request-id");
     try {
       const data: unknown = await res.json();
       if (data && typeof data === "object" && "detail" in data) {
         const detail = (data as { detail: unknown }).detail;
         if (typeof detail === "string") message = detail;
-        else if (Array.isArray(detail)) message = detail.map((d) => (d as { msg?: string }).msg ?? "").join(", ") || message;
+        else if (Array.isArray(detail))
+          message = detail.map((d) => (d as { msg?: string }).msg ?? "").join(", ") || message;
+      }
+      if (data && typeof data === "object" && "request_id" in data) {
+        requestId = (data as { request_id?: string }).request_id ?? requestId;
       }
     } catch {
       // Non-JSON error body; keep the generic message.
     }
     // A 401 that survived the refresh attempt means the session is truly dead.
     if (res.status === 401) clearSession();
+    try {
+      report(new ApiError(res.status, message), {
+        kind: "http_error",
+        level: res.status >= 500 ? "ERROR" : "WARNING",
+        context: {
+          method,
+          url_path: path,
+          status: res.status,
+          duration_ms: Date.now() - startedAt,
+          request_id: requestId,
+          trace_id: currentTrace().traceId,
+        },
+      });
+    } catch {
+      /* diagnostics must never alter this path */
+    }
     throw new ApiError(res.status, message);
   }
 
@@ -181,7 +222,14 @@ export function apiUrl(path: string): string {
   return `${API_URL}${path}`;
 }
 
-/** WebSocket URL for a backend path. */
+/**
+ * WebSocket URL for a backend path.
+ *
+ * WARNING: the returned URL embeds the user's JWT as `?token=...`. Never pass
+ * it to diagnostics, logs or telemetry unredacted — pass `path` plus the
+ * non-secret params instead. (The redactor strips sensitive query values as a
+ * backstop, but do not rely on it.)
+ */
 export function wsUrl(path: string): string {
   return `${API_URL.replace(/^http/, "ws")}${path}`;
 }

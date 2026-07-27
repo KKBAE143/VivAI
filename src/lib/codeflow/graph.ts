@@ -28,7 +28,11 @@ export function buildEdges(files: CodeFile[]): GraphEdge[] {
 }
 
 /** Degree-based ranking for “important” files. */
-export function topFilesByConnectivity(files: CodeFile[], edges: GraphEdge[], limit = 20): string[] {
+export function topFilesByConnectivity(
+  files: CodeFile[],
+  edges: GraphEdge[],
+  limit = 20,
+): string[] {
   const score = new Map<string, number>();
   for (const f of files) score.set(f.path, 0);
   for (const e of edges) {

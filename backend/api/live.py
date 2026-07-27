@@ -31,7 +31,6 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from google.genai import errors as genai_errors
 from google.genai import types
 
 from ai import delivery_metrics, live_service, report_service, viva_core
@@ -57,11 +56,8 @@ WS_SUPERSEDED_CODE = 4409
 # student's retry.
 SUPERSEDE_DRAIN_SECONDS = 5.0
 
-# Transparent-reconnect budget for the Gemini side of the bridge (see
-# _reconnect_delay). A Live *connection* lives ~10 minutes even though the
-# *session* is unlimited once context-window compression is on, so a long viva
-# legitimately crosses this boundary once or twice.
-MAX_GEMINI_RECONNECTS = 6
+# Transparent-reconnect budget for the Gemini side of the bridge.
+MAX_GEMINI_RECONNECTS = live_service.MAX_GEMINI_RECONNECTS
 # Mic audio buffered while a reconnect is in flight. ~512 chunks is well over a
 # reconnect's worth; past that we drop the OLDEST frames, because stale realtime
 # audio is worthless and unbounded growth is not an option.
@@ -141,34 +137,11 @@ async def _forward_turn_complete(
         first_turn_done.set()
 
 
-def is_recoverable_live_error(exc: BaseException) -> bool:
-    """Is this a Gemini transport hiccup we should transparently reconnect from?
-
-    The Live API ends a *connection* roughly every 10 minutes and before that
-    sends `go_away`; the SDK surfaces that (and any network blip) by raising out
-    of `session.receive()`. Those are recoverable — the conversation continues on
-    a resumed connection. Authentication / quota / bad-request failures are not:
-    reconnecting would just fail identically in a loop.
-    """
-    if isinstance(exc, (asyncio.CancelledError, WebSocketDisconnect)):
-        return False
-    if isinstance(exc, genai_errors.ClientError):
-        # 4xx from the Live endpoint: 1008-style policy violations, bad config,
-        # expired key. A retry cannot fix these. 408/429 are the exceptions.
-        return getattr(exc, "code", None) in (408, 429)
-    if isinstance(exc, genai_errors.ServerError):
-        return True
-    if isinstance(exc, genai_errors.APIError):
-        # Non-HTTP close codes (1000 normal, 1006 abnormal, 1011 server error)
-        # all arrive here. Every one of them is a connection ending, not a
-        # permanent failure of the session.
-        return True
-    return isinstance(exc, (ConnectionError, OSError, asyncio.TimeoutError))
-
-
-def _reconnect_delay(attempt: int) -> float:
-    """Backoff before reconnect attempt `attempt` (1-based). Capped, not infinite."""
-    return min(5.0, 0.5 * (2 ** max(0, attempt - 1)))
+# Reconnect policy is shared with the Team Viva room, so it lives in the ai
+# layer. Re-exported here because this module is where it is consumed and
+# tested from.
+is_recoverable_live_error = live_service.is_recoverable_live_error
+_reconnect_delay = live_service.reconnect_delay
 
 
 def should_finalize(*, superseded: bool, has_activity: bool) -> bool:
@@ -284,7 +257,11 @@ class LivePersistence:
             get_supabase().table("session_events").insert(rows).execute()
             self._event_buffer.clear()
         except Exception as exc:
-            print(f"[live] event flush failed: {exc}")
+            logger.warning(
+                "session event flush failed",
+                exc_info=True,
+                extra={"session_id": self.session_id, "mode": self.mode, "event": "event_flush_failed"},
+            )
 
     # -- live signals ------------------------------------------------------- #
     def on_user_text(self, text: str) -> None:
@@ -396,7 +373,11 @@ class LivePersistence:
             elif self.mode in ("presentation", "coach", "pitch"):
                 sb.table("presentation_sessions").update({"status": "Pending"}).eq("id", self.session_id).execute()
         except Exception as exc:
-            print(f"[live] revert error ({self.mode}): {exc}")
+            logger.warning(
+                "could not revert session to Pending",
+                exc_info=True,
+                extra={"session_id": self.session_id, "mode": self.mode, "event": "revert_status_failed"},
+            )
 
     def _avg_score(self) -> int:
         scored = [q["score"] for q in self.questions if q.get("score") is not None]
@@ -419,7 +400,11 @@ class LivePersistence:
         try:
             metrics = delivery_metrics.from_transcript(turns)
         except Exception as exc:
-            print(f"[live] delivery metrics failed: {exc}")
+            logger.warning(
+                "delivery metrics failed",
+                exc_info=True,
+                extra={"session_id": self.session_id, "mode": self.mode, "event": "delivery_metrics_failed"},
+            )
             metrics = {"available": False, "estimate": True}
         availability = {
             "audio": bool(turns),
@@ -437,7 +422,12 @@ class LivePersistence:
                 self.mode, turns, self.project_context, self.subject
             )
         except Exception as exc:
-            print(f"[live] transcript analysis failed: {exc}")
+            logger.warning(
+                "transcript analysis failed",
+                exc_info=True,
+                extra={"session_id": self.session_id, "mode": self.mode, "event": "transcript_analysis_failed",
+                       "turns": len(turns)},
+            )
 
         analyzed_q = analysis.get("questions") if isinstance(analysis, dict) else None
         if analyzed_q:
@@ -469,7 +459,12 @@ class LivePersistence:
                 availability=availability, duration_ms=self.now_ms(), project_context=self.project_context,
             )
         except Exception as exc:
-            print(f"[live] report build failed: {exc}")
+            logger.warning(
+                "report build failed",
+                exc_info=True,
+                extra={"session_id": self.session_id, "mode": self.mode, "event": "report_build_failed",
+                       "turns": len(turns), "questions": len(self.questions)},
+            )
             report = None
         self.flush_events()
         try:
@@ -650,7 +645,11 @@ class LivePersistence:
                              self.project_id, "presentation_session", self.session_id)
                 gamification_service.award_xp(self.user_id, "pitch_completed")
         except Exception as exc:  # never let persistence crash the socket close
-            print(f"[live] finalize error ({self.mode}): {exc}")
+            logger.warning(
+                "session finalize persistence failed",
+                exc_info=True,
+                extra={"session_id": self.session_id, "mode": self.mode, "event": "finalize_failed"},
+            )
         return summary
 
 

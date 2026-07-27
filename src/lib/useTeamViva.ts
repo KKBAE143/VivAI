@@ -12,6 +12,8 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getToken, wsUrl } from "@/lib/api";
+import { captureSilent, report } from "@/diagnostics/client";
+import { startTrace, traceQuery } from "@/diagnostics/trace";
 
 export type TeamVivaStatus = "idle" | "connecting" | "lobby" | "live" | "ended" | "error";
 
@@ -32,7 +34,12 @@ export interface TeamVivaEvent {
 
 export interface TeamVivaSummary {
   team_score?: number;
-  members?: { profile_id: string; name: string; individual_score: number; questions_answered: number }[];
+  members?: {
+    profile_id: string;
+    name: string;
+    individual_score: number;
+    questions_answered: number;
+  }[];
   questions?: unknown[];
 }
 
@@ -95,6 +102,8 @@ export function useTeamViva(opts: UseTeamVivaOptions) {
   const [micMuted, setMicMuted] = useState(false);
   const [events, setEvents] = useState<TeamVivaEvent[]>([]);
   const [summary, setSummary] = useState<TeamVivaSummary | null>(null);
+  /** True when the browser is blocking AI audio until the user taps again. */
+  const [audioBlocked, setAudioBlocked] = useState(false);
 
   const wsRef = useRef<WebSocket | null>(null);
   const captureCtxRef = useRef<AudioContext | null>(null);
@@ -120,7 +129,10 @@ export function useTeamViva(opts: UseTeamVivaOptions) {
       try {
         s.stop();
       } catch {
-        /* already stopped */
+        // AUDITED: expected. AudioBufferSourceNode.stop() throws
+        // InvalidStateError on an already-ended node, which happens on every
+        // barge-in. Instrumenting this would flood the report and bury real
+        // failures — the exact opposite of the point.
       }
     });
     activeSourcesRef.current = [];
@@ -129,24 +141,79 @@ export function useTeamViva(opts: UseTeamVivaOptions) {
 
   const playChunk = useCallback((pcm: ArrayBuffer) => {
     const ctx = playbackCtxRef.current;
-    if (!ctx) return;
-    const int16 = new Int16Array(pcm);
-    if (int16.length === 0) return;
-    const float = new Float32Array(int16.length);
-    for (let i = 0; i < int16.length; i += 1) float[i] = int16[i] / 0x8000;
-    const buffer = ctx.createBuffer(1, float.length, PLAYBACK_SAMPLE_RATE);
-    buffer.copyToChannel(float, 0);
-    const src = ctx.createBufferSource();
-    src.buffer = buffer;
-    src.connect(ctx.destination);
-    const now = ctx.currentTime;
-    const startAt = Math.max(now, playHeadRef.current);
-    src.start(startAt);
-    playHeadRef.current = startAt + buffer.duration;
-    activeSourcesRef.current.push(src);
-    src.onended = () => {
-      activeSourcesRef.current = activeSourcesRef.current.filter((s) => s !== src);
-    };
+    // A missing/closed context means nothing can play. Surface tap-to-unlock
+    // instead of silently discarding the examiner's speech — this hook had no
+    // recovery path at all, so an autoplay-suspended context left the whole
+    // team staring at scrolling transcripts in total silence.
+    if (!ctx || ctx.state === "closed") {
+      setAudioBlocked(true);
+      return;
+    }
+    if (ctx.state === "suspended") {
+      setAudioBlocked(true);
+      void ctx.resume().then(() => {
+        setAudioBlocked(playbackCtxRef.current?.state !== "running");
+      });
+    } else {
+      setAudioBlocked(false);
+    }
+    try {
+      // PCM16 is 2 bytes/sample — an odd-length buffer makes the Int16Array
+      // constructor throw RangeError, which used to escape straight out of the
+      // WebSocket onmessage handler.
+      const usable = pcm.byteLength - (pcm.byteLength % 2);
+      if (usable <= 0) return;
+      const int16 = new Int16Array(pcm, 0, usable / 2);
+      if (int16.length === 0) return;
+      const float = new Float32Array(int16.length);
+      for (let i = 0; i < int16.length; i += 1) float[i] = int16[i] / 0x8000;
+      const buffer = ctx.createBuffer(1, float.length, PLAYBACK_SAMPLE_RATE);
+      buffer.copyToChannel(float, 0);
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      src.connect(ctx.destination);
+      const now = ctx.currentTime;
+      const startAt = Math.max(now, playHeadRef.current);
+      src.start(startAt);
+      playHeadRef.current = startAt + buffer.duration;
+      activeSourcesRef.current.push(src);
+      src.onended = () => {
+        activeSourcesRef.current = activeSourcesRef.current.filter((s) => s !== src);
+      };
+    } catch (e) {
+      // Sets audioBlocked, but the CAUSE was lost. A decode/scheduling failure
+      // here is heard by the whole room as "the examiner never spoke".
+      captureSilent(e, "play_chunk_failed", { feature: "team_viva", mode: "team_viva" });
+      setAudioBlocked(true);
+    }
+  }, []);
+
+  /** Call from a click handler if the browser blocked AI audio. */
+  const unlockAudio = useCallback(async () => {
+    let ctx = playbackCtxRef.current;
+    try {
+      if (!ctx || ctx.state === "closed") {
+        const PlaybackCtx =
+          window.AudioContext ??
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        ctx = new PlaybackCtx();
+        playbackCtxRef.current = ctx;
+        playHeadRef.current = 0;
+      }
+      await ctx.resume();
+      // A tiny silent buffer fully unlocks some browsers.
+      const buf = ctx.createBuffer(1, 1, PLAYBACK_SAMPLE_RATE);
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(ctx.destination);
+      src.start();
+      setAudioBlocked(ctx.state !== "running");
+    } catch (e) {
+      // A participant explicitly tapped "enable the examiner's voice" and it
+      // still failed — the one path where we know they noticed.
+      captureSilent(e, "unlock_audio_failed", { feature: "team_viva", mode: "team_viva" });
+      setAudioBlocked(true);
+    }
   }, []);
 
   const handleMessage = useCallback(
@@ -159,13 +226,19 @@ export function useTeamViva(opts: UseTeamVivaOptions) {
         raw.data
           .arrayBuffer()
           .then(playChunk)
-          .catch(() => {});
+          // Dropping a frame makes the AI intermittently inaudible to everyone.
+          .catch((e) =>
+            captureSilent(e, "audio_blob_read_failed", { feature: "team_viva", mode: "team_viva" }),
+          );
         return;
       }
       let msg: Record<string, unknown>;
       try {
         msg = JSON.parse(raw.data as string);
-      } catch {
+      } catch (e) {
+        // An unparseable frame is a protocol bug, not noise — and floor-control
+        // state rides on these frames, so a dropped one can strand a speaker.
+        captureSilent(e, "ws_frame_parse_failed", { feature: "team_viva", mode: "team_viva" });
         return;
       }
       switch (msg.type) {
@@ -207,6 +280,10 @@ export function useTeamViva(opts: UseTeamVivaOptions) {
           setStatus("ended");
           break;
         case "error":
+          report(String(msg.message ?? "Team viva error"), {
+            kind: "ws_error",
+            context: { feature: "team_viva", mode: "team_viva", reason: "server_error_message" },
+          });
           setError(String(msg.message ?? "Team viva error"));
           setStatus((s) => (s === "live" ? s : "error"));
           break;
@@ -222,24 +299,38 @@ export function useTeamViva(opts: UseTeamVivaOptions) {
     try {
       workletNodeRef.current?.disconnect();
       micSourceRef.current?.disconnect();
-    } catch {
-      /* noop */
+    } catch (e) {
+      // Leaks the mic node; the browser keeps showing the recording indicator.
+      captureSilent(e, "media_teardown_failed", { feature: "team_viva", mode: "team_viva" });
     }
     workletNodeRef.current = null;
     micSourceRef.current = null;
-    captureCtxRef.current?.close().catch(() => {});
+    captureCtxRef.current
+      ?.close()
+      .catch((e) =>
+        captureSilent(e, "capture_ctx_close_failed", { feature: "team_viva", mode: "team_viva" }),
+      );
     captureCtxRef.current = null;
-    playbackCtxRef.current?.close().catch(() => {});
+    // Browsers cap a page at ~6 AudioContexts; a silent leak here eventually
+    // makes every later session silent.
+    playbackCtxRef.current
+      ?.close()
+      .catch((e) =>
+        captureSilent(e, "playback_ctx_close_failed", { feature: "team_viva", mode: "team_viva" }),
+      );
     playbackCtxRef.current = null;
   }, [stopPlayback]);
 
   const join = useCallback(
-    async (micStream: MediaStream) => {
+    async (micStream: MediaStream, playbackAudioContext?: AudioContext | null) => {
       if (wsRef.current) return;
+      // One trace per room join — see useLiveSession.
+      startTrace();
       setStatus("connecting");
       setError("");
       setEvents([]);
       setSummary(null);
+      setAudioBlocked(false);
 
       const token = getToken();
       if (!token) {
@@ -249,12 +340,27 @@ export function useTeamViva(opts: UseTeamVivaOptions) {
       }
 
       try {
-        const PlaybackCtx =
-          window.AudioContext ??
-          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-        playbackCtxRef.current = new PlaybackCtx();
-        await playbackCtxRef.current.resume().catch(() => {});
-      } catch {
+        // Prefer the context the preflight created under the Start CLICK. A
+        // context constructed here instead is born outside a user gesture and
+        // browsers start it suspended → silent room with no way back.
+        if (playbackAudioContext && playbackAudioContext.state !== "closed") {
+          playbackCtxRef.current = playbackAudioContext;
+        } else {
+          const PlaybackCtx =
+            window.AudioContext ??
+            (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+          playbackCtxRef.current = new PlaybackCtx();
+        }
+        // Autoplay policy refusing to resume is the most common cause of a
+        // completely silent room.
+        await playbackCtxRef.current
+          .resume()
+          .catch((e) =>
+            captureSilent(e, "playback_resume_failed", { feature: "team_viva", mode: "team_viva" }),
+          );
+        if (playbackCtxRef.current.state !== "running") setAudioBlocked(true);
+      } catch (e) {
+        captureSilent(e, "playback_setup_failed", { feature: "team_viva", mode: "team_viva" });
         setError("Audio playback is not supported in this browser.");
         setStatus("error");
         return;
@@ -268,6 +374,8 @@ export function useTeamViva(opts: UseTeamVivaOptions) {
         try {
           ctx = new CaptureCtx({ sampleRate: CAPTURE_SAMPLE_RATE });
         } catch {
+          // AUDITED: expected. Feature detection — Firefox rejects a forced
+          // sampleRate, so fall back to the default and resample in JS.
           ctx = new CaptureCtx();
         }
         captureCtxRef.current = ctx;
@@ -281,7 +389,13 @@ export function useTeamViva(opts: UseTeamVivaOptions) {
         const inRate = ctx.sampleRate;
         node.port.onmessage = (e: MessageEvent) => {
           const ws = wsRef.current;
-          if (!ws || ws.readyState !== WebSocket.OPEN || micMutedRef.current || floorRef.current !== myProfileId) return;
+          if (
+            !ws ||
+            ws.readyState !== WebSocket.OPEN ||
+            micMutedRef.current ||
+            floorRef.current !== myProfileId
+          )
+            return;
           const pcm = floatToPCM16(e.data as Float32Array, inRate);
           ws.send(pcm);
         };
@@ -291,18 +405,33 @@ export function useTeamViva(opts: UseTeamVivaOptions) {
         node.connect(sink);
         sink.connect(ctx.destination);
         workletNodeRef.current = node;
-      } catch {
+      } catch (e) {
+        captureSilent(e, "mic_processor_setup_failed", { feature: "team_viva", mode: "team_viva" });
         setError("Could not access the microphone processor.");
         setStatus("error");
         return;
       }
 
       const qs = new URLSearchParams({ token, language, persona });
+      // Trace propagation for the WebSocket leg — see useLiveSession. Dev only.
+      if (import.meta.env.DEV) {
+        for (const [key, value] of Object.entries(traceQuery())) qs.set(key, value);
+      }
       const ws = new WebSocket(wsUrl(`/ws/team-viva/${sessionId}?${qs.toString()}`));
       ws.binaryType = "arraybuffer";
       wsRef.current = ws;
       ws.onmessage = handleMessage;
       ws.onerror = () => {
+        // Never pass the socket URL here — it embeds the JWT (see wsUrl).
+        report("team viva websocket error", {
+          kind: "ws_error",
+          context: {
+            feature: "team_viva",
+            mode: "team_viva",
+            url_path: "/ws/team-viva",
+            reason: "socket_error",
+          },
+        });
         setError("Connection error.");
         setStatus("error");
       };
@@ -331,8 +460,10 @@ export function useTeamViva(opts: UseTeamVivaOptions) {
     if (ws && ws.readyState === WebSocket.OPEN) {
       try {
         ws.send(JSON.stringify({ type: "end" }));
-      } catch {
-        /* noop */
+      } catch (e) {
+        // If this is lost the room never finalizes and nobody on the team gets
+        // a report — the multi-participant version of "my session vanished".
+        captureSilent(e, "end_send_failed", { feature: "team_viva", mode: "team_viva" });
       }
     }
     cleanupMedia();
@@ -341,7 +472,8 @@ export function useTeamViva(opts: UseTeamVivaOptions) {
       try {
         ws?.close();
       } catch {
-        /* noop */
+        // AUDITED: expected. Closing an already-closed socket. The close is
+        // best-effort teardown and nothing downstream depends on it.
       }
       wsRef.current = null;
     }, 60000);
@@ -354,7 +486,7 @@ export function useTeamViva(opts: UseTeamVivaOptions) {
     try {
       wsRef.current?.close();
     } catch {
-      /* noop */
+      // AUDITED: expected. Closing an already-closed socket during teardown.
     }
     wsRef.current = null;
   }, [cleanupMedia]);
@@ -374,11 +506,13 @@ export function useTeamViva(opts: UseTeamVivaOptions) {
     micMuted,
     events,
     summary,
+    audioBlocked,
     isMyFloor: floorSpeakerId === myProfileId,
     join,
     startViva,
     endViva,
     leave,
     toggleMic,
+    unlockAudio,
   };
 }

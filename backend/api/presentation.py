@@ -11,6 +11,10 @@ from core.deps import get_current_user
 from models.schemas import AskRequest, PresentationAnswer, PresentationSessionCreate
 from services import gamification_service
 from services.activity_service import log_activity
+from core.logging import get_logger
+
+
+logger = get_logger("presentation")
 
 router = APIRouter(prefix="/api/presentation", tags=["presentation"])
 
@@ -86,7 +90,11 @@ def list_sessions(user=Depends(get_current_user)):
             .eq("profile_id", user["id"]).order("created_at", desc=True).execute().data
         )
     except Exception as exc:
-        print(f"Warning: Failed to fetch presentation_sessions: {exc}")
+        logger.warning(
+            "failed to fetch presentation_sessions",
+            exc_info=True,
+            extra={"event": "presentation_sessions_fetch_failed"},
+        )
         return []
 
 

@@ -6,7 +6,7 @@
  * (roster + invite link + Start button), then the live floor-controlled
  * voice session, then the ended summary.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Bot, Copy, Crown, Mic, MicOff, PhoneOff, Trophy, Loader2, CheckCircle2 } from "lucide-react";
 import { Badge, Card } from "@/components/app-shell";
 import { PreflightSetup } from "@/components/live/preflight-setup";
@@ -23,13 +23,33 @@ export function TeamVivaRoom({ sessionId, myProfileId, inviteUrl }: TeamVivaRoom
   const [language, setLanguage] = useState("English");
   const [persona, setPersona] = useState("balanced");
   const [copied, setCopied] = useState(false);
+  /**
+   * The playback AudioContext the preflight created under the Start click.
+   * This used to be dropped on the floor: the context leaked (browsers cap a
+   * page at ~6) and useTeamViva built its own outside any user gesture, which
+   * browsers start suspended — a silent room with no way to recover.
+   */
+  const playbackCtxRef = useRef<AudioContext | null>(null);
 
   const room = useTeamViva({ sessionId, myProfileId, language, persona });
-  const { status, members, leadId, aiStatus, floorSpeakerId, aiSpeaking, micMuted, events, summary, error, isMyFloor } = room;
+  const {
+    status,
+    members,
+    leadId,
+    aiStatus,
+    floorSpeakerId,
+    aiSpeaking,
+    micMuted,
+    events,
+    summary,
+    error,
+    isMyFloor,
+    audioBlocked,
+  } = room;
 
   useEffect(() => {
     if (micStream && status === "idle") {
-      void room.join(micStream);
+      void room.join(micStream, playbackCtxRef.current);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [micStream, status]);
@@ -45,6 +65,7 @@ export function TeamVivaRoom({ sessionId, myProfileId, inviteUrl }: TeamVivaRoom
         onReady={(r) => {
           setLanguage(r.language);
           setPersona(r.persona);
+          playbackCtxRef.current = r.playbackAudioContext;
           setMicStream(r.micStream);
         }}
       />
@@ -97,6 +118,15 @@ export function TeamVivaRoom({ sessionId, myProfileId, inviteUrl }: TeamVivaRoom
   // status is "lobby" or "live"
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
+      {audioBlocked && (
+        <button
+          type="button"
+          onClick={() => void room.unlockAudio()}
+          className="lg:col-span-12 rounded-xl border border-warning/40 bg-warning/15 px-4 py-2.5 text-center text-sm font-semibold text-foreground"
+        >
+          Tap here to enable the examiner&apos;s voice (your browser blocked sound)
+        </button>
+      )}
       <Card className="lg:col-span-8">
         <h3 className="text-base font-semibold">{status === "lobby" ? "Lobby" : "Live Team Viva"}</h3>
 

@@ -22,9 +22,17 @@ from google.genai import types
 
 from ai import live_service, team_live_service
 from core.database import get_supabase
+from core.logging import get_logger
+
+
+logger = get_logger("team_room")
 
 MIN_PARTICIPANTS_TO_START = 3
 MAX_PARTICIPANTS = 5
+
+# Mic frames buffered from the floor holder while a Gemini reconnect is in
+# flight. Well over a reconnect's worth; past that the oldest are dropped.
+INBOUND_QUEUE_MAX = 512
 
 
 class TeamLivePersistence:
@@ -80,7 +88,11 @@ class TeamLivePersistence:
             get_supabase().table("session_events").insert(rows).execute()
             self._event_buffer.clear()
         except Exception as exc:
-            print(f"[team_live] event flush failed: {exc}")
+            logger.warning(
+                "team session event flush failed",
+                exc_info=True,
+                extra={"session_id": self.session_id, "mode": "team_viva", "event": "event_flush_failed"},
+            )
 
     def on_ai_text(self, text: str) -> None:
         self.transcript.append({"role": "examiner", "speaker_id": None, "text": text, "ts_ms": self.now_ms()})
@@ -210,7 +222,11 @@ class TeamLivePersistence:
                 "completed_at": datetime.now(timezone.utc).isoformat(),
             }).eq("id", self.session_id).execute()
         except Exception as exc:
-            print(f"[team_live] finalize persistence error: {exc}")
+            logger.warning(
+                "team viva finalize persistence failed",
+                exc_info=True,
+                extra={"session_id": self.session_id, "mode": "team_viva", "event": "finalize_failed"},
+            )
 
         return {"team_score": team_score, "members": member_summaries, "questions": self.questions}
 
@@ -239,6 +255,14 @@ class VoiceRoom:
         self._finalized = False
         self._final_summary: dict | None = None
         self._send_lock = asyncio.Lock()
+        # Everything needed to rebuild the config when a connection recycles.
+        self._connect_args: dict | None = None
+        self._resume_handle: str | None = None
+        self._end_requested = False
+        # Floor-holder mic audio, buffered so a reconnect does not swallow the
+        # middle of somebody's graded answer. Bounded: stale realtime audio is
+        # worthless, so an overflow drops the OLDEST frames.
+        self._inbound: asyncio.Queue = asyncio.Queue(maxsize=INBOUND_QUEUE_MAX)
 
     def _member_list(self) -> list[dict]:
         return [{"profile_id": pid, "name": self.names.get(pid, "Member")} for pid in self.connections]
@@ -285,28 +309,108 @@ class VoiceRoom:
         self.started = True
         self.persist = TeamLivePersistence(self.session_id, self.team_id, project_id, project_context, subject)
         roster = self._member_list()
-        config = team_live_service.build_team_config(roster, persona, language, project_context, subject)
-        self._gemini_ctx = live_service.connect_with_fallback(config)
-        self.gemini_session = await self._gemini_ctx.__aenter__()
+        # Kept so a recycled connection can be rebuilt with the same contract.
+        self._connect_args = {
+            "roster": roster,
+            "persona": persona,
+            "language": language,
+            "project_context": project_context,
+            "subject": subject,
+        }
+        try:
+            await self._open_connection()
+        except Exception:
+            # Leaving `started` True on a failed connect wedged the room
+            # permanently — start() short-circuits on it, so the lead could
+            # never retry and the lobby just sat there.
+            self.started = False
+            self._connect_args = None
+            self.persist = None
+            raise
         await self.broadcast({"type": "lobby", "members": roster, "lead_id": self.lead_id, "ai_status": "live"})
+        await self._send_greeting()
+        self._pump_task = asyncio.create_task(self._pump_gemini())
+
+    async def _open_connection(self) -> None:
+        """Open (or re-open) the room's single Gemini connection."""
+        args = self._connect_args or {}
+        config = team_live_service.build_team_config(
+            args.get("roster") or self._member_list(),
+            args.get("persona", "balanced"),
+            args.get("language", "English"),
+            args.get("project_context", ""),
+            args.get("subject"),
+            resume_handle=self._resume_handle,
+        )
+        ctx = live_service.connect_with_fallback(config)
+        session = await ctx.__aenter__()
+        self._gemini_ctx = ctx
+        self.gemini_session = session
+
+    async def _close_connection(self, exc: BaseException | None = None) -> None:
+        ctx, self._gemini_ctx = self._gemini_ctx, None
+        self.gemini_session = None
+        if ctx is None:
+            return
+        try:
+            await ctx.__aexit__(type(exc) if exc else None, exc, None)
+        except Exception:
+            pass
+
+    async def _send_greeting(self) -> None:
+        """Trigger the one-time group greeting.
+
+        Only ever sent for a FRESH Gemini session. A resumed connection already
+        carries the whole conversation, so re-triggering it would make the
+        examiner greet the team a second time mid-viva.
+        """
         try:
             await self.gemini_session.send_client_content(
-                turns=types.Content(role="user", parts=[types.Part(text=team_live_service.team_greeting_trigger(language))]),
+                turns=types.Content(
+                    role="user",
+                    parts=[types.Part(text=team_live_service.team_greeting_trigger(
+                        (self._connect_args or {}).get("language", "English")
+                    ))],
+                ),
                 turn_complete=True,
             )
         except Exception as exc:
-            print(f"[team_live] greeting trigger failed: {exc}")
-        self._pump_task = asyncio.create_task(self._pump_gemini())
+            logger.warning(
+                "team greeting trigger failed",
+                exc_info=True,
+                extra={"session_id": self.session_id, "mode": "team_viva", "event": "greeting_trigger_failed"},
+            )
+
+    def _enqueue_audio(self, data: bytes) -> None:
+        """Buffer one mic frame, dropping the OLDEST when full."""
+        try:
+            self._inbound.put_nowait(data)
+            return
+        except asyncio.QueueFull:
+            pass
+        try:
+            self._inbound.get_nowait()
+        except asyncio.QueueEmpty:
+            return
+        try:
+            self._inbound.put_nowait(data)
+        except asyncio.QueueFull:
+            pass
 
     async def route_client_audio(self, profile_id: str, data: bytes) -> None:
-        if not self.started or self.gemini_session is None:
+        if not self.started:
             return
         if profile_id != self.active_speaker_id:
             return  # not this participant's turn — dropped server-side
-        try:
-            await live_service.send_audio(self.gemini_session, data)
-        except Exception as exc:
-            print(f"[team_live] send_audio failed: {exc}")
+        # Queued rather than sent inline so a reconnect in flight does not
+        # swallow the middle of the floor holder's answer.
+        self._enqueue_audio(data)
+
+    async def _pump_audio(self, session) -> None:
+        """Drain buffered floor audio into the currently-live Gemini session."""
+        while True:
+            data = await self._inbound.get()
+            await live_service.send_audio(session, data)
 
     def _handle_tool(self, name: str, args: dict) -> dict | None:
         if name == "call_on_participant":
@@ -330,63 +434,150 @@ class VoiceRoom:
             return None
         return None
 
+    async def _receive_loop(self, session) -> None:
+        """Forward ONE Gemini connection's stream to the whole room.
+
+        `session.receive()` yields a single model turn and then ends, so it is
+        re-entered in an outer loop. It never terminates by yielding nothing —
+        when the connection ends it RAISES — so there is deliberately no
+        "empty iteration" exit here. The old `if not got_turn: break` was
+        unreachable, and the exception it was standing in for got swallowed by
+        the caller, which is how a routine ~10-minute connection recycle
+        silently ended a team viva and finalized it on a partial transcript.
+        """
+        while True:
+            turn_floor_closed = False
+            async for response in session.receive():
+                audio_chunks = live_service.response_audio_chunks(response)
+                if audio_chunks and not turn_floor_closed:
+                    turn_floor_closed = True
+                    self.active_speaker_id = None
+                    await self.broadcast({"type": "floor", "speaker_id": None, "ai_speaking": True})
+                for chunk in audio_chunks:
+                    await self.broadcast_bytes(chunk)
+                # Keep the newest resumption handle so a recycled connection can
+                # pick the viva up exactly where it left off.
+                sru = getattr(response, "session_resumption_update", None)
+                if sru is not None and getattr(sru, "resumable", None) and getattr(sru, "new_handle", None):
+                    self._resume_handle = sru.new_handle
+                sc = getattr(response, "server_content", None)
+                if sc:
+                    it = getattr(sc, "input_transcription", None)
+                    if it and getattr(it, "text", None):
+                        self.persist.on_user_text(self.active_speaker_id, it.text)
+                        await self.broadcast({"type": "user_transcript", "speaker_id": self.active_speaker_id, "text": it.text})
+                    ot = getattr(sc, "output_transcription", None)
+                    if ot and getattr(ot, "text", None):
+                        self.persist.on_ai_text(ot.text)
+                        await self.broadcast({"type": "ai_transcript", "text": ot.text})
+                    if getattr(sc, "interrupted", None):
+                        await self.broadcast({"type": "interrupted"})
+                    if getattr(sc, "turn_complete", None):
+                        self.active_speaker_id = self.pending_speaker_id
+                        if self.active_speaker_id:
+                            self.last_speaker_id = self.active_speaker_id
+                        await self.broadcast({"type": "floor", "speaker_id": self.active_speaker_id, "ai_speaking": False})
+                tc = getattr(response, "tool_call", None)
+                if tc and tc.function_calls:
+                    responses = []
+                    for fc in tc.function_calls:
+                        if fc.name == "end_session":
+                            self._end_requested = True
+                            responses.append(types.FunctionResponse(id=fc.id, name=fc.name, response={"status": "ok"}))
+                            continue
+                        event = self._handle_tool(fc.name, dict(fc.args or {}))
+                        if event:
+                            await self.broadcast(event)
+                        responses.append(types.FunctionResponse(id=fc.id, name=fc.name, response={"status": "ok"}))
+                    try:
+                        await session.send_tool_response(function_responses=responses)
+                    except Exception:
+                        pass
+                    if self._end_requested:
+                        await asyncio.sleep(0.5)
+                        return
+
+    async def _run_connection(self) -> None:
+        """Run the current connection until it ends, raising what killed it."""
+        session = self.gemini_session
+        recv_task = asyncio.create_task(self._receive_loop(session))
+        pump_task = asyncio.create_task(self._pump_audio(session))
+        watched = {recv_task, pump_task}
+        try:
+            done, _ = await asyncio.wait(watched, return_when=asyncio.FIRST_COMPLETED)
+        finally:
+            for task in watched:
+                if not task.done():
+                    task.cancel()
+            await asyncio.gather(*watched, return_exceptions=True)
+        # Surface a real transport failure rather than swallowing it.
+        for task in (recv_task, pump_task):
+            if task in done and not task.cancelled() and task.exception() is not None:
+                raise task.exception()  # type: ignore[misc]
+
     async def _pump_gemini(self) -> None:
-        end_requested = False
+        """Supervise the room's Gemini connection across recycles.
+
+        A connection ending is NOT the viva ending: the Live API recycles one
+        roughly every ten minutes. Reconnect transparently with the resumption
+        handle (and without re-greeting) so the team keeps going, and only
+        finalize when the model calls end_session, the lead ends it, or the
+        failure is genuinely unrecoverable.
+        """
+        reconnects = 0
         try:
             while True:
-                got_turn = False
-                turn_floor_closed = False
-                async for response in self.gemini_session.receive():
-                    got_turn = True
-                    audio_chunks = live_service.response_audio_chunks(response)
-                    if audio_chunks and not turn_floor_closed:
-                        turn_floor_closed = True
-                        self.active_speaker_id = None
-                        await self.broadcast({"type": "floor", "speaker_id": None, "ai_speaking": True})
-                    for chunk in audio_chunks:
-                        await self.broadcast_bytes(chunk)
-                    sc = getattr(response, "server_content", None)
-                    if sc:
-                        it = getattr(sc, "input_transcription", None)
-                        if it and getattr(it, "text", None):
-                            self.persist.on_user_text(self.active_speaker_id, it.text)
-                            await self.broadcast({"type": "user_transcript", "speaker_id": self.active_speaker_id, "text": it.text})
-                        ot = getattr(sc, "output_transcription", None)
-                        if ot and getattr(ot, "text", None):
-                            self.persist.on_ai_text(ot.text)
-                            await self.broadcast({"type": "ai_transcript", "text": ot.text})
-                        if getattr(sc, "interrupted", None):
-                            await self.broadcast({"type": "interrupted"})
-                        if getattr(sc, "turn_complete", None):
-                            self.active_speaker_id = self.pending_speaker_id
-                            if self.active_speaker_id:
-                                self.last_speaker_id = self.active_speaker_id
-                            await self.broadcast({"type": "floor", "speaker_id": self.active_speaker_id, "ai_speaking": False})
-                    tc = getattr(response, "tool_call", None)
-                    if tc and tc.function_calls:
-                        responses = []
-                        for fc in tc.function_calls:
-                            if fc.name == "end_session":
-                                end_requested = True
-                                responses.append(types.FunctionResponse(id=fc.id, name=fc.name, response={"status": "ok"}))
-                                continue
-                            event = self._handle_tool(fc.name, dict(fc.args or {}))
-                            if event:
-                                await self.broadcast(event)
-                            responses.append(types.FunctionResponse(id=fc.id, name=fc.name, response={"status": "ok"}))
-                        try:
-                            await self.gemini_session.send_tool_response(function_responses=responses)
-                        except Exception:
-                            pass
-                        if end_requested:
-                            await asyncio.sleep(0.5)
-                            return
-                if not got_turn:
-                    break
+                try:
+                    await self._run_connection()
+                except asyncio.CancelledError:
+                    raise
+                except Exception as exc:
+                    await self._close_connection(exc)
+                    recoverable = (
+                        live_service.is_recoverable_live_error(exc)
+                        and reconnects < live_service.MAX_GEMINI_RECONNECTS
+                        and not self._end_requested
+                        and bool(self.connections)
+                    )
+                    if not recoverable:
+                        logger.warning(
+                            "team viva connection lost and not recoverable",
+                            exc_info=True,
+                            extra={"session_id": self.session_id, "mode": "team_viva",
+                                   "event": "pump_giving_up", "reconnects": reconnects},
+                        )
+                        break
+                    reconnects += 1
+                    await self.broadcast({"type": "reconnecting", "attempt": reconnects})
+                    await asyncio.sleep(live_service.reconnect_delay(reconnects))
+                    try:
+                        await self._open_connection()
+                    except Exception as reopen_exc:
+                        logger.warning(
+                            "team viva reconnect failed",
+                            exc_info=True,
+                            extra={"session_id": self.session_id, "mode": "team_viva",
+                                   "event": "reconnect_failed", "attempt": reconnects},
+                        )
+                        break
+                    await self.broadcast({"type": "reconnected"})
+                    # Re-assert the floor so nobody's mic is left in limbo by
+                    # the gap; the client gate keys off this broadcast.
+                    await self.broadcast({
+                        "type": "floor",
+                        "speaker_id": self.active_speaker_id,
+                        "ai_speaking": False,
+                    })
+                    continue
+                break
         except asyncio.CancelledError:
             pass
         except Exception as exc:
-            print(f"[team_live] pump error: {exc}")
+            logger.warning(
+                "team viva pump error",
+                exc_info=True,
+                extra={"session_id": self.session_id, "mode": "team_viva", "event": "pump_error"},
+            )
         finally:
             await self._finalize_and_close()
 
@@ -405,12 +596,7 @@ class VoiceRoom:
         if self._finalized:
             return self._final_summary or {}
         self._finalized = True
-        if self._gemini_ctx is not None:
-            try:
-                await self._gemini_ctx.__aexit__(None, None, None)
-            except Exception:
-                pass
-            self.gemini_session = None
+        await self._close_connection()
         summary: dict = {}
         if self.persist and self.persist.has_activity:
             summary = await asyncio.to_thread(self.persist.finalize, self.names)

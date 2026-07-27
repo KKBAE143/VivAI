@@ -4,14 +4,57 @@ import { layerForPath } from "./layers";
 import type { CodeFile } from "./types";
 
 const CODE_EXTS = new Set([
-  ".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".py", ".pyw", ".pyi", ".java", ".go",
-  ".rb", ".php", ".rs", ".c", ".cpp", ".cc", ".h", ".hpp", ".cs", ".swift", ".kt",
-  ".kts", ".scala", ".lua", ".sh", ".bash", ".sql", ".vue", ".svelte",
+  ".js",
+  ".jsx",
+  ".ts",
+  ".tsx",
+  ".mjs",
+  ".cjs",
+  ".py",
+  ".pyw",
+  ".pyi",
+  ".java",
+  ".go",
+  ".rb",
+  ".php",
+  ".rs",
+  ".c",
+  ".cpp",
+  ".cc",
+  ".h",
+  ".hpp",
+  ".cs",
+  ".swift",
+  ".kt",
+  ".kts",
+  ".scala",
+  ".lua",
+  ".sh",
+  ".bash",
+  ".sql",
+  ".vue",
+  ".svelte",
 ]);
 
 const TEXT_EXTS = new Set([
-  ".md", ".txt", ".json", ".yaml", ".yml", ".toml", ".xml", ".html", ".htm", ".css",
-  ".scss", ".sass", ".less", ".graphql", ".gql", ".prisma", ".proto", ".env",
+  ".md",
+  ".txt",
+  ".json",
+  ".yaml",
+  ".yml",
+  ".toml",
+  ".xml",
+  ".html",
+  ".htm",
+  ".css",
+  ".scss",
+  ".sass",
+  ".less",
+  ".graphql",
+  ".gql",
+  ".prisma",
+  ".proto",
+  ".env",
 ]);
 
 const LANG_BY_EXT: Record<string, string> = {
@@ -84,7 +127,10 @@ export function extractImports(content: string, filename: string): string[] {
     while ((m = fromRe.exec(content))) imports.add(m[1]);
     while ((m = importRe.exec(content))) {
       m[1].split(",").forEach((part) => {
-        const mod = part.trim().split(/\s+as\s+/)[0]?.trim();
+        const mod = part
+          .trim()
+          .split(/\s+as\s+/)[0]
+          ?.trim();
         if (mod) imports.add(mod);
       });
     }
@@ -114,7 +160,11 @@ export function extractImports(content: string, filename: string): string[] {
 }
 
 /** Resolve relative JS/TS imports to a path-like key when possible. */
-export function resolveImportTarget(fromPath: string, spec: string, allPaths: Set<string>): string | null {
+export function resolveImportTarget(
+  fromPath: string,
+  spec: string,
+  allPaths: Set<string>,
+): string | null {
   if (!spec.startsWith(".") && !spec.startsWith("/")) return null;
   const fromDir = fromPath.replace(/\\/g, "/").split("/").slice(0, -1);
   const parts = spec.replace(/\\/g, "/").split("/");
@@ -124,7 +174,7 @@ export function resolveImportTarget(fromPath: string, spec: string, allPaths: Se
     if (p === "..") stack.pop();
     else stack.push(p);
   }
-  let base = stack.join("/");
+  const base = stack.join("/");
   const candidates = [
     base,
     base + ".ts",

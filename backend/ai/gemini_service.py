@@ -6,6 +6,10 @@ from google import genai
 from google.genai import types
 
 from core.config import get_settings
+from core.logging import get_logger
+
+
+logger = get_logger("gemini")
 
 LLM_MODEL = "gemini-2.0-flash"
 VLM_MODEL = "gemini-2.0-flash"
@@ -84,7 +88,10 @@ def generate_json(prompt: str, system_instruction: str | None = None, default=No
             return _extract_json(generate_text(p, system_instruction))
         except Exception as exc:  # noqa: BLE001 — we intentionally retry on anything
             last_err = exc
-    print(f"[v0] generate_json failed after {retries + 1} attempts: {last_err}")
+    logger.warning(
+        "generate_json failed after all retries",
+        extra={"event": "generate_json_failed", "attempt": retries + 1, "reason": str(last_err)},
+    )
     return default
 
 
@@ -98,5 +105,8 @@ def generate_json_with_image(prompt: str, image_data: bytes, mime_type: str, def
             return _extract_json(generate_with_image(p, image_data, mime_type))
         except Exception as exc:  # noqa: BLE001
             last_err = exc
-    print(f"[v0] generate_json_with_image failed after {retries + 1} attempts: {last_err}")
+    logger.warning(
+        "generate_json_with_image failed after all retries",
+        extra={"event": "generate_json_image_failed", "attempt": retries + 1, "reason": str(last_err)},
+    )
     return default

@@ -206,8 +206,19 @@ export function useRemoveMember() {
 export function useUpdateMemberRole() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ teamId, profileId, role }: { teamId: string; profileId: string; role: string }) =>
-      api<ApiRecord>(`/api/teams/${teamId}/members/${profileId}/role`, { method: "PUT", body: { role } }),
+    mutationFn: ({
+      teamId,
+      profileId,
+      role,
+    }: {
+      teamId: string;
+      profileId: string;
+      role: string;
+    }) =>
+      api<ApiRecord>(`/api/teams/${teamId}/members/${profileId}/role`, {
+        method: "PUT",
+        body: { role },
+      }),
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ["team", vars.teamId] });
     },
@@ -215,11 +226,19 @@ export function useUpdateMemberRole() {
 }
 
 export function useTeamActivity(teamId: string) {
-  return useAuthedQuery<ApiRecord[]>(["team-activity", teamId], `/api/teams/${teamId}/activity`, Boolean(teamId));
+  return useAuthedQuery<ApiRecord[]>(
+    ["team-activity", teamId],
+    `/api/teams/${teamId}/activity`,
+    Boolean(teamId),
+  );
 }
 
 export function useTeamIncomingRequests(teamId: string) {
-  return useAuthedQuery<ApiRecord[]>(["team-requests", teamId], `/api/teams/${teamId}/requests`, Boolean(teamId));
+  return useAuthedQuery<ApiRecord[]>(
+    ["team-requests", teamId],
+    `/api/teams/${teamId}/requests`,
+    Boolean(teamId),
+  );
 }
 
 function useInvalidateTeamLinkQueries() {
@@ -288,7 +307,9 @@ export function useRequestTeamLink(projectId: string) {
   const invalidate = useInvalidateTeamLinkQueries();
   return useMutation({
     mutationFn: (inviteCode: string) =>
-      api<ApiRecord>(`/api/projects/${projectId}/team/request`, { body: { invite_code: inviteCode } }),
+      api<ApiRecord>(`/api/projects/${projectId}/team/request`, {
+        body: { invite_code: inviteCode },
+      }),
     onSuccess: () => invalidate(projectId),
   });
 }
@@ -350,7 +371,10 @@ export function useReorderTasks() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ projectId, moves }: { projectId: string; moves: TaskMove[] }) =>
-      api<{ ok: boolean }>(`/api/projects/${projectId}/tasks/reorder`, { method: "PUT", body: { moves } }),
+      api<{ ok: boolean }>(`/api/projects/${projectId}/tasks/reorder`, {
+        method: "PUT",
+        body: { moves },
+      }),
     onMutate: async ({ projectId, moves }) => {
       const key = ["project", projectId] as const;
       await queryClient.cancelQueries({ queryKey: key });
@@ -358,24 +382,34 @@ export function useReorderTasks() {
       queryClient.setQueryData<ApiRecord>(key, (project) => {
         if (!project || !Array.isArray(project.tasks)) return project;
         const byId = new Map(moves.map((move) => [move.id, move]));
-        return { ...project, tasks: project.tasks.map((task) => {
-          const move = byId.get(String((task as ApiRecord).id));
-          return move ? { ...(task as ApiRecord), status: move.status, sort_order: move.sort_order } : task;
-        }) };
+        return {
+          ...project,
+          tasks: project.tasks.map((task) => {
+            const move = byId.get(String((task as ApiRecord).id));
+            return move
+              ? { ...(task as ApiRecord), status: move.status, sort_order: move.sort_order }
+              : task;
+          }),
+        };
       });
       return { key, previous };
     },
     onError: (_error, _vars, context) => {
       if (context) queryClient.setQueryData(context.key, context.previous);
     },
-    onSettled: (_data, _error, { projectId }) => queryClient.invalidateQueries({ queryKey: ["project", projectId] }),
+    onSettled: (_data, _error, { projectId }) =>
+      queryClient.invalidateQueries({ queryKey: ["project", projectId] }),
   });
 }
 
 export function useUpdateTask() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ taskId, projectId: _projectId, ...body }: { taskId: string; projectId?: string } & ApiRecord) =>
+    mutationFn: ({
+      taskId,
+      projectId: _projectId,
+      ...body
+    }: { taskId: string; projectId?: string } & ApiRecord) =>
       api<ApiRecord>(`/api/tasks/${taskId}`, { method: "PUT", body }),
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
@@ -492,12 +526,10 @@ export function useLeaderboard() {
 // ---------- AI Viva ----------
 
 export function useVivaSessions() {
-  return useAuthedQuery<ApiRecord[]>(
-    ["viva-sessions"],
-    "/api/viva/sessions",
-    true,
-    { refetchOnWindowFocus: true, refetchInterval: 30_000 },
-  );
+  return useAuthedQuery<ApiRecord[]>(["viva-sessions"], "/api/viva/sessions", true, {
+    refetchOnWindowFocus: true,
+    refetchInterval: 30_000,
+  });
 }
 
 export function useVivaSession(id: string) {
@@ -536,12 +568,10 @@ export function useVivaStats() {
 // ---------- AI Presentation ----------
 
 export function usePresentations() {
-  return useAuthedQuery<ApiRecord[]>(
-    ["presentations"],
-    "/api/presentation/sessions",
-    true,
-    { refetchOnWindowFocus: true, refetchInterval: 30_000 },
-  );
+  return useAuthedQuery<ApiRecord[]>(["presentations"], "/api/presentation/sessions", true, {
+    refetchOnWindowFocus: true,
+    refetchInterval: 30_000,
+  });
 }
 
 export function usePresentationSession(id: string) {
@@ -555,7 +585,8 @@ export function usePresentationSession(id: string) {
 export function useStartPresentation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => api<ApiRecord>(`/api/presentation/sessions/${id}/start`, { method: "POST" }),
+    mutationFn: (id: string) =>
+      api<ApiRecord>(`/api/presentation/sessions/${id}/start`, { method: "POST" }),
     onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ["presentation-session", id] });
       queryClient.invalidateQueries({ queryKey: ["presentations"] });
@@ -612,7 +643,9 @@ export function useAskPresentationQuestion() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) =>
-      api<PresentationQuestionResponse>(`/api/presentation/sessions/${id}/question`, { method: "POST" }),
+      api<PresentationQuestionResponse>(`/api/presentation/sessions/${id}/question`, {
+        method: "POST",
+      }),
     onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ["presentation-session", id] });
     },
@@ -627,7 +660,9 @@ export function useAnswerPresentationQuestion() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, answer }: { id: string; answer: string }) =>
-      api<PresentationAnswerResponse>(`/api/presentation/sessions/${id}/answer`, { body: { answer } }),
+      api<PresentationAnswerResponse>(`/api/presentation/sessions/${id}/answer`, {
+        body: { answer },
+      }),
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ["presentation-session", vars.id] });
     },
@@ -637,7 +672,8 @@ export function useAnswerPresentationQuestion() {
 export function useEndPresentation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => api<ApiRecord>(`/api/presentation/sessions/${id}/end`, { method: "POST" }),
+    mutationFn: (id: string) =>
+      api<ApiRecord>(`/api/presentation/sessions/${id}/end`, { method: "POST" }),
     onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ["presentation-session", id] });
       queryClient.invalidateQueries({ queryKey: ["presentations"] });

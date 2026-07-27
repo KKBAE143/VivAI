@@ -3,6 +3,10 @@ from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from .database import get_supabase
+from core.logging import get_logger
+
+
+logger = get_logger("deps")
 
 security = HTTPBearer(auto_error=False)
 
@@ -37,7 +41,11 @@ def get_current_user(
             }).execute()
             profile_data = new_prof.data[0] if new_prof.data else None
     except Exception as exc:
-        print(f"Failed to fetch/create profile: {exc}")
+        logger.warning(
+            "failed to fetch or create profile",
+            exc_info=True,
+            extra={"event": "profile_fetch_failed"},
+        )
         profile_data = None
 
     return {

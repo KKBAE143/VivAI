@@ -11,6 +11,8 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getToken, wsUrl } from "@/lib/api";
+import { captureSilent, report } from "@/diagnostics/client";
+import { startTrace, traceQuery } from "@/diagnostics/trace";
 
 export type LiveStatus = "idle" | "connecting" | "live" | "reconnecting" | "ended" | "error";
 export type LiveMode = "viva" | "presentation" | "pitch" | "coach";
@@ -308,7 +310,10 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
       try {
         s.stop();
       } catch {
-        /* already stopped */
+        // AUDITED: expected. AudioBufferSourceNode.stop() throws
+        // InvalidStateError on an already-ended node, which happens on every
+        // barge-in. Instrumenting this would flood the report and bury real
+        // failures — the exact opposite of the point.
       }
     });
     activeSourcesRef.current = [];
@@ -365,7 +370,10 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
           Math.max(300, (playHeadRef.current - now) * 1000 + 150),
         );
       }
-    } catch {
+    } catch (e) {
+      // Sets audioBlocked, but the CAUSE was lost. A decode/scheduling failure
+      // here is heard as "the examiner never spoke".
+      captureSilent(e, "play_chunk_failed", { feature: "live" });
       if (!pausedRef.current) setAudioBlocked(true);
     }
   }, []);
@@ -393,7 +401,10 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
       src.connect(ctx.destination);
       src.start();
       setAudioBlocked(ctx.state !== "running");
-    } catch {
+    } catch (e) {
+      // The student explicitly tapped "enable AI voice" and it still failed —
+      // the one path where we know they noticed and we knew nothing.
+      captureSilent(e, "unlock_audio_failed", { feature: "live" });
       setAudioBlocked(true);
     }
   }, []);
@@ -446,11 +457,15 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     if (ws && ws.readyState === WebSocket.OPEN) {
       try {
         ws.send(JSON.stringify({ type: "mic_open" }));
-      } catch {
-        /* the server's safety release covers this */
+      } catch (e) {
+        // Still survivable — the server's 20s safety release opens its gate
+        // anyway — but it costs the student 20 seconds of dead air, which is
+        // exactly the kind of "it just felt broken" symptom that is impossible
+        // to diagnose after the fact.
+        captureSilent(e, "mic_open_send_failed", { feature: "live", mode });
       }
     }
-  }, []);
+  }, [mode]);
 
   /**
    * Open the mic gate only once the greeting audio has genuinely finished
@@ -493,13 +508,18 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
         raw.data
           .arrayBuffer()
           .then(playChunk)
-          .catch(() => {});
+          // Silently dropping a frame makes the AI intermittently inaudible
+          // with no other symptom.
+          .catch((e) => captureSilent(e, "audio_blob_read_failed", { feature: "live" }));
         return;
       }
       let msg: Record<string, unknown>;
       try {
         msg = JSON.parse(raw.data as string);
-      } catch {
+      } catch (e) {
+        // A frame the server sent that we cannot parse is a protocol bug
+        // (truncation, encoding), not noise — and it is invisible otherwise.
+        captureSilent(e, "ws_frame_parse_failed", { feature: "live" });
         return;
       }
       switch (msg.type) {
@@ -596,7 +616,8 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
             try {
               wsRef.current?.close();
             } catch {
-              /* noop */
+              // AUDITED: expected. Closing an already-closed socket. The close
+              // is best-effort teardown and nothing downstream depends on it.
             }
             wsRef.current = null;
           }, FORCE_CLOSE_MS);
@@ -612,6 +633,10 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
           break;
         }
         case "error":
+          report(String(msg.message ?? "Live engine error"), {
+            kind: "ws_error",
+            context: { feature: "live", mode, reason: "server_error_message" },
+          });
           setError(String(msg.message ?? "Live engine error"));
           setStatus("error");
           break;
@@ -619,7 +644,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
           break;
       }
     },
-    [playChunk, stopPlayback, commitUser, commitAi, openGateWhenDrained, openGate],
+    [playChunk, stopPlayback, commitUser, commitAi, openGateWhenDrained, openGate, mode],
   );
 
   // ------------------------- frame sampling ----------------------------- //
@@ -651,6 +676,10 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
 
       const stillCurrent = () => generation === startGenerationRef.current;
 
+      // One trace per live session: everything from here — the preflight
+      // handoff, the socket, and every Gemini call the backend makes inside it
+      // — shares an id, so the report can show the whole chain as one tree.
+      startTrace();
       setStatus("connecting");
       setError("");
       setCaptions([]);
@@ -693,7 +722,11 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
             (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
           playbackCtxRef.current = new PlaybackCtx();
         }
-        await playbackCtxRef.current.resume().catch(() => {});
+        await playbackCtxRef.current
+          .resume()
+          // Autoplay policy refusing to resume is the single most common cause
+          // of a completely silent session.
+          .catch((e) => captureSilent(e, "playback_resume_failed", { feature: "live" }));
         // Warm the output path under the (still recent) user gesture chain.
         try {
           const warm = playbackCtxRef.current.createBuffer(1, 1, PLAYBACK_SAMPLE_RATE);
@@ -701,8 +734,10 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
           warmSrc.buffer = warm;
           warmSrc.connect(playbackCtxRef.current.destination);
           warmSrc.start();
-        } catch {
-          /* ignore */
+        } catch (e) {
+          // Failing to warm the output path usually means autoplay policy is
+          // about to silence the whole session.
+          captureSilent(e, "playback_warmup_failed", { feature: "live", mode });
         }
         if (!stillCurrent()) {
           startInFlightRef.current = false;
@@ -712,7 +747,10 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
         if (playbackCtxRef.current.state !== "running") {
           setAudioBlocked(true);
         }
-      } catch {
+      } catch (e) {
+        // The student sees the message; without this we never learn WHY the
+        // browser refused, which is the only actionable part.
+        captureSilent(e, "playback_setup_failed", { feature: "live", mode });
         setError("Audio playback is not supported in this browser.");
         setStatus("error");
         startInFlightRef.current = false;
@@ -728,6 +766,8 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
         try {
           ctx = new CaptureCtx({ sampleRate: CAPTURE_SAMPLE_RATE });
         } catch {
+          // AUDITED: expected. Feature detection — Firefox rejects a forced
+          // sampleRate, so fall back to the default and resample in JS.
           ctx = new CaptureCtx();
         }
         if (!stillCurrent()) {
@@ -772,7 +812,10 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
         node.connect(sink);
         sink.connect(ctx.destination);
         workletNodeRef.current = node;
-      } catch {
+      } catch (e) {
+        // Covers AudioWorklet.addModule, the Blob URL, and getUserMedia wiring —
+        // three very different failures behind one identical message.
+        captureSilent(e, "mic_processor_setup_failed", { feature: "live", mode });
         setError("Could not access the microphone processor.");
         setStatus("error");
         startInFlightRef.current = false;
@@ -791,7 +834,11 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
         v.muted = true;
         v.playsInline = true;
         v.srcObject = videoStream;
-        await v.play().catch(() => {});
+        // If this never plays, videoWidth stays 0 and sendFrame silently ships
+        // nothing — presentation/coach degrade to audio-only with no error.
+        await v
+          .play()
+          .catch((e) => captureSilent(e, "frame_video_play_failed", { feature: "live" }));
         if (!stillCurrent()) {
           startInFlightRef.current = false;
           setStatus("idle");
@@ -810,6 +857,13 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
       const hasVideo = Boolean(videoStream && videoStream.getVideoTracks().length > 0);
       if (hasVideo) qs.set("video", videoSource ?? "1");
       qs.set("pv", "1"); // client protocol version (additive negotiation seam)
+      // Trace propagation for the WebSocket leg. The browser WebSocket API
+      // cannot set request headers, so the URL is the only channel — this is
+      // what ties a Gemini failure deep in the backend back to this session.
+      // Dev only, so the production handshake is unchanged.
+      if (import.meta.env.DEV) {
+        for (const [key, value] of Object.entries(traceQuery())) qs.set(key, value);
+      }
 
       if (!stillCurrent() || wsRef.current) {
         startInFlightRef.current = false;
@@ -824,6 +878,12 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
       startInFlightRef.current = false;
       ws.onmessage = handleMessage;
       ws.onerror = () => {
+        // Never pass the socket URL here — it embeds the student's JWT as a
+        // query param (see the warning on wsUrl).
+        report("live websocket error", {
+          kind: "ws_error",
+          context: { feature: "live", mode, url_path: `/ws/live/${mode}`, reason: "socket_error" },
+        });
         setError("Connection error. The live AI engine may be busy — please retry.");
         setStatus("error");
       };
@@ -866,30 +926,39 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     try {
       workletNodeRef.current?.disconnect();
       micSourceRef.current?.disconnect();
-    } catch {
-      /* noop */
+    } catch (e) {
+      // A failure here leaks the mic node, and the browser keeps showing the
+      // recording indicator — visible to the user, invisible to us.
+      captureSilent(e, "media_teardown_failed", { feature: "live", mode });
     }
     workletNodeRef.current = null;
     micSourceRef.current = null;
-    captureCtxRef.current?.close().catch(() => {});
+    captureCtxRef.current
+      ?.close()
+      .catch((e) => captureSilent(e, "capture_ctx_close_failed", { feature: "live" }));
     captureCtxRef.current = null;
     // Do not close playbackAudioContext handed from preflight if caller still owns it —
     // still safe to close here for session teardown; preflight already transferred ownership.
-    playbackCtxRef.current?.close().catch(() => {});
+    playbackCtxRef.current
+      ?.close()
+      .catch((e) => captureSilent(e, "playback_ctx_close_failed", { feature: "live" }));
     playbackCtxRef.current = null;
     if (frameVideoRef.current) {
       frameVideoRef.current.srcObject = null;
       frameVideoRef.current = null;
     }
-  }, [stopPlayback]);
+  }, [stopPlayback, mode]);
 
   const stop = useCallback(() => {
     const ws = wsRef.current;
     if (ws && ws.readyState === WebSocket.OPEN) {
       try {
         ws.send(JSON.stringify({ type: "end" }));
-      } catch {
-        /* noop */
+      } catch (e) {
+        // If this send is lost the server never learns the session ended, so
+        // it never finalizes and the student never gets a report. Silence here
+        // is precisely the "my session vanished" failure.
+        captureSilent(e, "end_send_failed", { feature: "live", mode });
       }
     }
     // Tear down capture/playback media immediately (student is done talking)…
@@ -904,11 +973,12 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
       try {
         ws?.close();
       } catch {
-        /* noop */
+        // AUDITED: expected. Closing an already-closed socket. The close is
+        // best-effort teardown and nothing downstream depends on it.
       }
       wsRef.current = null;
     }, FORCE_CLOSE_MS);
-  }, [cleanup]);
+  }, [cleanup, mode]);
 
   const toggleMic = useCallback(() => {
     // While paused, mic is forced silent — don't fight the pause state.
@@ -950,7 +1020,10 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     }
     const ctx = playbackCtxRef.current;
     if (ctx && ctx.state === "running") {
-      void ctx.suspend().catch(() => {});
+      // A failed suspend means "Paused" is a lie — audio keeps playing.
+      void ctx
+        .suspend()
+        .catch((e) => captureSilent(e, "pause_suspend_failed", { feature: "live" }));
     }
   }, []);
 
@@ -991,7 +1064,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     try {
       wsRef.current?.close();
     } catch {
-      /* noop */
+      // AUDITED: expected. Closing an already-closed socket during teardown.
     }
     wsRef.current = null;
     endedReceivedRef.current = false;
@@ -1027,7 +1100,8 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
       try {
         wsRef.current?.close();
       } catch {
-        /* noop */
+        // AUDITED: expected. Closing an already-closed socket. The close is
+        // best-effort teardown and nothing downstream depends on it.
       }
       wsRef.current = null;
     };

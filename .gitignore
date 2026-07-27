@@ -54,3 +54,24 @@ venv/
 .output/
 .wrangler/
 .nitro/
+.pytest_cache/
+.hypothesis/
+
+# Third-party desktop tool state that happens to live in this repo root.
+# It is a live SQLite database (+ WAL) rewritten on every run, so tracking it
+# churned the diff on every commit and bloated history for no benefit.
+.freebuff/
+
+# Agent runtime state (not project config — .claude/ itself stays committable
+# so per-project agent/skill definitions can be shared).
+.claude/scheduled_tasks.lock
+.claude/*.lock
+
+# Diagnostics sink — LOCAL ONLY.
+# The captured data is redacted, but redaction can only catch shapes it knows
+# about, and git history is permanent. An ignored file that leaks is a delete;
+# a committed one is a history rewrite plus a credential rotation. Claude can
+# still read these by path — nothing is lost by keeping them out of git.
+diagnostics/**
+!diagnostics/README.md
+!diagnostics/.gitkeep

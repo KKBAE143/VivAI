@@ -7,11 +7,12 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { ThemeProvider } from "../lib/theme";
 import { AuthProvider } from "../lib/auth-context";
+import { initDiagnostics, report } from "../diagnostics/client";
 
 function NotFoundComponent() {
   return (
@@ -38,6 +39,12 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
+
+  // Capture in an effect, not during render: React StrictMode double-invokes
+  // render in development, which would double-report every render failure.
+  useEffect(() => {
+    report(error, { kind: "render_error", context: { component: "route" } });
+  }, [error]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -112,6 +119,14 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  // Attaches the browser-side global error listeners. Idempotent, dev-only, and
+  // adds no level to the provider tree. Until now `src/lib/error-capture.ts`
+  // registered these only on the server (it is imported solely by server.ts),
+  // so the browser had no global capture at all.
+  useEffect(() => {
+    initDiagnostics();
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

@@ -138,7 +138,9 @@ export function useSentimentSocket(sessionId: string | null) {
 
   const sendFrame = useCallback((dataUrl: string) => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify({ type: "frame", data: dataUrl, mime_type: "image/jpeg" }));
+      socketRef.current.send(
+        JSON.stringify({ type: "frame", data: dataUrl, mime_type: "image/jpeg" }),
+      );
     }
   }, []);
 

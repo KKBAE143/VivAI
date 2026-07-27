@@ -5,12 +5,15 @@ then anonymizes the profile row.
 """
 from __future__ import annotations
 
-import logging
 from datetime import datetime, timezone
 
 from core.database import get_supabase
+from core.logging import get_logger
 
-logger = logging.getLogger(__name__)
+# `get_logger` (not logging.getLogger) so this lands in the horux.* namespace
+# and reaches the diagnostics sink like every other module. Erasure failures
+# are exactly the kind you must not discover from a user complaint.
+logger = get_logger("deletion")
 
 # Tables with profile_id FK — deleted in dependency order.
 _PROFILE_TABLES = [
@@ -55,7 +58,11 @@ def execute_deletion(profile_id: str) -> dict:
                 try:
                     sb.storage.from_("uploads").remove(storage_paths)
                 except Exception as e:
-                    logger.warning(f"Storage cleanup failed for {profile_id}: {e}")
+                    logger.warning(
+                        "storage cleanup failed",
+                        exc_info=True,
+                        extra={"user_id": profile_id, "event": "erasure_storage_failed"},
+                    )
             sb.table("files").delete().eq("profile_id", profile_id).execute()
             deleted.append("files")
 
@@ -67,7 +74,11 @@ def execute_deletion(profile_id: str) -> dict:
                 try:
                     sb.storage.from_("uploads").remove(snap_paths)
                 except Exception as e:
-                    logger.warning(f"Snapshot storage cleanup failed for {profile_id}: {e}")
+                    logger.warning(
+                        "snapshot storage cleanup failed",
+                        exc_info=True,
+                        extra={"user_id": profile_id, "event": "erasure_snapshot_failed"},
+                    )
 
         # 4. Delete from all profile-linked tables
         for table in _PROFILE_TABLES:
@@ -75,7 +86,11 @@ def execute_deletion(profile_id: str) -> dict:
                 sb.table(table).delete().eq("profile_id", profile_id).execute()
                 deleted.append(table)
             except Exception as e:
-                logger.warning(f"Deletion from {table} failed for {profile_id}: {e}")
+                logger.warning(
+                    "table deletion failed",
+                    exc_info=True,
+                    extra={"user_id": profile_id, "event": "erasure_table_failed", "tag": table},
+                )
 
         # 5. Delete session_events (live sessions)
         try:
@@ -123,6 +138,10 @@ def execute_deletion(profile_id: str) -> dict:
         return {"status": "completed", "deleted_tables": deleted}
 
     except Exception as e:
-        logger.error(f"Data deletion failed for {profile_id}: {e}")
+        logger.error(
+            "data deletion failed",
+            exc_info=True,
+            extra={"user_id": profile_id, "event": "erasure_failed"},
+        )
         # Leave request in 'processing' state for manual intervention
         return {"status": "error", "detail": str(e)}

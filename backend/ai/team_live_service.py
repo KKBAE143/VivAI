@@ -13,9 +13,14 @@ from __future__ import annotations
 
 from google.genai import types
 
+from ai import live_service
 from ai.live_service import DEFAULT_VOICE, _language_directive, _transcription_language_hints
 from ai.registry import DEFAULT_PERSONA_ID, PERSONAS, render_persona_block
 from core.config import get_settings
+from core.logging import get_logger
+
+
+logger = get_logger("team_live_service")
 
 TEAM_VIVA_PLAYBOOK = """ROLE: You are conducting a live, spoken GROUP VIVA VOCE for a team of students together, all present at once. This is a face-to-face oral exam — you cannot see anyone's screen or code; base everything on the project context below and on what students SAY.
 
@@ -168,6 +173,7 @@ def build_team_config(
     language: str,
     project_context: str,
     subject: str | None = None,
+    resume_handle: str | None = None,
 ) -> types.LiveConnectConfig:
     settings = get_settings()
     voice = (settings.gemini_live_voice or DEFAULT_VOICE).strip() or DEFAULT_VOICE
@@ -180,7 +186,11 @@ def build_team_config(
             language_hints=types.LanguageHints(language_codes=_transcription_language_hints(language))
         )
     except Exception as exc:  # noqa: BLE001 — optional accuracy tuning, never fatal
-        print(f"[team_live] input transcription language hints unavailable, using defaults: {exc}")
+        logger.warning(
+            "input transcription language hints unavailable, using defaults",
+            exc_info=True,
+            extra={"event": "config_hints_unavailable", "mode": "team_viva"},
+        )
         input_transcription_cfg = types.AudioTranscriptionConfig()
 
     kwargs = dict(
@@ -192,15 +202,43 @@ def build_team_config(
         output_audio_transcription=types.AudioTranscriptionConfig(),
         tools=_team_tools(),
     )
+    # SESSION LIFETIME — see the same block in live_service.build_config. This
+    # config is built independently of the solo one, so it needs its own copy:
+    # without it the Live API hard-terminates a team viva at 15 minutes, which
+    # a 3-5 person group covering 5+ questions routinely exceeds.
+    try:
+        kwargs["context_window_compression"] = types.ContextWindowCompressionConfig(
+            sliding_window=types.SlidingWindow(),
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "context window compression unavailable",
+            exc_info=True,
+            extra={"event": "config_compression_unavailable", "mode": "team_viva"},
+        )
+    # A single connection lives ~10 minutes regardless of session duration;
+    # resumption is what carries the room across that boundary.
+    try:
+        kwargs["session_resumption"] = types.SessionResumptionConfig(handle=resume_handle)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "session resumption unavailable",
+            exc_info=True,
+            extra={"event": "config_resumption_unavailable", "mode": "team_viva"},
+        )
     try:
         kwargs["realtime_input_config"] = types.RealtimeInputConfig(
             automatic_activity_detection=types.AutomaticActivityDetection(
                 start_of_speech_sensitivity=types.StartSensitivity.START_SENSITIVITY_LOW,
                 end_of_speech_sensitivity=types.EndSensitivity.END_SENSITIVITY_LOW,
-                prefix_padding_ms=300,
-                silence_duration_ms=1500,
+                prefix_padding_ms=live_service.VAD_PREFIX_PADDING_MS,
+                silence_duration_ms=live_service.VAD_SILENCE_DURATION_MS,
             )
         )
     except Exception as exc:  # noqa: BLE001 — optional tuning, never fatal
-        print(f"[team_live] VAD tuning unavailable, using defaults: {exc}")
+        logger.warning(
+            "VAD tuning unavailable, using defaults",
+            exc_info=True,
+            extra={"event": "config_vad_unavailable", "mode": "team_viva"},
+        )
     return types.LiveConnectConfig(**kwargs)

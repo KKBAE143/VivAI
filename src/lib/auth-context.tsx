@@ -1,12 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-  type ReactNode,
-} from "react";
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 
 import { api, getToken, setToken, setTokens, setRefreshToken, AUTH_LOGOUT_EVENT } from "./api";
 
@@ -46,7 +39,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               currentToken = accessToken;
               setTokens(accessToken, params.get("refresh_token"));
               // Clean the hash from the URL
-              window.history.replaceState(null, "", window.location.pathname + window.location.search);
+              window.history.replaceState(
+                null,
+                "",
+                window.location.pathname + window.location.search,
+              );
             }
           } catch (e) {
             console.error("Failed to parse OAuth hash token:", e);
@@ -60,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           try {
             const verifier = window.localStorage.getItem("supabase_code_verifier") || "";
             const res = await api<{ access_token: string; refresh_token?: string }>(
-              `/api/auth/callback?code=${encodeURIComponent(code)}&code_verifier=${encodeURIComponent(verifier)}`
+              `/api/auth/callback?code=${encodeURIComponent(code)}&code_verifier=${encodeURIComponent(verifier)}`,
             );
             if (res.access_token) {
               currentToken = res.access_token;
