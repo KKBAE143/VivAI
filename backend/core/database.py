@@ -9,7 +9,7 @@ from functools import lru_cache
 
 import httpx
 from supabase import Client, create_client
-from supabase.lib.client_options import ClientOptions
+from supabase.lib.client_options import SyncClientOptions as SupabaseOptions
 
 from .config import get_settings
 
@@ -20,5 +20,5 @@ def get_supabase() -> Client:
     return create_client(
         settings.supabase_url,
         settings.supabase_service_role_key,
-        options=ClientOptions(http_client=httpx.Client(http2=False)),
+        options=SupabaseOptions(httpx_client=httpx.Client(http2=False)),
     )
