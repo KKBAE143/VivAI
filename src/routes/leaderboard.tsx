@@ -29,7 +29,7 @@ function LeaderboardPage() {
       />
 
       {game.data && (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-4">
           <StatTile icon={Star} label="Your XP" value={String(game.data.xp)} tint />
           <StatTile icon={Award} label="Level" value={String(game.data.level)} />
           <StatTile icon={Flame} label="Current Streak" value={`${game.data.current_streak}d`} />
@@ -58,29 +58,29 @@ function LeaderboardPage() {
               return (
                 <div
                   key={String(row.id)}
-                  className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl px-3 py-2.5 ${
+                  className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 sm:gap-3 rounded-xl px-2.5 sm:px-3 py-2 sm:py-2.5 ${
                     isMe ? "bg-primary-soft" : "hover:bg-secondary/60"
                   }`}
                 >
                   <span
-                    className={`grid h-8 w-8 place-items-center rounded-full text-sm font-bold ${rankTone(rank)}`}
+                    className={`grid h-7 w-7 sm:h-8 sm:w-8 place-items-center rounded-full text-xs sm:text-sm font-bold ${rankTone(rank)}`}
                   >
                     {rank}
                   </span>
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold">
+                    <div className="truncate text-xs sm:text-sm font-semibold">
                       {String(row.full_name ?? "Student")}{" "}
                       {isMe && <span className="text-primary">(You)</span>}
                     </div>
-                    <div className="truncate text-[11px] text-muted-foreground">
+                    <div className="truncate text-[10px] sm:text-[11px] text-muted-foreground">
                       {[row.branch, row.year ? `${String(row.year)} Yr` : null]
                         .filter(Boolean)
                         .join(" · ") || "—"}
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1.5 sm:gap-3">
                     {Number(row.current_streak ?? 0) > 0 && (
-                      <span className="flex items-center gap-1 text-[11px] text-warning">
+                      <span className="flex items-center gap-1 text-[10px] sm:text-[11px] text-warning">
                         <Flame className="h-3 w-3" /> {String(row.current_streak)}
                       </span>
                     )}
@@ -116,7 +116,7 @@ function StatTile({
 }) {
   return (
     <div
-      className={`rounded-2xl p-4 shadow-[var(--shadow-card)] ${tint ? "bg-primary-soft" : "bg-card"}`}
+      className={`rounded-2xl p-3 sm:p-4 shadow-[var(--shadow-card)] ${tint ? "bg-primary-soft" : "bg-card"}`}
     >
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium text-muted-foreground">{label}</span>

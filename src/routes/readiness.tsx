@@ -33,15 +33,15 @@ function ReadinessPage() {
         <ErrorState message="Could not compute your readiness" onRetry={() => void q.refetch()} />
       ) : (
         <>
-          <Card className="!p-0">
-            <div className="grid gap-6 p-6 md:grid-cols-[auto_minmax(0,1fr)] md:items-center md:gap-8">
-              <div className="flex items-center gap-5">
-                <ReadinessGauge score={data?.score ?? 0} size={132} />
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <Card className="overflow-hidden !p-0">
+            <div className="grid gap-4 p-4 sm:p-6 md:grid-cols-[auto_minmax(0,1fr)] md:items-center md:gap-8">
+              <div className="flex items-center gap-3 sm:gap-5">
+                <ReadinessGauge score={data?.score ?? 0} size={110} />
+                <div className="min-w-0">
+                  <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     Overall
                   </p>
-                  <p className="mt-1 text-xl font-bold text-balance">
+                  <p className="mt-0.5 sm:mt-1 text-lg sm:text-xl font-bold text-balance">
                     {data?.label ?? "Getting started"}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">

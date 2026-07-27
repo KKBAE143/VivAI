@@ -30,7 +30,7 @@ export function GamificationStrip({ data }: { data?: Gamification }) {
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+    <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
       {/* Level + XP progress */}
       <div className="rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
         <div className="flex items-center justify-between">
@@ -53,23 +53,25 @@ export function GamificationStrip({ data }: { data?: Gamification }) {
         </div>
       </div>
 
-      {items.map((it) => {
-        const I = it.icon;
-        return (
-          <div
-            key={it.label}
-            className="flex items-center gap-3 rounded-2xl bg-card p-4 shadow-[var(--shadow-card)] sm:w-36"
-          >
-            <span className={`grid h-10 w-10 place-items-center rounded-xl ${it.bg} ${it.tint}`}>
-              <I className="h-5 w-5" />
-            </span>
-            <div>
-              <div className="text-xl font-bold leading-none">{it.value}</div>
-              <div className="mt-1 text-[11px] text-muted-foreground">{it.label}</div>
+      <div className="grid grid-cols-2 gap-3 sm:contents">
+        {items.map((it) => {
+          const I = it.icon;
+          return (
+            <div
+              key={it.label}
+              className="flex items-center gap-3 rounded-2xl bg-card p-3.5 sm:p-4 shadow-[var(--shadow-card)] sm:w-36"
+            >
+              <span className={`grid h-9 w-9 sm:h-10 sm:w-10 shrink-0 place-items-center rounded-xl ${it.bg} ${it.tint}`}>
+                <I className="h-4 w-4 sm:h-5 sm:w-5" />
+              </span>
+              <div className="min-w-0">
+                <div className="text-lg sm:text-xl font-bold leading-none">{it.value}</div>
+                <div className="mt-1 truncate text-[11px] text-muted-foreground">{it.label}</div>
+              </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }

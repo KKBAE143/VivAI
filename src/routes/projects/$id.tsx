@@ -116,13 +116,13 @@ function ProjectDetail() {
         </div>
       </div>
 
-      <Card className="!p-2">
-        <div className="flex flex-wrap items-center gap-1">
+      <Card className="!p-1.5 sm:!p-2">
+        <div className="flex items-center gap-1 overflow-x-auto whitespace-nowrap pb-0.5 sm:pb-0">
           {TABS.map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
+              className={`shrink-0 rounded-xl px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium transition-colors ${
                 t === tab
                   ? "bg-foreground text-background"
                   : "text-muted-foreground hover:bg-secondary"

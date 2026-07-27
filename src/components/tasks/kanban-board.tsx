@@ -135,7 +135,7 @@ function Column({
   return (
     <section
       ref={setNodeRef}
-      className={`min-h-44 rounded-xl bg-secondary p-3 ${isOver ? "ring-2 ring-primary/40" : ""}`}
+      className={`min-h-44 min-w-[260px] flex-1 rounded-xl bg-secondary p-3 md:min-w-0 ${isOver ? "ring-2 ring-primary/40" : ""}`}
     >
       <div className="mb-3 flex justify-between">
         <Badge tone={tone}>{status}</Badge>
@@ -235,7 +235,7 @@ export function KanbanBoard({
       onDragCancel={() => setActive(null)}
       onDragEnd={onDragEnd}
     >
-      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-4 flex gap-3 overflow-x-auto pb-3 md:grid md:overflow-visible md:pb-0 md:grid-cols-2 xl:grid-cols-4">
         {COLUMNS.map((column) => (
           <Column
             key={column.status}

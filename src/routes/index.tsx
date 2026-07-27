@@ -133,17 +133,17 @@ function ReadinessHero({ readiness }: { readiness?: import("@/lib/hooks-features
   const components = readiness?.components ?? [];
   return (
     <Card className="overflow-hidden !p-0">
-      <div className="grid gap-6 p-6 md:grid-cols-[auto_minmax(0,1fr)] md:items-center md:gap-8">
-        <div className="flex items-center gap-5">
+      <div className="grid gap-5 p-4 sm:p-6 md:grid-cols-[auto_minmax(0,1fr)] md:items-center md:gap-8">
+        <div className="flex items-center gap-4 sm:gap-5">
           <ReadinessGauge score={score} label="Ready" />
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Defense Readiness
             </p>
-            <p className="mt-1 text-lg font-bold leading-tight text-balance">{label}</p>
+            <p className="mt-1 text-base sm:text-lg font-bold leading-tight text-balance">{label}</p>
             <Link
               to="/readiness"
-              className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary"
+              className="mt-1.5 sm:mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary"
             >
               See full breakdown <ChevronRight className="h-3.5 w-3.5" />
             </Link>
@@ -151,7 +151,7 @@ function ReadinessHero({ readiness }: { readiness?: import("@/lib/hooks-features
         </div>
         <div className="space-y-4">
           {components.length > 0 && (
-            <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-x-4 sm:gap-x-6 gap-y-2.5 sm:gap-y-3 sm:grid-cols-3">
               {components.map((c) => (
                 <div key={c.key}>
                   <div className="flex items-center justify-between text-[11px]">
@@ -171,14 +171,14 @@ function ReadinessHero({ readiness }: { readiness?: import("@/lib/hooks-features
           <div className="flex flex-col gap-2 sm:flex-row">
             <Link
               to="/ai-viva/new"
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-transform hover:-translate-y-0.5"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 sm:py-3 text-sm font-semibold text-primary-foreground transition-transform hover:-translate-y-0.5"
             >
               <Mic className="h-4 w-4" /> Start Mock Viva
             </Link>
             {primaryAction && primaryAction.to !== "/ai-viva/new" && (
               <Link
                 to={primaryAction.to}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-secondary px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-secondary/70"
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-secondary px-4 py-2.5 sm:py-3 text-sm font-semibold text-foreground transition-colors hover:bg-secondary/70"
               >
                 <Sparkles className="h-4 w-4" /> {primaryAction.cta}
               </Link>
@@ -237,27 +237,27 @@ function StatRow({ stats }: { stats?: DashboardStats }) {
     },
   ];
   return (
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
       {items.map((s) => {
         const I = s.icon;
         const primary = s.tint === "primary";
         return (
           <div
             key={s.label}
-            className={`rounded-2xl p-5 shadow-[var(--shadow-card)] ${
+            className={`rounded-2xl p-3.5 sm:p-5 shadow-[var(--shadow-card)] ${
               primary ? "bg-primary-soft" : "bg-card"
             }`}
           >
-            <div className="flex items-start justify-between">
+            <div className="flex items-start justify-between gap-1">
               <span className="text-xs font-medium text-muted-foreground">{s.label}</span>
-              <I className={`h-4 w-4 ${primary ? "text-primary" : "text-muted-foreground"}`} />
+              <I className={`h-4 w-4 shrink-0 ${primary ? "text-primary" : "text-muted-foreground"}`} />
             </div>
-            <div className="mt-4 text-3xl font-bold tracking-tight text-foreground">{s.value}</div>
+            <div className="mt-3 sm:mt-4 text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{s.value}</div>
             <div
-              className={`mt-1 flex items-center gap-1 text-xs font-medium ${s.tone === "up" ? "text-success" : "text-warning"}`}
+              className={`mt-1 flex items-center gap-1 text-[11px] sm:text-xs font-medium ${s.tone === "up" ? "text-success" : "text-warning"}`}
             >
-              <ArrowUpRight className={`h-3 w-3 ${s.tone === "down" ? "rotate-180" : ""}`} />{" "}
-              {s.delta}
+              <ArrowUpRight className={`h-3 w-3 shrink-0 ${s.tone === "down" ? "rotate-180" : ""}`} />{" "}
+              <span className="truncate">{s.delta}</span>
             </div>
           </div>
         );

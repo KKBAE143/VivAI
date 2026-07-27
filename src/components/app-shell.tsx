@@ -22,8 +22,10 @@ import {
   Trophy,
   Video,
   Building2,
+  Menu,
+  X,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useTheme } from "@/lib/theme";
 import { useAuth, useRequireAuth } from "@/lib/auth-context";
 import { useProfile } from "@/lib/hooks";
@@ -74,6 +76,8 @@ export function AppShell({
   wide?: boolean;
 }) {
   const { ready, isLoading } = useRequireAuth();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">
@@ -82,25 +86,28 @@ export function AppShell({
     );
   }
   if (!ready) return null;
+
   if (wide) {
     return (
       <div className="flex min-h-screen flex-col bg-background">
-        <WideTopBar />
+        <WideTopBar onOpenMenu={() => setDrawerOpen(true)} />
         <main className="min-h-0 min-w-0 flex-1 pb-20 lg:pb-0">{children}</main>
-        <MobileNav />
+        <MobileNav onOpenMenu={() => setDrawerOpen(true)} />
+        <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
       </div>
     );
   }
   return (
     <div className="min-h-screen bg-background">
-      <div className="flex w-full gap-6 p-4 lg:p-6">
+      <div className="flex w-full gap-6 p-3 sm:p-4 lg:p-6">
         <Sidebar />
         <main className="min-w-0 flex-1 space-y-6 pb-24 lg:pb-0">
-          <TopBar />
+          <TopBar onOpenMenu={() => setDrawerOpen(true)} />
           {children}
         </main>
       </div>
-      <MobileNav />
+      <MobileNav onOpenMenu={() => setDrawerOpen(true)} />
+      <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </div>
   );
 }
@@ -185,15 +192,22 @@ function Sidebar() {
   );
 }
 
-function WideTopBar() {
+function WideTopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const title = pageTitle(pathname);
   return (
-    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card/95 px-3 backdrop-blur sm:px-4">
+    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2.5 border-b border-border bg-card/95 px-3 backdrop-blur sm:px-4">
+      <button
+        onClick={onOpenMenu}
+        aria-label="Open menu"
+        className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-secondary text-foreground lg:hidden"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
       <Link
         to="/"
         aria-label="Home"
-        className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground"
+        className="hidden grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground sm:grid"
       >
         <GraduationCap className="h-4 w-4" />
       </Link>
@@ -220,7 +234,7 @@ function WideTopBar() {
   );
 }
 
-function TopBar() {
+function TopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { data: profile } = useProfile();
   const fullName = String(profile?.full_name ?? "Student");
@@ -239,43 +253,45 @@ function TopBar() {
     .join(" · ");
   const title = pageTitle(pathname);
   return (
-    <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-2xl bg-card p-3 shadow-[var(--shadow-card)] sm:flex sm:justify-between">
-      <div className="flex min-w-0 items-center gap-3">
-        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground lg:hidden">
+    <header className="flex flex-wrap items-center justify-between gap-2.5 rounded-2xl bg-card p-2.5 shadow-[var(--shadow-card)] sm:p-3">
+      <div className="flex min-w-0 items-center gap-2.5">
+        <button
+          onClick={onOpenMenu}
+          aria-label="Open menu"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-secondary text-foreground lg:hidden"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        <div className="hidden grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground sm:grid lg:hidden">
           <GraduationCap className="h-5 w-5" />
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold sm:text-base">{title}</p>
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 sm:gap-2">
         <ThemeToggle />
-        <div className="flex items-center gap-1 rounded-full bg-secondary p-1">
+        <div className="hidden items-center gap-1 rounded-full bg-secondary p-1 min-[420px]:flex">
           <button
             aria-label="Search"
-            className="grid h-9 w-9 place-items-center rounded-full hover:bg-card"
+            className="grid h-8 w-8 place-items-center rounded-full hover:bg-card sm:h-9 sm:w-9"
           >
             <Search className="h-4 w-4" />
           </button>
           <button
             aria-label="Notifications"
-            className="relative grid h-9 w-9 place-items-center rounded-full hover:bg-card"
+            className="relative grid h-8 w-8 place-items-center rounded-full hover:bg-card sm:h-9 sm:w-9"
           >
             <Bell className="h-4 w-4" />
             <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />
           </button>
-          <button
-            aria-label="Info"
-            className="grid h-9 w-9 place-items-center rounded-full hover:bg-card"
-          >
-            <HelpCircle className="h-4 w-4" />
-          </button>
         </div>
         <Link
           to="/profile"
-          className="flex items-center gap-3 rounded-full bg-secondary py-1 pl-1 pr-4 hover:bg-secondary/80"
+          aria-label="Profile"
+          className="flex items-center gap-2.5 rounded-full bg-secondary py-1 pl-1 pr-2.5 hover:bg-secondary/80 sm:pr-4"
         >
-          <div className="grid h-9 w-9 place-items-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+          <div className="grid h-8 w-8 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground sm:h-9 sm:w-9 sm:text-sm">
             {initials}
           </div>
           <div className="hidden text-left sm:block">
@@ -288,7 +304,119 @@ function TopBar() {
   );
 }
 
-function MobileNav() {
+function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { logout } = useAuth();
+  const { data: profile } = useProfile();
+  const navigate = useNavigate();
+  const isActive = (to: string) => (to === "/" ? pathname === "/" : pathname.startsWith(to));
+  const isAdmin = profile?.role === "admin" || profile?.role === "faculty";
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex lg:hidden">
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-background/80 backdrop-blur-sm transition-opacity"
+        onClick={onClose}
+      />
+
+      {/* Drawer Container */}
+      <div className="relative flex w-4/5 max-w-xs flex-1 flex-col bg-card px-4 py-5 shadow-2xl">
+        <div className="flex items-center justify-between pb-4 border-b border-border">
+          <Link
+            to="/"
+            onClick={onClose}
+            aria-label="Home"
+            className="flex items-center gap-2.5"
+          >
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground">
+              <GraduationCap className="h-5 w-5" />
+            </span>
+            <span className="text-lg font-bold tracking-tight">VivAI</span>
+          </Link>
+          <button
+            onClick={onClose}
+            aria-label="Close menu"
+            className="grid h-9 w-9 place-items-center rounded-xl bg-secondary text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <nav className="mt-4 flex-1 space-y-5 overflow-y-auto pr-1">
+          {navGroups.map((group) => (
+            <div key={group.heading}>
+              <p className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                {group.heading}
+              </p>
+              <div className="flex flex-col gap-1">
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  const active = isActive(item.to);
+                  return (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      onClick={onClose}
+                      className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+                        active
+                          ? "bg-foreground text-background"
+                          : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      }`}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+
+          {isAdmin && (
+            <div>
+              <p className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                Admin
+              </p>
+              <div className="flex flex-col gap-1">
+                <Link
+                  to="/admin"
+                  onClick={onClose}
+                  className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+                    isActive("/admin")
+                      ? "bg-foreground text-background"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  }`}
+                >
+                  <Building2 className="h-4 w-4 shrink-0" />
+                  Institution Admin
+                </Link>
+              </div>
+            </div>
+          )}
+        </nav>
+
+        <div className="mt-4 border-t border-border pt-3 space-y-2">
+          <button
+            onClick={() => {
+              onClose();
+              logout();
+              navigate({ to: "/login" });
+            }}
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign out
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MobileNav({ onOpenMenu }: { onOpenMenu: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const items = [
     { to: "/", icon: LayoutDashboard, label: "Home" },
@@ -308,7 +436,7 @@ function MobileNav() {
               key={i.to}
               to={i.to}
               aria-label={i.label}
-              className="grid h-12 w-12 -translate-y-3 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg"
+              className="grid h-12 w-12 -translate-y-3 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg active:scale-95 transition-transform"
             >
               <Icon className="h-5 w-5" />
             </Link>
@@ -320,7 +448,7 @@ function MobileNav() {
             to={i.to}
             aria-label={i.label}
             className={`flex flex-1 flex-col items-center gap-0.5 rounded-xl py-2 text-[10px] ${
-              active ? "text-foreground" : "text-muted-foreground"
+              active ? "text-foreground font-semibold" : "text-muted-foreground"
             }`}
           >
             <Icon className="h-5 w-5" />
@@ -328,13 +456,21 @@ function MobileNav() {
           </Link>
         );
       })}
+      <button
+        onClick={onOpenMenu}
+        aria-label="More options"
+        className="flex flex-1 flex-col items-center gap-0.5 rounded-xl py-2 text-[10px] text-muted-foreground hover:text-foreground"
+      >
+        <Menu className="h-5 w-5" />
+        More
+      </button>
     </nav>
   );
 }
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`rounded-2xl bg-card p-6 shadow-[var(--shadow-card)] ${className}`}>
+    <div className={`rounded-2xl bg-card p-4 sm:p-6 shadow-[var(--shadow-card)] ${className}`}>
       {children}
     </div>
   );
@@ -350,12 +486,12 @@ export function PageHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm text-muted-foreground sm:text-base">{subtitle}</p>}
+        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-4xl">{title}</h1>
+        {subtitle && <p className="mt-1 text-xs text-muted-foreground sm:text-sm">{subtitle}</p>}
       </div>
-      {action}
+      {action && <div className="shrink-0">{action}</div>}
     </div>
   );
 }
