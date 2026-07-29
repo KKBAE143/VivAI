@@ -104,6 +104,38 @@ SESSION FLOW (follow in order):
 6. When done, give a brief encouraging closing remark, tell them you're preparing their communication report, then call the `end_session` tool.""",
 }
 
+# A reconnect without a resumption handle creates a model with no history. It
+# must receive a self-contained continuation playbook, not the fresh-session
+# playbook plus a contradictory override. Concrete opening examples elsewhere
+# in the system prompt repeatedly won over the old "do not greet" appendix.
+_MODE_CONTINUATION_PLAYBOOK = {
+    "viva": """ROLE: You are continuing a live, spoken VIVA VOCE already in progress. You cannot see the student's screen or code.
+
+SESSION CONTINUATION (the introduction already happened):
+1. Continue directly with ONE clear project/subject question. Do not restart or explain the format.
+2. After each answer, give one brief reaction and ask one progressively deeper question.
+3. {question_budget} Keep your turns short; the student should do most of the talking.
+4. When enough ground is covered, give a brief closing remark and call `end_session`.""",
+    "presentation": """ROLE: You are continuing a faculty review of the student's live project presentation and shared screen.
+
+SESSION CONTINUATION (the panel introduction already happened):
+1. Continue from the visible material without restarting the presentation.
+2. Give short reactions to what is actually visible and ask one focused question at a time.
+3. Cover problem, solution, technology and results, then close and call `end_session`.""",
+    "pitch": """ROLE: You are continuing an ELEVATOR PITCH drill already in progress.
+
+SESSION CONTINUATION (the challenge was already set):
+1. Continue from the student's pitch without introducing yourself or resetting the challenge.
+2. Ask short investor questions about market, differentiation, feasibility and impact.
+3. When done, close briefly and call `end_session`.""",
+    "coach": """ROLE: You are continuing a live communication-coaching scenario over the student's camera.
+
+SESSION CONTINUATION (the scenario and coaching role were already established):
+1. Continue the scenario directly with one prompt or question at a time.
+2. Add short, evidence-based coaching from what you see and hear; silently log observations.
+3. {question_budget} Keep your turns short, then close and call `end_session`.""",
+}
+
 
 # How long a spoken question-and-answer exchange actually takes end to end:
 # the examiner's question, the student's answer, and the examiner's reaction.
@@ -281,22 +313,23 @@ _ROMAN_SCRIPT_KEYS = {
 }
 
 
-def _roman_script_directive(language: str) -> str:
-    """Force Latin script so live captions never dump Telugu/Hindi glyphs."""
+def _roman_script_directive(language: str, *, continuing: bool = False) -> str:
+    """Force Latin script without giving a resumed model an introduction example."""
     key = (language or "English").strip().lower()
     if key not in _ROMAN_SCRIPT_KEYS:
         return ""
     if key in ("telugu", "tenglish"):
+        example = "" if continuing else ' Example: "Namaskaram Karthik. Nenu mee VivAI examiner ni. Idi oka mock viva."'
         return (
             " SCRIPT (CRITICAL for on-screen captions): Write and speak using ONLY Latin/Roman letters "
-            "(Roman Telugu / Tenglish). Example: \"Namaskaram Karthik. Nenu mee VivAI examiner ni. "
-            "Idi oka mock viva.\" NEVER use Telugu script characters (no తెలుగు అక్షరాలు at all). "
-            "File paths, code identifiers and tech terms stay in English Latin script."
+            f"(Roman Telugu / Tenglish).{example} NEVER use Telugu script characters "
+            "(no తెలుగు అక్షరాలు at all). File paths, code identifiers and tech terms stay in English Latin script."
         )
     if key in ("hindi", "hinglish"):
+        example = "" if continuing else ' Example: "Namaste, main aapka VivAI examiner hoon."'
         return (
-            " SCRIPT (CRITICAL): Use ONLY Latin/Roman letters (Roman Hindi / Hinglish), e.g. "
-            "\"Namaste, main aapka VivAI examiner hoon.\" NEVER use Devanagari (no हिन्दी लिपि)."
+            " SCRIPT (CRITICAL): Use ONLY Latin/Roman letters (Roman Hindi / Hinglish)."
+            f"{example} NEVER use Devanagari (no हिन्दी लिपि)."
         )
     if key in ("tamil", "tanglish"):
         return (
@@ -309,41 +342,30 @@ def _roman_script_directive(language: str) -> str:
     )
 
 
-def _language_directive(language: str) -> str:
-    """A forceful, unambiguous instruction for the requested language.
-
-    Live models default to English unless strongly and repeatedly told which
-    language to speak — especially for code-mixed blends like Tenglish, where
-    they otherwise drift into pure English. This is injected near the top of the
-    system prompt AND into the opening trigger.
-    """
+def _language_directive(language: str, *, continuing: bool = False) -> str:
+    """Specify language without telling a resumed model to perform an opening."""
     key = (language or "English").strip().lower()
-    roman = _roman_script_directive(language)
+    roman = _roman_script_directive(language, continuing=continuing)
+    phase = "Continue speaking" if continuing else "Speak"
     if key == "english":
-        return "Speak ONLY in clear, natural English for the ENTIRE session, starting from your very first greeting."
+        suffix = "" if continuing else ", starting with the single configured greeting"
+        return f"{phase} ONLY in clear, natural English for the ENTIRE session{suffix}."
     if key in _BLENDED_LANGUAGES:
         pair = _BLENDED_LANGUAGES[key]
         return (
-            f"Speak in {language.strip()} for the ENTIRE session, starting from your very first greeting. "
-            f"{language.strip()} means naturally CODE-MIXING {pair} within the same sentences — that is about "
-            f"WHICH WORDS you blend, not how formal or casual you sound. MOST of your sentences must contain "
-            f"words from BOTH {pair}. Do NOT speak only English, and do NOT speak only the regional language — "
-            f"you MUST blend them together. Keep technical/engineering terms in English. Use the FORMAL/polite "
-            f"address forms of {_BLENDED_REGIONAL_NAME.get(key, language.strip())}, never casual slang or "
-            f"friend-to-friend forms — your PERSONA's formality (given elsewhere in these instructions) applies "
-            f"exactly as much in this blended language as it would in English.{roman}"
+            f"{phase} in {language.strip()} for the ENTIRE session. {language.strip()} means naturally "
+            f"CODE-MIXING {pair} within the same sentences — that is about WHICH WORDS you blend, not how "
+            f"formal or casual you sound. MOST sentences must contain words from BOTH {pair}. Do NOT speak "
+            f"only English or only the regional language. Keep technical terms in English. Use FORMAL/polite "
+            f"{_BLENDED_REGIONAL_NAME.get(key, language.strip())} address forms, never casual slang.{roman}"
         )
     if key in _PURE_REGIONAL:
-        # Pure regional still romanized on screen (especially Telugu → Roman Telugu).
         return (
-            f"Speak PRIMARILY in {language.strip()} for the ENTIRE session, starting from your very first "
-            f"greeting. Prefer natural classroom code-mix: {language.strip()} phrasing with English for "
-            f"technical terms and file paths (as is normal in Indian B.Tech classes). "
-            f"Use the FORMAL/polite address forms of {language.strip()}, never casual slang — your PERSONA's "
-            f"formality (given elsewhere in these instructions) applies exactly as much here as it would in English."
-            f"{roman}"
+            f"{phase} PRIMARILY in {language.strip()} for the ENTIRE session. Prefer natural classroom "
+            f"code-mix: {language.strip()} phrasing with English technical terms and file paths. Use FORMAL/"
+            f"polite {language.strip()} address forms, never casual slang.{roman}"
         )
-    return f"Speak naturally in {language.strip()} for the entire session, starting from your very first greeting.{roman}"
+    return f"{phase} naturally in {language.strip()} for the entire session.{roman}"
 
 
 def build_system_instruction(
@@ -360,28 +382,27 @@ def build_system_instruction(
     already_greeted: bool = False,
 ) -> str:
     persona_contract = render_persona_block(PERSONAS.get(persona, PERSONAS[DEFAULT_PERSONA_ID]))
-    playbook = _MODE_PLAYBOOK.get(mode, _MODE_PLAYBOOK["viva"])
+    playbooks = _MODE_CONTINUATION_PLAYBOOK if already_greeted else _MODE_PLAYBOOK
+    playbook = playbooks.get(mode, playbooks["viva"])
     # The playbooks carry a placeholder rather than a fixed count, so the plan the
     # examiner works to matches the length the student actually asked for.
     playbook = playbook.replace("{question_budget}", _budget_sentence(duration_minutes))
-    if already_greeted:
-        # Every playbook opens with an OPENING step. On a reconnect that step has
-        # already happened, and leaving it in place is half the reason the model
-        # greets a second time — the rule below says don't, and step 1 says do.
-        playbook += (
-            "\n\nRECONNECT OVERRIDE (this connection resumes a session in progress): SKIP the "
-            "OPENING step above entirely. It already happened. Do not greet, do not introduce "
-            "yourself, do not restate the rules. Your next turn is a question."
-        )
     name = (student_name or "").strip()
-    name_line = (
-        f"STUDENT'S NAME: {name}. In your FIRST reply only, greet them once by first name "
-        f'(e.g. "Hello {name}" / "Namaskaram {name}") — never again in a later turn. '
-        "Always address this ONE person individually — never greet a group.\n\n"
-        if name
-        else 'You do not know the student\'s name — address them as "you". '
-        "Greet only once in the first reply. Always address this ONE person individually.\n\n"
-    )
+    if already_greeted:
+        name_line = (
+            f"STUDENT'S NAME: {name}. Use their name naturally when useful, without a salutation.\n\n"
+            if name
+            else 'You do not know the student\'s name — address them as "you".\n\n'
+        )
+    else:
+        name_line = (
+            f"STUDENT'S NAME: {name}. In your FIRST reply only, greet them once by first name "
+            f'(e.g. "Hello {name}" / "Namaskaram {name}") — never again in a later turn. '
+            "Always address this ONE person individually — never greet a group.\n\n"
+            if name
+            else 'You do not know the student\'s name — address them as "you". '
+            "Greet only once in the first reply. Always address this ONE person individually.\n\n"
+        )
     if mode == "coach":
         scenario_label = scenario.label if scenario else (subject or "").strip() or "Interview"
         ctx = (
@@ -401,6 +422,11 @@ def build_system_instruction(
         ctx = project_context.strip()
     elif subject:
         ctx = f"No project was provided. Examine the student specifically on this subject/topic: {subject}. Ask concrete, progressively harder questions on it."
+    elif already_greeted:
+        ctx = (
+            "No project or subject was provided. Continue this GENERAL technical interview with one "
+            "self-contained technical question. Do not repeat setup questions about branch, year or topic."
+        )
     else:
         # General viva with nothing configured: gather the input conversationally
         # instead of assuming there's a project to defend.
@@ -424,12 +450,16 @@ def build_system_instruction(
         bank = []
     focus_block = ""
     if focus or bank:
+        transition_rule = (
+            "Continue directly between bank items: react briefly to the last answer and ask the next question."
+            if already_greeted
+            else "After the single introduction, move directly between bank items without restarting the session."
+        )
         lines = [
             "FOCUSED PRACTICE (mandatory):",
             "This viva has a fixed topic focus and/or question bank.",
             "You MUST prioritise the topics below over unrelated material.",
-            "Do NOT re-greet, re-introduce yourself, or restart the session when moving to the next bank item — "
-            "just react briefly to the last answer and ask the next question.",
+            transition_rule,
         ]
         if focus:
             lines.append("Weak topics to cover (hit every topic before ending): " + "; ".join(focus[:8]))
@@ -443,10 +473,15 @@ def build_system_instruction(
         )
         focus_block = "\n".join(lines) + "\n\n"
     elif ctx_has_plan:
+        first_step = (
+            "- Continue directly with a project-level question, then move into features and implementation.\n"
+            if already_greeted
+            else "- After the single introduction, ask what the PROJECT is (problem, users, main goal) — NOT a file path.\n"
+        )
         focus_block = (
             "CODE-AWARE VIVA (mandatory when a CODEBASE KNOWLEDGE PACK is present):\n"
-            "- Greet only once, then ask what the PROJECT is (problem, users, main goal) — NOT a file path.\n"
-            "- Next ask main FEATURES and how one important user flow works end-to-end.\n"
+            + first_step
+            + "- Ask main FEATURES and how one important user flow works end-to-end.\n"
             "- Then go deeper: how a feature is implemented, data/auth/API/UI connections, trade-offs, failures.\n"
             "- NEVER ask the student to recall long monorepo paths (e.g. apps/api/src/app.module.ts). "
             "They cannot memorize thousands of files. Paths in the pack are YOUR private notes only.\n"
@@ -455,18 +490,18 @@ def build_system_instruction(
             "- Follow PREFERRED VIVA PLAN roughly, but adapt to their answers.\n"
             "- Keep questions conversational, like a real B.Tech project viva.\n\n"
         )
-    lang_directive = _language_directive(language)
-    # Soften the generic viva "ask first question immediately" when code-aware:
-    # first question must be project overview, not a random technical probe.
-    if ctx_has_plan:
+    lang_directive = _language_directive(language, continuing=already_greeted)
+    # The initial code-aware connection owns the project-overview question. A
+    # continuation must not be told to repeat it after reconnecting.
+    if ctx_has_plan and not already_greeted:
         playbook = playbook + (
-            "\n\nCODE-AWARE OVERRIDE FOR OPENING: After the short hello, your FIRST question must be "
-            "about the project itself (what it is / who it is for / what problem it solves). "
-            "Do not jump to a specific source file on the first turn."
+            "\n\nCODE-AWARE INITIAL QUESTION: After the single introduction, ask about the project itself "
+            "(what it is / who it is for / what problem it solves), not a specific source file."
         )
+    language_scope = "including the single introduction" if not already_greeted else "during this continuation"
     return f"""You are VivAI, an advanced real-time voice examiner and coach for Indian B.Tech students in 2026. You sound like a real human professor — natural pacing, warmth, and authority — never a robotic read-aloud.
 
-LANGUAGE (MOST IMPORTANT — obey for EVERY single turn, including the greeting): {lang_directive} Keep sentences short and clear for text-to-speech.
+LANGUAGE (MOST IMPORTANT — obey for EVERY single turn, {language_scope}): {lang_directive} Keep sentences short and clear for text-to-speech.
 
 {playbook}
 

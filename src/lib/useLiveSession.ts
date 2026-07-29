@@ -170,6 +170,33 @@ const FORCE_CLOSE_MS = 60000;
  */
 const NO_ACTIVITY_CLOSE_MS = 6000;
 
+/** Minimal socket surface used by the End handshake and its unit tests. */
+export interface EndSocket {
+  readyState: number;
+  send(data: string): void;
+  addEventListener(type: "open", listener: () => void, options: { once: true }): void;
+}
+
+/**
+ * Deliver End now, or queue it for the instant an in-progress handshake opens.
+ * Closing a CONNECTING WebSocket loses the only message that tells the backend
+ * to finalize/reset the session; doing nothing leaves the UI waiting forever.
+ */
+export function requestSocketEnd(socket: EndSocket, onError?: (error: unknown) => void): void {
+  const send = () => {
+    try {
+      socket.send(JSON.stringify({ type: "end" }));
+    } catch (error) {
+      onError?.(error);
+    }
+  };
+  if (socket.readyState === 1) {
+    send();
+  } else if (socket.readyState === 0) {
+    socket.addEventListener("open", send, { once: true });
+  }
+}
+
 /**
  * Milliseconds of AI speech still scheduled ahead of the audio clock.
  * Pure + exported so the gate-timing math can be unit-tested (bun test).
@@ -319,6 +346,8 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
 
   const [status, setStatus] = useState<LiveStatus>("idle");
   const [error, setError] = useState<string>("");
+  /** Whether the current failure is safe to resolve by starting this session again. */
+  const [errorRetryable, setErrorRetryable] = useState(true);
   const [aiSpeaking, setAiSpeaking] = useState(false);
   const [micMuted, setMicMuted] = useState(false);
   const [videoEnabled, setVideoEnabled] = useState(true);
@@ -394,6 +423,8 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
   const hadActivityRef = useRef(false);
   /** The server confirmed a deliberate end with nothing recorded. */
   const abortedReceivedRef = useRef(false);
+  /** Suppresses failure classification while an intentional End is in flight. */
+  const endRequestedRef = useRef(false);
   // The mic is "gated" (not streamed) until the AI finishes its opening
   // greeting. Streaming ambient noise during the greeting makes the Live model
   // treat it as a turn and greet a second time, and can destabilize the socket.
@@ -803,6 +834,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
             context: { feature: "live", mode, reason: "server_error_message" },
           });
           setError(String(msg.message ?? "Live engine error"));
+          setErrorRetryable(msg.retryable !== false);
           setStatus("error");
           break;
         default:
@@ -847,11 +879,15 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
       startTrace();
       setStatus("connecting");
       setError("");
+      setErrorRetryable(true);
       setCaptions([]);
       setEvents([]);
       setSummary(null);
       setEndedEarly(false);
       setAudioBlocked(false);
+      endRequestedRef.current = false;
+      abortedReceivedRef.current = false;
+      endedReceivedRef.current = false;
       videoEnabledRef.current = true;
       setVideoEnabled(true);
 
@@ -1043,6 +1079,10 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
       startInFlightRef.current = false;
       ws.onmessage = handleMessage;
       ws.onerror = () => {
+        // An intentional End may race a CONNECTING handshake. That close/error
+        // is teardown, not a live-engine failure, and must not overwrite the
+        // immediate aborted/finalizing state with a red error panel.
+        if (endRequestedRef.current) return;
         // Never pass the socket URL here — it embeds the student's JWT as a
         // query param (see the warning on wsUrl).
         report("live websocket error", {
@@ -1140,15 +1180,22 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
 
   const stop = useCallback(() => {
     const ws = wsRef.current;
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      try {
-        ws.send(JSON.stringify({ type: "end" }));
-      } catch (e) {
+    endRequestedRef.current = true;
+    if (ws) {
+      requestSocketEnd(ws, (error) => {
         // If this send is lost the server never learns the session ended, so
-        // it never finalizes and the student never gets a report. Silence here
-        // is precisely the "my session vanished" failure.
-        captureSilent(e, "end_send_failed", { feature: "live", mode });
-      }
+        // it never finalizes and the student never gets a report.
+        captureSilent(error, "end_send_failed", { feature: "live", mode });
+      });
+    }
+    // An unanswered End has no report to wait for. Resolve the UI immediately
+    // while the queued/open-socket message resets the server row in parallel.
+    if (!hadActivityRef.current) {
+      abortedReceivedRef.current = true;
+      setAbortMessage(
+        "You ended before answering anything, so there was nothing to record. This session is still available whenever you want to sit it.",
+      );
+      setStatus((current) => (current === "ended" ? current : "aborted"));
     }
     // Tear down capture/playback media immediately (student is done talking)…
     cleanup();
@@ -1301,9 +1348,11 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     wsRef.current = null;
     endedReceivedRef.current = false;
     abortedReceivedRef.current = false;
+    endRequestedRef.current = false;
     setAbortMessage("");
     setStatus("idle");
     setError("");
+    setErrorRetryable(true);
     setCaptions([]);
     setEvents([]);
     setLiveUserText("");
@@ -1348,6 +1397,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
   return {
     status,
     error,
+    errorRetryable,
     aiSpeaking,
     micMuted,
     videoEnabled,

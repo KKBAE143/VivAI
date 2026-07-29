@@ -113,3 +113,39 @@ def test_code_aware_brief_does_not_duplicate_question_bank():
     assert "CODE-AWARE" in si
     assert "file path" in si.lower() or "monorepo" in si.lower()
     assert "Greet only once" in si or "EXACTLY ONCE" in si or "only once" in si.lower()
+
+
+@pytest.mark.parametrize("mode", MODES)
+def test_resumed_instruction_contains_no_opening_orders(mode):
+    """A blind reconnect gets a fresh model with no conversation history.
+
+    Negative reminders are not enough if any other prompt block still positively
+    orders an opening. The resumed prompt must be structurally continuation-only.
+    """
+    prompt = live_service.build_system_instruction(
+        mode=mode,
+        persona="balanced",
+        language="Tenglish",
+        project_context=(
+            "CODEBASE KNOWLEDGE PACK — YOUR PRIVATE NOTES.\n"
+            "PREFERRED VIVA PLAN (spoken questions):\n"
+            "  1. Explain the authentication flow."
+        ),
+        subject="Code-aware viva",
+        student_name="Karthik",
+        already_greeted=True,
+    )
+
+    forbidden = (
+        "OPENING",
+        "FIRST reply",
+        "first greeting",
+        "Greet only once",
+        "After the short hello",
+        "session-start message",
+        "RECONNECT OVERRIDE",
+    )
+    for phrase in forbidden:
+        assert phrase not in prompt, f"resumed {mode} prompt still contains: {phrase}"
+    assert "ALREADY GREETED — DO NOT GREET" in prompt
+    assert "SESSION CONTINUATION" in prompt

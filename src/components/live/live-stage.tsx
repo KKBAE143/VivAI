@@ -1163,7 +1163,7 @@ export function LiveStage({
                     and graded. classifyClose() now says which of the two happened,
                     so this no longer contradicts it.
                   */}
-                  {onRetry && (
+                  {onRetry && live.errorRetryable && (
                     <button
                       onClick={onRetry}
                       className="mt-2 rounded-xl bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground"

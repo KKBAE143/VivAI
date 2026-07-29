@@ -78,6 +78,24 @@ MAX_GEMINI_RECONNECTS = live_service.MAX_GEMINI_RECONNECTS
 # audio is worthless and unbounded growth is not an option.
 INBOUND_QUEUE_MAX = 512
 
+# A report normally completes well inside this window. The browser's own
+# last-resort close fires at 60 seconds, so the server must answer first rather
+# than leave "Preparing your report" spinning indefinitely when an analysis or
+# database call wedges. The finalizer keeps running in the background after this
+# response; raw session events are flushed before analysis starts.
+FINALIZE_RESPONSE_TIMEOUT_SECONDS = 45.0
+
+
+@dataclass
+class LiveSessionState:
+    """State that survives replacement browser sockets for one app session."""
+
+    # Set only after examiner audio was actually forwarded to the browser. A
+    # trigger being accepted is not enough: if Gemini dies before producing
+    # audio, the replacement still needs a real opening rather than a silent
+    # continuation.
+    opening_delivered: bool = False
+
 
 @dataclass
 class LiveOwner:
@@ -93,6 +111,7 @@ class LiveOwner:
 
     connection_id: str
     websocket: WebSocket
+    session_state: LiveSessionState = field(default_factory=LiveSessionState)
     superseded: asyncio.Event = field(default_factory=asyncio.Event)
     released: asyncio.Event = field(default_factory=asyncio.Event)
 
@@ -110,6 +129,11 @@ async def claim_live_owner(session_id: str, owner: LiveOwner) -> LiveOwner | Non
     """
     async with _active_live_lock:
         previous = _active_live_owners.get(session_id)
+        if previous is not None and previous is not owner:
+            # Greeting state belongs to the viva, not to a browser socket. The
+            # old owner may still update this shared object while it drains, so
+            # the replacement sees an opening that finished during handoff too.
+            owner.session_state = previous.session_state
         _active_live_owners[session_id] = owner
     if previous is None or previous is owner:
         return None
@@ -410,6 +434,11 @@ class LivePersistence:
         logged via tools during the conversation.
         """
         sb = get_supabase()
+
+        # Persist the evidence before any AI analysis. If report generation is
+        # slow or times out, the student's transcript is still durable and the
+        # background finalizer can safely finish later.
+        self.flush_events()
 
         turns = coalesce_turns(self.transcript)
         # Defense in depth: delivery metrics are a nice-to-have section of the
@@ -990,12 +1019,10 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
             focus_topics=focus_topics or None,
             practice_questions=practice_questions or None,
             duration_minutes=budget_minutes or None,
-            # The connection being built knows whether this session has already
-            # been greeted, so the model is never instructed to open a session
-            # that is already underway. A user-turn nudge could not override the
-            # system instruction telling it to say hello; this removes the
-            # instruction instead.
-            already_greeted=greeted,
+            # The state is shared across replacement browser sockets. Without
+            # that handoff every remount started from False and spoke the full
+            # opening again, even when the prior socket had already played it.
+            already_greeted=greeted or owner.session_state.opening_delivered,
             resume_handle=handle,
         )
 
@@ -1044,11 +1071,10 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
     errored = False
     fatal_message = ""
     ready_sent = False
-    # Whether the examiner has ALREADY delivered its one opening greeting in this
-    # app session. Deliberately separate from the resumption handle: the handle
-    # arrives seconds into the session, so it cannot answer "did we greet yet?"
-    # during the opening — the window where a drop used to re-greet.
-    greeted = False
+    # Local reconnects and replacement browser sockets both consult the same
+    # fact: whether examiner audio actually reached the student. Starting from
+    # the shared value prevents a new socket from replaying an audible opening.
+    greeted = owner.session_state.opening_delivered
     reconnects = 0
     resume_handle: str | None = None
     end_requested = asyncio.Event()
@@ -1170,13 +1196,23 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
         "empty iteration" exit here; the supervisor below classifies the
         exception and reconnects or finalizes.
         """
-        nonlocal resume_handle
+        nonlocal resume_handle, greeted
         while True:
             async for response in session.receive():
                 try:
                     for audio_chunk in _response_audio_chunks(response):
                         if audio_chunk:
+                            # A socket that lost ownership must never leak one
+                            # more frame after its replacement starts. That
+                            # overlap was enough for two openings to be audible.
+                            if owner.superseded.is_set():
+                                return
                             await websocket.send_bytes(audio_chunk)
+                            # This is the first trustworthy proof that the
+                            # opening reached the browser. Share it with any
+                            # replacement owner before another trigger is chosen.
+                            owner.session_state.opening_delivered = True
+                            greeted = True
                 except Exception as audio_exc:
                     # Never let one bad PCM frame kill the whole receive loop —
                     # that was a silent "AI voice not coming" mode.
@@ -1298,78 +1334,98 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                 pass
 
     async def run_gemini_connection() -> str:
-        """Run ONE Gemini connection until something ends it.
+        """Run one Gemini connection behind an end-aware cancellation boundary.
 
-        Returns the reason it stopped. Raises whatever the transport raised so
-        the supervisor can decide between reconnecting and giving up — the old
-        code printed that exception and silently walked into finalize(), which
-        is how a routine connection recycle became "your session ended".
+        The boundary deliberately starts *before* ``connect_with_fallback`` and
+        includes the opening trigger. End therefore cancels a slow handshake, a
+        stalled trigger send, the receive loop, and the outbound pump alike.
         """
         nonlocal ready_sent, greeted
-        # Do not open a connection the student has already finished with. Opening
-        # one takes seconds against a struggling service, and every one of those
-        # seconds is spent ignoring their End.
         if end_requested.is_set():
             return "ended"
         if browser_gone.is_set():
             return "browser_gone"
-        # `fresh` = this Gemini connection carries NO conversation history.
-        # It is NOT the same question as "has this session greeted yet": the
-        # resumption handle only arrives some seconds INTO the session, so a drop
-        # during the opening leaves us reconnecting fresh on an already-greeted
-        # session. Deciding the greeting from `fresh` alone is what spoke the
-        # opening twice, so the two facts are now tracked separately.
-        fresh = resume_handle is None
-        async with live_service.connect_with_fallback(make_config(resume_handle)) as session:
-            if not ready_sent:
-                # The budget travels with `ready` so the countdown the student
-                # sees is the same number the server will enforce, rather than
-                # the client guessing from its own config.
-                await websocket.send_json(
-                    {
-                        "type": "ready",
-                        "duration_seconds": budget_minutes * 60 if budget_minutes else None,
-                    }
-                )
-                ready_sent = True
-            else:
-                # A reconnect landed: tell the client to drop the
-                # "reconnecting" banner and go back to live.
-                await websocket.send_json({"type": "reconnected", "resumed": not fresh})
-            if fresh:
-                # A history-less connection needs SOME trigger or the model stays
-                # mute; `greeted` picks the one that does not re-say hello.
-                await send_greeting(session, already_greeted=greeted)
-                greeted = True
 
-            recv_task = asyncio.create_task(gemini_to_client(session))
-            pump_task = asyncio.create_task(pump_to_gemini(session))
-            end_task = asyncio.create_task(end_requested.wait())
-            gone_task = asyncio.create_task(browser_gone.wait())
-            super_task = asyncio.create_task(owner.superseded.wait())
-            watched = {recv_task, pump_task, end_task, gone_task, super_task}
-            try:
-                done, _ = await asyncio.wait(watched, return_when=asyncio.FIRST_COMPLETED)
-            finally:
-                for task in watched:
-                    if not task.done():
-                        task.cancel()
-                await asyncio.gather(*watched, return_exceptions=True)
+        async def connected_phase() -> str:
+            nonlocal ready_sent, greeted
+            # `fresh` means this Gemini connection has no conversation history;
+            # `greeted` independently records whether the browser session already
+            # heard its one opening.
+            fresh = resume_handle is None
+            async with live_service.connect_with_fallback(make_config(resume_handle)) as session:
+                if end_requested.is_set():
+                    return "ended"
+                if browser_gone.is_set():
+                    return "browser_gone"
 
-            # Surface a real transport failure instead of swallowing it.
-            for task in (recv_task, pump_task):
-                if task in done and not task.cancelled() and task.exception() is not None:
-                    raise task.exception()  # type: ignore[misc]
+                if not ready_sent:
+                    await websocket.send_json(
+                        {
+                            "type": "ready",
+                            "duration_seconds": budget_minutes * 60 if budget_minutes else None,
+                        }
+                    )
+                    ready_sent = True
+                else:
+                    await websocket.send_json({"type": "reconnected", "resumed": not fresh})
 
-            if owner.superseded.is_set():
-                return "superseded"
-            if end_requested.is_set():
+                if fresh:
+                    if greeted:
+                        # A blind model must not be autonomously prompted after
+                        # any opening audio reached the browser: repeated 1008
+                        # retries otherwise become repeated spoken questions.
+                        # Release both client/server mic gates so the student's
+                        # next turn resumes the continuation-only model instead.
+                        await _forward_turn_complete(
+                            websocket,
+                            first_turn_done,
+                            open_gate=not client_owns_mic_gate,
+                        )
+                    else:
+                        # No examiner audio reached the browser yet, so this is
+                        # still the one legitimate opening attempt.
+                        await send_greeting(session, already_greeted=False)
+
+                recv_task = asyncio.create_task(gemini_to_client(session))
+                pump_task = asyncio.create_task(pump_to_gemini(session))
+                active = {recv_task, pump_task}
+                try:
+                    done, _ = await asyncio.wait(active, return_when=asyncio.FIRST_COMPLETED)
+                finally:
+                    for task in active:
+                        if not task.done():
+                            task.cancel()
+                    await asyncio.gather(*active, return_exceptions=True)
+
+                for task in (recv_task, pump_task):
+                    if task in done and not task.cancelled() and task.exception() is not None:
+                        raise task.exception()  # type: ignore[misc]
                 return "ended"
-            if browser_gone.is_set():
-                return "browser_gone"
-            # The receive loop returned cleanly — the model closed the
-            # conversation itself.
+
+        connection_task = asyncio.create_task(connected_phase())
+        end_task = asyncio.create_task(end_requested.wait())
+        gone_task = asyncio.create_task(browser_gone.wait())
+        super_task = asyncio.create_task(owner.superseded.wait())
+        watched = {connection_task, end_task, gone_task, super_task}
+        try:
+            done, _ = await asyncio.wait(watched, return_when=asyncio.FIRST_COMPLETED)
+        finally:
+            for task in watched:
+                if not task.done():
+                    task.cancel()
+            await asyncio.gather(*watched, return_exceptions=True)
+
+        # Student/browser/ownership decisions win over a transport exception
+        # that happened at the same instant.
+        if owner.superseded.is_set():
+            return "superseded"
+        if end_requested.is_set():
             return "ended"
+        if browser_gone.is_set():
+            return "browser_gone"
+        if connection_task in done:
+            return connection_task.result()
+        return "ended"
 
     async def _wait_unless_stopped(delay: float) -> bool:
         """Wait `delay` seconds, or return early if the student is done.
@@ -1378,11 +1434,12 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
         session, or their browser left. Reconnect backoff must never outlive the
         student's own decision to stop.
         """
-        if end_requested.is_set() or browser_gone.is_set():
+        if end_requested.is_set() or browser_gone.is_set() or owner.superseded.is_set():
             return True
         waiters = [
             asyncio.create_task(end_requested.wait()),
             asyncio.create_task(browser_gone.wait()),
+            asyncio.create_task(owner.superseded.wait()),
         ]
         try:
             await asyncio.wait(waiters, timeout=delay, return_when=asyncio.FIRST_COMPLETED)
@@ -1391,7 +1448,11 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                 if not task.done():
                     task.cancel()
             await asyncio.gather(*waiters, return_exceptions=True)
-        return end_requested.is_set() or browser_gone.is_set()
+        return (
+            end_requested.is_set()
+            or browser_gone.is_set()
+            or owner.superseded.is_set()
+        )
 
     async def session_clock():
         """Hold the session to the length the student chose.
@@ -1517,7 +1578,12 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                 # at their request. From their side the End button simply did
                 # nothing.
                 if await _wait_unless_stopped(_reconnect_delay(reconnects)):
-                    stop_reason = "ended" if end_requested.is_set() else "browser_gone"
+                    if owner.superseded.is_set():
+                        stop_reason = "superseded"
+                    elif end_requested.is_set():
+                        stop_reason = "ended"
+                    else:
+                        stop_reason = "browser_gone"
                     break
                 continue
             break
@@ -1585,7 +1651,81 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
         await websocket.send_json({"type": "finalizing"})
     except Exception:
         pass
-    summary = await asyncio.to_thread(persist.finalize)
+
+    finalize_task = asyncio.create_task(asyncio.to_thread(persist.finalize))
+    try:
+        summary = await asyncio.wait_for(
+            asyncio.shield(finalize_task),
+            timeout=FINALIZE_RESPONSE_TIMEOUT_SECONDS,
+        )
+    except asyncio.TimeoutError:
+        # Cancelling `to_thread` cannot stop the worker function. Keep it alive
+        # deliberately so the report can still finish, but release the browser
+        # and owner now instead of leaving End stuck forever.
+        def observe_background_finalize(task: asyncio.Task) -> None:
+            try:
+                task.result()
+                logger.info(
+                    "delayed live report completed",
+                    extra={
+                        "session_id": session_id,
+                        "mode": mode,
+                        "event": "live_finalize_delayed_completed",
+                    },
+                )
+            except Exception:  # noqa: BLE001 — detached task must be observed
+                logger.exception(
+                    "delayed live report failed session_id=%s",
+                    session_id,
+                    extra={"mode": mode, "event": "live_finalize_delayed_failed"},
+                )
+
+        finalize_task.add_done_callback(observe_background_finalize)
+        logger.warning(
+            "live report finalization exceeded response deadline",
+            extra={
+                "session_id": session_id,
+                "mode": mode,
+                "event": "live_finalize_timeout",
+                "timeout_seconds": FINALIZE_RESPONSE_TIMEOUT_SECONDS,
+            },
+        )
+        try:
+            await websocket.send_json({
+                "type": "error",
+                "retryable": False,
+                "message": (
+                    "Your answers were captured, but the report is taking longer than expected. "
+                    "You can leave this page and check the session again shortly — do not restart "
+                    "the viva while this report is still processing."
+                ),
+            })
+            await websocket.close()
+        except Exception:
+            pass
+        await release_live_owner(session_id, owner)
+        return
+    except Exception:  # noqa: BLE001 — report failure must still release the socket
+        logger.exception(
+            "live report finalization failed session_id=%s",
+            session_id,
+            extra={"mode": mode, "event": "live_finalize_failed"},
+        )
+        try:
+            await websocket.send_json({
+                "type": "error",
+                "retryable": False,
+                "message": (
+                    "Your answers were captured, but the report could not be completed automatically. "
+                    "Please check the session history before attempting another viva."
+                ),
+            })
+            await websocket.close()
+        except Exception:
+            pass
+        await release_live_owner(session_id, owner)
+        return
+
     try:
         # `ended_early` rides inside the summary so every existing report
         # consumer receives it without a signature change.
