@@ -22,6 +22,7 @@ import {
   Trophy,
   Video,
   Building2,
+  ClipboardCheck,
   Menu,
   X,
 } from "lucide-react";
@@ -162,6 +163,17 @@ function Sidebar() {
                 Admin
               </p>
               <div className="flex flex-col gap-0.5">
+                <Link
+                  to="/faculty"
+                  className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+                    isActive("/faculty")
+                      ? "bg-foreground text-background"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  }`}
+                >
+                  <ClipboardCheck className="h-[18px] w-[18px] shrink-0" />
+                  Faculty Console
+                </Link>
                 <Link
                   to="/admin"
                   className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
@@ -325,12 +337,7 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
       {/* Drawer Container */}
       <div className="relative flex w-4/5 max-w-xs flex-1 flex-col bg-card px-4 py-5 shadow-2xl">
         <div className="flex items-center justify-between pb-4 border-b border-border">
-          <Link
-            to="/"
-            onClick={onClose}
-            aria-label="Home"
-            className="flex items-center gap-2.5"
-          >
+          <Link to="/" onClick={onClose} aria-label="Home" className="flex items-center gap-2.5">
             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground">
               <GraduationCap className="h-5 w-5" />
             </span>
@@ -381,6 +388,18 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
                 Admin
               </p>
               <div className="flex flex-col gap-1">
+                <Link
+                  to="/faculty"
+                  onClick={onClose}
+                  className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+                    isActive("/faculty")
+                      ? "bg-foreground text-background"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  }`}
+                >
+                  <ClipboardCheck className="h-4 w-4 shrink-0" />
+                  Faculty Console
+                </Link>
                 <Link
                   to="/admin"
                   onClick={onClose}
@@ -488,7 +507,9 @@ export function PageHeader({
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-4xl">{title}</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
+          {title}
+        </h1>
         {subtitle && <p className="mt-1 text-xs text-muted-foreground sm:text-sm">{subtitle}</p>}
       </div>
       {action && <div className="shrink-0">{action}</div>}
@@ -538,6 +559,7 @@ function pageTitle(pathname: string): string {
     "/profile": "Profile",
     "/privacy": "Privacy Policy",
     "/admin": "Institution Admin",
+    "/faculty": "Faculty Console",
   };
   if (map[pathname]) return map[pathname];
   const match = Object.keys(map)
