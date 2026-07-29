@@ -161,6 +161,16 @@ const GATE_SAFETY_MS = 30000;
 const FORCE_CLOSE_MS = 60000;
 
 /**
+ * The same net, for a session with nothing recorded.
+ *
+ * There is no report to wait for, so the only thing the long window buys is a
+ * minute of "Preparing your report…" over a session that will never produce one.
+ * Long enough for a healthy server to answer, short enough that End feels like it
+ * did something.
+ */
+const NO_ACTIVITY_CLOSE_MS = 6000;
+
+/**
  * Milliseconds of AI speech still scheduled ahead of the audio clock.
  * Pure + exported so the gate-timing math can be unit-tested (bun test).
  */
@@ -1148,7 +1158,24 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     // once it's done. Only force-close as a last-resort safety net well beyond
     // the expected finalize time, so we never truncate the report.
     if (forceCloseTimerRef.current) clearTimeout(forceCloseTimerRef.current);
+    // How long to wait depends on whether there is anything to wait FOR.
+    //
+    // With answers recorded, a report is coming and truncating it would throw
+    // away real work, so the long window stands. With nothing recorded there is
+    // definitionally no report to build — waiting a minute for one is how "End &
+    // report" came to look broken while the AI service was refusing connections
+    // and the server was busy retrying instead of reading the request.
+    const grace = hadActivityRef.current ? FORCE_CLOSE_MS : NO_ACTIVITY_CLOSE_MS;
     forceCloseTimerRef.current = setTimeout(() => {
+      // Resolve locally first, so the outcome does not depend on the server
+      // getting a last message out through a connection that may be wedged.
+      if (!hadActivityRef.current && !endedReceivedRef.current) {
+        abortedReceivedRef.current = true;
+        setAbortMessage(
+          "You ended before answering anything, so there was nothing to record. This session is still available whenever you want to sit it.",
+        );
+        setStatus((s) => (s === "ended" || s === "error" ? s : "aborted"));
+      }
       try {
         ws?.close();
       } catch {
@@ -1156,7 +1183,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
         // best-effort teardown and nothing downstream depends on it.
       }
       wsRef.current = null;
-    }, FORCE_CLOSE_MS);
+    }, grace);
   }, [cleanup, mode]);
 
   const toggleMic = useCallback(() => {

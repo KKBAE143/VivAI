@@ -497,3 +497,63 @@ def test_ending_before_answering_is_reported_as_aborted_not_as_an_error(live_har
     # It has to say the session is still usable, or the student assumes it is spent.
     assert "still available" in aborted["message"]
     assert not finalized, "there is nothing to grade, so no report is built"
+
+
+def test_pressing_end_during_a_reconnect_storm_is_acted_on_immediately(live_harness, monkeypatch):
+    """The "End button does nothing" report.
+
+    When the AI service refuses connections (observed in production as a
+    WebSocket 1008), the supervisor retries on a backoff of 0.5s, 1, 2, 4, 5, 5.
+    That wait was a plain `asyncio.sleep`, so a student pressing "End & report"
+    mid-storm waited out the accumulated sleep AND the failing connect attempts
+    between them before anything looked at their request — while the UI sat on
+    "Preparing your report…". Reconnect backoff must never outlive the student's
+    own decision to stop.
+    """
+    delays: list[float] = []
+
+    def slow_backoff(attempt: int) -> float:
+        delays.append(5.0)
+        return 5.0  # a long wait, so a plain sleep would blow the test timeout
+
+    monkeypatch.setattr(live_api, "_reconnect_delay", slow_backoff)
+
+    # Every connection attempt fails, so the supervisor keeps retrying.
+    always_fails = [
+        FakeGeminiSession(turns=[[]], fail_with=genai_errors.APIError(1008, {"message": "aborted"}, None))
+        for _ in range(live_api.MAX_GEMINI_RECONNECTS + 1)
+    ]
+    live_harness(always_fails)
+
+    # The student gives up and ends while the retries are still going.
+    socket = FakeBrowserSocket(script=[{"text": json.dumps({"type": "end"})}])
+    socket.query_params = {"token": "t", "pv": "1"}
+
+    # 3 seconds is far less than one 5-second backoff, let alone six of them.
+    asyncio.run(_run(socket, timeout=3.0))
+
+    assert delays, "the test only means something if a reconnect was attempted"
+    kinds = [m.get("type") for m in socket.sent]
+    assert "aborted" in kinds or "error" in kinds, f"the end must be answered, got {kinds}"
+
+
+def test_a_service_refusal_is_not_reported_as_a_missing_api_key():
+    """Every fatal live error told the student to check GEMINI_API_KEY and the
+    google-genai version — developer advice a student cannot act on, and wrong for
+    the failure that actually happens."""
+    refused = genai_errors.APIError(1008, {"message": "The operation was aborted."}, None)
+    message = live_api._fatal_live_message(refused)
+    assert "GEMINI_API_KEY" not in message
+    assert "retry" in message.lower()
+    assert "nothing you said was lost" in message.lower()
+
+
+def test_a_quota_failure_says_so():
+    exhausted = RuntimeError("429 RESOURCE_EXHAUSTED: quota exceeded")
+    assert "usage limit" in live_api._fatal_live_message(exhausted).lower()
+
+
+def test_a_credential_failure_does_not_blame_the_student():
+    bad_key = RuntimeError("401 UNAUTHENTICATED: API key not valid")
+    message = live_api._fatal_live_message(bad_key)
+    assert "on us" in message.lower()

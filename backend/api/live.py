@@ -688,6 +688,39 @@ class LivePersistence:
 _send_audio = live_service.send_audio
 
 
+def _fatal_live_message(exc: BaseException) -> str:
+    """What to tell the student when the live engine will not come up.
+
+    Every failure used to be reported as "check that GEMINI_API_KEY is set and
+    google-genai is installed", which is developer-facing advice a student cannot
+    act on — and usually wrong. The observed failure in practice is the AI service
+    itself refusing or dropping the connection (a WebSocket 1008/1011), which is
+    transient and genuinely worth retrying. Sending a student to check an
+    environment variable for that is worse than saying nothing.
+    """
+    code = getattr(exc, "code", None)
+    detail = str(exc)
+    if code in (1008, 1011) or "aborted" in detail.lower():
+        return (
+            "The AI examiner service refused the connection just now. This is usually temporary — "
+            "please retry in a moment. Nothing you said was lost."
+        )
+    if "quota" in detail.lower() or "resource_exhausted" in detail.lower() or code == 429:
+        return (
+            "The AI service has hit its usage limit for now, so the examiner could not start. "
+            "Try again a little later."
+        )
+    if "api key" in detail.lower() or "unauthenticated" in detail.lower() or code in (401, 403):
+        return (
+            "The AI service rejected our credentials, so the examiner could not start. "
+            "This one is on us — please report it if it keeps happening."
+        )
+    return (
+        f"The examiner could not be started ({type(exc).__name__}). Please retry — if this keeps "
+        "happening, report it and we will look at the logs."
+    )
+
+
 async def _check_turn_integrity(turn, websocket, persist, session_id: str, mode: str, state: dict) -> None:
     """Assess one finished student turn, and warn at most once per session.
 
@@ -1273,6 +1306,13 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
         is how a routine connection recycle became "your session ended".
         """
         nonlocal ready_sent, greeted
+        # Do not open a connection the student has already finished with. Opening
+        # one takes seconds against a struggling service, and every one of those
+        # seconds is spent ignoring their End.
+        if end_requested.is_set():
+            return "ended"
+        if browser_gone.is_set():
+            return "browser_gone"
         # `fresh` = this Gemini connection carries NO conversation history.
         # It is NOT the same question as "has this session greeted yet": the
         # resumption handle only arrives some seconds INTO the session, so a drop
@@ -1330,6 +1370,28 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
             # The receive loop returned cleanly — the model closed the
             # conversation itself.
             return "ended"
+
+    async def _wait_unless_stopped(delay: float) -> bool:
+        """Wait `delay` seconds, or return early if the student is done.
+
+        Returns True when we should stop retrying entirely — the student ended the
+        session, or their browser left. Reconnect backoff must never outlive the
+        student's own decision to stop.
+        """
+        if end_requested.is_set() or browser_gone.is_set():
+            return True
+        waiters = [
+            asyncio.create_task(end_requested.wait()),
+            asyncio.create_task(browser_gone.wait()),
+        ]
+        try:
+            await asyncio.wait(waiters, timeout=delay, return_when=asyncio.FIRST_COMPLETED)
+        finally:
+            for task in waiters:
+                if not task.done():
+                    task.cancel()
+            await asyncio.gather(*waiters, return_exceptions=True)
+        return end_requested.is_set() or browser_gone.is_set()
 
     async def session_clock():
         """Hold the session to the length the student chose.
@@ -1419,10 +1481,7 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                 if not (is_recoverable_live_error(exc) and reconnects < MAX_GEMINI_RECONNECTS):
                     stop_reason = "failed"
                     errored = True
-                    fatal_message = (
-                        f"Live AI engine error: {exc}. Check that GEMINI_API_KEY is set and "
-                        "google-genai>=2.10 is installed, then retry."
-                    )
+                    fatal_message = _fatal_live_message(exc)
                     logger.exception("live session failed session_id=%s", session_id)
                     break
                 reconnects += 1
@@ -1450,7 +1509,16 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                     stop_reason = "browser_gone"
                     browser_gone.set()
                     break
-                await asyncio.sleep(_reconnect_delay(reconnects))
+                # An INTERRUPTIBLE wait. This was a plain sleep, and the backoff
+                # schedule runs 0.5s, 1, 2, 4, 5, 5 — so a student who pressed
+                # "End & report" while the AI service was refusing connections
+                # waited up to twenty seconds of accumulated sleep, plus the
+                # failing connect attempts between them, before anything looked
+                # at their request. From their side the End button simply did
+                # nothing.
+                if await _wait_unless_stopped(_reconnect_delay(reconnects)):
+                    stop_reason = "ended" if end_requested.is_set() else "browser_gone"
+                    break
                 continue
             break
     finally:
