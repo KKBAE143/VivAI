@@ -29,7 +29,7 @@ def test_only_exact_faculty_and_admin_are_accepted():
 
 
 def test_each_role_gets_its_own_onboarding_steps():
-    assert svc.steps_for("student") == ("institution", "academics", "project")
+    assert svc.steps_for("student") == ("institution", "academics", "project", "goals")
     assert svc.steps_for("faculty") == ("institution", "teaching")
     assert svc.steps_for("admin") == ("institution_create", "invite_faculty")
     # An unrecognised role must not produce an empty wizard.
@@ -63,7 +63,7 @@ def test_a_fresh_profile_is_incomplete_and_defaults_to_student():
     state = svc.onboarding_state({})
     assert state["complete"] is False
     assert state["role"] == "student"
-    assert state["steps"] == ["institution", "academics", "project"]
+    assert state["steps"] == ["institution", "academics", "project", "goals"]
 
 
 def test_only_an_admin_of_the_same_institution_may_approve():

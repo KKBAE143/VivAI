@@ -109,7 +109,7 @@ def test_status_reports_the_flow_the_client_should_render(onboarding):
     })
     assert state["complete"] is False
     assert state["role"] == "student"
-    assert state["steps"] == ["institution", "academics", "project"]
+    assert state["steps"] == ["institution", "academics", "project", "goals"]
     assert state["pending_approval"] is False
 
 

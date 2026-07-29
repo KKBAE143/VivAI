@@ -17,7 +17,7 @@ GATED_ROLES = ("faculty", "admin")
 # The onboarding steps each role has to walk. Student steps preserve the
 # existing three-step flow (institution link, academics, project seeding).
 ROLE_STEPS: dict[str, tuple[str, ...]] = {
-    "student": ("institution", "academics", "project"),
+    "student": ("institution", "academics", "project", "goals"),
     "faculty": ("institution", "teaching"),
     "admin": ("institution_create", "invite_faculty"),
 }

@@ -503,8 +503,15 @@ export function useOnboardingStatus() {
 export function useCompleteOnboarding() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (body: { branch?: string | null; year?: string | null; goals?: string[] }) =>
-      api<ApiRecord>("/api/onboarding/complete", { body }),
+    mutationFn: (body: {
+      branch?: string | null;
+      year?: string | null;
+      goals?: string[];
+      role?: string | null;
+      institution_code?: string | null;
+      department?: string | null;
+      subjects?: string[];
+    }) => api<ApiRecord>("/api/onboarding/complete", { body }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["onboarding-status"] });
       queryClient.invalidateQueries({ queryKey: ["profile"] });
