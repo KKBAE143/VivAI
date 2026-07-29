@@ -316,7 +316,7 @@ export function useTeamViva(opts: UseTeamVivaOptions) {
           break;
       }
     },
-    [playChunk, stopPlayback],
+    [playAudioBuffer, stopPlayback],
   );
 
   const cleanupMedia = useCallback(() => {
