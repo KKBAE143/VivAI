@@ -1,4 +1,7 @@
-"""Central Gemini client wrapper (google-genai, free tier)."""
+"""Central Gemini client wrapper (google-genai, free tier).
+
+Models: gemini-3.6-flash for all text/image generation (free tier).
+"""
 import json
 import re
 
@@ -11,8 +14,8 @@ from core.logging import get_logger
 
 logger = get_logger("gemini")
 
-LLM_MODEL = "gemini-2.0-flash"
-VLM_MODEL = "gemini-2.0-flash"
+LLM_MODEL = "gemini-3.6-flash"
+VLM_MODEL = "gemini-3.6-flash"
 
 _client: genai.Client | None = None
 
