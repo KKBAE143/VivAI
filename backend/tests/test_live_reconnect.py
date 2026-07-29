@@ -378,3 +378,76 @@ def test_a_history_less_reconnect_resumes_without_greeting_again(live_harness, m
     # The one thing it must never be: the opening greeting trigger, again.
     assert resumed != first.client_content[0]
     assert "hello + who you are" not in resumed
+
+
+def test_a_reconnected_examiner_is_never_told_to_greet(live_harness, monkeypatch):
+    """The double greeting came BACK, from the other half of the same problem.
+
+    Stopping the server from re-sending the greeting trigger was not enough. On a
+    history-less reconnect the model comes up blind, and its SYSTEM INSTRUCTION
+    still ordered it to open the session with a hello — while a user turn asked it
+    not to. Faced with an empty history and two contradictory instructions it did
+    what the system prompt said, and greeted a second time in its own words.
+
+    A user turn cannot reliably override a system instruction, so the instruction
+    is what has to change. The second connection must be built with no greeting
+    order in it at all.
+    """
+    monkeypatch.setattr(live_api, "_reconnect_delay", lambda attempt: 0.0)
+
+    first = FakeGeminiSession(
+        turns=[[
+            _response(_server_content(output_transcription=_text("Namaskaram, I'm your examiner."),
+                                      turn_complete=True)),
+        ]],
+        fail_with=genai_errors.APIError(1011, {"message": "closed"}, None),
+    )
+    end_call = SimpleNamespace(id="c1", name="end_session", args={})
+    second = FakeGeminiSession(turns=[[_response(tool_call=SimpleNamespace(function_calls=[end_call]))]])
+    state = live_harness([first, second])
+
+    socket = FakeBrowserSocket()
+    socket.query_params = {"token": "t", "pv": "1"}
+    monkeypatch.setattr(live_api.live_service, "analyze_transcript",
+                        lambda *a, **k: {"questions": [], "overall_score": 50, "summary": "",
+                                         "strengths": [], "weaknesses": []})
+    monkeypatch.setattr(live_api.report_service, "build_report", lambda **k: None)
+
+    asyncio.run(_run(socket))
+
+    opening_instruction = state.configs[0].system_instruction
+    resumed_instruction = state.configs[1].system_instruction
+
+    # The first connection is the one that greets, and is told so.
+    assert "GREETING (single source of truth)" in str(opening_instruction)
+
+    # The second one is told the opposite, in the same place.
+    resumed = str(resumed_instruction)
+    assert "ALREADY GREETED — DO NOT GREET" in resumed
+    assert "GREETING (single source of truth)" not in resumed
+    # And the playbook's own OPENING step is cancelled, so the two halves of the
+    # prompt cannot disagree with each other.
+    assert "RECONNECT OVERRIDE" in resumed
+    assert "Your next turn is a question" in resumed
+
+
+def test_the_first_connection_is_still_told_to_greet(live_harness, monkeypatch):
+    """Guards the other direction: suppressing the greeting on connection ONE would
+    leave the examiner silent at the start of every session, which is worse than
+    greeting twice."""
+    end_call = SimpleNamespace(id="c1", name="end_session", args={})
+    only = FakeGeminiSession(turns=[[_response(tool_call=SimpleNamespace(function_calls=[end_call]))]])
+    state = live_harness([only])
+
+    socket = FakeBrowserSocket()
+    socket.query_params = {"token": "t", "pv": "1"}
+    monkeypatch.setattr(live_api.live_service, "analyze_transcript",
+                        lambda *a, **k: {"questions": [], "overall_score": 50, "summary": "",
+                                         "strengths": [], "weaknesses": []})
+    monkeypatch.setattr(live_api.report_service, "build_report", lambda **k: None)
+
+    asyncio.run(_run(socket))
+
+    instruction = str(state.configs[0].system_instruction)
+    assert "GREETING (single source of truth)" in instruction
+    assert "ALREADY GREETED" not in instruction

@@ -50,15 +50,22 @@ def test_every_scenario_persona_combination_fits_live_instruction_budget():
             # A real session always carries a duration, so the budget has to be
             # measured with one. Without it this test was checking a prompt shape
             # that never actually reaches the model.
-            prompt = live_service.build_system_instruction(
-                mode="coach",
-                persona=persona,
-                language="English",
-                project_context="A concise project context.",
-                subject=scenario.label,
-                scenario=scenario,
-                duration_minutes=30,
-            )
-            assert len(prompt) < 9_000
+            #
+            # Both greeting variants are measured: the reconnect variant swaps in a
+            # different rule block, and it is the longer of the two — checking only
+            # the opening shape would leave the budget unguarded on the connection
+            # that is hardest to reproduce.
+            for already_greeted in (False, True):
+                prompt = live_service.build_system_instruction(
+                    mode="coach",
+                    persona=persona,
+                    language="English",
+                    project_context="A concise project context.",
+                    subject=scenario.label,
+                    scenario=scenario,
+                    duration_minutes=30,
+                    already_greeted=already_greeted,
+                )
+                assert len(prompt) < 9_000
             assert len(render_scenario_block(scenario).split()) <= 250
             assert len(render_persona_block(PERSONAS[persona]).split()) <= 160

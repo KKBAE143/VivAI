@@ -167,6 +167,45 @@ SCORING_BANDS_LIVE = """SCORING BANDS (strict — a mark must be earned, do not 
 90+ complete, precise, with reasoning and an example (rare) · 75-89 correct but missing depth or an example · 60-74 right idea, imprecise or partly memorised · 40-59 a real misunderstanding, or a definition where reasoning was asked · 20-39 mostly off-target · 0-19 no usable answer."""
 
 
+def _greeting_rule(already_greeted: bool) -> str:
+    """The greeting contract, written for the connection this actually is.
+
+    This is the root fix for the double greeting coming back. A Gemini connection
+    lives ~10 minutes and can drop at any moment, including seconds into a
+    session, and a reconnect that happens before the first resumption handle
+    arrives brings up a model with NO conversation history.
+
+    Previously the server handled that by sending a user-turn nudge that said
+    "carry on, do not greet again" — while the SYSTEM instruction still ordered
+    the model to open the session with a hello. Faced with an empty history and
+    two contradictory instructions, the model does what its system prompt says
+    and greets. That is the double greeting: not the server sending the trigger
+    twice (that was fixed), but the model greeting itself on a fresh connection
+    that has already been greeted through.
+
+    A user turn cannot reliably override a system instruction, so the system
+    instruction is what changes. On a reconnect the model is never told to greet
+    in the first place.
+    """
+    if not already_greeted:
+        return (
+            "GREETING (single source of truth): You will receive ONE session-start message. Reply "
+            "with EXACTLY ONE opening turn: (a) one short hello + who you are (max 2 short "
+            "sentences), then (b) your first exam question in the SAME turn. Deliver the greeting "
+            "EXACTLY ONCE per session. Never output two separate openings. Never say "
+            "hello/namaskaram/welcome twice. Never re-introduce as VivAI after the first turn. If "
+            "you already greeted, the next turns are ONLY reactions + questions."
+        )
+    return (
+        "ALREADY GREETED — DO NOT GREET (absolute): This session is ALREADY IN PROGRESS and you have "
+        "already introduced yourself. Your connection was re-established, so you cannot see the "
+        "earlier conversation — that does NOT mean it did not happen. NEVER say hello, hi, "
+        "namaskaram or welcome, never introduce yourself, never restart the viva. Your next turn is "
+        "a QUESTION and nothing else. If unsure what was covered, ask them to carry on from their "
+        "last answer."
+    )
+
+
 def _time_budget_block(minutes: int | None) -> str:
     """The wall-clock contract, stated once and enforced by the server too."""
     if not minutes or minutes <= 0:
@@ -318,12 +357,22 @@ def build_system_instruction(
     focus_topics: list[str] | None = None,
     practice_questions: list[str] | None = None,
     duration_minutes: int | None = None,
+    already_greeted: bool = False,
 ) -> str:
     persona_contract = render_persona_block(PERSONAS.get(persona, PERSONAS[DEFAULT_PERSONA_ID]))
     playbook = _MODE_PLAYBOOK.get(mode, _MODE_PLAYBOOK["viva"])
     # The playbooks carry a placeholder rather than a fixed count, so the plan the
     # examiner works to matches the length the student actually asked for.
     playbook = playbook.replace("{question_budget}", _budget_sentence(duration_minutes))
+    if already_greeted:
+        # Every playbook opens with an OPENING step. On a reconnect that step has
+        # already happened, and leaving it in place is half the reason the model
+        # greets a second time — the rule below says don't, and step 1 says do.
+        playbook += (
+            "\n\nRECONNECT OVERRIDE (this connection resumes a session in progress): SKIP the "
+            "OPENING step above entirely. It already happened. Do not greet, do not introduce "
+            "yourself, do not restate the rules. Your next turn is a question."
+        )
     name = (student_name or "").strip()
     name_line = (
         f"STUDENT'S NAME: {name}. In your FIRST reply only, greet them once by first name "
@@ -431,7 +480,7 @@ LANGUAGE (MOST IMPORTANT — obey for EVERY single turn, including the greeting)
 CRITICAL RULES:
 - LANGUAGE: {lang_directive}
 - NEVER invent, assume or make up ANY facts about the student, their project, product, company, team, results, numbers or background. Use ONLY details explicitly given in PROJECT CONTEXT or SUBJECT above. If a detail was not provided, do NOT fabricate it (never invent a project name) — ask the student or keep it general.
-- GREETING (single source of truth): You will receive ONE session-start message. Reply with EXACTLY ONE opening turn: (a) one short hello + who you are (max 2 short sentences), then (b) your first exam question in the SAME turn. Deliver the greeting EXACTLY ONCE per session. Never output two separate openings. Never say hello/namaskaram/welcome twice. Never re-introduce as VivAI after the first turn. If you already greeted, the next turns are ONLY reactions + questions.
+- {_greeting_rule(already_greeted)}
 - Ask ONE question at a time and then LISTEN. Never dump multiple questions at once.
 - Keep each spoken turn short (2-4 sentences). This is a dialogue, not a monologue.
 - Stay strictly in your role for this mode. {"Ground feedback in what is visible on the shared screen." if mode == "presentation" else "Coach on what you see of the student on their camera (eye contact, posture, expression) as well as what you hear." if mode == "coach" else "Do NOT mention screens or screen sharing."}
@@ -676,6 +725,7 @@ def build_config(
     focus_topics: list[str] | None = None,
     practice_questions: list[str] | None = None,
     duration_minutes: int | None = None,
+    already_greeted: bool = False,
     resume_handle: str | None = None,
 ) -> types.LiveConnectConfig:
     settings = get_settings()
@@ -691,6 +741,7 @@ def build_config(
         focus_topics=focus_topics,
         practice_questions=practice_questions,
         duration_minutes=duration_minutes,
+        already_greeted=already_greeted,
     )
     # Gemini 3.1/2.5 Live are native-audio models. They choose the output
     # language from the conversation and explicitly reject/ignore a forced

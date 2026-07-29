@@ -957,6 +957,12 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
             focus_topics=focus_topics or None,
             practice_questions=practice_questions or None,
             duration_minutes=budget_minutes or None,
+            # The connection being built knows whether this session has already
+            # been greeted, so the model is never instructed to open a session
+            # that is already underway. A user-turn nudge could not override the
+            # system instruction telling it to say hello; this removes the
+            # instruction instead.
+            already_greeted=greeted,
             resume_handle=handle,
         )
 
@@ -1420,13 +1426,22 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                     logger.exception("live session failed session_id=%s", session_id)
                     break
                 reconnects += 1
-                logger.info(
+                # A reconnect WITH a handle resumes the conversation and is
+                # routine. Without one the model comes up blind, which is the
+                # situation that produced a second greeting — so that case is
+                # logged loudly enough for the diagnostics sink (WARNING+) to
+                # keep it. Diagnosing this cost a session because it only ever
+                # existed as an INFO line the sink discarded.
+                resumable = resume_handle is not None
+                (logger.info if resumable else logger.warning)(
                     "reconnecting live session",
                     extra={
                         "session_id": session_id,
-                        "event": "live_reconnect",
+                        "mode": mode,
+                        "event": "live_reconnect" if resumable else "live_reconnect_blind",
                         "attempt": reconnects,
-                        "resumable": resume_handle is not None,
+                        "resumable": resumable,
+                        "reason": type(exc).__name__,
                     },
                 )
                 try:
