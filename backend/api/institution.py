@@ -1,6 +1,7 @@
 """Institutional admin dashboard — cohort analytics, readiness reports, weak topics."""
 import csv
 import io
+import secrets
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
@@ -9,9 +10,15 @@ from fastapi.responses import StreamingResponse
 
 from core.database import get_supabase
 from core.deps import get_current_user, require_admin
-from services import readiness_service
+from models.schemas import FacultyApproval, InstitutionCreate
+from services import onboarding_service, readiness_service
 
 router = APIRouter(prefix="/api/institution", tags=["institution"])
+
+# Seat cap for an institution nobody has verified yet. Deliberately small: it
+# bounds the blast radius of a name-squatter, and we raise it by hand when a
+# real college is verified at sale time.
+SELF_SERVE_SEAT_LIMIT = 25
 
 
 def _get_institution_id(user: dict) -> str:
@@ -27,6 +34,130 @@ def _get_institution(sb, inst_id: str) -> dict:
     if not res.data:
         raise HTTPException(status_code=404, detail="Institution not found")
     return res.data[0]
+
+
+def require_verified_institution(user: dict) -> dict:
+    """Gate for endpoints that return data about OTHER students in bulk.
+
+    Anyone may self-serve an institution, so an unverified one must not become a
+    way to harvest a real college's cohort by registering its name and sharing
+    the invite code. Verification is set by hand at sale time.
+    """
+    sb = get_supabase()
+    institution = _get_institution(sb, _get_institution_id(user))
+    if not institution.get("verified_at"):
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "error": "institution_unverified",
+                "message": (
+                    "This institution has not been verified yet. Contact us to verify it "
+                    "and unlock cohort reports and exports."
+                ),
+            },
+        )
+    return institution
+
+
+@router.post("", status_code=201)
+def create_institution(body: InstitutionCreate, user=Depends(get_current_user)):
+    """Self-serve a pilot institution and become its admin.
+
+    Open on purpose: a curious HOD can try the product without emailing us,
+    which is the top of the B2B funnel. It is safe because the new institution
+    is EMPTY and unverified — every query here filters by institution_id, and
+    bulk cohort data additionally requires `require_verified_institution`.
+
+    The one hard refusal is a user who already belongs to an institution:
+    letting them create their own would silently move them out from under their
+    college's oversight and hand them admin over the new shell.
+    """
+    profile = user.get("profile") or {}
+    if profile.get("institution_id"):
+        raise HTTPException(
+            status_code=409,
+            detail="You already belong to an institution. Ask its admin for access.",
+        )
+
+    sb = get_supabase()
+    name = body.name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="An institution name is required.")
+
+    created = sb.table("institutions").insert({
+        "name": name,
+        "tier": body.tier,
+        "status": "pilot",
+        "seat_limit": SELF_SERVE_SEAT_LIMIT,
+        "admin_profile_id": user["id"],
+        "invite_code": secrets.token_hex(4).upper(),
+        # Verification is a human step we perform at sale time, never automatic.
+        "verified_at": None,
+    }).execute().data[0]
+
+    sb.table("profiles").update(
+        {"role": "admin", "institution_id": created["id"]}
+    ).eq("id", user["id"]).execute()
+    sb.table("institution_members").insert({
+        "institution_id": created["id"],
+        "profile_id": user["id"],
+        "status": "active",
+        "requested_role": "admin",
+        "approved_at": datetime.now(timezone.utc).isoformat(),
+    }).execute()
+
+    return {"id": created["id"], "invite_code": created["invite_code"], "verified": False}
+
+
+@router.get("/pending-faculty")
+def pending_faculty(user=Depends(require_admin)):
+    """Un-approved faculty/admin claims for this admin's institution."""
+    sb = get_supabase()
+    rows = (
+        sb.table("institution_members")
+        .select("*, profiles(full_name)")
+        .eq("institution_id", _get_institution_id(user))
+        .is_("approved_at", "null")
+        .execute()
+        .data
+        or []
+    )
+    return {"pending": [r for r in rows if r.get("requested_role")]}
+
+
+@router.post("/approve-faculty")
+def approve_faculty(body: FacultyApproval, user=Depends(require_admin)):
+    """Grant or refuse a requested role.
+
+    Granting is the ONLY path by which profiles.role becomes 'faculty', so the
+    same-institution check in `can_approve` is the security boundary here — an
+    admin at one college must never be able to mint faculty at another.
+    """
+    sb = get_supabase()
+    res = sb.table("institution_members").select("*").eq("id", body.member_id).execute()
+    if not res.data:
+        raise HTTPException(status_code=404, detail="No such membership request")
+    member = res.data[0]
+
+    if not onboarding_service.can_approve(user.get("profile") or {}, member):
+        raise HTTPException(status_code=403, detail="You cannot approve this request")
+
+    if not body.approve:
+        # Clear the claim rather than deleting the membership: the person is
+        # still a student at this institution, just not faculty.
+        sb.table("institution_members").update(
+            {"requested_role": None, "approved_at": None, "status": "active"}
+        ).eq("id", body.member_id).execute()
+        return {"ok": True, "role": "student"}
+
+    granted = onboarding_service.resolve_role(member.get("requested_role"))
+    sb.table("institution_members").update(
+        {"approved_at": datetime.now(timezone.utc).isoformat(), "status": "active"}
+    ).eq("id", body.member_id).execute()
+    sb.table("profiles").update(
+        {"role": granted, "institution_id": member["institution_id"]}
+    ).eq("id", member["profile_id"]).execute()
+    return {"ok": True, "role": granted}
 
 
 @router.get("/dashboard")
@@ -143,6 +274,7 @@ def dashboard(user=Depends(require_admin)):
 @router.get("/students")
 def list_students(page: int = 1, per_page: int = 20, branch: str | None = None, year: str | None = None, user=Depends(require_admin)):
     """Paginated student list with DRS and activity stats."""
+    require_verified_institution(user)
     sb = get_supabase()
     inst_id = _get_institution_id(user)
 
@@ -240,6 +372,7 @@ def list_students(page: int = 1, per_page: int = 20, branch: str | None = None, 
 @router.get("/readiness-report")
 def readiness_report(user=Depends(require_admin)):
     """Cohort readiness heatmap by branch, year, and topic."""
+    require_verified_institution(user)
     sb = get_supabase()
     inst_id = _get_institution_id(user)
 
@@ -391,6 +524,7 @@ def invite_students(body: dict, user=Depends(require_admin)):
 @router.get("/export")
 def export_csv(user=Depends(require_admin)):
     """Export cohort readiness data as CSV."""
+    require_verified_institution(user)
     sb = get_supabase()
     inst_id = _get_institution_id(user)
     inst = _get_institution(sb, inst_id)

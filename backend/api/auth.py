@@ -15,6 +15,7 @@ from models.schemas import (
     ResetPasswordRequest,
     SignupRequest,
 )
+from services import onboarding_service
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 onboarding_router = APIRouter(prefix="/api/onboarding", tags=["onboarding"])
@@ -172,18 +173,64 @@ def update_profile(body: ProfileUpdate, user=Depends(get_current_user)):
     return res.data[0] if res.data else {}
 
 
+def _resolve_institution(sb, code: str) -> dict:
+    """Look up an institution by its invite code, or 400.
+
+    A bad code is user error at a wizard step, not a server fault — the client
+    needs a message it can render next to the input.
+    """
+    res = sb.table("institutions").select("*").eq("invite_code", code.strip()).execute()
+    if not res.data:
+        raise HTTPException(status_code=400, detail="That institution code was not recognised.")
+    return res.data[0]
+
+
 @onboarding_router.post("/complete")
 def complete_onboarding(body: OnboardingComplete, user=Depends(get_current_user)):
-    data: dict = {"onboarding_complete": True, "onboarding_goals": body.goals}
+    sb = get_supabase()
+    requested = onboarding_service.resolve_role(body.role)
+
+    # A gated role (faculty/admin) is only ever a REQUEST. profiles.role stays
+    # 'student' until an institution admin approves it, so a self-selected
+    # claim can never read another student's reports.
+    data: dict = {
+        "onboarding_complete": True,
+        "onboarding_goals": body.goals,
+        "role": "student",
+    }
     if body.branch:
         data["branch"] = body.branch
     if body.year:
         data["year"] = body.year
-    get_supabase().table("profiles").update(data).eq("id", user["id"]).execute()
-    return {"ok": True}
+
+    institution = None
+    if body.institution_code:
+        institution = _resolve_institution(sb, body.institution_code)
+        data["institution_id"] = institution["id"]
+
+    if requested in onboarding_service.GATED_ROLES and institution is None:
+        # Checked BEFORE writing anything: a gated role has to be scoped to an
+        # institution or there is nobody with the authority to approve it, and
+        # half-completing the profile would strand the user mid-wizard.
+        raise HTTPException(
+            status_code=400,
+            detail="An institution code is required to request faculty or admin access.",
+        )
+
+    sb.table("profiles").update(data).eq("id", user["id"]).execute()
+
+    if requested in onboarding_service.GATED_ROLES:
+        sb.table("institution_members").insert({
+            "institution_id": institution["id"],
+            "profile_id": user["id"],
+            "status": "invited",
+            "requested_role": requested,
+            "approved_at": None,
+        }).execute()
+
+    return {"ok": True, "pending_approval": requested in onboarding_service.GATED_ROLES}
 
 
 @onboarding_router.get("/status")
 def onboarding_status(user=Depends(get_current_user)):
-    profile = user.get("profile") or {}
-    return {"complete": bool(profile.get("onboarding_complete"))}
+    return onboarding_service.onboarding_state(user.get("profile") or {})

@@ -34,6 +34,11 @@ class FakeTable:
     def __init__(self, rows: list[dict] | None = None):
         self._rows = rows if rows is not None else []
         self.calls: list[tuple] = []
+        # Payloads written through this table, so a test can assert on what the
+        # code under test actually persisted rather than only that it tried.
+        self.inserts: list[dict] = []
+        self.updates: list[dict] = []
+        self._pending: list[dict] | None = None
 
     def _chain(self, name, *args):
         self.calls.append((name, args))
@@ -46,8 +51,31 @@ class FakeTable:
             return self
         return method
 
+    def insert(self, payload, *args, **kwargs):
+        """Record the payload and echo it back, the way PostgREST does.
+
+        Real Supabase returns the inserted row (with server-generated columns),
+        and callers legitimately read `.execute().data[0]["id"]`. Returning the
+        preloaded rows instead would make those callers fail for a reason that
+        has nothing to do with the code under test.
+        """
+        self.calls.append(("insert", (payload,), kwargs))
+        rows = payload if isinstance(payload, list) else [payload]
+        echoed = []
+        for row in rows:
+            self.inserts.append(row)
+            echoed.append({"id": f"fake_{len(self.inserts)}", **row})
+        self._pending = echoed
+        return self
+
+    def update(self, payload, *args, **kwargs):
+        self.calls.append(("update", (payload,), kwargs))
+        self.updates.append(payload)
+        return self
+
     def execute(self):
-        return SimpleNamespace(data=self._rows)
+        pending, self._pending = self._pending, None
+        return SimpleNamespace(data=pending if pending is not None else self._rows)
 
 
 class FakeSupabase:

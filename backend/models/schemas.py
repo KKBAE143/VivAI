@@ -44,6 +44,23 @@ class OnboardingComplete(BaseModel):
     branch: str | None = None
     year: str | None = None
     goals: list[str] = []
+    # Role-aware onboarding. All optional so the existing student flow keeps
+    # posting the same payload it posts today.
+    role: str | None = None
+    institution_code: str | None = None
+    # Faculty-only: what they teach.
+    department: str | None = None
+    subjects: list[str] = []
+
+
+class InstitutionCreate(BaseModel):
+    name: str
+    tier: str = "lite"
+
+
+class FacultyApproval(BaseModel):
+    member_id: str
+    approve: bool
 
 
 # ---------- Projects ----------
