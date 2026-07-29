@@ -119,3 +119,32 @@ def require_admin(user: dict = Depends(get_current_user)) -> dict:
             detail={"error": "no_institution", "message": "You are not linked to an institution."},
         )
     return user
+
+
+def require_faculty(user: dict = Depends(get_current_user)) -> dict:
+    """Gate for the faculty console (/api/faculty/*).
+
+    Admins pass too: a HOD is a faculty member with extra powers, and locking
+    them out of the console they bought would be absurd.
+
+    Kept separate from `require_admin` despite the identical role set, because
+    the two answer different questions — "may you run an assessment?" versus
+    "may you see the whole cohort?" — and only one of them should change if we
+    ever tighten cohort access. (Note `require_admin` already admits faculty
+    despite its name.)
+    """
+    profile = user.get("profile") or {}
+    if (profile.get("role") or "student") not in ("faculty", "admin"):
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "error": "faculty_required",
+                "message": "Faculty access is required. Ask your institution's admin to approve you.",
+            },
+        )
+    if not profile.get("institution_id"):
+        raise HTTPException(
+            status_code=403,
+            detail={"error": "no_institution", "message": "You are not linked to an institution."},
+        )
+    return user

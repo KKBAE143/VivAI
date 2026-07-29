@@ -210,6 +210,24 @@ class TeamVivaCreate(BaseModel):
     subject: str | None = None
 
 
+class AssessedVivaCreate(BaseModel):
+    """A faculty member scheduling a graded team viva."""
+
+    team_id: str
+    project_id: str | None = None
+    subject: str | None = None
+    # Bounded: a viva is an oral exam, not an all-day event, and an unbounded
+    # value would let one session hold a Gemini connection indefinitely.
+    duration_minutes: int = Field(default=20, ge=5, le=120)
+
+
+class SessionReview(BaseModel):
+    """Faculty sign-off, optionally overriding the AI's overall score."""
+
+    score_override: int | None = Field(default=None, ge=0, le=100)
+    note: str | None = Field(default=None, max_length=2000)
+
+
 class SentimentSessionCreate(BaseModel):
     project_id: str | None = None
     duration_minutes: int = 10
