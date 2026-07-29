@@ -101,6 +101,22 @@ def team_greeting_trigger(language: str = "English") -> str:
     )
 
 
+def team_resume_trigger(language: str = "English") -> str:
+    """Restart a team viva on a history-less reconnect WITHOUT a second greeting.
+
+    Needed because a Live model waits for a turn before speaking: with no trigger
+    the room sits in silence, and with the opening trigger the examiner greets the
+    whole team again mid-viva.
+    """
+    return (
+        "The team viva is already in progress and you have ALREADY greeted this team. "
+        "Continue now: call on your next person and ask your next question in one short spoken reply. "
+        "Do NOT greet, do NOT re-introduce yourself, do NOT re-explain the format, and do NOT restart "
+        "the viva — you have already done all of that. "
+        f"Remember: {_language_directive(language)}"
+    )
+
+
 def _team_tools() -> list[types.Tool]:
     return [
         types.Tool(

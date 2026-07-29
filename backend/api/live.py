@@ -47,7 +47,17 @@ logger = get_logger("live")
 # Safety release for the server-side mic gate: if the model never emits
 # a turn_complete (e.g. greeting failed), stop dropping mic audio after this long
 # so the session can never deadlock waiting for a greeting that isn't coming.
+#
+# Two values, because the two client generations gate the mic differently and a
+# server release that fires FIRST defeats the client's gate entirely:
+#   - protocol v1+ owns the gate and sends `mic_open` when greeting playback has
+#     actually drained. Its own ceiling is GATE_MAX_WAIT_MS/GATE_SAFETY_MS (30s),
+#     so the server must wait LONGER than that or it un-gates the mic while the
+#     browser is still playing the greeting out loud — the greeting then echoes
+#     speaker->mic, Gemini scores it as a student turn, and greets a second time.
+#   - legacy clients have no such signal, so they keep the short release.
 _MIC_GATE_SAFETY_SECONDS = 20
+_MIC_GATE_SAFETY_SECONDS_CLIENT_GATED = 45
 
 # Close code for a socket that a newer connection replaced. 4409 = "conflict".
 WS_SUPERSEDED_CODE = 4409
@@ -840,6 +850,11 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
     errored = False
     fatal_message = ""
     ready_sent = False
+    # Whether the examiner has ALREADY delivered its one opening greeting in this
+    # app session. Deliberately separate from the resumption handle: the handle
+    # arrives seconds into the session, so it cannot answer "did we greet yet?"
+    # during the opening — the window where a drop used to re-greet.
+    greeted = False
     reconnects = 0
     resume_handle: str | None = None
     end_requested = asyncio.Event()
@@ -1035,20 +1050,34 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                         await asyncio.sleep(0.5)
                         return
 
-    async def send_greeting(session) -> None:
+    async def send_greeting(session, *, already_greeted: bool = False) -> None:
         # Live models stay silent until they receive a turn, so a short trigger
-        # forces the opening greeting. Sent ONLY when starting a fresh Gemini
-        # session — a resumed connection already carries the conversation
-        # history, and re-triggering it there is literally a second greeting.
+        # is needed to make them speak first. WHICH trigger depends on whether
+        # this session has ever greeted:
+        #
+        #   - never greeted -> the real opening trigger (hello + first question).
+        #   - already greeted, but this Gemini connection is FRESH (we lost the
+        #     resumption handle, so the model has no history) -> a resume trigger
+        #     that restarts the questioning WITHOUT a second hello. Sending the
+        #     opening trigger here is the double greeting; sending nothing leaves
+        #     the examiner mute for the rest of the exam.
         try:
-            trigger = live_service.greeting_trigger(mode, language, scenario)
+            trigger = (
+                live_service.resume_trigger(mode, language)
+                if already_greeted
+                else live_service.greeting_trigger(mode, language, scenario)
+            )
             await session.send_client_content(
                 turns=types.Content(role="user", parts=[types.Part(text=trigger)]),
                 turn_complete=True,
             )
             logger.info(
-                "greeting trigger sent",
-                extra={"session_id": session_id, "mode": mode, "event": "greeting_trigger"},
+                "resume trigger sent" if already_greeted else "greeting trigger sent",
+                extra={
+                    "session_id": session_id,
+                    "mode": mode,
+                    "event": "resume_trigger" if already_greeted else "greeting_trigger",
+                },
             )
         except Exception as exc:
             logger.exception("greeting trigger failed session_id=%s", session_id)
@@ -1067,7 +1096,13 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
         code printed that exception and silently walked into finalize(), which
         is how a routine connection recycle became "your session ended".
         """
-        nonlocal ready_sent
+        nonlocal ready_sent, greeted
+        # `fresh` = this Gemini connection carries NO conversation history.
+        # It is NOT the same question as "has this session greeted yet": the
+        # resumption handle only arrives some seconds INTO the session, so a drop
+        # during the opening leaves us reconnecting fresh on an already-greeted
+        # session. Deciding the greeting from `fresh` alone is what spoke the
+        # opening twice, so the two facts are now tracked separately.
         fresh = resume_handle is None
         async with live_service.connect_with_fallback(make_config(resume_handle)) as session:
             if not ready_sent:
@@ -1078,7 +1113,10 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                 # "reconnecting" banner and go back to live.
                 await websocket.send_json({"type": "reconnected", "resumed": not fresh})
             if fresh:
-                await send_greeting(session)
+                # A history-less connection needs SOME trigger or the model stays
+                # mute; `greeted` picks the one that does not re-say hello.
+                await send_greeting(session, already_greeted=greeted)
+                greeted = True
 
             recv_task = asyncio.create_task(gemini_to_client(session))
             pump_task = asyncio.create_task(pump_to_gemini(session))
@@ -1111,7 +1149,14 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
 
     async def mic_gate_safety():
         # Never let a missing turn_complete / mic_open keep the mic gated forever.
-        await asyncio.sleep(_MIC_GATE_SAFETY_SECONDS)
+        # Wait LONGER than the client's own ceiling when the client owns the gate,
+        # so this net can only ever catch a client that failed to report — never
+        # pre-empt one that is still legitimately playing the greeting.
+        await asyncio.sleep(
+            _MIC_GATE_SAFETY_SECONDS_CLIENT_GATED
+            if client_owns_mic_gate
+            else _MIC_GATE_SAFETY_SECONDS
+        )
         if not first_turn_done.is_set():
             logger.warning(
                 "mic gate safety release fired (no turn_complete)",

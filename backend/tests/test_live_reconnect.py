@@ -333,3 +333,48 @@ def fake_updates(sb, table_name: str) -> list[dict]:
     if table is None:
         return []
     return [call[1][0] for call in table.calls if call[0] == "update" and call[1]]
+
+
+def test_a_history_less_reconnect_resumes_without_greeting_again(live_harness, monkeypatch):
+    """The double greeting: the resumption handle only arrives SECONDS into the
+    session, so a drop during the opening reconnects with `resume_handle is None`.
+
+    The old code inferred "should I greet?" from that handle alone, so this path
+    spoke the full opening a second time. It must instead send a resume trigger:
+    something (a Live model stays mute without a turn), but never a second hello.
+    """
+    monkeypatch.setattr(live_api, "_reconnect_delay", lambda attempt: 0.0)
+
+    # Greets, then the connection dies BEFORE any session_resumption_update.
+    first = FakeGeminiSession(
+        turns=[[
+            _response(_server_content(output_transcription=_text("Hello Asha, I'm your examiner."),
+                                      turn_complete=True)),
+            _response(_server_content(input_transcription=_text("Hi, I'm ready."))),
+        ]],
+        fail_with=genai_errors.APIError(1011, {"message": "closed"}, None),
+    )
+    end_call = SimpleNamespace(id="c1", name="end_session", args={})
+    second = FakeGeminiSession(turns=[[_response(tool_call=SimpleNamespace(function_calls=[end_call]))]])
+    state = live_harness([first, second])
+
+    socket = FakeBrowserSocket()
+    socket.query_params = {"token": "t", "pv": "1"}
+    monkeypatch.setattr(live_api.live_service, "analyze_transcript",
+                        lambda *a, **k: {"questions": [], "overall_score": 50, "summary": "",
+                                         "strengths": [], "weaknesses": []})
+    monkeypatch.setattr(live_api.report_service, "build_report", lambda **k: None)
+
+    asyncio.run(_run(socket))
+
+    assert len(first.client_content) == 1, "the first connection greets exactly once"
+    # It reconnected with no handle to resume from, so it IS a fresh connection…
+    assert state.configs[1].session_resumption.handle is None
+    # …which must still be nudged, or the examiner goes mute for the rest of the exam.
+    assert len(second.client_content) == 1, "a history-less reconnect must be triggered"
+    resumed = second.client_content[0]
+    assert "ALREADY greeted" in resumed
+    assert "Do NOT say hello" in resumed
+    # The one thing it must never be: the opening greeting trigger, again.
+    assert resumed != first.client_content[0]
+    assert "hello + who you are" not in resumed

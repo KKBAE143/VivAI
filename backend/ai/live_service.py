@@ -406,6 +406,30 @@ def greeting_trigger(mode: str, language: str = "English", scenario: Scenario | 
     return f"{base}{opening} Remember: {_language_directive(language)}"
 
 
+# Trigger for a Gemini connection that is FRESH (no conversation history) in a
+# session that has ALREADY greeted — i.e. we lost the resumption handle mid-exam.
+# Without this the two outcomes are both broken: re-sending the opening trigger
+# makes the examiner say hello a second time (the double greeting), and sending
+# nothing leaves it silent forever, because a Live model waits for a turn before
+# it will speak. So: resume the exam, explicitly forbidding a second greeting.
+_RESUME_TRIGGER = (
+    "The session is already in progress and you have ALREADY greeted this person. "
+    "Continue the session now: ask your next question in one short spoken reply, then stop and wait. "
+    "Do NOT say hello, do NOT greet, do NOT introduce yourself, and do NOT restart the session — "
+    "you have already done all of that."
+)
+
+
+def resume_trigger(mode: str, language: str = "English") -> str:
+    """Restart questioning on a history-less reconnect WITHOUT a second greeting."""
+    invite = {
+        "presentation": "Invite them to carry on presenting from where they stopped.",
+        "pitch": "Invite them to carry on with their pitch from where they stopped.",
+    }.get(mode)
+    tail = f" {invite}" if invite else ""
+    return f"{_RESUME_TRIGGER}{tail} Remember: {_language_directive(language)}"
+
+
 # --------------------------------------------------------------------------- #
 # Tools (function declarations) — how live speech becomes structured data
 # --------------------------------------------------------------------------- #

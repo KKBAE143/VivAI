@@ -258,6 +258,11 @@ class VoiceRoom:
         # Everything needed to rebuild the config when a connection recycles.
         self._connect_args: dict | None = None
         self._resume_handle: str | None = None
+        # Whether the examiner has already delivered its one group greeting.
+        # Tracked separately from `_resume_handle`, which only arrives seconds
+        # into the viva and so cannot answer "did we greet yet?" during the
+        # opening — the window where a drop either re-greets or goes mute.
+        self._greeted = False
         self._end_requested = False
         # Floor-holder mic audio, buffered so a reconnect does not swallow the
         # middle of somebody's graded answer. Bounded: stale realtime audio is
@@ -358,22 +363,26 @@ class VoiceRoom:
             pass
 
     async def _send_greeting(self) -> None:
-        """Trigger the one-time group greeting.
+        """Trigger the group opening — or resume without one.
 
-        Only ever sent for a FRESH Gemini session. A resumed connection already
-        carries the whole conversation, so re-triggering it would make the
-        examiner greet the team a second time mid-viva.
+        A Live model stays mute until it receives a turn, so a FRESH connection
+        always needs a trigger. Which trigger depends on whether this room has
+        greeted before: re-sending the opening makes the examiner greet the team
+        a second time mid-viva, while sending nothing on a history-less reconnect
+        leaves the room in silence for the rest of the exam.
         """
+        language = (self._connect_args or {}).get("language", "English")
+        trigger = (
+            team_live_service.team_resume_trigger(language)
+            if self._greeted
+            else team_live_service.team_greeting_trigger(language)
+        )
         try:
             await self.gemini_session.send_client_content(
-                turns=types.Content(
-                    role="user",
-                    parts=[types.Part(text=team_live_service.team_greeting_trigger(
-                        (self._connect_args or {}).get("language", "English")
-                    ))],
-                ),
+                turns=types.Content(role="user", parts=[types.Part(text=trigger)]),
                 turn_complete=True,
             )
+            self._greeted = True
         except Exception as exc:
             logger.warning(
                 "team greeting trigger failed",
@@ -561,6 +570,13 @@ class VoiceRoom:
                         )
                         break
                     await self.broadcast({"type": "reconnected"})
+                    # A reconnect that could NOT resume (no handle yet — the drop
+                    # landed before Gemini issued one) has no conversation history
+                    # and, like any fresh connection, will stay mute until it gets
+                    # a turn. Nudge it back into questioning; `_send_greeting`
+                    # picks the resume trigger, so the team is not greeted twice.
+                    if self._resume_handle is None:
+                        await self._send_greeting()
                     # Re-assert the floor so nobody's mic is left in limbo by
                     # the gap; the client gate keys off this broadcast.
                     await self.broadcast({
