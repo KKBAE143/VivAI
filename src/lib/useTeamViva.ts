@@ -12,6 +12,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getToken, wsUrl } from "@/lib/api";
+import { decodeFrame, KIND_HUMAN } from "@/lib/audio-frames";
 import { captureSilent, report } from "@/diagnostics/client";
 import { startTrace, traceQuery } from "@/diagnostics/trace";
 
@@ -139,7 +140,7 @@ export function useTeamViva(opts: UseTeamVivaOptions) {
     playHeadRef.current = 0;
   }, []);
 
-  const playChunk = useCallback((pcm: ArrayBuffer) => {
+  const playChunk = useCallback((pcm: ArrayBuffer, sampleRate = PLAYBACK_SAMPLE_RATE) => {
     const ctx = playbackCtxRef.current;
     // A missing/closed context means nothing can play. Surface tap-to-unlock
     // instead of silently discarding the examiner's speech — this hook had no
@@ -167,7 +168,9 @@ export function useTeamViva(opts: UseTeamVivaOptions) {
       if (int16.length === 0) return;
       const float = new Float32Array(int16.length);
       for (let i = 0; i < int16.length; i += 1) float[i] = int16[i] / 0x8000;
-      const buffer = ctx.createBuffer(1, float.length, PLAYBACK_SAMPLE_RATE);
+      // Rate comes from the frame: AI speech is 24kHz, a relayed human mic is
+      // 16kHz, and playing one at the other's rate is audibly wrong.
+      const buffer = ctx.createBuffer(1, float.length, sampleRate);
       buffer.copyToChannel(float, 0);
       const src = ctx.createBufferSource();
       src.buffer = buffer;
@@ -187,6 +190,28 @@ export function useTeamViva(opts: UseTeamVivaOptions) {
       setAudioBlocked(true);
     }
   }, []);
+
+  /**
+   * Route one inbound binary frame to playback.
+   *
+   * A tagged frame carries its own sample rate and speaker; an untagged one is
+   * a server that predates tagging, and is still plain 24kHz AI speech. Own
+   * audio is never echoed back — the server already skips the sender, and this
+   * is a second guard so a future relay change cannot make people hear
+   * themselves on a delay.
+   */
+  const playAudioBuffer = useCallback(
+    (buffer: ArrayBuffer) => {
+      const frame = decodeFrame(buffer);
+      if (!frame) {
+        playChunk(buffer);
+        return;
+      }
+      if (frame.kind === KIND_HUMAN && frame.speakerId === myProfileId) return;
+      playChunk(frame.payload, frame.sampleRate);
+    },
+    [playChunk, myProfileId],
+  );
 
   /** Call from a click handler if the browser blocked AI audio. */
   const unlockAudio = useCallback(async () => {
@@ -219,13 +244,13 @@ export function useTeamViva(opts: UseTeamVivaOptions) {
   const handleMessage = useCallback(
     (raw: MessageEvent) => {
       if (raw.data instanceof ArrayBuffer) {
-        playChunk(raw.data);
+        playAudioBuffer(raw.data);
         return;
       }
       if (raw.data instanceof Blob) {
         raw.data
           .arrayBuffer()
-          .then(playChunk)
+          .then(playAudioBuffer)
           // Dropping a frame makes the AI intermittently inaudible to everyone.
           .catch((e) =>
             captureSilent(e, "audio_blob_read_failed", { feature: "team_viva", mode: "team_viva" }),
@@ -412,7 +437,9 @@ export function useTeamViva(opts: UseTeamVivaOptions) {
         return;
       }
 
-      const qs = new URLSearchParams({ token, language, persona });
+      // pv=1 tells the server this client can decode tagged audio frames, which
+      // is what makes it eligible to receive relayed human voice.
+      const qs = new URLSearchParams({ token, language, persona, pv: "1" });
       // Trace propagation for the WebSocket leg — see useLiveSession. Dev only.
       if (import.meta.env.DEV) {
         for (const [key, value] of Object.entries(traceQuery())) qs.set(key, value);
