@@ -105,6 +105,12 @@ export function useTeamViva(opts: UseTeamVivaOptions) {
   const [summary, setSummary] = useState<TeamVivaSummary | null>(null);
   /** True when the browser is blocking AI audio until the user taps again. */
   const [audioBlocked, setAudioBlocked] = useState(false);
+  /** Faculty watching this viva. Never examined, never hold a student slot. */
+  const [observers, setObservers] = useState<TeamVivaMember[]>([]);
+  /** Whether a faculty member has paused the examiner to take over. */
+  const [aiPaused, setAiPaused] = useState(false);
+  /** Who paused it, for the banner the room shows everyone. */
+  const [pausedBy, setPausedBy] = useState<string | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
   const captureCtxRef = useRef<AudioContext | null>(null);
@@ -267,11 +273,26 @@ export function useTeamViva(opts: UseTeamVivaOptions) {
         return;
       }
       switch (msg.type) {
-        case "lobby":
+        case "lobby": {
           setMembers((msg.members as TeamVivaMember[]) ?? []);
+          setObservers((msg.observers as TeamVivaMember[]) ?? []);
           setLeadId((msg.lead_id as string) ?? null);
-          setAiStatus((msg.ai_status as "muted" | "live") ?? "muted");
+          // The server reports "paused" as its own ai_status. Map it onto the
+          // existing muted/live pair so no consumer has to learn a third value,
+          // and keep the paused flag in sync for a client that joins mid-pause.
+          const reported = (msg.ai_status as string) ?? "muted";
+          setAiPaused(reported === "paused");
+          setAiStatus(reported === "muted" ? "muted" : "live");
           setStatus((s) => (s === "idle" || s === "connecting" ? "lobby" : s));
+          break;
+        }
+        case "ai_paused":
+          setAiPaused(true);
+          setPausedBy((msg.by as string) ?? "Faculty");
+          break;
+        case "ai_resumed":
+          setAiPaused(false);
+          setPausedBy(null);
           break;
         case "floor":
           setFloorSpeakerId((msg.speaker_id as string | null) ?? null);
@@ -478,6 +499,20 @@ export function useTeamViva(opts: UseTeamVivaOptions) {
     wsRef.current?.send(JSON.stringify({ type: "start" }));
   }, []);
 
+  /**
+   * Faculty-only controls. The server enforces the permission itself, so a
+   * student who somehow sends one of these gets a refusal rather than an effect
+   * — these functions are a convenience, never the security boundary.
+   */
+  const pauseAI = useCallback((paused: boolean) => {
+    wsRef.current?.send(JSON.stringify({ type: paused ? "pause_ai" : "resume_ai" }));
+  }, []);
+
+  /** Hand the floor to a student, or pass `null` to give it back to the AI. */
+  const grantFloor = useCallback((participantId: string | null) => {
+    wsRef.current?.send(JSON.stringify({ type: "grant_floor", participant_id: participantId }));
+  }, []);
+
   /** Lead-only: ends the viva for the whole room. Tears down local media
    * immediately but keeps the socket open to receive the final {"ended",
    * summary} once the server finishes grading — same pattern as the solo
@@ -534,6 +569,9 @@ export function useTeamViva(opts: UseTeamVivaOptions) {
     events,
     summary,
     audioBlocked,
+    observers,
+    aiPaused,
+    pausedBy,
     isMyFloor: floorSpeakerId === myProfileId,
     join,
     startViva,
@@ -541,5 +579,7 @@ export function useTeamViva(opts: UseTeamVivaOptions) {
     leave,
     toggleMic,
     unlockAudio,
+    pauseAI,
+    grantFloor,
   };
 }
