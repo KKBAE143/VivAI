@@ -11,9 +11,13 @@ import {
   Bot,
   Copy,
   Crown,
+  Eye,
+  Hand,
   Mic,
   MicOff,
+  Pause,
   PhoneOff,
+  Play,
   Trophy,
   Loader2,
   CheckCircle2,
@@ -55,6 +59,9 @@ export function TeamVivaRoom({ sessionId, myProfileId, inviteUrl }: TeamVivaRoom
     error,
     isMyFloor,
     audioBlocked,
+    observers,
+    aiPaused,
+    pausedBy,
   } = room;
 
   useEffect(() => {
@@ -67,6 +74,12 @@ export function TeamVivaRoom({ sessionId, myProfileId, inviteUrl }: TeamVivaRoom
   const nameFor = (pid: string | null) =>
     members.find((m) => m.profile_id === pid)?.name ?? "Someone";
   const isLead = leadId === myProfileId;
+  /**
+   * Am I here as faculty? Derived from the server's observer list rather than a
+   * prop, so the controls can only appear for someone the server actually
+   * admitted as an observer — and the server re-checks every action anyway.
+   */
+  const isObserver = observers.some((o) => o.profile_id === myProfileId);
   const canStart = members.length >= 3 && members.length <= 5;
 
   if (!micStream) {
@@ -194,8 +207,26 @@ export function TeamVivaRoom({ sessionId, myProfileId, inviteUrl }: TeamVivaRoom
             <div className="flex items-center justify-center gap-1 font-medium">
               <Bot className="h-3.5 w-3.5" /> AI Examiner
             </div>
-            <Badge tone={aiStatus === "live" ? (aiSpeaking ? "primary" : "success") : "muted"}>
-              {aiStatus === "live" ? (aiSpeaking ? "Speaking" : "Listening") : "Muted"}
+            {/* Paused must not read as "Listening" — while paused the examiner
+                genuinely cannot hear the room. */}
+            <Badge
+              tone={
+                aiPaused
+                  ? "warning"
+                  : aiStatus === "live"
+                    ? aiSpeaking
+                      ? "primary"
+                      : "success"
+                    : "muted"
+              }
+            >
+              {aiPaused
+                ? "Paused"
+                : aiStatus === "live"
+                  ? aiSpeaking
+                    ? "Speaking"
+                    : "Listening"
+                  : "Muted"}
             </Badge>
           </div>
         </div>
@@ -226,17 +257,21 @@ export function TeamVivaRoom({ sessionId, myProfileId, inviteUrl }: TeamVivaRoom
         )}
 
         {status === "live" && (
-          <div className="mt-5 flex items-center gap-3">
+          <div className="mt-5 flex flex-wrap items-center gap-3">
             <button
               onClick={() => room.toggleMic()}
-              disabled={!isMyFloor}
+              disabled={!isMyFloor && !isObserver}
               className="flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold disabled:opacity-40"
               title={
-                isMyFloor ? "Mute/unmute yourself" : "You can only speak when the AI calls on you"
+                isObserver
+                  ? "Mute/unmute yourself — faculty may speak at any time"
+                  : isMyFloor
+                    ? "Mute/unmute yourself"
+                    : "You can only speak when the AI calls on you"
               }
             >
               {micMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-              {isMyFloor ? (micMuted ? "Unmute" : "Mute") : "Not your turn"}
+              {isMyFloor || isObserver ? (micMuted ? "Unmute" : "Mute") : "Not your turn"}
             </button>
             {isLead && (
               <button
@@ -247,6 +282,70 @@ export function TeamVivaRoom({ sessionId, myProfileId, inviteUrl }: TeamVivaRoom
               </button>
             )}
           </div>
+        )}
+
+        {/* Faculty takeover. Rendered only for an admitted observer; the server
+            re-checks permission on every action, so this is convenience only. */}
+        {status === "live" && isObserver && (
+          <div className="mt-4 rounded-xl border border-primary/30 bg-primary/5 p-3">
+            <div className="flex items-center gap-2 text-xs font-semibold">
+              <Eye className="h-4 w-4 text-primary" /> Faculty controls
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => room.pauseAI(!aiPaused)}
+                className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground"
+              >
+                {aiPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+                {aiPaused ? "Hand back to AI" : "Take over"}
+              </button>
+              {aiPaused && (
+                <button
+                  onClick={() => room.grantFloor(null)}
+                  className="rounded-lg border px-3 py-2 text-xs font-semibold"
+                  title="Stop directing the floor and let the examiner choose again"
+                >
+                  Clear floor
+                </button>
+              )}
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              {aiPaused
+                ? "The examiner is paused and cannot hear the room. Everyone can still hear each other — ask your own questions, then hand back."
+                : "Pausing stops the AI examining without ending the viva or losing the conversation."}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {members.map((m) => (
+                <button
+                  key={m.profile_id}
+                  onClick={() => room.grantFloor(m.profile_id)}
+                  className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium ${
+                    floorSpeakerId === m.profile_id
+                      ? "border-primary bg-primary/10"
+                      : "border-border hover:border-primary"
+                  }`}
+                  title={`Give the floor to ${m.name}`}
+                >
+                  <Hand className="h-3.5 w-3.5" /> {m.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Everyone needs to know why the examiner went quiet. */}
+        {status === "live" && aiPaused && !isObserver && (
+          <p className="mt-4 rounded-xl border border-warning/40 bg-warning/10 p-3 text-xs">
+            {pausedBy ?? "Faculty"} has paused the AI examiner and is asking questions directly.
+          </p>
+        )}
+
+        {observers.length > 0 && (
+          <p className="mt-4 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Eye className="h-3.5 w-3.5" />
+            {observers.map((o) => o.name).join(", ")} {observers.length === 1 ? "is" : "are"}{" "}
+            observing
+          </p>
         )}
       </Card>
 
