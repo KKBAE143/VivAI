@@ -89,7 +89,7 @@ Leave `DIAGNOSTICS_ENABLED=true`. As you walk this document, failures are captur
 | `/advanced/weakness-heatmap` → **Refresh Analysis** | Numbers may not change until you refresh a second time | The recompute mutation and the refetch fire in the same tick |
 | `/login` | **Remember me** has no effect | Uncontrolled, unused |
 | `/signup` | The "Terms of Service" link opens the privacy page | No ToS route exists |
-| `/privacy` | Opening it from the signup links while signed out bounces to `/login` | The page renders inside `AppShell`, which is auth-gated |
+| `/signup` | Both consent links point at `/privacy`; there is no separate Terms page | No ToS route exists |
 | `/templates/$slug` | Checklist ticks are lost on reload | Local component state, never persisted |
 
 ### 2.3 Dead ends — features with no UI path
@@ -141,11 +141,16 @@ Both fixes make previously-permitted things fail. Expect these, and do not log t
 | 3.21.1 | Consented users see nothing | Sign in as an account created through the signup form with the box ticked | No consent dialog. A prompt shown to someone who already consented is a bug |
 | 3.21.2 | Google account is asked | Sign in with Google (that path never passes through the signup form, so it has no consent on record) | "Before your first session" dialog with the four data points |
 | 3.21.3 | Accept | **Accept and continue** | Toast, dialog closes, does not return on reload. `consent_log` gains a row and `profiles.consent_accepted_at` is set |
-| 3.21.4 | Read first | **Read the full policy** | Goes to `/privacy` |
-| 3.21.5 | Dismiss | **Not now** | Dialog closes for this page load and returns on the next |
-| 3.21.6 | Refusal blocks sessions, not the app | With consent dismissed, try to start a mock viva | 403 with the readable message "You must accept the Privacy Policy before starting a session." — **not** "Request failed (403)". The rest of the app keeps working |
-| 3.21.7 | Erasure still reachable | With no consent, `/profile` → **Delete All My Data** | Works. Consent gates what we start recording, not your right to remove it |
-| 3.21.8 | Simulate a legacy account | Clear `consent_accepted_at` for a test user in Supabase, reload | The dialog appears again |
+| 3.21.4 | Read first | **Read the full notice** | Goes to `/privacy`, and the dialog becomes a sticky bottom bar there instead of covering the page. Accepting from that bar works |
+| 3.21.5 | Not dismissable | Press Escape, click the backdrop, look for a corner X | None of them close it. Consent has to be answered, not escaped |
+| 3.21.6 | Decline | **Decline** | A second panel naming exactly what stops working, with **Accept**, **Read the notice** and **Sign out**. No silent dismissal |
+| 3.21.7 | Refusal blocks sessions, not the app | After declining, try to start a mock viva | 403 with the readable message "You must accept the Privacy Policy before starting a session." — **not** "Request failed (403)". Projects, teams, tasks, files and past reports still work |
+| 3.21.8 | Re-consent on a new notice | Bump `POLICY_VERSION` in `backend/api/privacy.py`, restart, reload | Asked again, with wording that says the notice changed and the earlier consent does not carry over |
+| 3.21.9 | Notice readable before signing in | Sign out, open `/privacy` directly | Renders standalone without bouncing to `/login` — a notice you cannot read until after agreeing to it is not a notice |
+| 3.21.10 | Under-18 | Set `is_minor` on a test profile with no `parental_consent_at` | The gate names the guardian-consent requirement |
+| 3.21.11 | Itemised notice | Read `/privacy` | A per-item table of data, purpose and what it enables (DPDP Rules 2025, Rule 3), the named processors including Google Gemini, the 72-hour breach window, and the route to the Data Protection Board |
+| 3.21.12 | Erasure still reachable | With no consent, `/profile` → **Delete All My Data** | Works. Consent gates what we start recording, not your right to remove it |
+| 3.21.13 | Simulate a legacy account | Clear `consent_accepted_at` for a test user in Supabase, reload | The dialog appears again |
 
 ## 4. Shell, navigation and guards
 
@@ -455,7 +460,7 @@ These have no screen, so they are the most likely to have rotted. Sign in, copy 
 | 16.2 | REST presentation lifecycle | `/start` → `/upload-slide` (an image) → `/question` → `/answer` → `/end`. A non-image to `/upload-slide` → 400; `/answer` before `/question` → 400 |
 | 16.3 | Sentiment API | `POST /api/advanced/sentiment/session` → `WS /api/advanced/ws/sentiment/{id}` with `{"type":"frame","data":"<base64 jpeg>","mime_type":"image/jpeg"}` → `/end` → `/report`. Only every third frame is analysed (free-tier throttle). Another user's session id → 4404 |
 | 16.4 | Code-aware alternates | `POST /api/advanced/code-aware/upload`, then `POST /api/advanced/code-aware/session` with the returned `snapshot_id`. Unknown snapshot → 404; a snapshot with no files → 400; `duration_minutes` outside 5–20 → 422 |
-| 16.5 | Privacy reads | `GET /api/privacy/consent-status`, `/delete-status`, `/policy`, `/grievance`. The last two need no auth. The page hardcodes its own text, so **compare them** — divergence means the displayed policy is not the served one |
+| 16.5 | Privacy reads | `GET /api/privacy/consent-status`, `/delete-status`, `/policy`, `/grievance`. The last two need no auth. `/privacy` now renders whatever `/policy` returns, so the served notice and the displayed notice cannot diverge — check that the version in the page header matches `POLICY_VERSION` |
 | 16.6 | Template checklist | `GET /api/templates/{slug}/checklist` |
 | 16.7 | Teams legacy join | `POST /api/teams/{team_id}/join` — delegates to `/join` and ignores the id |
 | 16.8 | Logout | `POST /api/auth/logout` — a no-op; the client just drops the token |
