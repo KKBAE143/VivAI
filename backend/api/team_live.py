@@ -130,26 +130,61 @@ async def ws_team_live(websocket: WebSocket, session_id: str):
         await websocket.close(code=4404)
         return
     session = res.data[0]
-    team_id = (session.get("context") or {}).get("team_id")
-    if not team_id or not _membership(team_id, user["id"]):
-        await websocket.send_json({"type": "error", "message": "Not a member of this team"})
+    context = session.get("context") or {}
+    team_id = context.get("team_id")
+
+    # `user_from_token` returns only {id, email, name} — WebSocket routes never
+    # load the profile the way get_current_user does. Faculty authority lives in
+    # role + institution_id, so it has to be fetched here or faculty can never
+    # be admitted. One query, only on the socket that needs it.
+    prof = (
+        sb.table("profiles").select("full_name, role, institution_id")
+        .eq("id", user["id"]).execute().data
+    )
+    profile = prof[0] if prof else {}
+    name = profile.get("full_name") or "Member"
+    role = profile.get("role") or "student"
+
+    # Two ways in. A team member is a PARTICIPANT and can be examined. A faculty
+    # member of the institution that scheduled this assessment is an OBSERVER:
+    # they may watch, pause and take over, but never hold a student slot and are
+    # never examined. `teams` has no institution_id, which is why the authority
+    # is read off the session that recorded it at creation time.
+    is_member = bool(team_id and _membership(team_id, user["id"]))
+    session_institution = context.get("institution_id")
+    is_observer = (
+        not is_member
+        and role in ("faculty", "admin")
+        and bool(session_institution)
+        and profile.get("institution_id") == session_institution
+    )
+    if not is_member and not is_observer:
+        await websocket.send_json({"type": "error", "message": "You cannot join this viva"})
         await websocket.close(code=4403)
         return
 
     room = team_room.manager.room(session_id, team_id, session["profile_id"])
-    if user["id"] not in room.connections and len(room.connections) >= team_room.MAX_PARTICIPANTS:
+    if is_member and user["id"] not in room.connections and len(room.connections) >= team_room.MAX_PARTICIPANTS:
         await websocket.send_json({"type": "error", "message": "This viva lobby is full"})
         await websocket.close(code=4403)
         return
 
-    prof = sb.table("profiles").select("full_name").eq("id", user["id"]).execute().data
-    name = prof[0]["full_name"] if prof else "Member"
+    # Protocol v1+ clients can decode tagged audio frames, so they are the only
+    # ones that receive relayed human voice (see ai/audio_frames.py).
+    try:
+        tagged = int(websocket.query_params.get("pv") or 0) >= 1
+    except ValueError:
+        tagged = False
+
     project_context = ""
     if session.get("project_id"):
         p = sb.table("projects").select("*").eq("id", session["project_id"]).execute().data
         project_context = viva_core.build_project_context(p[0] if p else None)
 
-    await room.connect(user["id"], name, websocket)
+    if is_observer:
+        await room.connect_observer(user["id"], name, websocket, tagged)
+    else:
+        await room.connect(user["id"], name, websocket, tagged=tagged)
     try:
         while True:
             msg = await websocket.receive()
@@ -172,6 +207,18 @@ async def ws_team_live(websocket: WebSocket, session_id: str):
                     await room.start(user["id"], session.get("project_id"), project_context, session.get("subject"), language, persona)
                 except (PermissionError, ValueError) as exc:
                     await websocket.send_json({"type": "error", "message": str(exc)})
+            elif kind in ("pause_ai", "resume_ai"):
+                # Faculty takeover. The room enforces the permission itself, so
+                # a student sending this frame gets a refusal, not an effect.
+                try:
+                    await room.set_paused(user["id"], kind == "pause_ai")
+                except PermissionError as exc:
+                    await websocket.send_json({"type": "error", "message": str(exc)})
+            elif kind == "grant_floor":
+                try:
+                    await room.grant_floor(user["id"], payload.get("participant_id"))
+                except (PermissionError, ValueError) as exc:
+                    await websocket.send_json({"type": "error", "message": str(exc)})
             elif kind == "end":
                 try:
                     await room.end(user["id"])
@@ -180,5 +227,11 @@ async def ws_team_live(websocket: WebSocket, session_id: str):
     except WebSocketDisconnect:
         pass
     finally:
-        await room.disconnect(user["id"])
+        # Observers live in a separate dict, so removing them needs the matching
+        # call — `disconnect` would silently leave the faculty entry behind and
+        # keep broadcasting into a dead socket.
+        if is_observer:
+            await room.disconnect_observer(user["id"])
+        else:
+            await room.disconnect(user["id"])
         team_room.manager.drop_if_empty(session_id)
