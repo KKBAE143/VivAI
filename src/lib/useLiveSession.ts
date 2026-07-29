@@ -250,6 +250,18 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
   const [endedEarly, setEndedEarly] = useState(false);
   /** True when the browser is blocking AI audio until the user taps again. */
   const [audioBlocked, setAudioBlocked] = useState(false);
+  /**
+   * The session's length in seconds, as reported by the server on `ready`.
+   *
+   * Null when no limit is configured. Deliberately not derived from the config
+   * the student picked on the setup screen: the server is what enforces the
+   * limit, so it is also what defines the countdown. For a long time the chosen
+   * duration was stored and then read by nothing, so a "5 minute" viva simply
+   * ran until the model felt like stopping.
+   */
+  const [durationSec, setDurationSec] = useState<number | null>(null);
+  /** The limit was reached and the examiner has been asked to close. */
+  const [timeUp, setTimeUp] = useState(false);
   /** Student paused the session (mic+playback held; socket stays open). */
   const [paused, setPaused] = useState(false);
 
@@ -523,8 +535,13 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
         return;
       }
       switch (msg.type) {
-        case "ready":
+        case "ready": {
           setStatus("live");
+          // The session's real length, straight from the server that will
+          // enforce it. Null means no limit was configured; the UI then shows
+          // elapsed time only rather than inventing a deadline.
+          const seconds = msg.duration_seconds;
+          if (typeof seconds === "number" && seconds > 0) setDurationSec(seconds);
           // Re-assert playback unlock when the socket is live — some browsers
           // re-suspend AudioContext between the Start click and WS ready.
           if (!pausedRef.current) {
@@ -538,6 +555,13 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
               });
             }
           }
+          break;
+        }
+        case "time_up":
+          // The server hit the limit and asked the examiner to close. It will end
+          // the session itself shortly if that is ignored, so this is purely to
+          // explain what the student is about to see.
+          setTimeUp(true);
           break;
         case "user_transcript":
           userBufRef.current += String(msg.text ?? "");
@@ -1079,6 +1103,8 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     setMicMuted(false);
     setAudioBlocked(false);
     setPaused(false);
+    setDurationSec(null);
+    setTimeUp(false);
     pausedRef.current = false;
   }, [cleanup]);
 
@@ -1121,6 +1147,8 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     endedEarly,
     audioBlocked,
     paused,
+    durationSec,
+    timeUp,
     start,
     stop,
     reset,

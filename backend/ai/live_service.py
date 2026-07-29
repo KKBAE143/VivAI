@@ -73,7 +73,7 @@ SESSION FLOW (follow in order):
 1. OPENING — ONLY in your FIRST reply to the session-start message (one continuous turn, ~10 seconds max): Say a SHORT hello (1 sentence, use their name if given), that you are the VivAI examiner for a mock viva, then IMMEDIATELY ask your FIRST real question. Do NOT explain the full rules at length. Do NOT produce a second hello or re-introduce yourself later in the session.
 2. Ask ONE clear question at a time, grounded in their project/subject. Start easier, then go deeper based on their answers.
 3. After each answer: give a brief spoken reaction (1 sentence, no re-greeting), then ask the next question or a follow-up if they were vague.
-4. Cover 5-8 questions total across different topics. Keep YOUR turns short — the student should do most of the talking.
+4. {question_budget} Keep YOUR turns short — the student should do most of the talking.
 5. When you have asked enough, give a brief closing remark, tell them the viva is complete and that you're preparing their feedback, then call the `end_session` tool.""",
     "presentation": """ROLE: You are a faculty examiner watching the student's LIVE project PRESENTATION through their SHARED SCREEN. You CAN see their screen — react to what is actually visible.
 
@@ -100,9 +100,86 @@ SESSION FLOW (follow in order):
 2. Run the scenario naturally, one prompt/question at a time, and LISTEN.
 3. While they speak and between turns, give SHORT, specific, encouraging coaching based on what you SEE and HEAR — e.g. "Try to look at the camera", "Slow down a little", "Sit up straight", "Great — that was confident", "Watch the filler words". Weave 1 quick coaching tip into most of your turns, but never lecture.
 4. After every student turn, silently log 1-2 evidence-backed observations with the `log_observation` tool. Only log what you actually saw or heard; never invent body-language evidence when the camera is not useful.
-5. Cover 5-8 exchanges. Keep YOUR turns short — the student should do most of the talking.
+5. {question_budget} Keep YOUR turns short — the student should do most of the talking.
 6. When done, give a brief encouraging closing remark, tell them you're preparing their communication report, then call the `end_session` tool.""",
 }
+
+
+# How long a spoken question-and-answer exchange actually takes end to end:
+# the examiner's question, the student's answer, and the examiner's reaction.
+# Measured against real viva transcripts rather than assumed — a B.Tech student
+# explaining normalization takes well over a minute on its own.
+SECONDS_PER_EXCHANGE = 110
+MIN_QUESTIONS = 3
+MAX_QUESTIONS = 10
+
+
+def question_budget_for(minutes: int | None) -> tuple[int, int]:
+    """How many questions fit in `minutes`, as an inclusive range.
+
+    The playbooks used to hardcode "cover 5-8 questions" regardless of the
+    duration the student picked, which is most of why a 5-minute viva ran for
+    twelve: the model was working to a question count that could not fit.
+    """
+    if not minutes or minutes <= 0:
+        return (5, 8)
+    fits = int((minutes * 60) / SECONDS_PER_EXCHANGE)
+    low = max(MIN_QUESTIONS, min(MAX_QUESTIONS, fits))
+    high = max(low, min(MAX_QUESTIONS, low + 2))
+    return (low, high)
+
+
+def _budget_sentence(minutes: int | None) -> str:
+    low, high = question_budget_for(minutes)
+    if not minutes or minutes <= 0:
+        return f"Cover {low}-{high} questions total across different topics."
+    return (
+        f"This session is {minutes} minutes long — that is the student's chosen limit, not a "
+        f"suggestion. Cover {low}-{high} questions total across different topics and pace "
+        f"yourself to finish inside {minutes} minutes."
+    )
+
+
+# Calibration anchors for every 0-100 score in the system.
+#
+# Without these, both the live `score_response` tool and the finalize-time
+# grader clustered everything in the 85-95 band: an LLM asked for "a score out
+# of 100" with no rubric is reliably generous. That is actively harmful here —
+# a student walks into a real viva believing they scored 90 on an answer that
+# missed the point. The bands give each number a meaning that has to be earned.
+SCORING_BANDS = """SCORING BANDS (apply strictly — these are exam marks, not encouragement):
+- 90-100: Complete and precise. Correct terminology, the reasoning behind the answer, and a concrete example. Nothing important missing. Rare.
+- 75-89: Solid. Core idea correct and clearly explained, but missing depth, an example, or one supporting detail.
+- 60-74: Passable. The general idea is there but imprecise, partly memorised, or missing a key part of the question.
+- 40-59: Weak. Some relevant knowledge, but a real misunderstanding, or only a definition where reasoning was asked for.
+- 20-39: Very weak. Mostly off-target, or recited words without meaning.
+- 0-19: No usable answer — silence, "I don't know", or something unrelated.
+A confident tone does NOT raise a score. Fluent delivery of a wrong or shallow answer scores low."""
+
+# The same calibration, compressed for the LIVE system instruction.
+#
+# The full block above is fine for the finalize-time grader, which is a one-shot
+# text call with no prompt budget. The live instruction is shared with every
+# scenario and persona and is held under 9k chars (see test_registry), so the
+# bands are stated tightly here rather than dropped — a rubric the live examiner
+# never sees is how every answer ended up scoring 85-95.
+SCORING_BANDS_LIVE = """SCORING BANDS (strict — a mark must be earned, do not cluster at 85-95):
+90+ complete, precise, with reasoning and an example (rare) · 75-89 correct but missing depth or an example · 60-74 right idea, imprecise or partly memorised · 40-59 a real misunderstanding, or a definition where reasoning was asked · 20-39 mostly off-target · 0-19 no usable answer."""
+
+
+def _time_budget_block(minutes: int | None) -> str:
+    """The wall-clock contract, stated once and enforced by the server too."""
+    if not minutes or minutes <= 0:
+        return ""
+    low, high = question_budget_for(minutes)
+    return (
+        "TIME BUDGET (the student chose this — respect it):\n"
+        f"- Total length: {minutes} minutes. Plan for {low}-{high} substantive questions, no more.\n"
+        "- Do NOT pad the session to fill time, and do NOT keep asking questions past your plan.\n"
+        "- You may receive a system message saying time is nearly up. When you do, finish the "
+        "current answer, give your short closing remark, and call `end_session` immediately — "
+        "do not start a new question.\n\n"
+    )
 
 
 # Blended (code-mixed) languages -> the two languages they mix (display string).
@@ -240,9 +317,13 @@ def build_system_instruction(
     scenario: Scenario | None = None,
     focus_topics: list[str] | None = None,
     practice_questions: list[str] | None = None,
+    duration_minutes: int | None = None,
 ) -> str:
     persona_contract = render_persona_block(PERSONAS.get(persona, PERSONAS[DEFAULT_PERSONA_ID]))
     playbook = _MODE_PLAYBOOK.get(mode, _MODE_PLAYBOOK["viva"])
+    # The playbooks carry a placeholder rather than a fixed count, so the plan the
+    # examiner works to matches the length the student actually asked for.
+    playbook = playbook.replace("{question_budget}", _budget_sentence(duration_minutes))
     name = (student_name or "").strip()
     name_line = (
         f"STUDENT'S NAME: {name}. In your FIRST reply only, greet them once by first name "
@@ -344,7 +425,7 @@ LANGUAGE (MOST IMPORTANT — obey for EVERY single turn, including the greeting)
 
 {scenario_block}
 
-{name_line}{subject_line}{focus_block}PROJECT CONTEXT (personalize every question with this — never ask generic questions when you have real details here):
+{name_line}{subject_line}{_time_budget_block(duration_minutes)}{focus_block}PROJECT CONTEXT (personalize every question with this — never ask generic questions when you have real details here):
 {ctx}
 
 CRITICAL RULES:
@@ -355,6 +436,10 @@ CRITICAL RULES:
 - Keep each spoken turn short (2-4 sentences). This is a dialogue, not a monologue.
 - Stay strictly in your role for this mode. {"Ground feedback in what is visible on the shared screen." if mode == "presentation" else "Coach on what you see of the student on their camera (eye contact, posture, expression) as well as what you hear." if mode == "coach" else "Do NOT mention screens or screen sharing."}
 - ENDING THE SESSION: When the session is genuinely complete (you have covered enough and delivered your brief closing remark), you MUST call the `end_session` tool exactly once. This is what generates the student's report — do NOT just fall silent and wait. Speak your one-line closing, then call `end_session`.
+
+{SCORING_BANDS_LIVE}
+- Grade what was actually said, not how confidently it was said.
+- Your SPOKEN reaction stays short and encouraging — that is bedside manner. The SCORE and the written feedback you log must be honest and specific, even when the spoken reaction was warm. A student who is told "fantastic explanation" and scored 90 for a shallow answer has been misled about their readiness.
 
 STRUCTURED LOGGING — MANDATORY, not optional (call these tools SILENTLY in the background — never read them aloud, never mention JSON, never let a tool call interrupt or delay your spoken turn):
 - `record_question`: REQUIRED every single time you ask the student a real question. Call it in the same turn as the question. Remember the question_id it returns. After the tool returns, stay SILENT until the student answers — do NOT greet again, do NOT re-ask the same question, do NOT re-introduce yourself.
@@ -430,6 +515,22 @@ def resume_trigger(mode: str, language: str = "English") -> str:
     return f"{_RESUME_TRIGGER}{tail} Remember: {_language_directive(language)}"
 
 
+def wrap_up_trigger(language: str = "English") -> str:
+    """Tell the examiner its time is up and it must close now.
+
+    Sent by the server clock, because the model's own sense of elapsed time is
+    unreliable — it will happily run a "5 minute" viva for fifteen. This asks for
+    a graceful close; if it is ignored, the server ends the session anyway, so
+    this exists to make that ending sound deliberate rather than abrupt.
+    """
+    return (
+        "SYSTEM: The time limit for this session has been reached. Do not ask another question. "
+        "Acknowledge the student's last answer in one short sentence, give your brief closing "
+        "remark, tell them you are preparing their feedback, and then call the `end_session` tool "
+        f"immediately. Remember: {_language_directive(language)}"
+    )
+
+
 # --------------------------------------------------------------------------- #
 # Tools (function declarations) — how live speech becomes structured data
 # --------------------------------------------------------------------------- #
@@ -490,7 +591,7 @@ def _tools() -> list[types.Tool]:
                     ),
                 ),
                 types.FunctionDeclaration(
-                    name="score_response",
+                    name="score_response",  # calibration lives in the system instruction
                     description=(
                         "Score the student's answer. Mandatory — call this immediately after "
                         "evaluating ANY answer to a question you recorded, never skip it. Pass "
@@ -501,8 +602,28 @@ def _tools() -> list[types.Tool]:
                     parameters=types.Schema(
                         type=types.Type.OBJECT,
                         properties={
-                            "score": types.Schema(type=types.Type.INTEGER, description="0-100"),
-                            "feedback": types.Schema(type=types.Type.STRING, description="One or two sentences."),
+                            "score": types.Schema(
+                                type=types.Type.INTEGER,
+                                description=(
+                                    "0-100, using the SCORING BANDS in your instructions. "
+                                    "Do not default to 85-95 — a mark has to be earned."
+                                ),
+                            ),
+                            "feedback": types.Schema(
+                                type=types.Type.STRING,
+                                description=(
+                                    "2-3 sentences: what was correct, then exactly what was "
+                                    "missing, wrong or vague, citing their own words. Never "
+                                    "generic praise."
+                                ),
+                            ),
+                            "missing": types.Schema(
+                                type=types.Type.STRING,
+                                description=(
+                                    "The specific point a complete answer needed and did not "
+                                    "include. Concrete, not 'more depth'."
+                                ),
+                            ),
                             "topic": types.Schema(type=types.Type.STRING, description="Short topic label."),
                             "question_id": types.Schema(
                                 type=types.Type.STRING,
@@ -554,6 +675,7 @@ def build_config(
     scenario: Scenario | None = None,
     focus_topics: list[str] | None = None,
     practice_questions: list[str] | None = None,
+    duration_minutes: int | None = None,
     resume_handle: str | None = None,
 ) -> types.LiveConnectConfig:
     settings = get_settings()
@@ -568,6 +690,7 @@ def build_config(
         scenario,
         focus_topics=focus_topics,
         practice_questions=practice_questions,
+        duration_minutes=duration_minutes,
     )
     # Gemini 3.1/2.5 Live are native-audio models. They choose the output
     # language from the conversation and explicitly reject/ignore a forced
@@ -757,17 +880,36 @@ TRANSCRIPT:
 {convo}
 
 From this transcript, extract every real question the examiner asked and the student's answer to it, and grade each answer.
+
+{SCORING_BANDS}
+
 Return STRICT JSON only, no prose, in exactly this shape:
 {{
   "questions": [
-    {{"question": "...", "topic": "short topic", "answer": "what the student actually said (summarize if long)", "score": 0-100, "feedback": "one specific sentence"}}
+    {{"question": "...",
+      "topic": "short topic",
+      "answer": "what the student actually said (summarize if long)",
+      "score": 0-100,
+      "feedback": "2-3 sentences: what was correct, then precisely what was wrong, missing or vague. Quote or paraphrase their own words as evidence.",
+      "missing": ["a specific point a complete answer needed that they did not give"],
+      "model_answer": "3-5 sentences: the answer a well-prepared student would have given to THIS question, concrete and specific to their project/subject — not generic advice",
+      "follow_up": "one thing to revise before the real viva"}}
   ],
   "overall_score": 0-100,
-  "strengths": ["..."],
-  "weaknesses": ["..."],
-  "summary": "2-3 sentence overall assessment addressed to the student"
+  "strengths": ["specific, evidence-backed — name the topic and what they did well"],
+  "weaknesses": ["specific and actionable — name the topic and the gap, never 'could be more confident'"],
+  "summary": "3-4 sentences addressed to the student: where they actually stand, the single biggest gap, and what to do next"
 }}
-Rules: score answers on correctness, depth and clarity. If the student never really answered a question, give it a low score and say so. If no genuine Q&A happened, return an empty questions array and an honest summary. Do not invent content that isn't in the transcript."""
+
+RULES — read carefully, this is an exam mark:
+- Grade against the bands above. Do NOT be kind. A generous mark is worse than useless to a student about to face a real examiner: it tells them they are ready when they are not.
+- Score EACH answer on its own merits. Do not let a strong first answer lift a weak later one.
+- `missing` must be concrete. "Did not mention the transitive dependency that 3NF removes" — not "lacked depth".
+- `model_answer` must be a real answer to the real question, using the project/subject details you were given. Never write "the student should have explained more clearly".
+- If the student never really answered, score it low and say exactly what they said instead.
+- If they answered in a mix of languages, grade the CONTENT, not their English.
+- If no genuine Q&A happened, return an empty questions array and an honest summary.
+- Never invent content that is not in the transcript. If a field cannot be filled honestly, omit it."""
 
     result = gemini_service.generate_json(prompt, default=None)
     if not isinstance(result, dict):
@@ -782,12 +924,25 @@ Rules: score answers on correctness, depth and clarity. If the student never rea
             score = max(0, min(100, int(q.get("score", 0) or 0)))
         except (ValueError, TypeError):
             score = 0
+        missing = q.get("missing")
+        if isinstance(missing, str):
+            missing = [missing] if missing.strip() else []
+        elif isinstance(missing, list):
+            missing = [str(m).strip() for m in missing if str(m).strip()]
+        else:
+            missing = []
         clean_q.append({
             "question": str(q.get("question", "")).strip(),
             "topic": q.get("topic"),
             "answer": q.get("answer"),
             "score": score,
             "feedback": q.get("feedback"),
+            # The three fields that turn "85, good job" into something a student
+            # can act on. `model_answer` in particular has a rendering slot in
+            # the review screen (`expected_answer`) that nothing ever filled.
+            "missing": missing,
+            "model_answer": str(q.get("model_answer") or "").strip() or None,
+            "follow_up": str(q.get("follow_up") or "").strip() or None,
         })
     scored = [q["score"] for q in clean_q if q.get("score") is not None]
     try:

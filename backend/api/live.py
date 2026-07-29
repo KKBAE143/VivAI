@@ -59,6 +59,11 @@ logger = get_logger("live")
 _MIC_GATE_SAFETY_SECONDS = 20
 _MIC_GATE_SAFETY_SECONDS_CLIENT_GATED = 45
 
+# How long past the chosen duration the examiner gets to close gracefully before
+# the server ends the session itself. Long enough to finish a sentence and a
+# closing remark, short enough that "5 minutes" still means something.
+_OVERRUN_GRACE_SECONDS = 45
+
 # Close code for a socket that a newer connection replaced. 4409 = "conflict".
 WS_SUPERSEDED_CODE = 4409
 # How long a superseded connection gets to finish tearing down before the new
@@ -487,7 +492,10 @@ class LivePersistence:
                         "topic": q.get("topic"),
                         "answer_text": q.get("answer"),
                         "score": q.get("score"),
-                        "feedback": q.get("feedback"),
+                        "feedback": _question_feedback(q),
+                        # The review screen has rendered a "Model answer" block
+                        # all along; nothing had ever written to this column.
+                        "expected_answer": q.get("model_answer"),
                     }).execute()
                 sb.table("viva_sessions").update({
                     "status": "Completed",
@@ -669,6 +677,30 @@ class LivePersistence:
 _send_audio = live_service.send_audio
 
 
+def _question_feedback(q: dict) -> str | None:
+    """Feedback plus what was missing, as one readable block.
+
+    The grader now returns `missing` and `follow_up` separately, but
+    `viva_questions` has one feedback column and the review screen renders it
+    verbatim. Folding them in here gets the detail in front of the student
+    without a migration; splitting them into their own columns is a later change.
+    """
+    parts: list[str] = []
+    base = str(q.get("feedback") or "").strip()
+    if base:
+        parts.append(base)
+    missing = q.get("missing") or []
+    if isinstance(missing, str):
+        missing = [missing]
+    missing = [str(m).strip() for m in missing if str(m).strip()]
+    if missing:
+        parts.append("Missing: " + "; ".join(missing) + ".")
+    follow_up = str(q.get("follow_up") or "").strip()
+    if follow_up:
+        parts.append(f"Revise: {follow_up}")
+    return "\n\n".join(parts) or None
+
+
 async def _send_image(session, data: bytes) -> None:
     blob = types.Blob(data=data, mime_type="image/jpeg")
     try:
@@ -743,6 +775,11 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
     focus_topics: list[str] = []
     practice_questions: list[str] = []
     live_brief = ""
+    # The length the student actually chose. Read off the session row for every
+    # mode: it was being stored at creation and then never read by anything, so
+    # picking "5 minutes" changed nothing at all — no prompt budget, no countdown,
+    # no stop. See `session_clock` below for the enforcement half.
+    duration_minutes: int | None = None
     try:
         if mode == "viva":
             res = sb.table("viva_sessions").select("*").eq("id", session_id).eq("profile_id", user["id"]).execute()
@@ -754,6 +791,7 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
             language = row.get("language") or language
             subject = row.get("subject")
             viva_session_type = row.get("session_type")
+            duration_minutes = row.get("duration_minutes")
             ctx = row.get("context") or {}
             if isinstance(ctx, str):
                 try:
@@ -797,6 +835,7 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
             # Presentation/coach/pitch store their free-text topic/scenario inside topic_scores JSONB.
             subject = ((row.get("topic_scores") or {}).get("subject")) or subject
             scenario_id = row.get("scenario_id")
+            duration_minutes = row.get("duration_minutes")
             sb.table("presentation_sessions").update({"status": "In Progress"}).eq("id", session_id).execute()
     except Exception as exc:
         await websocket.send_json({"type": "error", "message": f"Could not load session: {exc}"})
@@ -818,6 +857,17 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
     }.get(mode)
     if mode == "coach":
         scenario = get_scenario(scenario_id) or find_scenario_by_label(subject) or get_scenario("hr_interview")
+
+    # Normalise the chosen length. A legacy row with no value falls back to the
+    # scenario's own default rather than to "unlimited", so an old session gets a
+    # sane clock instead of none at all.
+    try:
+        budget_minutes = int(duration_minutes or 0)
+    except (TypeError, ValueError):
+        budget_minutes = 0
+    if budget_minutes <= 0 and scenario is not None:
+        budget_minutes = int(getattr(scenario, "default_duration_min", 0) or 0)
+    budget_minutes = max(0, min(120, budget_minutes))
 
     project_context = await asyncio.to_thread(_project_context, project_id)
     # Code-aware sessions: examiner brief is the distilled knowledge pack only.
@@ -844,6 +894,7 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
             scenario=scenario,
             focus_topics=focus_topics or None,
             practice_questions=practice_questions or None,
+            duration_minutes=budget_minutes or None,
             resume_handle=handle,
         )
 
@@ -1106,7 +1157,15 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
         fresh = resume_handle is None
         async with live_service.connect_with_fallback(make_config(resume_handle)) as session:
             if not ready_sent:
-                await websocket.send_json({"type": "ready"})
+                # The budget travels with `ready` so the countdown the student
+                # sees is the same number the server will enforce, rather than
+                # the client guessing from its own config.
+                await websocket.send_json(
+                    {
+                        "type": "ready",
+                        "duration_seconds": budget_minutes * 60 if budget_minutes else None,
+                    }
+                )
                 ready_sent = True
             else:
                 # A reconnect landed: tell the client to drop the
@@ -1147,6 +1206,56 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
             # conversation itself.
             return "ended"
 
+    async def session_clock():
+        """Hold the session to the length the student chose.
+
+        This has to live on the server. The model's own sense of elapsed time is
+        unreliable — it will run a "5 minute" viva for fifteen — and the browser
+        cannot be trusted to stop anything, because the student can close the tab
+        while the Gemini connection stays open and billable.
+
+        Two stages, so the ending sounds deliberate:
+          1. At the limit, ask the examiner to close (`wrap_up_trigger`) and tell
+             the browser so the UI can show it.
+          2. If it is still talking `_OVERRUN_GRACE_SECONDS` later, end the
+             session ourselves through the normal path, so the report is still
+             written from the real transcript.
+        """
+        if budget_minutes <= 0:
+            return  # no limit configured — nothing to enforce
+        await asyncio.sleep(budget_minutes * 60)
+        if end_requested.is_set() or browser_gone.is_set():
+            return
+        logger.info(
+            "session time limit reached — asking the examiner to wrap up",
+            extra={
+                "session_id": session_id,
+                "mode": mode,
+                "event": "live_time_limit",
+                "duration_ms": budget_minutes * 60_000,
+            },
+        )
+        try:
+            await websocket.send_json({"type": "time_up", "grace_seconds": _OVERRUN_GRACE_SECONDS})
+        except Exception:  # noqa: BLE001 — the socket may already be closing
+            pass
+        enqueue(("text", live_service.wrap_up_trigger(language)))
+
+        await asyncio.sleep(_OVERRUN_GRACE_SECONDS)
+        if end_requested.is_set() or browser_gone.is_set():
+            return
+        # The nudge was ignored. End it ourselves rather than let it run on.
+        logger.warning(
+            "examiner did not close after the time limit — ending server-side",
+            extra={
+                "session_id": session_id,
+                "mode": mode,
+                "event": "live_time_limit_forced",
+                "reason": "wrap_up_ignored",
+            },
+        )
+        end_requested.set()
+
     async def mic_gate_safety():
         # Never let a missing turn_complete / mic_open keep the mic gated forever.
         # Wait LONGER than the client's own ceiling when the client owns the gate,
@@ -1166,6 +1275,7 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
 
     reader_task = asyncio.create_task(browser_reader())
     safety_task = asyncio.create_task(mic_gate_safety())
+    clock_task = asyncio.create_task(session_clock())
     stop_reason = "ended"
     try:
         while True:
@@ -1210,10 +1320,10 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                 continue
             break
     finally:
-        for task in (reader_task, safety_task):
+        for task in (reader_task, safety_task, clock_task):
             if not task.done():
                 task.cancel()
-        await asyncio.gather(reader_task, safety_task, return_exceptions=True)
+        await asyncio.gather(reader_task, safety_task, clock_task, return_exceptions=True)
     logger.info(
         "live session stopped",
         extra={

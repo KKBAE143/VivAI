@@ -63,16 +63,28 @@ interface LiveStageProps {
   onUnlockAudio?: () => void;
 }
 
-// How many questions the mode playbooks actually target (from live_service.py
-// "Cover 5-8 questions" / "5-8 exchanges" / "2-3 rapid investor questions").
-// Used only to show an honest "how far along are we" estimate — never a fake
-// precise total, since the model decides the real count.
+/**
+ * Roughly how long one spoken question-and-answer exchange takes.
+ *
+ * Mirrors `SECONDS_PER_EXCHANGE` in `backend/ai/live_service.py` — change both
+ * together. Used only to show the student the same question range the examiner
+ * was told to work to, never to assert a precise total: the model decides the
+ * real count.
+ */
+const SECONDS_PER_EXCHANGE = 110;
+
+/** Fallback when the server reports no configured limit. */
 const EXPECTED_QUESTIONS: Record<LiveMode, number> = {
   viva: 7,
   presentation: 6,
   coach: 7,
   pitch: 3,
 };
+
+function questionBudget(durationSec: number | null, mode: LiveMode): number {
+  if (!durationSec) return EXPECTED_QUESTIONS[mode] ?? 6;
+  return Math.max(3, Math.min(10, Math.floor(durationSec / SECONDS_PER_EXCHANGE)));
+}
 
 const MODE_QUESTION_LABEL: Record<LiveMode, string> = {
   viva: "Viva question",
@@ -138,6 +150,45 @@ export function groupQuestionsAndScores(events: LiveEvent[]): QAItem[] {
   return order.map((id) => byId.get(id)!);
 }
 
+/**
+ * Colour a score by the band it falls in, not by a single pass/fail line.
+ *
+ * `score >= 60 ? green : amber` painted a 62 the same triumphant green as a 95
+ * and made every mark look like a pass, which is exactly the false reassurance
+ * the calibrated rubric is meant to remove. Mirrors the bands in
+ * `backend/ai/live_service.py`.
+ */
+function scoreTone(score: number): string {
+  if (score >= 85) return "text-success";
+  if (score >= 70) return "text-foreground";
+  if (score >= 55) return "text-warning";
+  return "text-destructive";
+}
+
+function scoreChip(score: number): string {
+  if (score >= 85) return "bg-success/15 text-success";
+  if (score >= 70) return "bg-secondary text-foreground";
+  if (score >= 55) return "bg-warning/15 text-warning";
+  return "bg-destructive/15 text-destructive";
+}
+
+/**
+ * Strip the markdown the model sprinkles into spoken-word fields.
+ *
+ * Observation evidence and feedback come back with `*emphasis*` and leading
+ * `* ` bullets, which render as literal asterisks in the live panel — the model
+ * is writing for a chat window, not for our cards. Cheaper and safer than
+ * rendering untrusted model output as markdown.
+ */
+export function plainText(value: string): string {
+  return value
+    .replace(/^\s*[*-]\s+/gm, "")
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/(?<!\w)\*(?=\S)(.+?)(?<=\S)\*(?!\w)/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .trim();
+}
+
 /** Simple, honest trend: compares the average score of the first half of
  * scored questions against the second half. No fabricated precision. */
 export function computeTrend(scores: number[]): "up" | "down" | "flat" | null {
@@ -160,6 +211,136 @@ function ScrollBottomButton({ onClick }: { onClick: () => void }) {
     >
       <ArrowDown className="h-3.5 w-3.5" /> New messages
     </button>
+  );
+}
+
+/**
+ * The examiner, for sessions that have no video to show.
+ *
+ * Voice-only is the majority case (a viva has neither a camera nor a screen
+ * share) and it used to be represented by an empty box. The state here is all
+ * genuinely observed — speaking, listening, muted, paused — so the animation
+ * carries information rather than decorating a dead panel.
+ */
+function ExaminerPresence({
+  connecting,
+  aiSpeaking,
+  listening,
+  userSpeaking,
+  micMuted,
+  paused,
+  label,
+}: {
+  connecting: boolean;
+  aiSpeaking: boolean;
+  listening: boolean;
+  userSpeaking: boolean;
+  micMuted: boolean;
+  paused: boolean;
+  label: string;
+}) {
+  const state = connecting
+    ? { text: "Connecting…", tone: "text-muted-foreground" }
+    : paused
+      ? { text: "Paused", tone: "text-muted-foreground" }
+      : aiSpeaking
+        ? { text: "Examiner speaking", tone: "text-primary" }
+        : micMuted
+          ? { text: "Your mic is muted", tone: "text-destructive" }
+          : userSpeaking
+            ? { text: "Listening to you", tone: "text-success" }
+            : { text: "Waiting for your answer", tone: "text-muted-foreground" };
+
+  const active = aiSpeaking || (listening && userSpeaking);
+  return (
+    <div className="relative flex aspect-video flex-col items-center justify-center gap-3 overflow-hidden rounded-2xl border border-border bg-gradient-to-b from-secondary/60 to-secondary/20">
+      <div className="relative grid h-20 w-20 place-items-center">
+        {/* Two staggered rings, only while something is actually happening. */}
+        {active && (
+          <>
+            <span
+              className={`absolute inset-0 animate-ping rounded-full ${
+                aiSpeaking ? "bg-primary/20" : "bg-success/20"
+              }`}
+            />
+            <span
+              className={`absolute inset-2 animate-ping rounded-full ${
+                aiSpeaking ? "bg-primary/25" : "bg-success/25"
+              }`}
+              style={{ animationDelay: "0.4s" }}
+            />
+          </>
+        )}
+        <span
+          className={`relative grid h-14 w-14 place-items-center rounded-full shadow-sm transition-colors ${
+            connecting || paused
+              ? "bg-muted"
+              : aiSpeaking
+                ? "bg-primary text-primary-foreground"
+                : "bg-card text-foreground"
+          }`}
+        >
+          {connecting ? (
+            <Loader2 className="h-6 w-6 animate-spin" />
+          ) : paused ? (
+            <Pause className="h-6 w-6" />
+          ) : aiSpeaking ? (
+            <Sparkles className="h-6 w-6" />
+          ) : (
+            <Ear className="h-6 w-6" />
+          )}
+        </span>
+      </div>
+      <p className={`text-xs font-semibold ${state.tone}`}>{state.text}</p>
+      <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-background/85 px-2 py-0.5 text-[10px] font-semibold backdrop-blur">
+        <span
+          className={`h-1.5 w-1.5 rounded-full ${
+            connecting ? "bg-muted-foreground" : "animate-pulse bg-success"
+          }`}
+        />
+        {label}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * One turn in the transcript.
+ *
+ * The student's side used to be a solid `bg-primary` bubble. That reads fine for
+ * a chat reply and badly here: a spoken viva answer runs to a full paragraph, so
+ * the transcript became alternating walls of saturated orange with white text —
+ * the hardest possible thing to read back, in the pane students spend the whole
+ * session looking at. A tinted panel with an accent edge keeps the ownership cue
+ * without shouting, and both sides are attributed so a long answer stays
+ * readable after scrolling back.
+ */
+function Turn({
+  role,
+  text,
+  interim = false,
+}: {
+  role: "student" | "examiner";
+  text: string;
+  interim?: boolean;
+}) {
+  const isStudent = role === "student";
+  return (
+    <div className={`flex flex-col gap-1 ${isStudent ? "items-end" : "items-start"}`}>
+      <span className="px-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        {isStudent ? "You" : "Examiner"}
+        {interim && " · speaking"}
+      </span>
+      <div
+        className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+          isStudent
+            ? "border-r-2 border-primary bg-primary/10 text-foreground"
+            : "bg-secondary text-foreground"
+        } ${interim ? "opacity-70" : ""}`}
+      >
+        {text}
+      </div>
+    </div>
   );
 }
 
@@ -343,8 +524,22 @@ export function LiveStage({
   );
   const trend = useMemo(() => computeTrend(scoredValues), [scoredValues]);
   const currentQuestion = qaItems.length > 0 ? qaItems[qaItems.length - 1] : null;
-  const expectedQuestions = EXPECTED_QUESTIONS[mode] ?? 6;
-  const progressPct = Math.min(100, Math.round((qaItems.length / expectedQuestions) * 100));
+  const expectedQuestions = questionBudget(live.durationSec, mode);
+  /**
+   * Progress against the CLOCK, not a guessed question count.
+   *
+   * This used to be `questions logged / 7`, which is why a session could sit at
+   * "43%" with no relationship to anything the student chose — 7 was hardcoded
+   * regardless of whether they picked 5 minutes or 30. Time is the honest
+   * denominator: it is the thing that is actually bounded, and the server
+   * enforces it.
+   */
+  const remainingSec = live.durationSec != null ? Math.max(0, live.durationSec - elapsedSec) : null;
+  const overtime = live.durationSec != null && elapsedSec > live.durationSec;
+  const progressPct =
+    live.durationSec != null
+      ? Math.min(100, Math.round((elapsedSec / live.durationSec) * 100))
+      : Math.min(100, Math.round((qaItems.length / expectedQuestions) * 100));
 
   const connecting = live.status === "connecting" || live.status === "idle";
   // A Gemini connection recycles roughly every 10 minutes; the server resumes
@@ -371,8 +566,16 @@ export function LiveStage({
     setText("");
   };
 
-  const mm = String(Math.floor(elapsedSec / 60)).padStart(2, "0");
-  const ss = String(elapsedSec % 60).padStart(2, "0");
+  const clock = (total: number) => {
+    const mm = String(Math.floor(total / 60)).padStart(2, "0");
+    const ss = String(Math.floor(total % 60)).padStart(2, "0");
+    return `${mm}:${ss}`;
+  };
+  const elapsedLabel = clock(elapsedSec);
+  // Count DOWN when there is a limit — that is the number a student in an exam
+  // actually needs. Elapsed stays available as the secondary line.
+  const primaryClock = remainingSec != null ? clock(remainingSec) : elapsedLabel;
+  const clockUrgent = remainingSec != null && remainingSec <= 60;
 
   return (
     <div
@@ -392,6 +595,14 @@ export function LiveStage({
         <div className="absolute inset-x-0 top-0 z-40 flex items-center justify-center gap-2 border-b border-warning/40 bg-warning/15 px-4 py-2.5 text-sm font-semibold text-foreground backdrop-blur">
           <Loader2 className="h-4 w-4 animate-spin" />
           Reconnecting to the examiner — your conversation is saved, hold on a moment.
+        </div>
+      )}
+      {live.timeUp && live.status === "live" && (
+        // The server has asked the examiner to close and will end the session
+        // itself shortly. Saying so beats an unexplained ending.
+        <div className="absolute inset-x-0 top-0 z-40 flex items-center justify-center gap-2 border-b border-warning/40 bg-warning/15 px-4 py-2.5 text-sm font-semibold text-foreground backdrop-blur">
+          <Clock className="h-4 w-4" />
+          Time&apos;s up — finish your answer, the examiner is wrapping up and your report is next.
         </div>
       )}
       {live.paused && (
@@ -420,8 +631,12 @@ export function LiveStage({
       <div className="flex shrink-0 items-center gap-2 border-b border-border bg-card/60 px-3 py-2 lg:hidden">
         <div className="min-w-0 flex-1">
           <p className="truncate text-xs font-semibold">{title}</p>
-          <p className="font-mono text-[11px] tabular-nums text-muted-foreground">
-            {mm}:{ss}
+          <p
+            className={`font-mono text-[11px] tabular-nums ${
+              clockUrgent ? "font-semibold text-destructive" : "text-muted-foreground"
+            }`}
+          >
+            {remainingSec != null ? `${primaryClock} left` : primaryClock}
             {live.paused ? " · paused" : ""}
           </p>
         </div>
@@ -466,32 +681,52 @@ export function LiveStage({
           {subtitle && <p className="mt-0.5 truncate text-xs text-muted-foreground">{subtitle}</p>}
         </div>
 
-        {/* Same left rail as Mock Viva / pitch: media tile + controls (no camera for viva). */}
-        <div className="relative overflow-hidden rounded-2xl border border-border bg-foreground/5">
-          {videoStream && live.videoEnabled ? (
-            <video
-              ref={videoRef}
-              muted
-              playsInline
-              className="aspect-video w-full bg-foreground/5 object-cover"
-            />
-          ) : (
-            <div className="grid aspect-video place-items-center bg-secondary/50 text-muted-foreground">
-              {videoStream ? <VideoOff className="h-6 w-6" /> : <Sparkles className="h-6 w-6" />}
-            </div>
-          )}
-          {connecting && (
-            <div className="absolute inset-0 grid place-items-center bg-background/60 backdrop-blur-sm">
-              <Loader2 className="h-5 w-5 animate-spin" />
-            </div>
-          )}
-          <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-background/85 px-2 py-0.5 text-[10px] font-semibold backdrop-blur">
-            <span
-              className={`h-1.5 w-1.5 rounded-full ${connecting ? "bg-muted-foreground" : "bg-success animate-pulse"}`}
-            />
-            {mode === "viva" ? "Oral exam" : "AI watching"}
-          </span>
-        </div>
+        {/*
+          Video when there is video; otherwise the examiner itself.
+
+          A viva has no camera and no screen share, so this slot used to render
+          an empty grey 16:9 box with a decorative icon in it — the largest
+          element on the screen, showing nothing, in the mode students use most.
+          Voice-only sessions now get a presence panel that actually tracks the
+          conversation, which is the only thing there is to show.
+        */}
+        {videoStream ? (
+          <div className="relative overflow-hidden rounded-2xl border border-border bg-foreground/5">
+            {live.videoEnabled ? (
+              <video
+                ref={videoRef}
+                muted
+                playsInline
+                className="aspect-video w-full bg-foreground/5 object-cover"
+              />
+            ) : (
+              <div className="grid aspect-video place-items-center bg-secondary/50 text-muted-foreground">
+                <VideoOff className="h-6 w-6" />
+              </div>
+            )}
+            {connecting && (
+              <div className="absolute inset-0 grid place-items-center bg-background/60 backdrop-blur-sm">
+                <Loader2 className="h-5 w-5 animate-spin" />
+              </div>
+            )}
+            <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-background/85 px-2 py-0.5 text-[10px] font-semibold backdrop-blur">
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${connecting ? "bg-muted-foreground" : "animate-pulse bg-success"}`}
+              />
+              AI watching
+            </span>
+          </div>
+        ) : (
+          <ExaminerPresence
+            connecting={connecting}
+            aiSpeaking={live.aiSpeaking}
+            listening={!connecting && !live.aiSpeaking && !live.micMuted}
+            userSpeaking={userIsSpeaking}
+            micMuted={live.micMuted}
+            paused={live.paused}
+            label={mode === "viva" ? "Oral exam in progress" : "Live session"}
+          />
+        )}
 
         {/* Live indicators */}
         <div className="space-y-1.5 rounded-xl bg-secondary/40 p-2.5">
@@ -568,30 +803,56 @@ export function LiveStage({
           </div>
           <div className="rounded-xl bg-secondary/40 p-2.5">
             <div className="flex items-center gap-1.5 text-muted-foreground">
-              <Clock className="h-3.5 w-3.5" /> Time
+              <Clock className="h-3.5 w-3.5" /> {remainingSec != null ? "Time left" : "Time"}
             </div>
-            <p className="mt-1 font-mono font-semibold tabular-nums">
-              {mm}:{ss}
+            <p
+              className={`mt-1 font-mono font-semibold tabular-nums ${
+                clockUrgent ? "text-destructive" : ""
+              }`}
+            >
+              {primaryClock}
             </p>
+            {remainingSec != null && (
+              <p className="mt-0.5 font-mono text-[10px] tabular-nums text-muted-foreground">
+                {elapsedLabel} elapsed
+              </p>
+            )}
           </div>
         </div>
 
-        {/* Question number + overall progress */}
+        {/* Progress against the clock, plus the question count so far. */}
         <div className="rounded-xl bg-secondary/40 p-3">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">Question</span>
-            <span className="font-semibold">{qaItems.length || "—"}</span>
+            <span className="text-muted-foreground">Questions asked</span>
+            <span className="font-semibold">
+              {qaItems.length || "—"}
+              <span className="ml-0.5 font-normal text-muted-foreground">
+                / ~{expectedQuestions}
+              </span>
+            </span>
           </div>
           <div className="mt-2 flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">Session progress</span>
-            <span className="font-semibold">{progressPct}%</span>
+            <span className="text-muted-foreground">
+              {live.durationSec != null ? "Time used" : "Session progress"}
+            </span>
+            <span className={`font-semibold ${overtime ? "text-warning" : ""}`}>
+              {progressPct}%
+            </span>
           </div>
           <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
             <div
-              className="h-full rounded-full bg-primary transition-all"
+              className={`h-full rounded-full transition-all ${
+                overtime ? "bg-warning" : clockUrgent ? "bg-destructive" : "bg-primary"
+              }`}
               style={{ width: `${progressPct}%` }}
             />
           </div>
+          {live.durationSec != null && (
+            <p className="mt-2 text-[10px] leading-snug text-muted-foreground">
+              {Math.round(live.durationSec / 60)}-minute session. The examiner is pacing for about{" "}
+              {expectedQuestions} questions and wraps up when the time is gone.
+            </p>
+          )}
         </div>
 
         <div className="mt-auto space-y-2">
@@ -664,35 +925,10 @@ export function LiveStage({
               </div>
             )}
             {live.captions.map((c, i) => (
-              <div
-                key={i}
-                className={`flex ${c.role === "student" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-                    c.role === "student"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-foreground"
-                  }`}
-                >
-                  {c.text}
-                </div>
-              </div>
+              <Turn key={i} role={c.role === "student" ? "student" : "examiner"} text={c.text} />
             ))}
-            {live.liveUserText && (
-              <div className="flex justify-end">
-                <div className="max-w-[70%] rounded-2xl bg-primary/60 px-4 py-2.5 text-sm text-primary-foreground">
-                  {live.liveUserText}
-                </div>
-              </div>
-            )}
-            {live.liveAiText && (
-              <div className="flex justify-start">
-                <div className="max-w-[70%] rounded-2xl bg-secondary/70 px-4 py-2.5 text-sm italic">
-                  {live.liveAiText}
-                </div>
-              </div>
-            )}
+            {live.liveUserText && <Turn role="student" text={live.liveUserText} interim />}
+            {live.liveAiText && <Turn role="examiner" text={live.liveAiText} interim />}
             {aiThinking && (
               <div className="flex justify-start">
                 <div className="flex items-center gap-1 rounded-2xl bg-secondary px-4 py-3">
@@ -773,19 +1009,24 @@ export function LiveStage({
               </span>
               {currentQuestion.score != null ? (
                 <span
-                  className={`text-sm font-bold ${currentQuestion.score >= 60 ? "text-success" : "text-warning"}`}
+                  className={`rounded-full px-2 py-0.5 text-sm font-bold tabular-nums ${scoreChip(currentQuestion.score)}`}
                 >
-                  {currentQuestion.score}/100
+                  {currentQuestion.score}
+                  <span className="text-[10px] font-medium opacity-70">/100</span>
                 </span>
               ) : (
                 <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                  <Clock className="h-3 w-3" /> Evaluating…
+                  <Loader2 className="h-3 w-3 animate-spin" /> Evaluating…
                 </span>
               )}
             </div>
-            <p className="mt-1.5 text-sm leading-snug">{currentQuestion.question}</p>
+            <p className="mt-2 text-sm font-medium leading-snug">
+              {plainText(currentQuestion.question)}
+            </p>
             {currentQuestion.feedback && (
-              <p className="mt-1.5 text-xs leading-snug text-primary">{currentQuestion.feedback}</p>
+              <p className="mt-2 border-t border-border pt-2 text-xs leading-relaxed text-muted-foreground">
+                {plainText(currentQuestion.feedback)}
+              </p>
             )}
           </div>
         ) : (
@@ -801,10 +1042,11 @@ export function LiveStage({
                 <h3 className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   <CheckCircle2 className="h-3.5 w-3.5 text-success" /> Strengths so far
                 </h3>
-                <ul className="mt-2 space-y-1.5 text-xs">
+                <ul className="mt-2 space-y-2 text-xs leading-relaxed">
                   {strengths.map((s) => (
-                    <li key={s.id} className="flex gap-1.5">
-                      <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-success" /> {s.text}
+                    <li key={s.id} className="flex gap-2">
+                      <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-success" />
+                      <span>{plainText(s.text)}</span>
                     </li>
                   ))}
                 </ul>
@@ -815,10 +1057,11 @@ export function LiveStage({
                 <h3 className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   <AlertTriangle className="h-3.5 w-3.5 text-warning" /> Watch out for
                 </h3>
-                <ul className="mt-2 space-y-1.5 text-xs">
+                <ul className="mt-2 space-y-2 text-xs leading-relaxed">
                   {weaknesses.map((w) => (
-                    <li key={w.id} className="flex gap-1.5">
-                      <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-warning" /> {w.text}
+                    <li key={w.id} className="flex gap-2">
+                      <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-warning" />
+                      <span>{plainText(w.text)}</span>
                     </li>
                   ))}
                 </ul>
@@ -834,8 +1077,11 @@ export function LiveStage({
             </h3>
             <ul className="mt-2 space-y-1.5 text-xs">
               {tips.map((t) => (
-                <li key={t.id} className="rounded-lg bg-secondary px-2.5 py-1.5">
-                  {t.tip}
+                <li
+                  key={t.id}
+                  className="rounded-lg border-l-2 border-primary bg-secondary px-2.5 py-2 leading-relaxed"
+                >
+                  {plainText(t.tip ?? "")}
                 </li>
               ))}
             </ul>
@@ -870,25 +1116,29 @@ export function LiveStage({
               )}
             </div>
             <ul className="mt-2 space-y-1.5">
-              {[...qaItems].reverse().map((q) => (
-                <li
-                  key={q.id}
-                  className="flex items-center justify-between gap-2 rounded-lg bg-secondary px-2.5 py-1.5 text-xs"
-                >
-                  <span className="min-w-0 truncate">{q.question}</span>
-                  {q.score != null ? (
-                    <span
-                      className={`shrink-0 font-semibold ${q.score >= 60 ? "text-success" : "text-warning"}`}
-                    >
-                      {q.score}
+              {qaItems
+                .map((q, i) => ({ q, number: i + 1 }))
+                .reverse()
+                .map(({ q, number }) => (
+                  <li
+                    key={q.id}
+                    className="flex items-center gap-2 rounded-lg bg-secondary px-2.5 py-2 text-xs"
+                  >
+                    <span className="shrink-0 font-mono text-[10px] text-muted-foreground">
+                      Q{number}
                     </span>
-                  ) : (
-                    <span className="shrink-0 text-muted-foreground">
-                      <Award className="h-3 w-3 opacity-40" />
-                    </span>
-                  )}
-                </li>
-              ))}
+                    <span className="min-w-0 flex-1 truncate">{plainText(q.question)}</span>
+                    {q.score != null ? (
+                      <span className={`shrink-0 font-semibold tabular-nums ${scoreTone(q.score)}`}>
+                        {q.score}
+                      </span>
+                    ) : (
+                      <span className="shrink-0 text-muted-foreground">
+                        <Award className="h-3 w-3 opacity-40" />
+                      </span>
+                    )}
+                  </li>
+                ))}
             </ul>
           </div>
         )}

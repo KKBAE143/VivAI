@@ -47,6 +47,9 @@ def test_hostile_persona_register_explicitly_forbids_casual_slang():
 def test_every_scenario_persona_combination_fits_live_instruction_budget():
     for scenario in SCENARIOS:
         for persona in PERSONAS:
+            # A real session always carries a duration, so the budget has to be
+            # measured with one. Without it this test was checking a prompt shape
+            # that never actually reaches the model.
             prompt = live_service.build_system_instruction(
                 mode="coach",
                 persona=persona,
@@ -54,6 +57,7 @@ def test_every_scenario_persona_combination_fits_live_instruction_budget():
                 project_context="A concise project context.",
                 subject=scenario.label,
                 scenario=scenario,
+                duration_minutes=30,
             )
             assert len(prompt) < 9_000
             assert len(render_scenario_block(scenario).split()) <= 250
