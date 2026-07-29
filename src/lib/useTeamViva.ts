@@ -465,7 +465,11 @@ export function useTeamViva(opts: UseTeamVivaOptions) {
       if (import.meta.env.DEV) {
         for (const [key, value] of Object.entries(traceQuery())) qs.set(key, value);
       }
-      const ws = new WebSocket(wsUrl(`/ws/team-viva/${sessionId}?${qs.toString()}`));
+      // The `/api/advanced` prefix is part of the served path: `team_live.router`
+      // carries it (unlike `live.router`, which is mounted bare, hence the
+      // asymmetry with `/ws/live/...`). Without it the handshake is rejected
+      // before any of the room logic runs, so the whole feature is dead.
+      const ws = new WebSocket(wsUrl(`/api/advanced/ws/team-viva/${sessionId}?${qs.toString()}`));
       ws.binaryType = "arraybuffer";
       wsRef.current = ws;
       ws.onmessage = handleMessage;
@@ -476,7 +480,7 @@ export function useTeamViva(opts: UseTeamVivaOptions) {
           context: {
             feature: "team_viva",
             mode: "team_viva",
-            url_path: "/ws/team-viva",
+            url_path: "/api/advanced/ws/team-viva",
             reason: "socket_error",
           },
         });

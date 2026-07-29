@@ -14,6 +14,7 @@ pattern api/live.py already uses for its single-student greeting gate.
 from __future__ import annotations
 
 import asyncio
+import sys
 import time
 from datetime import datetime, timezone
 
@@ -282,6 +283,14 @@ class VoiceRoom:
         # A student the faculty handed the floor to directly, overriding the
         # model's own `call_on_participant` choice.
         self.floor_override_id: str | None = None
+        # (recipient, channel) pairs whose last send raised. Kept so a dead
+        # socket produces ONE diagnostic event per channel instead of one per
+        # audio frame: the relay runs at roughly 50 frames a second per speaker,
+        # and an unguarded warning there would bury the sink under thousands of
+        # copies of the same fault. Keyed by channel as well as recipient because
+        # "cannot hear the examiner" and "cannot hear my teammates" are different
+        # faults, and collapsing them would report only whichever failed first.
+        self._send_failed: set[tuple[str, str]] = set()
 
     def _member_list(self) -> list[dict]:
         return [{"profile_id": pid, "name": self.names.get(pid, "Member")} for pid in self.connections]
@@ -310,13 +319,58 @@ class VoiceRoom:
         """Participants AND observers. Faculty must see and hear everything."""
         return [*self.connections.items(), *self.observers.items()]
 
+    def _note_send_failure(self, profile_id: str, channel: str) -> None:
+        """Record a dropped send — once per recipient per channel, until it recovers.
+
+        These three loops used to be `except Exception: pass`. Some failures here
+        genuinely are expected: a client closing its socket while a broadcast is
+        mid-flight raises, and continuing is the right behaviour. The problem was
+        that a silent pass made an expected close indistinguishable from a real
+        fault, and the symptom of a real one — "I could not hear anyone" — is the
+        single hardest thing in this room to debug after the fact, on the feature
+        the whole pitch rests on.
+
+        So: still swallowed, no longer invisible. The exception type lands in
+        `reason`, which is what separates a routine disconnect from a codec or
+        protocol failure.
+        """
+        if (profile_id, channel) in self._send_failed:
+            return
+        self._send_failed.add((profile_id, channel))
+        exc = sys.exc_info()[1]
+        logger.warning(
+            "team room send failed",
+            exc_info=True,
+            extra={
+                "session_id": self.session_id,
+                "mode": "team_viva",
+                "event": "room_send_failed",
+                "component": channel,
+                "reason": type(exc).__name__ if exc else "unknown",
+                "swallowed": True,
+            },
+        )
+
+    def _note_send_ok(self, profile_id: str, channel: str) -> None:
+        """A recipient that recovers is eligible to be reported again.
+
+        Without this a flapping connection is reported once and then stays quiet
+        forever, hiding the intermittent case that is hardest to reproduce.
+        """
+        self._send_failed.discard((profile_id, channel))
+
+    def _forget_send_state(self, profile_id: str) -> None:
+        for key in [k for k in self._send_failed if k[0] == profile_id]:
+            self._send_failed.discard(key)
+
     async def broadcast(self, message: dict) -> None:
         async with self._send_lock:
-            for _pid, ws in self._everyone():
+            for pid, ws in self._everyone():
                 try:
                     await ws.send_json(message)
+                    self._note_send_ok(pid, "lobby")
                 except Exception:
-                    pass
+                    self._note_send_failure(pid, "lobby")
 
     async def broadcast_bytes(self, data: bytes) -> None:
         """Fan AI speech out to the whole room.
@@ -330,8 +384,9 @@ class VoiceRoom:
             for pid, ws in self._everyone():
                 try:
                     await ws.send_bytes(tagged if pid in self._tagged else data)
+                    self._note_send_ok(pid, "ai_audio")
                 except Exception:
-                    pass
+                    self._note_send_failure(pid, "ai_audio")
 
     async def _relay_human_audio(self, speaker_id: str, data: bytes) -> None:
         """Let the room hear whoever is speaking.
@@ -347,16 +402,23 @@ class VoiceRoom:
                     continue
                 try:
                     await ws.send_bytes(frame)
+                    self._note_send_ok(pid, "human_relay")
                 except Exception:
-                    pass
+                    self._note_send_failure(pid, "human_relay")
 
     async def connect(self, profile_id: str, name: str, ws: WebSocket, tagged: bool = False) -> None:
         """Attach a participant. `tagged` = this client negotiated protocol v1+.
 
         Only tagged clients receive relayed human audio: an older client has no
         frame decoder and would play 16 kHz mic audio at the AI's 24 kHz.
+
+        The socket must ALREADY be accepted. `api/team_live.py` has to accept
+        before this point so it can send a JSON error and a close code when auth
+        or authorization fails — Starlette forbids sending on an unaccepted
+        socket. Accepting again here raised RuntimeError and dropped every real
+        connection; the unit tests missed it because a fake socket's `accept()`
+        is a no-op, so the handshake was only ever exercised in production.
         """
-        await ws.accept()
         self.connections[profile_id] = ws
         if tagged:
             self._tagged.add(profile_id)
@@ -366,6 +428,7 @@ class VoiceRoom:
     async def disconnect(self, profile_id: str) -> None:
         self.connections.pop(profile_id, None)
         self._tagged.discard(profile_id)
+        self._forget_send_state(profile_id)
         # A floor holder who drops must not leave the room waiting forever for
         # someone who left: give the floor back so the viva can carry on.
         if self.floor_override_id == profile_id:
@@ -511,8 +574,9 @@ class VoiceRoom:
 
         Kept out of `connections` so they never count against MAX_PARTICIPANTS
         and can never be chosen by the model's `call_on_participant`.
+
+        As with `connect`, the socket is already accepted by the transport.
         """
-        await ws.accept()
         self.observers[profile_id] = ws
         self.observer_names[profile_id] = name
         if tagged:
@@ -523,8 +587,37 @@ class VoiceRoom:
         self.observers.pop(profile_id, None)
         self.observer_names.pop(profile_id, None)
         self._tagged.discard(profile_id)
+        self._forget_send_state(profile_id)
         if self.connections or self.observers:
             await self.broadcast(self._lobby_message())
+
+    def _refuse_control(
+        self,
+        action: str,
+        reason: str,
+        message: str,
+        error: type[Exception] = PermissionError,
+    ) -> Exception:
+        """Record a refused faculty control, then hand back the error to raise.
+
+        The refusal used to reach the client as an `{"type": "error"}` frame and
+        nowhere else, so a faculty member whose takeover button did nothing left
+        no trace at all. Two very different causes look identical from the
+        outside — a genuine authorization failure, and a legitimate observer
+        whose role or institution lookup did not resolve on this socket — and
+        `reason` is what separates them.
+        """
+        logger.warning(
+            "team room faculty control refused",
+            extra={
+                "session_id": self.session_id,
+                "mode": "team_viva",
+                "event": "faculty_control_refused",
+                "component": action,
+                "reason": reason,
+            },
+        )
+        return error(message)
 
     async def set_paused(self, requester_id: str, paused: bool) -> None:
         """Pause or resume the AI examiner. Faculty only.
@@ -534,7 +627,7 @@ class VoiceRoom:
         greeting happened in the solo bridge.
         """
         if requester_id not in self.observers:
-            raise PermissionError("Only faculty can pause the examiner")
+            raise self._refuse_control("pause", "not_an_observer", "Only faculty can pause the examiner")
         if self.paused == paused:
             return
         self.paused = paused
@@ -550,9 +643,14 @@ class VoiceRoom:
     async def grant_floor(self, requester_id: str, participant_id: str | None) -> None:
         """Hand the floor to a chosen student, overriding the model. Faculty only."""
         if requester_id not in self.observers:
-            raise PermissionError("Only faculty can grant the floor")
+            raise self._refuse_control("grant_floor", "not_an_observer", "Only faculty can grant the floor")
         if participant_id is not None and participant_id not in self.connections:
-            raise ValueError("That participant is not in this viva")
+            raise self._refuse_control(
+                "grant_floor",
+                "unknown_participant",
+                "That participant is not in this viva",
+                error=ValueError,
+            )
         self.floor_override_id = participant_id
         await self.broadcast({
             "type": "floor",
