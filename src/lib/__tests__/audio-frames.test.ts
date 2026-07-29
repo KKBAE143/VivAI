@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 
 import {
   AI_SAMPLE_RATE,
@@ -8,6 +8,8 @@ import {
   HUMAN_SAMPLE_RATE,
   KIND_AI,
   KIND_HUMAN,
+  setFrameDecodeReporter,
+  type FrameRejection,
 } from "../audio-frames";
 
 /** Build a frame the way the Python encoder does, so this tests the real format. */
@@ -90,5 +92,77 @@ describe("decodeFrame", () => {
   it("rejects an absurd sample rate before it reaches createBuffer", () => {
     expect(decodeFrame(encode(KIND_HUMAN, 5, "a", [1]))).toBeNull();
     expect(decodeFrame(encode(KIND_HUMAN, 999999, "a", [1]))).toBeNull();
+  });
+});
+
+/**
+ * Returning null is the correct fallback for a server that predates tagging, but
+ * it was also the response to a frame that claimed to be tagged and then failed
+ * to parse — a protocol or codec bug whose only symptom is garbled or missing
+ * audio, reported nowhere. These two cases must not be silent in the same way.
+ */
+describe("decodeFrame diagnostics", () => {
+  let reported: FrameRejection[] = [];
+
+  beforeEach(() => {
+    reported = [];
+    setFrameDecodeReporter((reason) => reported.push(reason));
+  });
+
+  afterEach(() => {
+    setFrameDecodeReporter(null);
+  });
+
+  it("says nothing about untagged audio — that is just an old server", () => {
+    decodeFrame(new Uint8Array(HEADER_SIZE + 2).buffer);
+    expect(reported).toEqual([]);
+  });
+
+  it("says nothing about a buffer too short to inspect", () => {
+    decodeFrame(new ArrayBuffer(4));
+    expect(reported).toEqual([]);
+  });
+
+  it("says nothing about a frame it decodes fine", () => {
+    decodeFrame(encode(KIND_HUMAN, HUMAN_SAMPLE_RATE, "p1", [1, 2]));
+    expect(reported).toEqual([]);
+  });
+
+  it("reports a version it cannot read rather than silently muting the room", () => {
+    expect(decodeFrame(encode(KIND_AI, AI_SAMPLE_RATE, "", [1], 99))).toBeNull();
+    expect(reported).toEqual(["version"]);
+  });
+
+  it("reports an unknown kind", () => {
+    decodeFrame(encode(7, AI_SAMPLE_RATE, "", [1]));
+    expect(reported).toEqual(["kind"]);
+  });
+
+  it("reports an impossible sample rate", () => {
+    decodeFrame(encode(KIND_HUMAN, 5, "p1", [1]));
+    expect(reported).toEqual(["sample_rate"]);
+  });
+
+  it("reports a speaker length that runs past the buffer", () => {
+    const buf = encode(KIND_HUMAN, HUMAN_SAMPLE_RATE, "abc", [1]);
+    new DataView(buf).setUint32(8, 999, true);
+    decodeFrame(buf);
+    expect(reported).toEqual(["speaker_length"]);
+  });
+
+  it("reports a speaker id that is not valid utf-8", () => {
+    // Attribution is the point of the header: audio the room cannot label is
+    // audio it cannot mark, so this must not pass quietly.
+    const buf = encode(KIND_HUMAN, HUMAN_SAMPLE_RATE, "ab", [1]);
+    new Uint8Array(buf).set([0xff, 0xfe], HEADER_SIZE);
+    expect(decodeFrame(buf)).toBeNull();
+    expect(reported).toEqual(["speaker_decode"]);
+  });
+
+  it("still falls back rather than throwing when the reporter itself fails", () => {
+    setFrameDecodeReporter(() => {
+      throw new Error("sink is down");
+    });
+    expect(decodeFrame(encode(KIND_AI, AI_SAMPLE_RATE, "", [1], 99))).toBeNull();
   });
 });

@@ -58,6 +58,9 @@ export const CONTEXT_ALLOWLIST = [
   "tag",
   "has_activity",
   "reconnects",
+  // Already allowlisted on the backend; a rejected audio frame reports its byte
+  // length here, which is what makes a truncation bug visible.
+  "frames",
 ] as const;
 
 export type DiagContext = Partial<Record<(typeof CONTEXT_ALLOWLIST)[number], unknown>>;
