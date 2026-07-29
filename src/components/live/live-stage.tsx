@@ -45,14 +45,18 @@ import {
   ArrowDown,
   Eye,
   Ear,
+  ShieldAlert,
 } from "lucide-react";
 import type { useLiveSession, LiveEvent, LiveMode } from "@/lib/useLiveSession";
+import { useProctor, type ExitVerdict } from "@/lib/useProctor";
 
 type LiveHook = ReturnType<typeof useLiveSession>;
 
 interface LiveStageProps {
   live: LiveHook;
   mode: LiveMode;
+  /** Needed to attribute proctor events to the session being sat. */
+  sessionId: string;
   videoStream: MediaStream | null;
   title: string;
   subtitle?: string;
@@ -377,6 +381,7 @@ function IndicatorRow({
 export function LiveStage({
   live,
   mode,
+  sessionId,
   videoStream,
   title,
   subtitle,
@@ -384,7 +389,6 @@ export function LiveStage({
   onRetry,
   onUnlockAudio,
 }: LiveStageProps) {
-  const rootRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const transcriptRef = useRef<HTMLDivElement | null>(null);
   const [text, setText] = useState("");
@@ -402,8 +406,12 @@ export function LiveStage({
    * Defaults to the conversation: that is the session.
    */
   const [mobilePane, setMobilePane] = useState<"session" | "chat" | "insights">("chat");
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [fullscreenError, setFullscreenError] = useState("");
+  /** The exit dialog is open — either the student asked, or they already left. */
+  const [exitAsking, setExitAsking] = useState(false);
+  const [exitReason, setExitReason] = useState("");
+  const [exitVerdict, setExitVerdict] = useState<ExitVerdict | null>(null);
+  const [exitSubmitting, setExitSubmitting] = useState(false);
   /** Accumulated seconds while unpaused — freezes the clock during pause. */
   const pausedAccumRef = useRef(0);
   const lastTickRef = useRef<number | null>(null);
@@ -436,31 +444,68 @@ export function LiveStage({
     return () => clearInterval(interval);
   }, [live.status, live.paused]);
 
-  // Track browser fullscreen state (Escape to exit, etc.).
+  /*
+    Exam conditions. Owned by useProctor so the enforcement, the event trail and
+    the exit judgement live in one place instead of being spread across this view.
+  */
+  const proctor = useProctor({
+    sessionId,
+    mode,
+    active: live.status === "live",
+    onFocusChange: live.reportFocus,
+  });
+  const rootRef = proctor.rootRef as React.RefObject<HTMLDivElement>;
+  const isFullscreen = proctor.isFullscreen;
+
+  // A session is a fullscreen session. Attempted once when it goes live; failing
+  // is normal rather than an error, because a browser only grants fullscreen from
+  // inside a user gesture and this is not one — the manual button remains.
+  const autoFullscreenRef = useRef(false);
   useEffect(() => {
-    const onFs = () => {
-      const el = rootRef.current;
-      setIsFullscreen(Boolean(el && document.fullscreenElement === el));
-    };
-    document.addEventListener("fullscreenchange", onFs);
-    return () => document.removeEventListener("fullscreenchange", onFs);
-  }, []);
+    if (live.status !== "live" || autoFullscreenRef.current) return;
+    autoFullscreenRef.current = true;
+    void proctor.enterFullscreen();
+  }, [live.status, proctor]);
+
+  // Give the screen back when the exam is over. Nobody should have to hunt for
+  // Escape to read their own report.
+  useEffect(() => {
+    if (live.status === "ended" || live.status === "error") void proctor.releaseFullscreen();
+  }, [live.status, proctor]);
 
   const toggleFullscreen = async () => {
     setFullscreenError("");
-    try {
-      if (!document.fullscreenElement) {
-        const el = rootRef.current;
-        if (!el?.requestFullscreen) {
-          setFullscreenError("Fullscreen is not supported in this browser.");
-          return;
-        }
-        await el.requestFullscreen();
-      } else {
-        await document.exitFullscreen();
+    if (document.fullscreenElement) {
+      // Leaving mid-session is a request, not a switch — the dialog collects the
+      // reason and the server decides. Outside a live session it is just a toggle.
+      if (live.status === "live") {
+        setExitVerdict(null);
+        setExitReason("");
+        setExitAsking(true);
+        return;
       }
-    } catch {
-      setFullscreenError("Could not toggle fullscreen. Try again or use F11.");
+      await proctor.releaseFullscreen();
+      return;
+    }
+    const entered = await proctor.enterFullscreen();
+    if (!entered) setFullscreenError("Could not enter fullscreen. Try again or use F11.");
+  };
+
+  const submitExitRequest = async () => {
+    setExitSubmitting(true);
+    try {
+      const verdict = await proctor.requestExit(exitReason);
+      setExitVerdict(verdict);
+      if (verdict.allowed) {
+        await proctor.releaseFullscreen();
+      } else {
+        // Refused: back into fullscreen, session untouched. Ending the exam over
+        // a bad excuse would punish the student far past the offence and destroy
+        // the assessment their faculty scheduled.
+        await proctor.enterFullscreen();
+      }
+    } finally {
+      setExitSubmitting(false);
     }
   };
 
@@ -595,6 +640,125 @@ export function LiveStage({
         <div className="absolute inset-x-0 top-0 z-40 flex items-center justify-center gap-2 border-b border-warning/40 bg-warning/15 px-4 py-2.5 text-sm font-semibold text-foreground backdrop-blur">
           <Loader2 className="h-4 w-4 animate-spin" />
           Reconnecting to the examiner — your conversation is saved, hold on a moment.
+        </div>
+      )}
+      {proctor.warning && (
+        <div className="absolute inset-x-0 top-0 z-40 flex items-center justify-center gap-2 border-b border-destructive/40 bg-destructive/15 px-4 py-2.5 text-sm font-semibold text-foreground backdrop-blur">
+          <ShieldAlert className="h-4 w-4" />
+          {proctor.warning}
+        </div>
+      )}
+      {/*
+        Suspicion, not a verdict. The signals behind it are indirect and an honest
+        student can trip them, so this asks rather than accuses, names what was
+        observed, and says plainly that it goes to a human instead of a score.
+      */}
+      {live.integrityWarning && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/85 p-6 backdrop-blur-sm">
+          <div className="max-w-md rounded-2xl border border-warning/40 bg-card p-6 shadow-[var(--shadow-card)]">
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5 text-warning" />
+              <h2 className="text-base font-semibold">Just checking</h2>
+            </div>
+            <p className="mt-3 text-sm leading-relaxed">{live.integrityWarning.message}</p>
+            {live.integrityWarning.signals.length > 0 && (
+              <div className="mt-3 rounded-xl bg-secondary p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  What we noticed
+                </p>
+                <ul className="mt-1.5 space-y-1 text-xs text-muted-foreground">
+                  {live.integrityWarning.signals.map((signal) => (
+                    <li key={signal}>{signal}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <p className="mt-3 text-xs text-muted-foreground">
+              This is flagged for your faculty to review. It does not change your score, and your
+              session continues from exactly where it stopped.
+            </p>
+            <button
+              type="button"
+              onClick={() => live.acknowledgeIntegrityWarning()}
+              className="mt-4 w-full rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground"
+            >
+              Continue the session
+            </button>
+          </div>
+        </div>
+      )}
+      {(exitAsking || proctor.exitPending) && live.status === "live" && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/85 p-6 backdrop-blur-sm">
+          <div className="max-w-md rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
+            <div className="flex items-center gap-2">
+              <Maximize2 className="h-5 w-5 text-primary" />
+              <h2 className="text-base font-semibold">
+                {proctor.exitPending ? "You left fullscreen" : "Leaving fullscreen"}
+              </h2>
+            </div>
+            {exitVerdict ? (
+              <>
+                <p className="mt-3 text-sm leading-relaxed">{exitVerdict.message}</p>
+                {exitVerdict.recorded_for_review && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Recorded for faculty review. Your session is still running.
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setExitAsking(false);
+                    setExitVerdict(null);
+                  }}
+                  className="mt-4 w-full rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground"
+                >
+                  {exitVerdict.allowed ? "Continue" : "Back to the exam"}
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  This is an exam, so leaving fullscreen is recorded. Tell us why you need to — an
+                  invigilator check reads it and decides. Your session keeps running either way.
+                </p>
+                <label
+                  htmlFor="fullscreen-exit-reason"
+                  className="mt-4 block text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                >
+                  Your reason
+                </label>
+                <textarea
+                  id="fullscreen-exit-reason"
+                  value={exitReason}
+                  onChange={(e) => setExitReason(e.target.value)}
+                  rows={3}
+                  maxLength={500}
+                  data-proctor-allow-clipboard
+                  placeholder="e.g. my screen has frozen, or there is an emergency at home"
+                  className="mt-1.5 w-full rounded-xl bg-secondary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+                <div className="mt-4 flex gap-2">
+                  {!proctor.exitPending && (
+                    <button
+                      type="button"
+                      onClick={() => setExitAsking(false)}
+                      className="flex-1 rounded-xl bg-secondary py-2.5 text-sm font-semibold"
+                    >
+                      Stay in the exam
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => void submitExitRequest()}
+                    disabled={exitSubmitting || exitReason.trim().length < 4}
+                    className="flex-1 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                  >
+                    {exitSubmitting ? "Checking…" : "Submit reason"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       )}
       {live.timeUp && live.status === "live" && (
@@ -981,6 +1145,10 @@ export function LiveStage({
             }}
             placeholder={live.paused ? "Resume to type or speak…" : "Type instead of speaking…"}
             disabled={live.paused}
+            /* Typing an answer is a supported way to sit the exam, and paste is
+               how an assistive tool delivers text — so the clipboard block
+               deliberately does not apply inside the answer box. */
+            data-proctor-allow-clipboard
             className="flex-1 rounded-xl bg-secondary px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
           />
           <button

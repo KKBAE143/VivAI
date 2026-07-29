@@ -323,6 +323,18 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
   const [durationSec, setDurationSec] = useState<number | null>(null);
   /** The limit was reached and the examiner has been asked to close. */
   const [timeUp, setTimeUp] = useState(false);
+  /**
+   * A one-time doubt about whether the last answer was actually spoken.
+   *
+   * Raised at most once per session by the server. Deliberately a suspicion the
+   * student can answer rather than a verdict: the signals behind it are indirect,
+   * an honest student can trip them, and the outcome is a flag for faculty review,
+   * never a change to a score.
+   */
+  const [integrityWarning, setIntegrityWarning] = useState<{
+    message: string;
+    signals: string[];
+  } | null>(null);
   /** Student paused the session (mic+playback held; socket stays open). */
   const [paused, setPaused] = useState(false);
 
@@ -629,6 +641,19 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
           }
           break;
         }
+        case "integrity_warning":
+          // The server saw several independent signals that this turn was read
+          // aloud rather than spoken. Pause here so the student reads it, then
+          // resume exactly where they were — the socket and the Gemini
+          // conversation are untouched, so resuming continues the same viva.
+          setIntegrityWarning({
+            message: String(msg.message ?? ""),
+            signals: Array.isArray(msg.signals) ? (msg.signals as string[]) : [],
+          });
+          // The pause itself runs from an effect below, so this handler does not
+          // have to close over `pause` (declared further down) and drag it into
+          // its dependency list.
+          break;
         case "time_up":
           // The server hit the limit and asked the examiner to close. It will end
           // the session itself shortly if that is ignored, so this is purely to
@@ -1170,6 +1195,32 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     else pause();
   }, [pause, resume]);
 
+  // Hold the session while the integrity notice is on screen. Pausing here rather
+  // than in the message handler keeps `pause` out of that handler's dependencies,
+  // and pausing (not stopping) is what lets the student carry on from the same
+  // point — the Gemini conversation is never touched.
+  useEffect(() => {
+    if (integrityWarning && !pausedRef.current) pause();
+  }, [integrityWarning, pause]);
+
+  /** Dismiss the integrity notice and continue the session where it stopped. */
+  const acknowledgeIntegrityWarning = useCallback(() => {
+    setIntegrityWarning(null);
+    resume();
+  }, [resume]);
+
+  /** Tell the server the student left (or returned to) the session window. */
+  const reportFocus = useCallback((lost: boolean) => {
+    const ws = wsRef.current;
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    try {
+      ws.send(JSON.stringify({ type: lost ? "focus_lost" : "focus_regained" }));
+    } catch (e) {
+      // Losing this only costs one integrity signal, never the session.
+      captureSilent(e, "focus_report_failed", { feature: "proctor" });
+    }
+  }, []);
+
   /** Fully reset the hook so the session can be retried from pre-flight. */
   const reset = useCallback(() => {
     cleanup();
@@ -1197,6 +1248,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     setPaused(false);
     setDurationSec(null);
     setTimeUp(false);
+    setIntegrityWarning(null);
     pausedRef.current = false;
     hadActivityRef.current = false;
   }, [cleanup]);
@@ -1242,6 +1294,9 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     paused,
     durationSec,
     timeUp,
+    integrityWarning,
+    acknowledgeIntegrityWarning,
+    reportFocus,
     start,
     stop,
     reset,

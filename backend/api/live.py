@@ -33,7 +33,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from google.genai import types
 
-from ai import delivery_metrics, live_service, report_service, viva_core
+from ai import delivery_metrics, integrity, live_service, report_service, viva_core
 from ai.registry import find_scenario_by_label, get_scenario
 from core.database import get_supabase
 from core.deps import user_from_token
@@ -251,6 +251,10 @@ class LivePersistence:
         self.video_source = video_source
         self.persona = persona
         self.frames_received = 0
+        # Integrity observations for this session, in order. Populated by
+        # `_check_turn_integrity`; written into the session context at finalize so
+        # faculty review sees it, and never used to adjust a score.
+        self.integrity_flags: list[dict] = []
         self.started_at = time.monotonic()
         self.transcript: list[dict] = []
         self.flags: list[dict] = []
@@ -507,6 +511,13 @@ class LivePersistence:
                         "strengths": summary.get("strengths", []),
                         "weaknesses": summary.get("weaknesses", []),
                         "transcript": turns,
+                        # Proctoring evidence travels with the session, not in a
+                        # separate audit trail, so a faculty member reviewing an
+                        # assessed viva sees it beside the answers it relates to.
+                        # Absent entirely when nothing was observed — an empty
+                        # integrity section on a clean session reads like an
+                        # accusation with no content.
+                        **({"integrity": self.integrity_flags} if self.integrity_flags else {}),
                     },
                     **({"report": report} if report else {}),
                     "completed_at": datetime.now(timezone.utc).isoformat(),
@@ -675,6 +686,57 @@ class LivePersistence:
 # Gemini send helpers (tolerant of google-genai signature differences)
 # --------------------------------------------------------------------------- #
 _send_audio = live_service.send_audio
+
+
+async def _check_turn_integrity(turn, websocket, persist, session_id: str, mode: str, state: dict) -> None:
+    """Assess one finished student turn, and warn at most once per session.
+
+    Warning PAUSES nothing on the server: the Gemini connection stays exactly as
+    it is and the client pauses itself, so resuming continues the same
+    conversation from the same point. Tearing the connection down to interrupt
+    somebody would lose the viva and re-trigger the greeting — the original bug.
+
+    The outcome is a doubt raised with the student and a flag for the faculty
+    member. It never touches the score. Signals are recorded even when they fall
+    below the warning threshold, because a pattern across a session is what a human
+    reviewer can judge and a single turn is not.
+    """
+    text, seconds, focus_lost = turn.take()
+    try:
+        verdict = integrity.assess_turn(text, seconds=seconds, focus_lost=focus_lost)
+    except Exception:  # noqa: BLE001 — never let proctoring break an exam
+        logger.warning(
+            "integrity assessment failed",
+            exc_info=True,
+            extra={"session_id": session_id, "mode": mode, "event": "integrity_check_failed",
+                   "swallowed": True},
+        )
+        return
+    if not verdict["signals"]:
+        return
+
+    persist.integrity_flags.append({
+        "signals": verdict["signals"],
+        "score": verdict["score"],
+        "confidence": verdict["confidence"],
+        "warned": verdict["suspicious"] and not state["warned"],
+        "ts_ms": persist.now_ms(),
+    })
+    logger.info(
+        "integrity signals observed",
+        extra={"session_id": session_id, "mode": mode, "event": "integrity_signals",
+               "reason": ",".join(verdict["signals"])[:200]},
+    )
+
+    if not verdict["suspicious"] or state["warned"]:
+        return
+    state["warned"] = True
+    await websocket.send_json({
+        "type": "integrity_warning",
+        "message": integrity.WARNING_MESSAGE,
+        "signals": integrity.describe(verdict["signals"]),
+        "confidence": verdict["confidence"],
+    })
 
 
 def _question_feedback(q: dict) -> str | None:
@@ -898,6 +960,48 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
             resume_handle=handle,
         )
 
+    class StudentTurn:
+        """The student's current answer, accumulated across transcript fragments.
+
+        Speech-to-text arrives in pieces, so no single fragment is an answer. The
+        integrity check needs the whole turn — its length, its pace, and whether
+        the student was in another window while giving it — which only exists once
+        the examiner starts replying.
+        """
+
+        def __init__(self) -> None:
+            self.parts: list[str] = []
+            self.started_at: float | None = None
+            self.focus_lost = False
+            self.focus_lost_total = 0
+
+        def add(self, text: str) -> None:
+            if self.started_at is None:
+                self.started_at = time.monotonic()
+            self.parts.append(text)
+
+        @property
+        def text(self) -> str:
+            return " ".join(p.strip() for p in self.parts if p.strip()).strip()
+
+        def take(self) -> tuple[str, float | None, bool]:
+            """Consume the turn, returning (text, seconds, focus_lost)."""
+            text = self.text
+            seconds = (
+                time.monotonic() - self.started_at if self.started_at is not None else None
+            )
+            focus_lost = self.focus_lost
+            self.parts = []
+            self.started_at = None
+            self.focus_lost = False
+            return text, seconds, focus_lost
+
+    turn = StudentTurn()
+    # One warning per session, by design. A detector this indirect gets to raise a
+    # doubt once; repeating it every turn would turn a suspicion into harassment.
+    # A dict rather than a bool because the flag is set from a nested coroutine.
+    integrity_state: dict = {"warned": False}
+
     errored = False
     fatal_message = ""
     ready_sent = False
@@ -987,6 +1091,14 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                 enqueue(("image", base64.b64decode(payload["data"])))
             elif kind == "text" and payload.get("text"):
                 enqueue(("text", payload["text"]))
+            elif kind == "focus_lost":
+                # The student left the session window. Recorded against the turn
+                # in progress, because leaving WHILE answering is the one
+                # integrity signal that does not depend on how somebody talks.
+                turn.focus_lost = True
+                turn.focus_lost_total += 1
+            elif kind == "focus_regained":
+                pass  # the loss is what matters; the return is not evidence
             elif kind == "mic_open":
                 # The client's greeting playback has genuinely drained. This —
                 # not turn_complete, which fires while seconds of greeting are
@@ -1054,9 +1166,16 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                     it = getattr(sc, "input_transcription", None)
                     if it and getattr(it, "text", None):
                         persist.on_user_text(it.text)
+                        turn.add(it.text)
                         await websocket.send_json({"type": "user_transcript", "text": it.text})
                     ot = getattr(sc, "output_transcription", None)
                     if ot and getattr(ot, "text", None):
+                        # The examiner replying means the student's turn is over —
+                        # the first moment a complete answer exists to assess.
+                        if turn.text:
+                            await _check_turn_integrity(
+                                turn, websocket, persist, session_id, mode, integrity_state
+                            )
                         persist.on_ai_text(ot.text)
                         await websocket.send_json({"type": "ai_transcript", "text": ot.text})
                     if getattr(sc, "interrupted", None):

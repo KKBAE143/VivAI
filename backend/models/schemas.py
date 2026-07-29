@@ -239,6 +239,29 @@ class ConsentSubmit(BaseModel):
     is_minor: bool = False
 
 
+class ProctorEvent(BaseModel):
+    """One thing that happened in the student's browser during a session."""
+
+    kind: str
+    # Milliseconds since the session started, as the browser saw it. Not trusted
+    # for anything but ordering — it is a client-supplied number.
+    at_ms: int = Field(default=0, ge=0)
+    detail: str | None = None
+
+
+class ProctorEventBatch(BaseModel):
+    session_id: str
+    mode: str = "viva"
+    # Bounded so a runaway client cannot turn the proctor trail into a firehose.
+    events: list[ProctorEvent] = Field(default_factory=list, max_length=50)
+
+
+class FullscreenExitRequest(BaseModel):
+    session_id: str
+    mode: str = "viva"
+    reason: str = ""
+
+
 class DeletionStatusResponse(BaseModel):
     status: str  # none | pending | processing | completed
     requested_at: str | None = None

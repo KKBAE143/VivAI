@@ -24,6 +24,7 @@ from api import (
     live,
     presentation,
     privacy,
+    proctor,
     project_team,
     projects,
     readiness,
@@ -98,6 +99,7 @@ for router in (
     live.router,
     team_live.router,
     privacy.router,
+    proctor.router,
     institution.router,
     faculty.router,
 ):
