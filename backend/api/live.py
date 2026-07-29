@@ -1485,14 +1485,25 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
     # put the row back to Pending so they can retry, rather than grading silence.
     if not should_finalize(superseded=False, has_activity=persist.has_activity):
         await asyncio.to_thread(persist.revert_status)
+        # Ending before answering is a normal thing to do, and it was being
+        # reported as a failure. The student pressed "End & report", got the error
+        # UI, and stayed stuck on the live screen — so the button looked broken
+        # while the session sat there unfinished. A genuine engine failure still
+        # sends `error`; a deliberate end with nothing recorded now sends
+        # `aborted`, which the client treats as terminal but not as a fault.
         try:
-            await websocket.send_json({
-                "type": "error",
-                "message": fatal_message or (
-                    "The session ended before you said anything, so there was nothing to "
-                    "record. Your session is still available — please try again."
-                ),
-            })
+            if errored and fatal_message:
+                await websocket.send_json({"type": "error", "message": fatal_message})
+            else:
+                await websocket.send_json({
+                    "type": "aborted",
+                    "reason": "no_answers",
+                    "message": (
+                        "You ended before answering anything, so there was nothing to record "
+                        "and no report to build. This session is still available whenever you "
+                        "want to sit it."
+                    ),
+                })
             await websocket.close()
         except Exception:
             pass

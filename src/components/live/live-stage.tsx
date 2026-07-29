@@ -63,6 +63,8 @@ interface LiveStageProps {
   onEnd: () => void;
   /** Called when the student wants to retry after a connection failure. */
   onRetry?: () => void;
+  /** Leave a session that ended before anything was recorded. */
+  onAbandon?: () => void;
   /** Unlock AI speech if the browser autoplay policy blocked AudioContext. */
   onUnlockAudio?: () => void;
 }
@@ -387,6 +389,7 @@ export function LiveStage({
   subtitle,
   onEnd,
   onRetry,
+  onAbandon,
   onUnlockAudio,
 }: LiveStageProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -587,12 +590,19 @@ export function LiveStage({
       : Math.min(100, Math.round((qaItems.length / expectedQuestions) * 100));
 
   const connecting = live.status === "connecting" || live.status === "idle";
+  /** Nothing is listening or speaking any more, whatever the reason. */
+  const sessionOver =
+    live.status === "ended" || live.status === "aborted" || live.status === "error";
   // A Gemini connection recycles roughly every 10 minutes; the server resumes
   // the same conversation transparently. Show it, but never treat it as a
   // failure — the transcript and the report survive it.
   const reconnecting = live.status === "reconnecting";
   const userIsSpeaking =
-    !connecting && !live.aiSpeaking && !live.micMuted && live.liveUserText.length > 0;
+    !connecting &&
+    !sessionOver &&
+    !live.aiSpeaking &&
+    !live.micMuted &&
+    live.liveUserText.length > 0;
   const aiThinking =
     live.status === "live" &&
     !live.aiSpeaking &&
@@ -884,7 +894,7 @@ export function LiveStage({
           <ExaminerPresence
             connecting={connecting}
             aiSpeaking={live.aiSpeaking}
-            listening={!connecting && !live.aiSpeaking && !live.micMuted}
+            listening={!connecting && !sessionOver && !live.aiSpeaking && !live.micMuted}
             userSpeaking={userIsSpeaking}
             micMuted={live.micMuted}
             paused={live.paused}
@@ -903,7 +913,7 @@ export function LiveStage({
           <IndicatorRow
             icon={Ear}
             label="Listening for you"
-            active={!connecting && !live.aiSpeaking && !live.micMuted}
+            active={!connecting && !sessionOver && !live.aiSpeaking && !live.micMuted}
             activeTone="text-success"
           />
           <IndicatorRow
@@ -1103,6 +1113,40 @@ export function LiveStage({
                       style={{ animationDelay: `${i * 0.15}s` }}
                     />
                   ))}
+                </div>
+              </div>
+            )}
+            {/*
+              Ended before answering. Terminal, but not a fault — so it gets the
+              neutral treatment and two real ways forward, instead of the red
+              failure panel that made "End & report" look broken.
+            */}
+            {live.status === "aborted" && (
+              <div className="flex justify-center">
+                <div className="max-w-md rounded-xl bg-secondary px-5 py-4 text-center">
+                  <p className="text-sm font-semibold">Session ended</p>
+                  <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                    {live.abortMessage ||
+                      "You ended before answering anything, so there was nothing to record."}
+                  </p>
+                  <div className="mt-3 flex justify-center gap-2">
+                    {onRetry && (
+                      <button
+                        onClick={onRetry}
+                        className="rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground"
+                      >
+                        Start again
+                      </button>
+                    )}
+                    {onAbandon && (
+                      <button
+                        onClick={onAbandon}
+                        className="rounded-xl bg-card px-4 py-2 text-xs font-semibold"
+                      >
+                        Leave for now
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

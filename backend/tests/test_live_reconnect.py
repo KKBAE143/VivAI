@@ -262,8 +262,11 @@ def test_a_silent_session_is_reverted_rather_than_graded(live_harness, monkeypat
     asyncio.run(_run(socket))
 
     assert "ended" not in socket.types_sent()
-    error = next(m for m in socket.sent if m["type"] == "error")
-    assert "nothing to record" in error["message"]
+    # This is announced as `aborted` rather than `error` now — nothing was
+    # recorded, but nothing failed either. See
+    # test_ending_before_answering_is_reported_as_aborted_not_as_an_error.
+    aborted = next(m for m in socket.sent if m["type"] == "aborted")
+    assert "nothing to record" in aborted["message"]
     # The row went back to Pending so the student can retry.
     updates = [c for c in fake_updates(live_api.get_supabase(), "viva_sessions")]
     assert {"status": "Pending"} in updates
@@ -451,3 +454,46 @@ def test_the_first_connection_is_still_told_to_greet(live_harness, monkeypatch):
     instruction = str(state.configs[0].system_instruction)
     assert "GREETING (single source of truth)" in instruction
     assert "ALREADY GREETED" not in instruction
+
+
+def test_ending_before_answering_is_reported_as_aborted_not_as_an_error(live_harness, monkeypatch):
+    """Pressing "End & report" with nothing answered looked like a broken button.
+
+    Nothing was recorded, so the server correctly refuses to fabricate a completed
+    0% session and reverts the row to Pending — but it announced that as
+    `{"type": "error"}`. The client renders errors as a failure with a Retry
+    button and stays on the live screen, so from the student's side the session
+    would not end and something had apparently gone wrong.
+
+    It is a normal outcome, and it now has its own terminal message.
+    """
+    end_call = SimpleNamespace(id="c1", name="end_session", args={})
+    only = FakeGeminiSession(
+        turns=[[
+            _response(_server_content(output_transcription=_text("Namaskaram, first question…"),
+                                      turn_complete=True)),
+            _response(tool_call=SimpleNamespace(function_calls=[end_call])),
+        ]],
+    )
+    live_harness([only])
+
+    # The examiner greeted; the student never said a word.
+    socket = FakeBrowserSocket(script=[{"text": json.dumps({"type": "end"})}])
+    socket.query_params = {"token": "t", "pv": "1"}
+
+    finalized: list[bool] = []
+    monkeypatch.setattr(live_api.live_service, "analyze_transcript",
+                        lambda *a, **k: finalized.append(True) or {})
+
+    asyncio.run(_run(socket))
+
+    kinds = [m.get("type") for m in socket.sent]
+    assert "aborted" in kinds, f"expected a terminal aborted message, got {kinds}"
+    assert "error" not in kinds, "ending an unanswered session is not a failure"
+    assert "ended" not in kinds, "and must not claim a completed session either"
+
+    aborted = next(m for m in socket.sent if m.get("type") == "aborted")
+    assert aborted["reason"] == "no_answers"
+    # It has to say the session is still usable, or the student assumes it is spent.
+    assert "still available" in aborted["message"]
+    assert not finalized, "there is nothing to grade, so no report is built"

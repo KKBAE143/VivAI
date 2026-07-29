@@ -110,10 +110,12 @@ export function LiveSessionRunner({
       videoStream?.getTracks().forEach((t) => t.stop());
       onEnded(live.summary);
     }
-    if (live.status === "error" && phase === "live") {
-      // A failure cancels the "preparing report" state so the retry UI shows.
+    // A failure and a deliberate end-before-answering are both terminal and both
+    // release the devices, but only one of them is a fault. They share this
+    // teardown and differ entirely in what the student is shown.
+    if ((live.status === "error" || live.status === "aborted") && phase === "live") {
       setEnding(false);
-      // Free the devices; the retry flow re-acquires them in pre-flight.
+      // Free the devices; retrying re-acquires them in pre-flight.
       micStreamRef.current?.getTracks().forEach((t) => t.stop());
       micStreamRef.current = null;
       videoStream?.getTracks().forEach((t) => t.stop());
@@ -132,7 +134,24 @@ export function LiveSessionRunner({
     setPhase("setup");
   }, [live]);
 
+  /** Has the student actually said anything gradeable yet? */
+  const hasAnswered = live.captions.some((c) => c.role === "student" && c.text.trim());
+
   const handleEnd = useCallback(() => setConfirmEnd(true), []);
+
+  /**
+   * Leave an unanswered session without pretending it produced a report.
+   *
+   * Hands control back to the route (which owns the header and its "Back to
+   * sessions" link) with no summary, so nothing downstream reads a score out of a
+   * session that never had one. The row itself stays Pending server-side and can
+   * be sat again from the session list.
+   */
+  const handleAbandon = useCallback(() => {
+    if (endedRef.current) return;
+    endedRef.current = true;
+    onEnded(null);
+  }, [onEnded]);
 
   const confirmEndSession = useCallback(() => {
     setConfirmEnd(false);
@@ -165,9 +184,10 @@ export function LiveSessionRunner({
         subtitle={subtitle}
         onEnd={handleEnd}
         onRetry={handleRetry}
+        onAbandon={handleAbandon}
         onUnlockAudio={live.unlockAudio}
       />
-      {ending && live.status !== "error" && (
+      {ending && live.status !== "error" && live.status !== "aborted" && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-background/80 p-4 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-4 text-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -195,9 +215,15 @@ export function LiveSessionRunner({
             <h2 id="end-session-title" className="text-lg font-semibold text-foreground">
               End this session?
             </h2>
+            {/*
+              Promising a report when the student has not answered anything is how
+              this dialog set up the confusion: they pressed the button expecting
+              one, got told nothing was recorded, and read that as a failure.
+            */}
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              We&apos;ll wrap up and prepare your full report from the conversation so far. You
-              can&apos;t resume once it ends.
+              {hasAnswered
+                ? "We'll wrap up and prepare your full report from the conversation so far. You can't resume once it ends."
+                : "You haven't answered anything yet, so there is nothing to grade and no report to build. The session stays available to sit again whenever you want."}
             </p>
             <div className="mt-6 flex justify-end gap-3">
               <button
@@ -210,7 +236,7 @@ export function LiveSessionRunner({
                 onClick={confirmEndSession}
                 className="rounded-xl bg-destructive px-4 py-2.5 text-sm font-semibold text-destructive-foreground"
               >
-                End &amp; see report
+                {hasAnswered ? "End & see report" : "End without a report"}
               </button>
             </div>
           </div>

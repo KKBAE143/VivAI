@@ -14,7 +14,21 @@ import { getToken, wsUrl } from "@/lib/api";
 import { captureSilent, report } from "@/diagnostics/client";
 import { startTrace, traceQuery } from "@/diagnostics/trace";
 
-export type LiveStatus = "idle" | "connecting" | "live" | "reconnecting" | "ended" | "error";
+/**
+ * `aborted` is a session the student deliberately ended before answering
+ * anything. It is terminal and entirely normal — not an error, and not a
+ * completed exam. It exists because those were being conflated: ending an
+ * unanswered session produced the failure UI, so pressing "End & report" looked
+ * like the button was broken while the session sat there unfinished.
+ */
+export type LiveStatus =
+  | "idle"
+  | "connecting"
+  | "live"
+  | "reconnecting"
+  | "ended"
+  | "aborted"
+  | "error";
 export type LiveMode = "viva" | "presentation" | "pitch" | "coach";
 
 export interface LiveCaption {
@@ -335,6 +349,12 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     message: string;
     signals: string[];
   } | null>(null);
+  /**
+   * Why an unanswered session ended. Kept apart from `error` deliberately: this
+   * is an outcome, not a fault, and putting it in the error field is what made it
+   * render as one.
+   */
+  const [abortMessage, setAbortMessage] = useState("");
   /** Student paused the session (mic+playback held; socket stays open). */
   const [paused, setPaused] = useState(false);
 
@@ -362,6 +382,8 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
    * socket's close handler, which closes over the render it was created in.
    */
   const hadActivityRef = useRef(false);
+  /** The server confirmed a deliberate end with nothing recorded. */
+  const abortedReceivedRef = useRef(false);
   // The mic is "gated" (not streamed) until the AI finishes its opening
   // greeting. Streaming ambient noise during the greeting makes the Live model
   // treat it as a turn and greet a second time, and can destabilize the socket.
@@ -641,6 +663,18 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
           }
           break;
         }
+        case "aborted":
+          // Ended before the student said anything. Nothing was recorded, so
+          // there is no report — but nothing went wrong either, and the session
+          // stays available to sit again.
+          abortedReceivedRef.current = true;
+          setAbortMessage(
+            String(
+              msg.message ?? "You ended the session before answering, so nothing was recorded.",
+            ),
+          );
+          setStatus("aborted");
+          break;
         case "integrity_warning":
           // The server saw several independent signals that this turn was read
           // aloud rather than spoken. Pause here so the student reads it, then
@@ -1014,8 +1048,12 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
         // never fabricate a completed 0% session out of it.
         if (wsRef.current === ws) wsRef.current = null;
         setStatus((s) => {
-          if (s === "ended" || s === "error") return s;
+          if (s === "ended" || s === "error" || s === "aborted") return s;
           if (endedReceivedRef.current) return "ended";
+          // A deliberate end with nothing recorded closes the socket right after
+          // saying so. Without this the close handler overwrote that outcome with
+          // a connection error a moment later.
+          if (abortedReceivedRef.current) return "aborted";
           const outcome = classifyClose({
             code: event.code,
             hadActivity: hadActivityRef.current,
@@ -1235,6 +1273,8 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     }
     wsRef.current = null;
     endedReceivedRef.current = false;
+    abortedReceivedRef.current = false;
+    setAbortMessage("");
     setStatus("idle");
     setError("");
     setCaptions([]);
@@ -1294,6 +1334,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     paused,
     durationSec,
     timeUp,
+    abortMessage,
     integrityWarning,
     acknowledgeIntegrityWarning,
     reportFocus,
