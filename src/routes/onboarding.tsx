@@ -1,21 +1,33 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
 import {
-  GraduationCap,
-  FolderKanban,
-  Target,
-  ChevronRight,
-  ChevronLeft,
-  Check,
-  Building2,
   BookOpen,
-  ShieldCheck,
+  Building2,
+  Check,
+  ChevronLeft,
+  ChevronRight,
   Copy,
+  FolderKanban,
+  GraduationCap,
+  Loader2,
+  ShieldCheck,
+  Target,
 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import { api } from "@/lib/api";
 import { useRequireAuth } from "@/lib/auth-context";
 import { useCompleteOnboarding, useCreateProject } from "@/lib/hooks";
 import { isLastStep, nextStep, prevStep, stepsFor, totalSteps } from "@/lib/onboarding-flow";
+import { parseSubjects, validateStep, type StepName } from "@/lib/onboarding-schema";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({
@@ -77,64 +89,80 @@ const roleOptions = [
   },
 ];
 
-/** Role picker shown before the wizard — the flow depends on the answer. */
-function RoleChooser({ onChoose }: { onChoose: (role: string) => void }) {
+const STEP_TITLES: Record<StepName, string> = {
+  institution: "Are you with an institution?",
+  academics: "What are you studying?",
+  project: "What kind of project are you starting?",
+  goals: "Pick a few goals for this semester",
+  teaching: "What do you teach?",
+  institution_create: "Set up your institution",
+  invite_faculty: "Invite your faculty",
+};
+
+/** Selectable card used for roles and project types — keyboard and SR friendly. */
+function ChoiceCard({
+  selected,
+  title,
+  description,
+  icon: Icon,
+  onSelect,
+}: {
+  selected?: boolean;
+  title: string;
+  description: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  onSelect: () => void;
+}) {
   return (
-    <>
-      <div className="flex items-center gap-3">
-        <GraduationCap className="h-6 w-6 text-primary" />
-        <h1 className="text-2xl font-bold">How will you be using this?</h1>
-      </div>
-      <p className="mt-1 text-sm text-muted-foreground">
-        This decides what you'll see. You can't change it yourself later, so pick carefully.
-      </p>
-      <div className="mt-6 grid gap-3">
-        {roleOptions.map((r) => {
-          const Icon = r.icon;
-          return (
-            <button
-              key={r.id}
-              onClick={() => onChoose(r.id)}
-              className="flex items-start gap-4 rounded-xl border border-border p-4 text-left transition-colors hover:border-primary"
-            >
-              <Icon className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-              <div>
-                <div className="font-semibold">{r.title}</div>
-                <div className="mt-1 text-xs text-muted-foreground">{r.desc}</div>
-              </div>
-            </button>
-          );
-        })}
-      </div>
-      {/* Stated up front rather than sprung on them after signup. */}
-      <p className="mt-6 rounded-xl bg-secondary p-3 text-xs text-muted-foreground">
-        Faculty access needs approval from your institution's admin before it takes effect. Until
-        then you'll have a student's access.
-      </p>
-    </>
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      className={cn(
+        "flex items-start gap-4 rounded-lg border p-4 text-left transition-colors",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        selected
+          ? "border-primary bg-accent"
+          : "border-border hover:border-primary hover:bg-accent/50",
+      )}
+    >
+      {Icon && <Icon className="mt-0.5 h-5 w-5 shrink-0 text-primary" />}
+      <span className="flex-1">
+        <span className="flex items-center justify-between gap-2">
+          <span className="font-medium leading-none">{title}</span>
+          {selected && <Check className="h-4 w-4 shrink-0 text-primary" />}
+        </span>
+        <span className="mt-1.5 block text-sm text-muted-foreground">{description}</span>
+      </span>
+    </button>
   );
 }
 
-/** Shown after a faculty request is filed — they are still a student until approved. */
-function PendingApproval({ onContinue }: { onContinue: () => void }) {
+/** Pill toggle for multi/single select chip rows. */
+function Chip({
+  active,
+  children,
+  onClick,
+}: {
+  active: boolean;
+  children: React.ReactNode;
+  onClick: () => void;
+}) {
   return (
-    <>
-      <div className="flex items-center gap-3">
-        <ShieldCheck className="h-6 w-6 text-primary" />
-        <h1 className="text-2xl font-bold">Request sent</h1>
-      </div>
-      <p className="mt-3 text-sm text-muted-foreground">
-        Your institution's admin has to approve faculty access before you get the faculty dashboard.
-        In the meantime you can use everything a student can — including running practice vivas
-        yourself, which is a good way to see what your students will experience.
-      </p>
-      <button
-        onClick={onContinue}
-        className="mt-6 flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"
-      >
-        Go to dashboard <ChevronRight className="h-4 w-4" />
-      </button>
-    </>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        "rounded-full px-4 py-2 text-sm font-medium transition-colors",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        active
+          ? "bg-primary text-primary-foreground"
+          : "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+      )}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -143,6 +171,7 @@ function Onboarding() {
   const navigate = useNavigate();
   const completeOnboarding = useCompleteOnboarding();
   const createProject = useCreateProject();
+
   const [role, setRole] = useState<string | null>(null);
   const [step, setStep] = useState(0);
   const [branch, setBranch] = useState("CSE");
@@ -155,24 +184,22 @@ function Onboarding() {
   const [institutionName, setInstitutionName] = useState("");
   const [createdCode, setCreatedCode] = useState("");
   const [pending, setPending] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  const steps = stepsFor(role ?? "student");
-  const current = steps[step];
-  const last = isLastStep(role ?? "student", step);
+  const activeRole = role ?? "student";
+  const steps = stepsFor(activeRole);
+  const current = steps[step] as StepName;
+  const last = isLastStep(activeRole, step);
+  const values = { institutionCode, institutionName, department, subjects };
 
   const toggleGoal = (g: string) =>
     setGoals((prev) => (prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]));
 
-  /** Create the institution when the admin leaves the naming step. */
+  /** Create the institution when the admin leaves the naming step. Idempotent. */
   const createInstitution = async () => {
-    if (createdCode) return true; // already created — don't make a second one
-    if (!institutionName.trim()) {
-      setError("Enter your institution's name to continue.");
-      return false;
-    }
-    setSaving(true);
+    if (createdCode) return true; // already created — never make a second one
+    setBusy(true);
     setError("");
     try {
       const res = await api<{ id: string; invite_code: string; verified: boolean }>(
@@ -180,58 +207,61 @@ function Onboarding() {
         { body: { name: institutionName.trim() } },
       );
       setCreatedCode(res.invite_code);
+      toast.success("Institution created", {
+        description: "Share the code on the next step to invite your faculty.",
+      });
       return true;
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not create your institution.");
+      const message = e instanceof Error ? e.message : "Could not create your institution.";
+      setError(message);
+      toast.error("Could not create your institution", { description: message });
       return false;
     } finally {
-      setSaving(false);
+      setBusy(false);
     }
   };
 
   const advance = async () => {
-    setError("");
-    // Faculty and admin must be scoped to an institution — the backend rejects
-    // a gated role without one, so catch it here where the input still is.
-    if (current === "institution" && role !== "student" && !institutionCode.trim()) {
-      setError("Your institution's code is required for faculty access.");
+    const problem = validateStep(current, activeRole, values);
+    if (problem) {
+      setError(problem);
       return;
     }
-    if (current === "institution_create") {
-      const ok = await createInstitution();
-      if (!ok) return;
-    }
-    setStep((s) => nextStep(role ?? "student", s));
+    setError("");
+    if (current === "institution_create" && !(await createInstitution())) return;
+    setStep((s) => nextStep(activeRole, s));
   };
 
   const finish = async () => {
-    setSaving(true);
+    const problem = validateStep(current, activeRole, values);
+    if (problem) {
+      setError(problem);
+      return;
+    }
+    setBusy(true);
     setError("");
     try {
       // An admin's role was already granted by POST /api/institution, so this
       // call deliberately omits `role`: re-requesting it would file a pending
       // claim against the institution they just created.
       const res = await completeOnboarding.mutateAsync({
-        role: role === "admin" ? undefined : role,
+        role: activeRole === "admin" ? undefined : activeRole,
         institution_code: institutionCode.trim() || undefined,
         department: department.trim() || undefined,
-        subjects: subjects
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
+        subjects: parseSubjects(subjects),
         branch,
         year,
         goals,
       });
 
-      if (res && (res as { pending_approval?: boolean }).pending_approval) {
+      if ((res as { pending_approval?: boolean } | undefined)?.pending_approval) {
         setPending(true);
-        setSaving(false);
+        setBusy(false);
         return;
       }
 
       // Only students get a seeded first project.
-      if (role === "student" || role === null) {
+      if (activeRole === "student") {
         const label = projectTypes.find((p) => p.id === type)?.title ?? "Project";
         try {
           await createProject.mutateAsync({
@@ -241,20 +271,37 @@ function Onboarding() {
             description: goals.length ? `Goals: ${goals.join(", ")}` : undefined,
           });
         } catch {
-          // Project seeding is best-effort; onboarding still completes.
+          // Seeding is best-effort — onboarding still completes. Say so rather
+          // than letting the dashboard look mysteriously empty.
+          toast.warning("We couldn't create your first project", {
+            description: "You're all set up — add a project from your dashboard when you're ready.",
+          });
         }
       }
-      navigate({ to: role === "admin" ? "/admin" : "/" });
+      toast.success("You're all set");
+      navigate({ to: activeRole === "admin" ? "/admin" : "/" });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not save your setup. Please try again.");
-      setSaving(false);
+      const message = e instanceof Error ? e.message : "Could not save your setup.";
+      setError(message);
+      toast.error("Could not save your setup", { description: message });
+      setBusy(false);
+    }
+  };
+
+  const copyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(createdCode);
+      toast.success("Code copied");
+    } catch {
+      // Clipboard is blocked in some browsers/contexts — the code is on screen.
+      toast.error("Couldn't copy", { description: "Select the code and copy it manually." });
     }
   };
 
   return (
     <div className="min-h-screen bg-background px-4 py-10">
       <div className="mx-auto max-w-2xl">
-        <div className="mb-8 flex items-center justify-between">
+        <header className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-primary-foreground">
               <GraduationCap className="h-5 w-5" />
@@ -262,299 +309,325 @@ function Onboarding() {
             <span className="font-semibold">CollgePro Navigator</span>
           </div>
           {role && !pending && (
-            <div className="text-xs text-muted-foreground">
-              Step {step + 1} of {totalSteps(role)}
-            </div>
+            <span className="text-xs text-muted-foreground" aria-live="polite">
+              Step {step + 1} of {totalSteps(activeRole)}
+            </span>
           )}
-        </div>
+        </header>
 
         {role && !pending && (
-          <div className="mb-8 flex gap-2">
-            {steps.map((name, i) => (
-              <div
-                key={name}
-                className={`h-1.5 flex-1 rounded-full ${i <= step ? "bg-primary" : "bg-secondary"}`}
-              />
-            ))}
-          </div>
+          <Progress
+            value={((step + 1) / totalSteps(activeRole)) * 100}
+            className="mb-8 h-1.5"
+            aria-label="Onboarding progress"
+          />
         )}
 
-        <div className="rounded-2xl bg-card p-8 shadow-[var(--shadow-card)]">
+        <Card>
+          {/* ---------------------------------------------------- role picker */}
           {!role && (
-            <RoleChooser
-              onChoose={(chosen) => {
-                setRole(chosen);
-                setStep(0);
-              }}
-            />
-          )}
-
-          {role && pending && <PendingApproval onContinue={() => navigate({ to: "/" })} />}
-
-          {role && !pending && (
             <>
-              {current === "institution" && (
-                <>
-                  <div className="flex items-center gap-3">
-                    <Building2 className="h-6 w-6 text-primary" />
-                    <h1 className="text-2xl font-bold">Are you with an institution?</h1>
-                  </div>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {role === "student"
-                      ? "Enter your college's code to link your account, or skip this — you can still use everything."
-                      : "Enter your institution's code. Your admin can find it in their dashboard."}
-                  </p>
-                  <input
-                    value={institutionCode}
-                    onChange={(e) => setInstitutionCode(e.target.value)}
-                    placeholder="e.g. A1B2C3D4"
-                    aria-label="Institution code"
-                    className="mt-6 w-full rounded-xl border border-border bg-background px-4 py-3 text-sm"
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3 text-2xl">
+                  <GraduationCap className="h-6 w-6 text-primary" />
+                  How will you be using this?
+                </CardTitle>
+                <CardDescription>
+                  This decides what you'll see. You can't change it yourself later, so pick
+                  carefully.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-3">
+                {roleOptions.map((r) => (
+                  <ChoiceCard
+                    key={r.id}
+                    title={r.title}
+                    description={r.desc}
+                    icon={r.icon}
+                    onSelect={() => {
+                      setRole(r.id);
+                      setStep(0);
+                      setError("");
+                    }}
                   />
-                  {role === "student" && (
-                    <button
-                      onClick={() => setStep((s) => nextStep(role, s))}
-                      className="mt-3 text-sm font-medium text-primary underline"
-                    >
-                      Skip for now
-                    </button>
-                  )}
-                </>
-              )}
-
-              {current === "academics" && (
-                <>
-                  <div className="flex items-center gap-3">
-                    <GraduationCap className="h-6 w-6 text-primary" />
-                    <h1 className="text-2xl font-bold">What are you studying?</h1>
-                  </div>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    We'll tune templates and mock vivas to your branch.
-                  </p>
-                  <div className="mt-6">
-                    <div className="text-sm font-semibold">Branch</div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {branches.map((b) => (
-                        <button
-                          key={b}
-                          onClick={() => setBranch(b)}
-                          className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                            branch === b
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-secondary text-foreground"
-                          }`}
-                        >
-                          {b}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="mt-6">
-                    <div className="text-sm font-semibold">Year</div>
-                    <div className="mt-3 grid grid-cols-4 gap-2">
-                      {years.map((y) => (
-                        <button
-                          key={y}
-                          onClick={() => setYear(y)}
-                          className={`rounded-xl border px-3 py-3 text-sm font-medium ${
-                            year === y
-                              ? "border-primary bg-primary-soft text-accent-foreground"
-                              : "border-border"
-                          }`}
-                        >
-                          {y}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {current === "project" && (
-                <>
-                  <div className="flex items-center gap-3">
-                    <FolderKanban className="h-6 w-6 text-primary" />
-                    <h1 className="text-2xl font-bold">What kind of project are you starting?</h1>
-                  </div>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    You can switch anytime — this just seeds your first project.
-                  </p>
-                  <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                    {projectTypes.map((p) => {
-                      const active = type === p.id;
-                      return (
-                        <button
-                          key={p.id}
-                          onClick={() => setType(p.id)}
-                          className={`rounded-xl border p-4 text-left transition-colors ${
-                            active
-                              ? "border-primary bg-primary-soft"
-                              : "border-border hover:border-primary"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="font-semibold">{p.title}</div>
-                            {active && <Check className="h-4 w-4 text-primary" />}
-                          </div>
-                          <div className="mt-1 text-xs text-muted-foreground">{p.desc}</div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-
-              {current === "goals" && (
-                <>
-                  <div className="flex items-center gap-3">
-                    <Target className="h-6 w-6 text-primary" />
-                    <h1 className="text-2xl font-bold">Pick a few goals for this semester</h1>
-                  </div>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Multi-select. We'll surface AI tools that match these.
-                  </p>
-                  <div className="mt-6 flex flex-wrap gap-2">
-                    {goalOptions.map((g) => {
-                      const active = goals.includes(g);
-                      return (
-                        <button
-                          key={g}
-                          onClick={() => toggleGoal(g)}
-                          className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                            active
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-secondary text-foreground"
-                          }`}
-                        >
-                          {active && "✓ "}
-                          {g}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-
-              {current === "teaching" && (
-                <>
-                  <div className="flex items-center gap-3">
-                    <BookOpen className="h-6 w-6 text-primary" />
-                    <h1 className="text-2xl font-bold">What do you teach?</h1>
-                  </div>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Used to match you to the right vivas and subjects.
-                  </p>
-                  <div className="mt-6">
-                    <label htmlFor="department" className="text-sm font-semibold">
-                      Department
-                    </label>
-                    <input
-                      id="department"
-                      value={department}
-                      onChange={(e) => setDepartment(e.target.value)}
-                      placeholder="e.g. Computer Science"
-                      className="mt-2 w-full rounded-xl border border-border bg-background px-4 py-3 text-sm"
-                    />
-                  </div>
-                  <div className="mt-4">
-                    <label htmlFor="subjects" className="text-sm font-semibold">
-                      Subjects you examine
-                    </label>
-                    <input
-                      id="subjects"
-                      value={subjects}
-                      onChange={(e) => setSubjects(e.target.value)}
-                      placeholder="DBMS, Operating Systems, Networks"
-                      className="mt-2 w-full rounded-xl border border-border bg-background px-4 py-3 text-sm"
-                    />
-                    <p className="mt-2 text-xs text-muted-foreground">Separate them with commas.</p>
-                  </div>
-                </>
-              )}
-
-              {current === "institution_create" && (
-                <>
-                  <div className="flex items-center gap-3">
-                    <Building2 className="h-6 w-6 text-primary" />
-                    <h1 className="text-2xl font-bold">Set up your institution</h1>
-                  </div>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    You'll be its admin: you approve faculty and see cohort reports.
-                  </p>
-                  <input
-                    value={institutionName}
-                    onChange={(e) => setInstitutionName(e.target.value)}
-                    placeholder="e.g. Sunrise Institute of Technology"
-                    aria-label="Institution name"
-                    disabled={Boolean(createdCode)}
-                    className="mt-6 w-full rounded-xl border border-border bg-background px-4 py-3 text-sm disabled:opacity-60"
-                  />
-                  <p className="mt-4 rounded-xl bg-secondary p-3 text-xs text-muted-foreground">
-                    New institutions start unverified, with a 25-seat trial cap. Cohort reports and
-                    exports unlock once we verify you — contact us when you're ready.
-                  </p>
-                </>
-              )}
-
-              {current === "invite_faculty" && (
-                <>
-                  <div className="flex items-center gap-3">
-                    <ShieldCheck className="h-6 w-6 text-primary" />
-                    <h1 className="text-2xl font-bold">Invite your faculty</h1>
-                  </div>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Share this code. Anyone who signs up with it and asks for faculty access shows
-                    up in your dashboard for approval.
-                  </p>
-                  <div className="mt-6 flex items-center gap-3 rounded-xl border border-border p-4">
-                    <code className="flex-1 font-mono text-lg font-semibold">
-                      {createdCode || "—"}
-                    </code>
-                    <button
-                      onClick={() => void navigator.clipboard?.writeText(createdCode)}
-                      disabled={!createdCode}
-                      aria-label="Copy institution code"
-                      className="flex items-center gap-2 rounded-lg bg-secondary px-3 py-2 text-sm font-medium disabled:opacity-40"
-                    >
-                      <Copy className="h-4 w-4" /> Copy
-                    </button>
-                  </div>
-                  <p className="mt-4 text-xs text-muted-foreground">
-                    Students use the same code to link their accounts.
-                  </p>
-                </>
-              )}
-
-              <div className="mt-8 flex items-center justify-between">
-                <button
-                  onClick={() => setStep((s) => prevStep(s))}
-                  disabled={step === 0}
-                  className="flex items-center gap-2 rounded-xl bg-secondary px-4 py-2.5 text-sm font-medium disabled:opacity-40"
-                >
-                  <ChevronLeft className="h-4 w-4" /> Back
-                </button>
-                {!last ? (
-                  <button
-                    onClick={() => void advance()}
-                    disabled={saving}
-                    className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
-                  >
-                    {saving ? "Saving…" : "Continue"} <ChevronRight className="h-4 w-4" />
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => void finish()}
-                    disabled={saving}
-                    className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
-                  >
-                    {saving ? "Saving…" : "Finish setup"} <Check className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
+                ))}
+                <Alert>
+                  <ShieldCheck className="h-4 w-4" />
+                  <AlertDescription>
+                    Faculty access needs approval from your institution's admin before it takes
+                    effect. Until then you'll have a student's access.
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
             </>
           )}
-          {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
-        </div>
+
+          {/* ----------------------------------------------- pending approval */}
+          {role && pending && (
+            <>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3 text-2xl">
+                  <ShieldCheck className="h-6 w-6 text-primary" />
+                  Request sent
+                </CardTitle>
+                <CardDescription>
+                  Your institution's admin has to approve faculty access before you get the faculty
+                  dashboard. Meanwhile you can use everything a student can — including running
+                  practice vivas, which is a good way to see what your students will experience.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button onClick={() => navigate({ to: "/" })}>
+                  Go to dashboard <ChevronRight className="h-4 w-4" />
+                </Button>
+              </CardContent>
+            </>
+          )}
+
+          {/* ------------------------------------------------------- the wizard */}
+          {role && !pending && (
+            <>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3 text-2xl">
+                  {current === "institution" && <Building2 className="h-6 w-6 text-primary" />}
+                  {current === "academics" && <GraduationCap className="h-6 w-6 text-primary" />}
+                  {current === "project" && <FolderKanban className="h-6 w-6 text-primary" />}
+                  {current === "goals" && <Target className="h-6 w-6 text-primary" />}
+                  {current === "teaching" && <BookOpen className="h-6 w-6 text-primary" />}
+                  {current === "institution_create" && (
+                    <Building2 className="h-6 w-6 text-primary" />
+                  )}
+                  {current === "invite_faculty" && <ShieldCheck className="h-6 w-6 text-primary" />}
+                  {STEP_TITLES[current]}
+                </CardTitle>
+                <CardDescription>
+                  {current === "institution" &&
+                    (activeRole === "student"
+                      ? "Enter your college's code to link your account, or skip — you can still use everything."
+                      : "Enter your institution's code. Your admin can find it in their dashboard.")}
+                  {current === "academics" && "We'll tune templates and mock vivas to your branch."}
+                  {current === "project" &&
+                    "You can switch anytime — this just seeds your first project."}
+                  {current === "goals" && "Multi-select. We'll surface AI tools that match these."}
+                  {current === "teaching" && "Used to match you to the right vivas and subjects."}
+                  {current === "institution_create" &&
+                    "You'll be its admin: you approve faculty and see cohort reports."}
+                  {current === "invite_faculty" &&
+                    "Share this code. Anyone who signs up with it and asks for faculty access appears in your dashboard for approval."}
+                </CardDescription>
+              </CardHeader>
+
+              <CardContent className="space-y-6">
+                {current === "institution" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="institution-code">Institution code</Label>
+                    <Input
+                      id="institution-code"
+                      value={institutionCode}
+                      onChange={(e) => {
+                        setInstitutionCode(e.target.value);
+                        setError("");
+                      }}
+                      placeholder="e.g. A1B2C3D4"
+                      autoComplete="off"
+                      spellCheck={false}
+                      aria-invalid={Boolean(error)}
+                      aria-describedby={error ? "onboarding-error" : undefined}
+                    />
+                    {activeRole === "student" && (
+                      <Button
+                        variant="link"
+                        className="h-auto p-0"
+                        onClick={() => {
+                          setError("");
+                          setStep((s) => nextStep(activeRole, s));
+                        }}
+                      >
+                        Skip for now
+                      </Button>
+                    )}
+                  </div>
+                )}
+
+                {current === "academics" && (
+                  <>
+                    <div className="space-y-3">
+                      <Label>Branch</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {branches.map((b) => (
+                          <Chip key={b} active={branch === b} onClick={() => setBranch(b)}>
+                            {b}
+                          </Chip>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <Label>Year</Label>
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        {years.map((y) => (
+                          <Button
+                            key={y}
+                            type="button"
+                            variant={year === y ? "default" : "outline"}
+                            onClick={() => setYear(y)}
+                            aria-pressed={year === y}
+                          >
+                            {y}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {current === "project" && (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {projectTypes.map((p) => (
+                      <ChoiceCard
+                        key={p.id}
+                        selected={type === p.id}
+                        title={p.title}
+                        description={p.desc}
+                        onSelect={() => setType(p.id)}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {current === "goals" && (
+                  <div className="flex flex-wrap gap-2">
+                    {goalOptions.map((g) => (
+                      <Chip key={g} active={goals.includes(g)} onClick={() => toggleGoal(g)}>
+                        {goals.includes(g) && "✓ "}
+                        {g}
+                      </Chip>
+                    ))}
+                  </div>
+                )}
+
+                {current === "teaching" && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="department">Department</Label>
+                      <Input
+                        id="department"
+                        value={department}
+                        onChange={(e) => {
+                          setDepartment(e.target.value);
+                          setError("");
+                        }}
+                        placeholder="e.g. Computer Science"
+                        aria-invalid={Boolean(error)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="subjects">Subjects you examine</Label>
+                      <Input
+                        id="subjects"
+                        value={subjects}
+                        onChange={(e) => {
+                          setSubjects(e.target.value);
+                          setError("");
+                        }}
+                        placeholder="DBMS, Operating Systems, Networks"
+                        aria-describedby="subjects-hint"
+                      />
+                      <p id="subjects-hint" className="text-xs text-muted-foreground">
+                        Separate them with commas. You can leave this blank.
+                      </p>
+                      {parseSubjects(subjects).length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {parseSubjects(subjects).map((s) => (
+                            <Badge key={s} variant="secondary">
+                              {s}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {current === "institution_create" && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="institution-name">Institution name</Label>
+                      <Input
+                        id="institution-name"
+                        value={institutionName}
+                        onChange={(e) => {
+                          setInstitutionName(e.target.value);
+                          setError("");
+                        }}
+                        placeholder="e.g. Sunrise Institute of Technology"
+                        disabled={Boolean(createdCode)}
+                        aria-invalid={Boolean(error)}
+                      />
+                      {createdCode && (
+                        <p className="text-xs text-muted-foreground">
+                          Already created — you can't rename it here.
+                        </p>
+                      )}
+                    </div>
+                    <Alert>
+                      <Building2 className="h-4 w-4" />
+                      <AlertDescription>
+                        New institutions start unverified, with a 25-seat trial cap. Cohort reports
+                        and exports unlock once we verify you — contact us when you're ready.
+                      </AlertDescription>
+                    </Alert>
+                  </>
+                )}
+
+                {current === "invite_faculty" && (
+                  <>
+                    <div className="flex items-center gap-3 rounded-lg border p-4">
+                      <code className="flex-1 font-mono text-lg font-semibold tracking-wider">
+                        {createdCode || "—"}
+                      </code>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => void copyCode()}
+                        disabled={!createdCode}
+                      >
+                        <Copy className="h-4 w-4" /> Copy
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Students use the same code to link their accounts.
+                    </p>
+                  </>
+                )}
+
+                {error && (
+                  <Alert variant="destructive" id="onboarding-error" aria-live="assertive">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+
+                <div className="flex items-center justify-between pt-2">
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setError("");
+                      setStep((s) => prevStep(s));
+                    }}
+                    disabled={step === 0 || busy}
+                  >
+                    <ChevronLeft className="h-4 w-4" /> Back
+                  </Button>
+                  <Button onClick={() => void (last ? finish() : advance())} disabled={busy}>
+                    {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {busy ? "Saving…" : last ? "Finish setup" : "Continue"}
+                    {!busy &&
+                      (last ? <Check className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />)}
+                  </Button>
+                </div>
+              </CardContent>
+            </>
+          )}
+        </Card>
       </div>
     </div>
   );

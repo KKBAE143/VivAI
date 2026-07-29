@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { ThemeProvider } from "../lib/theme";
 import { AuthProvider } from "../lib/auth-context";
 import { initDiagnostics, report } from "../diagnostics/client";
+import { Toaster } from "../components/ui/sonner";
 
 function NotFoundComponent() {
   return (
@@ -142,6 +143,9 @@ function RootComponent() {
         <AuthProvider>
           {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
           <Outlet />
+          {/* Mounted once at the root — `sonner` was installed and themed but
+              never rendered, so no toast in the app could ever appear. */}
+          <Toaster />
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
