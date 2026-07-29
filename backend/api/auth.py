@@ -193,10 +193,15 @@ def complete_onboarding(body: OnboardingComplete, user=Depends(get_current_user)
     # A gated role (faculty/admin) is only ever a REQUEST. profiles.role stays
     # 'student' until an institution admin approves it, so a self-selected
     # claim can never read another student's reports.
+    #
+    # But never DOWNGRADE a role that was already granted: an admin who just
+    # created their institution (which grants 'admin') finishes onboarding
+    # immediately afterwards, and writing 'student' here would strip it.
+    existing_role = (user.get("profile") or {}).get("role") or "student"
     data: dict = {
         "onboarding_complete": True,
         "onboarding_goals": body.goals,
-        "role": "student",
+        "role": existing_role if existing_role in onboarding_service.VALID_ROLES else "student",
     }
     if body.branch:
         data["branch"] = body.branch

@@ -43,10 +43,22 @@ function Login() {
         },
       );
       login(res.access_token, res.refresh_token ?? null);
-      // Route first-time users through onboarding.
+      // Route first-time users through onboarding, then send each role to the
+      // surface it can actually use. A pending faculty claim carries no
+      // privileges yet, so it lands on the student dashboard like any student.
       try {
-        const status = await api<{ complete: boolean }>("/api/onboarding/status");
-        navigate({ to: status.complete ? "/" : "/onboarding" });
+        const status = await api<{
+          complete: boolean;
+          role?: string;
+          pending_approval?: boolean;
+        }>("/api/onboarding/status");
+        if (!status.complete) {
+          navigate({ to: "/onboarding" });
+        } else if (status.role === "admin") {
+          navigate({ to: "/admin" });
+        } else {
+          navigate({ to: "/" });
+        }
       } catch {
         navigate({ to: "/" });
       }

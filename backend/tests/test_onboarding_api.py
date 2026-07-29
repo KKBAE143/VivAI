@@ -102,6 +102,17 @@ def test_requesting_faculty_without_a_code_is_rejected(onboarding):
     assert exc.value.status_code == 400
 
 
+def test_finishing_onboarding_never_downgrades_an_existing_role(onboarding):
+    """An admin creates their institution (which grants 'admin') and finishes
+    onboarding straight after. Writing 'student' here would strip the role they
+    were just granted."""
+    auth_api.complete_onboarding(
+        OnboardingComplete(branch="CSE"),
+        user={"id": "u1", "profile": {"role": "admin", "institution_id": "inst-1"}},
+    )
+    assert _updates(onboarding, "profiles")[-1]["role"] == "admin"
+
+
 def test_status_reports_the_flow_the_client_should_render(onboarding):
     state = auth_api.onboarding_status(user={
         "id": "u1",
