@@ -13,10 +13,20 @@ export const AUTH_LOGOUT_EVENT = "cpn:auth-logout";
 export class ApiError extends Error {
   status: number;
 
-  constructor(status: number, message: string) {
+  /**
+   * Machine-readable cause, when the backend supplied one.
+   *
+   * The role and consent gates in `core/deps.py` raise a structured detail
+   * (`{error, message}`) rather than a bare string, so callers can branch on
+   * `code === "consent_required"` instead of matching on prose.
+   */
+  code?: string;
+
+  constructor(status: number, message: string, code?: string) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -174,6 +184,7 @@ export async function api<T = unknown>(path: string, options: ApiOptions = {}): 
 
   if (!res.ok) {
     let message = `Request failed (${res.status})`;
+    let code: string | undefined;
     // The backend stamps every response with the id of the failure behind it;
     // carrying it here is what lets a browser event be joined to its backend
     // counterpart in the report.
@@ -185,6 +196,14 @@ export async function api<T = unknown>(path: string, options: ApiOptions = {}): 
         if (typeof detail === "string") message = detail;
         else if (Array.isArray(detail))
           message = detail.map((d) => (d as { msg?: string }).msg ?? "").join(", ") || message;
+        else if (detail && typeof detail === "object") {
+          // The consent and role gates raise `{error, message}`. Without this
+          // branch every one of them surfaced as "Request failed (403)" — the
+          // backend was explaining itself and nothing was listening.
+          const structured = detail as { error?: unknown; message?: unknown };
+          if (typeof structured.message === "string") message = structured.message;
+          if (typeof structured.error === "string") code = structured.error;
+        }
       }
       if (data && typeof data === "object" && "request_id" in data) {
         requestId = (data as { request_id?: string }).request_id ?? requestId;
@@ -195,7 +214,7 @@ export async function api<T = unknown>(path: string, options: ApiOptions = {}): 
     // A 401 that survived the refresh attempt means the session is truly dead.
     if (res.status === 401) clearSession();
     try {
-      report(new ApiError(res.status, message), {
+      report(new ApiError(res.status, message, code), {
         kind: "http_error",
         level: res.status >= 500 ? "ERROR" : "WARNING",
         context: {
@@ -205,12 +224,13 @@ export async function api<T = unknown>(path: string, options: ApiOptions = {}): 
           duration_ms: Date.now() - startedAt,
           request_id: requestId,
           trace_id: currentTrace().traceId,
+          reason: code,
         },
       });
     } catch {
       /* diagnostics must never alter this path */
     }
-    throw new ApiError(res.status, message);
+    throw new ApiError(res.status, message, code);
   }
 
   if (res.status === 204) return undefined as T;

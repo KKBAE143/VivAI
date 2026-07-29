@@ -27,6 +27,7 @@ import {
   X,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
+import { ConsentGate } from "@/components/consent-gate";
 import { useTheme } from "@/lib/theme";
 import { useAuth, useRequireAuth } from "@/lib/auth-context";
 import { useProfile } from "@/lib/hooks";
@@ -95,6 +96,7 @@ export function AppShell({
         <main className="min-h-0 min-w-0 flex-1 pb-20 lg:pb-0">{children}</main>
         <MobileNav onOpenMenu={() => setDrawerOpen(true)} />
         <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+        <ConsentGate />
       </div>
     );
   }
@@ -109,6 +111,9 @@ export function AppShell({
       </div>
       <MobileNav onOpenMenu={() => setDrawerOpen(true)} />
       <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      {/* Mounted in the shell, not per route: consent gates every session
+          feature, and it reads the profile the shell already has. */}
+      <ConsentGate />
     </div>
   );
 }

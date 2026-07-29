@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from ai import delivery_metrics, prompts, viva_core
 from ai.registry import DEFAULT_PERSONA_ID, PERSONAS
 from core.database import get_supabase
-from core.deps import get_current_user
+from core.deps import get_current_user, require_consent
 from core.languages import normalize_language
 from models.schemas import AnswerSubmit, VivaSessionCreate
 from services import gamification_service
@@ -106,7 +106,7 @@ def _delivery_scorecard(session_id: str) -> dict:
 
 
 @router.post("/sessions", status_code=201)
-def create_session(body: VivaSessionCreate, user=Depends(get_current_user)):
+def create_session(body: VivaSessionCreate, user=Depends(require_consent)):
     if body.session_type not in ("Subject", "Project", "General"):
         raise HTTPException(status_code=400, detail="Invalid session_type")
     persona = body.persona if body.persona in PERSONAS else DEFAULT_PERSONA_ID

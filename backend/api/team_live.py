@@ -16,7 +16,7 @@ from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisco
 
 from ai import team_room, viva_core
 from core.database import get_supabase
-from core.deps import get_current_user, user_from_token
+from core.deps import get_current_user, require_consent, user_from_token
 from models.schemas import TeamVivaCreate
 
 router = APIRouter(prefix="/api/advanced", tags=["team-viva"])
@@ -30,11 +30,46 @@ def _membership(team_id: str, profile_id: str) -> dict | None:
     return rows[0] if rows else None
 
 
+def _access_role(session: dict, profile_id: str, profile: dict | None) -> str | None:
+    """Who may see or hear this viva: 'participant', 'observer', or nobody.
+
+    One function for the REST reads and the WebSocket, because they were allowed
+    to disagree and did: the socket checked membership carefully while
+    `GET /team-viva/sessions/{id}` and `/{id}/report` checked nothing beyond a
+    valid token, so any authenticated user could read any team's assessment
+    record by id. For an institutional product that is the whole liability.
+
+    A team member is a participant and can be examined. A faculty member of the
+    institution that scheduled the assessment is an observer: the authority is
+    read off the session context because `teams` has no institution_id.
+    """
+    context = session.get("context") or {}
+    team_id = context.get("team_id")
+    if team_id and _membership(team_id, profile_id):
+        return "participant"
+    profile = profile or {}
+    session_institution = context.get("institution_id")
+    if (
+        (profile.get("role") or "student") in ("faculty", "admin")
+        and session_institution
+        and profile.get("institution_id") == session_institution
+    ):
+        return "observer"
+    return None
+
+
+def _require_session_access(session: dict, user: dict) -> str:
+    role = _access_role(session, user["id"], user.get("profile"))
+    if role is None:
+        raise HTTPException(status_code=403, detail="You cannot view this viva")
+    return role
+
+
 # --------------------------------------------------------------------------- #
 # REST: create lobby, join-link preview, report
 # --------------------------------------------------------------------------- #
 @router.post("/team-viva/sessions", status_code=201)
-def team_viva_create(body: TeamVivaCreate, user=Depends(get_current_user)):
+def team_viva_create(body: TeamVivaCreate, user=Depends(require_consent)):
     member = _membership(body.team_id, user["id"])
     if not member:
         raise HTTPException(status_code=403, detail="Not a member of this team")
@@ -58,6 +93,7 @@ def team_viva_get(session_id: str, user=Depends(get_current_user)):
     if not res.data:
         raise HTTPException(status_code=404, detail="Session not found")
     session = res.data[0]
+    _require_session_access(session, user)
     room = team_room.manager.rooms.get(session_id)
     return {
         **session,
@@ -91,6 +127,12 @@ def team_viva_join_preview(join_code: str, user=Depends(get_current_user)):
 @router.get("/team-viva/{session_id}/report")
 def team_viva_report(session_id: str, user=Depends(get_current_user)):
     sb = get_supabase()
+    # Load the session first: this used to query the score tables directly, so an
+    # unknown id returned an empty report and ANY id returned real marks.
+    res = sb.table("viva_sessions").select("*").eq("id", session_id).eq("session_type", "TeamViva").execute()
+    if not res.data:
+        raise HTTPException(status_code=404, detail="Session not found")
+    _require_session_access(res.data[0], user)
     scores = sb.table("team_viva_scores").select("*, profiles(full_name)").eq("session_id", session_id).execute().data
     questions = sb.table("viva_questions").select("*").eq("session_id", session_id).execute().data
     by_member: dict[str, list[dict]] = {}
@@ -143,22 +185,15 @@ async def ws_team_live(websocket: WebSocket, session_id: str):
     )
     profile = prof[0] if prof else {}
     name = profile.get("full_name") or "Member"
-    role = profile.get("role") or "student"
 
-    # Two ways in. A team member is a PARTICIPANT and can be examined. A faculty
-    # member of the institution that scheduled this assessment is an OBSERVER:
-    # they may watch, pause and take over, but never hold a student slot and are
-    # never examined. `teams` has no institution_id, which is why the authority
-    # is read off the session that recorded it at creation time.
-    is_member = bool(team_id and _membership(team_id, user["id"]))
-    session_institution = context.get("institution_id")
-    is_observer = (
-        not is_member
-        and role in ("faculty", "admin")
-        and bool(session_institution)
-        and profile.get("institution_id") == session_institution
-    )
-    if not is_member and not is_observer:
+    # Two ways in. A team member is a PARTICIPANT and can be examined; faculty
+    # from the institution that scheduled the assessment are OBSERVERS, who may
+    # watch, pause and take over but never hold a student slot and are never
+    # examined. Shared with the REST reads so the two can never drift apart.
+    access = _access_role(session, user["id"], profile)
+    is_observer = access == "observer"
+    is_member = access == "participant"
+    if access is None:
         await websocket.send_json({"type": "error", "message": "You cannot join this viva"})
         await websocket.close(code=4403)
         return

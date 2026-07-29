@@ -21,7 +21,7 @@ from ai import (
 )
 from core.config import get_settings
 from core.database import get_supabase
-from core.deps import get_current_user, user_from_token
+from core.deps import get_current_user, require_consent, user_from_token
 from core.logging import get_logger
 from models.schemas import (
     CodeAwareSessionCreate,
@@ -40,7 +40,7 @@ logger = get_logger("advanced")
 async def code_upload(
     file: UploadFile | None = File(default=None),
     project_id: str | None = Form(default=None),
-    user=Depends(get_current_user),
+    user=Depends(require_consent),
 ):
     if file is None:
         raise HTTPException(status_code=400, detail="Upload a ZIP file")
@@ -93,7 +93,7 @@ async def code_prepare_viva(
     language: str = Form(default="English"),
     persona: str = Form(default="balanced"),
     duration_minutes: int = Form(default=10),
-    user=Depends(get_current_user),
+    user=Depends(require_consent),
 ):
     """Upload ZIP, distill knowledge pack, create live-ready CodeAware session.
 
@@ -196,7 +196,7 @@ async def code_prepare_viva(
 
 
 @router.post("/code-aware/session", status_code=201)
-def code_session(body: CodeAwareSessionCreate, user=Depends(get_current_user)):
+def code_session(body: CodeAwareSessionCreate, user=Depends(require_consent)):
     """Create a session from an existing analyzed snapshot (legacy / secondary path)."""
     sb = get_supabase()
     res = sb.table("code_snapshots").select("*").eq("id", body.snapshot_id).eq("profile_id", user["id"]).execute()
@@ -288,7 +288,7 @@ def heatmap_refresh(user=Depends(get_current_user)):
 # G. Real-Time Presentation Sentiment
 # =====================================================
 @router.post("/sentiment/session", status_code=201)
-def sentiment_session(body: SentimentSessionCreate, user=Depends(get_current_user)):
+def sentiment_session(body: SentimentSessionCreate, user=Depends(require_consent)):
     res = get_supabase().table("presentation_sessions").insert(
         {
             "profile_id": user["id"],

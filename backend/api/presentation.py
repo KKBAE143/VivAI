@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from ai import delivery_metrics, gemini_service, prompts
 from ai.registry import get_scenario
 from core.database import get_supabase
-from core.deps import get_current_user
+from core.deps import get_current_user, require_consent
 from models.schemas import AskRequest, PresentationAnswer, PresentationSessionCreate
 from services import gamification_service
 from services.activity_service import log_activity
@@ -62,7 +62,7 @@ def _project_context(project_id: str | None) -> str:
 
 
 @router.post("/sessions", status_code=201)
-def create_session(body: PresentationSessionCreate, user=Depends(get_current_user)):
+def create_session(body: PresentationSessionCreate, user=Depends(require_consent)):
     scenario = get_scenario(body.scenario_id)
     if body.scenario_id and not scenario:
         raise HTTPException(status_code=400, detail="Unknown scenario_id")

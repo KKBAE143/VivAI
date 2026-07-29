@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from ai import gemini_service, prompts, viva_core
 from core.database import get_supabase
-from core.deps import get_current_user
+from core.deps import get_current_user, require_consent
 from models.schemas import PitchDrillSubmit
 from services import benchmark_service, gamification_service, readiness_service
 from services.activity_service import log_activity
@@ -46,7 +46,7 @@ def _project_context(project_id: str | None) -> str:
 
 
 @router.post("/pitch")
-def evaluate_pitch(body: PitchDrillSubmit, user=Depends(get_current_user)):
+def evaluate_pitch(body: PitchDrillSubmit, user=Depends(require_consent)):
     """Stateless pitch evaluation — no session row needed."""
     if not body.transcript.strip():
         raise HTTPException(status_code=400, detail="Transcript is empty")

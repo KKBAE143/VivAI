@@ -86,10 +86,22 @@ def require_project_owner(project_id: str, user_id: str) -> dict:
 
 
 def require_consent(user: dict = Depends(get_current_user)) -> dict:
-    """Gate that ensures the user has accepted the current privacy policy.
+    """Gate that ensures the user has accepted the privacy policy.
 
-    Use on session-creating endpoints (viva start, presentation start, live WS).
-    Returns the user dict if consent is valid, raises 403 otherwise.
+    Applied to every endpoint that starts recording or processing a student's
+    speech, video or code: viva/presentation/team-viva session creation, the
+    code-aware upload paths, the sentiment session and the pitch evaluator. For
+    a long time it was defined and wired to nothing, so the consent the signup
+    form collected was never actually enforced anywhere.
+
+    The live WebSockets are gated transitively — a socket can only attach to a
+    session that one of those endpoints already created.
+
+    A 403 here is recoverable, not terminal: the `consent_required` code tells
+    the frontend to show the consent prompt (`ConsentGate`) rather than treat it
+    as a permission failure. That matters because Google sign-in never passes
+    through the signup form, so those accounts legitimately arrive with no
+    consent on record and must have a way to give it.
     """
     profile = user.get("profile") or {}
     if not profile.get("consent_accepted_at"):
