@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 from fastapi import WebSocket
 from google.genai import types
 
-from ai import live_service, team_live_service
+from ai import audio_frames, live_service, team_live_service
 from core.database import get_supabase
 from core.logging import get_logger
 
@@ -268,41 +268,110 @@ class VoiceRoom:
         # middle of somebody's graded answer. Bounded: stale realtime audio is
         # worthless, so an overflow drops the OLDEST frames.
         self._inbound: asyncio.Queue = asyncio.Queue(maxsize=INBOUND_QUEUE_MAX)
+        # Faculty watching the viva. Deliberately NOT in `connections`: they must
+        # not consume a student slot against MAX_PARTICIPANTS, and the model must
+        # never be able to call on them via `call_on_participant`.
+        self.observers: dict[str, WebSocket] = {}
+        self.observer_names: dict[str, str] = {}
+        # Who can decode tagged audio frames (protocol v1+). Older clients keep
+        # receiving bare AI PCM exactly as before, so relaying cannot break them.
+        self._tagged: set[str] = set()
+        # Faculty takeover. While paused the AI receives no audio and so stays
+        # silent, but humans keep hearing each other — that is the whole point.
+        self.paused = False
+        # A student the faculty handed the floor to directly, overriding the
+        # model's own `call_on_participant` choice.
+        self.floor_override_id: str | None = None
 
     def _member_list(self) -> list[dict]:
         return [{"profile_id": pid, "name": self.names.get(pid, "Member")} for pid in self.connections]
 
+    def _observer_list(self) -> list[dict]:
+        return [
+            {"profile_id": pid, "name": self.observer_names.get(pid, "Faculty")}
+            for pid in self.observers
+        ]
+
+    def _lobby_message(self) -> dict:
+        """The room's shape, as every client needs to see it.
+
+        Built in one place because it is broadcast from five call sites, and an
+        inconsistency between them shows up as a UI that disagrees with itself.
+        """
+        return {
+            "type": "lobby",
+            "members": self._member_list(),
+            "observers": self._observer_list(),
+            "lead_id": self.lead_id,
+            "ai_status": ("paused" if self.paused else "live") if self.started else "muted",
+        }
+
+    def _everyone(self) -> list[tuple[str, WebSocket]]:
+        """Participants AND observers. Faculty must see and hear everything."""
+        return [*self.connections.items(), *self.observers.items()]
+
     async def broadcast(self, message: dict) -> None:
         async with self._send_lock:
-            for ws in list(self.connections.values()):
+            for _pid, ws in self._everyone():
                 try:
                     await ws.send_json(message)
                 except Exception:
                     pass
 
     async def broadcast_bytes(self, data: bytes) -> None:
+        """Fan AI speech out to the whole room.
+
+        Tagged for protocol v1+ clients so they can tell 24 kHz AI speech from
+        16 kHz relayed human voice; bare PCM for older clients, which only ever
+        receive AI audio and would not know what to do with a header.
+        """
+        tagged = audio_frames.encode_ai(data)
         async with self._send_lock:
-            for ws in list(self.connections.values()):
+            for pid, ws in self._everyone():
                 try:
-                    await ws.send_bytes(data)
+                    await ws.send_bytes(tagged if pid in self._tagged else data)
                 except Exception:
                     pass
 
-    async def connect(self, profile_id: str, name: str, ws: WebSocket) -> None:
+    async def _relay_human_audio(self, speaker_id: str, data: bytes) -> None:
+        """Let the room hear whoever is speaking.
+
+        Skips the speaker (they hear themselves acoustically) and skips legacy
+        clients entirely: without a frame header they would play this 16 kHz mic
+        audio at the AI's 24 kHz, which sounds chipmunked and worse than silence.
+        """
+        frame = audio_frames.encode_human(data, speaker_id)
+        async with self._send_lock:
+            for pid, ws in self._everyone():
+                if pid == speaker_id or pid not in self._tagged:
+                    continue
+                try:
+                    await ws.send_bytes(frame)
+                except Exception:
+                    pass
+
+    async def connect(self, profile_id: str, name: str, ws: WebSocket, tagged: bool = False) -> None:
+        """Attach a participant. `tagged` = this client negotiated protocol v1+.
+
+        Only tagged clients receive relayed human audio: an older client has no
+        frame decoder and would play 16 kHz mic audio at the AI's 24 kHz.
+        """
         await ws.accept()
         self.connections[profile_id] = ws
+        if tagged:
+            self._tagged.add(profile_id)
         self.names[profile_id] = name
-        await self.broadcast({
-            "type": "lobby",
-            "members": self._member_list(),
-            "lead_id": self.lead_id,
-            "ai_status": "live" if self.started else "muted",
-        })
+        await self.broadcast(self._lobby_message())
 
     async def disconnect(self, profile_id: str) -> None:
         self.connections.pop(profile_id, None)
-        if self.connections:
-            await self.broadcast({"type": "lobby", "members": self._member_list(), "lead_id": self.lead_id, "ai_status": "live" if self.started else "muted"})
+        self._tagged.discard(profile_id)
+        # A floor holder who drops must not leave the room waiting forever for
+        # someone who left: give the floor back so the viva can carry on.
+        if self.floor_override_id == profile_id:
+            self.floor_override_id = None
+        if self.connections or self.observers:
+            await self.broadcast(self._lobby_message())
 
     async def start(self, requester_id: str, project_id: str | None, project_context: str, subject: str | None, language: str, persona: str) -> None:
         if requester_id != self.lead_id:
@@ -332,7 +401,7 @@ class VoiceRoom:
             self._connect_args = None
             self.persist = None
             raise
-        await self.broadcast({"type": "lobby", "members": roster, "lead_id": self.lead_id, "ai_status": "live"})
+        await self.broadcast(self._lobby_message())
         await self._send_greeting()
         self._pump_task = asyncio.create_task(self._pump_gemini())
 
@@ -406,14 +475,123 @@ class VoiceRoom:
         except asyncio.QueueFull:
             pass
 
+    def may_speak(self, profile_id: str) -> bool:
+        """Whether this client's mic audio is allowed into the room right now.
+
+        Faculty may always speak — that is what "take over" means. A student may
+        speak when they hold the floor, whether the AI granted it or the faculty
+        handed it to them directly.
+        """
+        if profile_id in self.observers:
+            return True
+        floor = self.floor_override_id or self.active_speaker_id
+        return profile_id == floor
+
     async def route_client_audio(self, profile_id: str, data: bytes) -> None:
         if not self.started:
             return
-        if profile_id != self.active_speaker_id:
+        if not self.may_speak(profile_id):
             return  # not this participant's turn — dropped server-side
+        # Everyone hears whoever is speaking. This is independent of whether the
+        # AI hears them: while paused for a faculty takeover the humans must
+        # still be able to talk to each other.
+        await self._relay_human_audio(profile_id, data)
+        if self.paused:
+            # Deliberately not queued: buffering minutes of faculty discussion
+            # and firehosing it at the model on resume would be worse than
+            # dropping it. The resume trigger tells the model what it missed.
+            return
         # Queued rather than sent inline so a reconnect in flight does not
         # swallow the middle of the floor holder's answer.
         self._enqueue_audio(data)
+
+    # ---------------------------------------------------------------- faculty #
+    async def connect_observer(self, profile_id: str, name: str, ws: WebSocket, tagged: bool) -> None:
+        """Attach a faculty observer.
+
+        Kept out of `connections` so they never count against MAX_PARTICIPANTS
+        and can never be chosen by the model's `call_on_participant`.
+        """
+        await ws.accept()
+        self.observers[profile_id] = ws
+        self.observer_names[profile_id] = name
+        if tagged:
+            self._tagged.add(profile_id)
+        await self.broadcast(self._lobby_message())
+
+    async def disconnect_observer(self, profile_id: str) -> None:
+        self.observers.pop(profile_id, None)
+        self.observer_names.pop(profile_id, None)
+        self._tagged.discard(profile_id)
+        if self.connections or self.observers:
+            await self.broadcast(self._lobby_message())
+
+    async def set_paused(self, requester_id: str, paused: bool) -> None:
+        """Pause or resume the AI examiner. Faculty only.
+
+        The Gemini connection is deliberately NOT torn down: dropping it would
+        lose the conversation and force a fresh session, which is how the double
+        greeting happened in the solo bridge.
+        """
+        if requester_id not in self.observers:
+            raise PermissionError("Only faculty can pause the examiner")
+        if self.paused == paused:
+            return
+        self.paused = paused
+        await self.broadcast({
+            "type": "ai_paused" if paused else "ai_resumed",
+            "by": self.observer_names.get(requester_id, "Faculty"),
+        })
+        if not paused:
+            # A resumed model needs a turn to speak again, and must be told what
+            # it missed or it will repeat the question faculty already asked.
+            await self._resume_after_takeover()
+
+    async def grant_floor(self, requester_id: str, participant_id: str | None) -> None:
+        """Hand the floor to a chosen student, overriding the model. Faculty only."""
+        if requester_id not in self.observers:
+            raise PermissionError("Only faculty can grant the floor")
+        if participant_id is not None and participant_id not in self.connections:
+            raise ValueError("That participant is not in this viva")
+        self.floor_override_id = participant_id
+        await self.broadcast({
+            "type": "floor",
+            "speaker_id": participant_id or self.active_speaker_id,
+            "ai_speaking": False,
+            "granted_by_faculty": participant_id is not None,
+        })
+
+    async def _resume_after_takeover(self) -> None:
+        """Nudge the model back into the viva without repeating itself.
+
+        Same failure mode as the double greeting: a Live model stays mute until
+        it receives a turn, and the naive fix (re-sending the opening) makes it
+        greet again. So send an explicit "carry on, do not repeat" turn.
+        """
+        if self.gemini_session is None:
+            return
+        transcript = (self.persist.transcript if self.persist else [])[-6:]
+        recent = " ".join(
+            f"{'Examiner' if t.get('role') == 'examiner' else 'Student'}: {t.get('text', '')}"
+            for t in transcript
+            if t.get("text")
+        )
+        language = (self._connect_args or {}).get("language", "English")
+        try:
+            await self.gemini_session.send_client_content(
+                turns=types.Content(
+                    role="user",
+                    parts=[types.Part(text=team_live_service.faculty_handback_trigger(recent, language))],
+                ),
+                turn_complete=True,
+            )
+        except Exception:
+            logger.warning(
+                "faculty hand-back trigger failed",
+                exc_info=True,
+                extra={"session_id": self.session_id, "mode": "team_viva",
+                       "event": "handback_trigger_failed"},
+            )
 
     async def _pump_audio(self, session) -> None:
         """Drain buffered floor audio into the currently-live Gemini session."""

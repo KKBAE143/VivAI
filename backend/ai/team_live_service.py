@@ -117,6 +117,29 @@ def team_resume_trigger(language: str = "English") -> str:
     )
 
 
+def faculty_handback_trigger(recent_transcript: str = "", language: str = "English") -> str:
+    """Resume the examiner after a faculty takeover, without repeating itself.
+
+    A Live model stays mute until it receives a turn, so silence is not an
+    option — but the naive nudge makes it re-ask the question the faculty member
+    just asked in person. Passing the recent exchange and forbidding repetition
+    is what keeps the hand-back seamless.
+    """
+    heard = (
+        f" Here is what was said while you were paused: {recent_transcript.strip()}"
+        if recent_transcript.strip()
+        else ""
+    )
+    return (
+        "The faculty examiner in the room paused you and asked their own questions directly. "
+        f"You are now back in charge.{heard} "
+        "Continue the viva: call on your next person and ask your NEXT question in one short "
+        "spoken reply. Do NOT greet, do NOT re-introduce yourself, and do NOT repeat any question "
+        "that was just asked. "
+        f"Remember: {_language_directive(language)}"
+    )
+
+
 def _team_tools() -> list[types.Tool]:
     return [
         types.Tool(
