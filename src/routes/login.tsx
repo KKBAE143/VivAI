@@ -56,6 +56,8 @@ function Login() {
           navigate({ to: "/onboarding" });
         } else if (status.role === "admin") {
           navigate({ to: "/admin" });
+        } else if (status.role === "faculty") {
+          navigate({ to: "/faculty" });
         } else {
           navigate({ to: "/" });
         }

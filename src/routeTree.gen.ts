@@ -26,6 +26,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as TemplatesIndexRouteImport } from './routes/templates/index'
 import { Route as TeamsIndexRouteImport } from './routes/teams/index'
 import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
+import { Route as FacultyIndexRouteImport } from './routes/faculty/index'
 import { Route as AiVivaIndexRouteImport } from './routes/ai-viva/index'
 import { Route as AiPresentationIndexRouteImport } from './routes/ai-presentation/index'
 import { Route as AdvancedIndexRouteImport } from './routes/advanced/index'
@@ -127,6 +128,11 @@ const TeamsIndexRoute = TeamsIndexRouteImport.update({
 const ProjectsIndexRoute = ProjectsIndexRouteImport.update({
   id: '/projects/',
   path: '/projects/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FacultyIndexRoute = FacultyIndexRouteImport.update({
+  id: '/faculty/',
+  path: '/faculty/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AiVivaIndexRoute = AiVivaIndexRouteImport.update({
@@ -246,6 +252,7 @@ export interface FileRoutesByFullPath {
   '/advanced/': typeof AdvancedIndexRoute
   '/ai-presentation/': typeof AiPresentationIndexRoute
   '/ai-viva/': typeof AiVivaIndexRoute
+  '/faculty/': typeof FacultyIndexRoute
   '/projects/': typeof ProjectsIndexRoute
   '/teams/': typeof TeamsIndexRoute
   '/templates/': typeof TemplatesIndexRoute
@@ -282,6 +289,7 @@ export interface FileRoutesByTo {
   '/advanced': typeof AdvancedIndexRoute
   '/ai-presentation': typeof AiPresentationIndexRoute
   '/ai-viva': typeof AiVivaIndexRoute
+  '/faculty': typeof FacultyIndexRoute
   '/projects': typeof ProjectsIndexRoute
   '/teams': typeof TeamsIndexRoute
   '/templates': typeof TemplatesIndexRoute
@@ -319,6 +327,7 @@ export interface FileRoutesById {
   '/advanced/': typeof AdvancedIndexRoute
   '/ai-presentation/': typeof AiPresentationIndexRoute
   '/ai-viva/': typeof AiVivaIndexRoute
+  '/faculty/': typeof FacultyIndexRoute
   '/projects/': typeof ProjectsIndexRoute
   '/teams/': typeof TeamsIndexRoute
   '/templates/': typeof TemplatesIndexRoute
@@ -357,6 +366,7 @@ export interface FileRouteTypes {
     | '/advanced/'
     | '/ai-presentation/'
     | '/ai-viva/'
+    | '/faculty/'
     | '/projects/'
     | '/teams/'
     | '/templates/'
@@ -393,6 +403,7 @@ export interface FileRouteTypes {
     | '/advanced'
     | '/ai-presentation'
     | '/ai-viva'
+    | '/faculty'
     | '/projects'
     | '/teams'
     | '/templates'
@@ -429,6 +440,7 @@ export interface FileRouteTypes {
     | '/advanced/'
     | '/ai-presentation/'
     | '/ai-viva/'
+    | '/faculty/'
     | '/projects/'
     | '/teams/'
     | '/templates/'
@@ -466,6 +478,7 @@ export interface RootRouteChildren {
   AdvancedIndexRoute: typeof AdvancedIndexRoute
   AiPresentationIndexRoute: typeof AiPresentationIndexRoute
   AiVivaIndexRoute: typeof AiVivaIndexRoute
+  FacultyIndexRoute: typeof FacultyIndexRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
   TeamsIndexRoute: typeof TeamsIndexRoute
   TemplatesIndexRoute: typeof TemplatesIndexRoute
@@ -594,6 +607,13 @@ declare module '@tanstack/react-router' {
       path: '/projects'
       fullPath: '/projects/'
       preLoaderRoute: typeof ProjectsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/faculty/': {
+      id: '/faculty/'
+      path: '/faculty'
+      fullPath: '/faculty/'
+      preLoaderRoute: typeof FacultyIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ai-viva/': {
@@ -746,6 +766,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdvancedIndexRoute: AdvancedIndexRoute,
   AiPresentationIndexRoute: AiPresentationIndexRoute,
   AiVivaIndexRoute: AiVivaIndexRoute,
+  FacultyIndexRoute: FacultyIndexRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
   TeamsIndexRoute: TeamsIndexRoute,
   TemplatesIndexRoute: TemplatesIndexRoute,
