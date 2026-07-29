@@ -229,6 +229,67 @@ export function isNearDuplicateOpening(a: string, b: string): boolean {
   return union > 0 && inter / union >= 0.55;
 }
 
+/** Why the live socket closed, and what to tell the student about it. */
+export type CloseReason = "superseded" | "session_gone" | "auth" | "network" | "server";
+
+/**
+ * Turn a WebSocket close code into an honest explanation.
+ *
+ * Every non-clean close previously produced one sentence: "The connection closed
+ * before the session finished. Please retry." Two things were wrong with that.
+ *
+ * It hid the cause. The close code is the diagnosis — 4409 means a second
+ * connection for this session took over (a reload, a duplicate tab, or a hot
+ * reload in development), which is not a failure the student caused and not
+ * something retrying in this tab will fix. 1006 is a genuine network drop.
+ * Telling all of them to "retry" sends the student in the wrong direction.
+ *
+ * And it claimed nothing was recorded. The server finalizes on a lost browser
+ * socket whenever the student actually spoke (`should_finalize`), so the usual
+ * case is that the transcript IS saved and a report exists. Announcing "nothing
+ * was recorded" over a session that was in fact graded is the worst kind of
+ * wrong: the student re-sits an exam they had already completed.
+ */
+export function classifyClose(opts: { code: number; hadActivity: boolean }): {
+  reason: CloseReason;
+  message: string;
+} {
+  const saved = opts.hadActivity
+    ? " What you answered so far was saved — check your reports before re-sitting it."
+    : " Nothing was recorded, so this session is not marked as completed.";
+
+  switch (opts.code) {
+    case 4409:
+      return {
+        reason: "superseded",
+        message:
+          "This session was opened somewhere else — another tab or a page reload took it over. " +
+          "Continue in that window rather than here." +
+          saved,
+      };
+    case 4404:
+      return {
+        reason: "session_gone",
+        message: "This session could no longer be found on the server." + saved,
+      };
+    case 4401:
+      return {
+        reason: "auth",
+        message: "Your sign-in expired during the session. Sign in again to continue." + saved,
+      };
+    case 1006:
+      return {
+        reason: "network",
+        message: "The connection dropped — this usually means the network went away." + saved,
+      };
+    default:
+      return {
+        reason: "server",
+        message: "The connection closed before the session finished." + saved,
+      };
+  }
+}
+
 export function useLiveSession(opts: UseLiveSessionOptions) {
   const { mode, sessionId, language = "English", persona = "balanced", projectId, subject } = opts;
 
@@ -281,6 +342,14 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
   const aiBufRef = useRef("");
   const speakingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const endedReceivedRef = useRef(false);
+  /**
+   * Whether the student has actually said anything yet.
+   *
+   * Mirrors the server's `has_activity`, which decides whether a lost socket
+   * still finalizes into a report. Kept in a ref because it is read from the
+   * socket's close handler, which closes over the render it was created in.
+   */
+  const hadActivityRef = useRef(false);
   // The mic is "gated" (not streamed) until the AI finishes its opening
   // greeting. Streaming ambient noise during the greeting makes the Live model
   // treat it as a turn and greet a second time, and can destabilize the socket.
@@ -424,7 +493,10 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
   // ----------------------- transcript handling -------------------------- //
   const commitUser = useCallback(() => {
     const text = userBufRef.current.trim();
-    if (text) setCaptions((c) => [...c, { role: "student", text, ts: Date.now() }]);
+    if (text) {
+      hadActivityRef.current = true;
+      setCaptions((c) => [...c, { role: "student", text, ts: Date.now() }]);
+    }
     userBufRef.current = "";
     setLiveUserText("");
   }, []);
@@ -911,7 +983,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
         setError("Connection error. The live AI engine may be busy — please retry.");
         setStatus("error");
       };
-      ws.onclose = () => {
+      ws.onclose = (event) => {
         // Only treat a close as a clean end if the server actually sent the
         // final "ended" summary. A silent close means something failed —
         // never fabricate a completed 0% session out of it.
@@ -919,9 +991,29 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
         setStatus((s) => {
           if (s === "ended" || s === "error") return s;
           if (endedReceivedRef.current) return "ended";
-          setError(
-            (prev) => prev || "The connection closed before the session finished. Please retry.",
-          );
+          const outcome = classifyClose({
+            code: event.code,
+            hadActivity: hadActivityRef.current,
+          });
+          // This close used to be completely unreported: `onerror` captured an
+          // event but `onclose` did not, so the single most common way a session
+          // dies left nothing on disk at all — no code, no reason, nothing to
+          // diagnose afterwards. The close code is the whole diagnosis here: it
+          // separates a superseded connection from a dropped network from a
+          // server that gave up.
+          report(`live socket closed: ${outcome.reason}`, {
+            kind: "ws_error",
+            level: outcome.reason === "superseded" ? "WARNING" : "ERROR",
+            context: {
+              feature: "live",
+              mode,
+              url_path: `/ws/live/${mode}`,
+              ws_code: event.code,
+              reason: outcome.reason,
+              has_activity: hadActivityRef.current,
+            },
+          });
+          setError((prev) => prev || outcome.message);
           return "error";
         });
       };
@@ -1106,6 +1198,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     setDurationSec(null);
     setTimeUp(false);
     pausedRef.current = false;
+    hadActivityRef.current = false;
   }, [cleanup]);
 
   const pushText = useCallback((text: string) => {

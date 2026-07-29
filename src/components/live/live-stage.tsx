@@ -948,9 +948,13 @@ export function LiveStage({
                   <p className="text-sm font-medium text-destructive">
                     {live.error || "The live connection failed."}
                   </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Nothing was recorded — your session isn&apos;t marked as completed.
-                  </p>
+                  {/*
+                    The blanket "nothing was recorded" line lived here and was
+                    usually false: the server finalizes a lost socket whenever the
+                    student actually spoke, so the transcript was normally saved
+                    and graded. classifyClose() now says which of the two happened,
+                    so this no longer contradicts it.
+                  */}
                   {onRetry && (
                     <button
                       onClick={onRetry}
