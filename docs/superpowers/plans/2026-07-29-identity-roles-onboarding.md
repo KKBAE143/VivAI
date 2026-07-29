@@ -45,8 +45,8 @@
 - Create: `backend/migrations/007_faculty_approval.sql`
 
 **Interfaces:**
-- Consumes: `institution_members` from `backend/migrations/006_institutional.sql`.
-- Produces: columns `institution_members.requested_role TEXT` and `institution_members.approved_at TIMESTAMPTZ`, both nullable.
+- Consumes: `institution_members` and `institutions` from `backend/migrations/006_institutional.sql`.
+- Produces: columns `institution_members.requested_role TEXT`, `institution_members.approved_at TIMESTAMPTZ`, and `institutions.verified_at TIMESTAMPTZ`, all nullable.
 
 - [ ] **Step 1: Write the migration**
 
@@ -79,6 +79,21 @@ ALTER TABLE institution_members
 CREATE INDEX IF NOT EXISTS idx_institution_members_pending
   ON institution_members(institution_id)
   WHERE requested_role IS NOT NULL AND approved_at IS NULL;
+
+-- ---------------------------------------------------------------------------
+-- Institution verification.
+--
+-- Anyone may self-serve an institution (it starts empty, so creating one
+-- exposes nothing — every institution query filters by institution_id). The
+-- real abuse is NAME-SQUATTING: register "NIT Trichy", share its invite code,
+-- and read the reports of real students who join believing it is official.
+--
+-- So: self-serve institutions are unverified, students see that before they
+-- join, and the bulk-data endpoints (/students, /export, /readiness-report)
+-- require verification. We set verified_at by hand at sale time.
+-- ---------------------------------------------------------------------------
+ALTER TABLE institutions
+  ADD COLUMN IF NOT EXISTS verified_at TIMESTAMPTZ;
 ```
 
 - [ ] **Step 2: Verify it is valid SQL and idempotent**
@@ -1066,6 +1081,277 @@ git commit -m "feat: route each role to its own landing surface after login"
 
 ---
 
+## Task 9: Self-serve institution creation, safely
+
+**Files:**
+- Modify: `backend/api/institution.py`
+- Test: `backend/tests/test_onboarding_api.py`
+
+**Interfaces:**
+- Consumes: `models.schemas.InstitutionCreate` (Task 3); `institutions.verified_at` (Task 1); `core.deps.get_current_user`.
+- Produces: `POST /api/institution` → `{"id": str, "invite_code": str, "verified": False}`. Grants the creator `role="admin"` and links them.
+
+Why this is safe to leave open: a new institution is **empty**, and every
+`institution.py` query filters by `institution_id`, so creating one exposes
+nothing. The abuse to prevent is name-squatting (register a real college's name,
+share the code, harvest the students who join), which Task 10 handles by gating
+bulk data on verification. The guard that belongs *here* is rule 1 below.
+
+- [ ] **Step 1: Write the failing test**
+
+Append to `backend/tests/test_onboarding_api.py`:
+
+```python
+def test_creating_an_institution_makes_the_creator_an_unverified_admin(monkeypatch, fake_supabase):
+    from api import institution as inst_api
+    from models.schemas import InstitutionCreate
+
+    fake_supabase.preload("institutions", [])
+    fake_supabase.preload("institution_members", [])
+    fake_supabase.preload("profiles", [{"id": "u1", "role": "student", "institution_id": None}])
+    monkeypatch.setattr(inst_api, "get_supabase", lambda: fake_supabase)
+
+    out = inst_api.create_institution(
+        InstitutionCreate(name="Sunrise Institute of Technology"),
+        user={"id": "u1", "profile": {"role": "student", "institution_id": None}},
+    )
+    assert out["verified"] is False
+    assert out["invite_code"]
+
+    row = fake_supabase.table("institutions").inserts[-1]
+    assert row["status"] == "pilot", "self-serve starts as a pilot, not an active customer"
+    assert row["verified_at"] is None, "self-serve is never pre-verified"
+    assert row["seat_limit"] == inst_api.SELF_SERVE_SEAT_LIMIT
+    assert row["admin_profile_id"] == "u1"
+
+    written = fake_supabase.table("profiles").updates[-1]
+    assert written["role"] == "admin"
+    assert written["institution_id"] == row["id"]
+
+
+def test_a_user_already_in_an_institution_cannot_create_one(monkeypatch, fake_supabase):
+    """Otherwise a student at a real paying college creates their own
+    institution, overwrites their institution_id, and walks out from under
+    their college's oversight — as an admin."""
+    from fastapi import HTTPException
+
+    from api import institution as inst_api
+    from models.schemas import InstitutionCreate
+
+    fake_supabase.preload("institutions", [])
+    monkeypatch.setattr(inst_api, "get_supabase", lambda: fake_supabase)
+
+    with pytest.raises(HTTPException) as exc:
+        inst_api.create_institution(
+            InstitutionCreate(name="Breakaway College"),
+            user={"id": "u2", "profile": {"role": "student", "institution_id": "inst-1"}},
+        )
+    assert exc.value.status_code == 409
+    assert fake_supabase.table("institutions").inserts == []
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run from `backend/`: `python -m pytest tests/test_onboarding_api.py -k institution -v`
+Expected: FAIL — `AttributeError: module 'api.institution' has no attribute 'create_institution'`
+
+- [ ] **Step 3: Write minimal implementation**
+
+Add to `backend/api/institution.py` (imports and a constant near the top):
+
+```python
+import secrets
+
+from core.deps import get_current_user
+from models.schemas import InstitutionCreate
+
+# Seat cap for an institution nobody has verified yet. Deliberately small: it
+# bounds the blast radius of a name-squatter, and we raise it by hand when a
+# real college is verified at sale time.
+SELF_SERVE_SEAT_LIMIT = 25
+```
+
+Then the endpoint:
+
+```python
+@router.post("", status_code=201)
+def create_institution(body: InstitutionCreate, user=Depends(get_current_user)):
+    """Self-serve a pilot institution and become its admin.
+
+    Open on purpose: a curious HOD can try the product on a Saturday without
+    emailing us, which is the top of the B2B funnel. It is safe because the new
+    institution is EMPTY and unverified — see Task 10 for what unverified
+    cannot do.
+
+    The one hard refusal is a user who already belongs to an institution:
+    letting them create their own would silently move them out from under their
+    college's oversight and hand them admin over the new shell.
+    """
+    profile = user.get("profile") or {}
+    if profile.get("institution_id"):
+        raise HTTPException(
+            status_code=409,
+            detail="You already belong to an institution. Ask its admin for access.",
+        )
+
+    sb = get_supabase()
+    name = body.name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="An institution name is required.")
+
+    row = {
+        "name": name,
+        "tier": body.tier,
+        "status": "pilot",
+        "seat_limit": SELF_SERVE_SEAT_LIMIT,
+        "admin_profile_id": user["id"],
+        "invite_code": secrets.token_hex(4).upper(),
+        # Verification is a human step we perform at sale time, never automatic.
+        "verified_at": None,
+    }
+    created = sb.table("institutions").insert(row).execute().data[0]
+
+    sb.table("profiles").update(
+        {"role": "admin", "institution_id": created["id"]}
+    ).eq("id", user["id"]).execute()
+    sb.table("institution_members").insert({
+        "institution_id": created["id"],
+        "profile_id": user["id"],
+        "status": "active",
+        "requested_role": "admin",
+        "approved_at": datetime.now(timezone.utc).isoformat(),
+    }).execute()
+
+    return {"id": created["id"], "invite_code": created["invite_code"], "verified": False}
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run from `backend/`: `python -m pytest tests/test_onboarding_api.py -v`
+Expected: PASS (10 tests)
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add backend/api/institution.py backend/tests/test_onboarding_api.py
+git commit -m "feat: allow self-serve pilot institutions with a squatting guard"
+```
+
+---
+
+## Task 10: Gate bulk student data on verification
+
+**Files:**
+- Modify: `backend/api/institution.py:143` (`list_students`), `:240` (`readiness_report`), `:391` (`export_csv`)
+- Test: `backend/tests/test_onboarding_api.py`
+
+**Interfaces:**
+- Consumes: `institutions.verified_at` (Task 1); existing `require_admin`, `_get_institution`, `_get_institution_id`.
+- Produces: `require_verified_institution(user) -> dict` in `backend/api/institution.py`, raising 403 with `error: "institution_unverified"`.
+
+These three endpoints return aggregated data across every student in an
+institution — precisely what a name-squatter would want. Everything else (running
+assessed sessions, seeing your own teams) stays available, so a genuine trial is
+unaffected.
+
+- [ ] **Step 1: Write the failing test**
+
+Append to `backend/tests/test_onboarding_api.py`:
+
+```python
+def test_an_unverified_institution_cannot_list_its_students(monkeypatch, fake_supabase):
+    from fastapi import HTTPException
+
+    from api import institution as inst_api
+
+    fake_supabase.preload("institutions", [{
+        "id": "inst-1", "name": "Sunrise Institute", "status": "pilot", "verified_at": None,
+    }])
+    monkeypatch.setattr(inst_api, "get_supabase", lambda: fake_supabase)
+
+    with pytest.raises(HTTPException) as exc:
+        inst_api.require_verified_institution(
+            {"id": "u1", "profile": {"role": "admin", "institution_id": "inst-1"}}
+        )
+    assert exc.value.status_code == 403
+    assert exc.value.detail["error"] == "institution_unverified"
+
+
+def test_a_verified_institution_passes_the_gate(monkeypatch, fake_supabase):
+    from api import institution as inst_api
+
+    fake_supabase.preload("institutions", [{
+        "id": "inst-1", "name": "NIT Trichy", "status": "active",
+        "verified_at": "2026-07-01T00:00:00Z",
+    }])
+    monkeypatch.setattr(inst_api, "get_supabase", lambda: fake_supabase)
+
+    out = inst_api.require_verified_institution(
+        {"id": "u1", "profile": {"role": "admin", "institution_id": "inst-1"}}
+    )
+    assert out["id"] == "inst-1"
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run from `backend/`: `python -m pytest tests/test_onboarding_api.py -k verified -v`
+Expected: FAIL — `AttributeError: module 'api.institution' has no attribute 'require_verified_institution'`
+
+- [ ] **Step 3: Write minimal implementation**
+
+Add to `backend/api/institution.py`:
+
+```python
+def require_verified_institution(user: dict) -> dict:
+    """Gate for endpoints that return data about OTHER students in bulk.
+
+    Anyone may self-serve an institution, so an unverified one must not become a
+    way to harvest a real college's cohort by registering its name and sharing
+    the invite code. Verification is set by hand at sale time.
+    """
+    sb = get_supabase()
+    institution = _get_institution(sb, _get_institution_id(user))
+    if not institution.get("verified_at"):
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "error": "institution_unverified",
+                "message": (
+                    "This institution has not been verified yet. Contact us to verify it "
+                    "and unlock cohort reports and exports."
+                ),
+            },
+        )
+    return institution
+```
+
+Then call it as the first line of the three bulk endpoints — `list_students`
+(`:143`), `readiness_report` (`:240`) and `export_csv` (`:391`):
+
+```python
+    require_verified_institution(user)
+```
+
+Leave `dashboard` (`:32`), `weak_topics` (`:327`) and `invite_students` (`:374`)
+ungated: an unverified pilot admin still needs to invite people and see their own
+institution's summary, or a genuine trial is useless.
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run from `backend/`: `python -m pytest tests/test_onboarding_api.py -v`
+Expected: PASS (12 tests)
+
+Then: `python -m pytest -q` — expected all green.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add backend/api/institution.py backend/tests/test_onboarding_api.py
+git commit -m "feat: require institution verification for bulk student data"
+```
+
+---
+
 ## Self-Review
 
 **Spec coverage (Part 1 of the design doc):**
@@ -1073,21 +1359,39 @@ git commit -m "feat: route each role to its own landing surface after login"
 - Invite-primary linking → Task 5 (approval) + existing `institution.py:374` `invite_students`, unchanged.
 - Institution code fallback, student-only → Tasks 4, 7.
 - Faculty never granted by code; `requested_role` + `approved_at` gate → Tasks 1, 2, 4, 5.
-- Admin self-serve at `status='pilot'` → **gap**: `InstitutionCreate` exists (Task 3) and the admin wizard collects a name (Task 7 Step 3), but no endpoint creates the institution row. Noted below.
+- Admin self-serve at `status='pilot'` → Tasks 9, 10 (creation, squatting guard, verification gate).
 - Branched onboarding flows → Tasks 6, 7.
 - `complete_onboarding` / `onboarding_status` extended → Task 4.
 - Route guards per role → Task 8.
 - `require_admin` untouched → honored throughout.
 
-**Known gap, deliberately deferred:** `POST /api/institution` (create an
-institution in `status='pilot'`, set `admin_profile_id`, generate `invite_code`,
-and grant the creator `role='admin'`) is not yet a task. It is the one piece of
-Part 1 with no implementation here. It needs its own decision — whether the
-first admin is self-serve at all, or provisioned by us at sale time — which the
-design doc resolves in favour of self-serve-at-pilot, but which materially
-affects abuse risk (anyone could mint an institution and become its admin). Flag
-to the user before building it; the other seven tasks do not depend on it, since
-an admin invited by an existing institution works without it.
+**The first-admin gap, now closed (Tasks 9-10).** Self-serve creation is left
+open because a new institution is empty and every `institution.py` query filters
+by `institution_id` — creating one exposes nothing. Four guards carry the risk
+instead:
+
+1. A user who already belongs to an institution cannot create one (Task 9) —
+   otherwise a student at a paying college moves out from under its oversight
+   and becomes admin of their own shell.
+2. Self-serve institutions are unverified, and students see that before joining
+   (`verified_at`, Task 1).
+3. Bulk cohort data — `list_students`, `readiness_report`, `export_csv` — is
+   gated on verification (Task 10). That is what a name-squatter actually wants.
+4. Unverified pilots get `SELF_SERVE_SEAT_LIMIT = 25` seats, bounding the blast
+   radius of a successful squat.
+
+Verification is a human step performed at sale time, which makes it a *sales*
+gate rather than a signup blocker.
+
+**Not built, deliberately:** email-domain binding (requiring `@college.edu` to
+join an institution). It is the strongest control and standard practice, but many
+Indian colleges have students on Gmail, so as a hard requirement it would block
+real customers. Better later as an optional per-institution setting.
+
+**Frontend follow-through:** Task 7 Step 3's `institution_create` screen must
+`POST /api/institution` (Task 9) before completing onboarding, and render the
+returned `invite_code` so the new admin can share it. Task 8's admin destination
+should surface the unverified state rather than hiding it.
 
 **Placeholder scan:** no TBD/TODO. Every code step carries real code. Task 7
 and 8 are edit-in-place tasks against files whose exact current shape must be
