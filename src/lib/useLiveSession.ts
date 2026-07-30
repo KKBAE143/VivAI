@@ -170,33 +170,6 @@ const FORCE_CLOSE_MS = 60000;
  */
 const NO_ACTIVITY_CLOSE_MS = 6000;
 
-/** Minimal socket surface used by the End handshake and its unit tests. */
-export interface EndSocket {
-  readyState: number;
-  send(data: string): void;
-  addEventListener(type: "open", listener: () => void, options: { once: true }): void;
-}
-
-/**
- * Deliver End now, or queue it for the instant an in-progress handshake opens.
- * Closing a CONNECTING WebSocket loses the only message that tells the backend
- * to finalize/reset the session; doing nothing leaves the UI waiting forever.
- */
-export function requestSocketEnd(socket: EndSocket, onError?: (error: unknown) => void): void {
-  const send = () => {
-    try {
-      socket.send(JSON.stringify({ type: "end" }));
-    } catch (error) {
-      onError?.(error);
-    }
-  };
-  if (socket.readyState === 1) {
-    send();
-  } else if (socket.readyState === 0) {
-    socket.addEventListener("open", send, { once: true });
-  }
-}
-
 /**
  * Milliseconds of AI speech still scheduled ahead of the audio clock.
  * Pure + exported so the gate-timing math can be unit-tested (bun test).
@@ -280,6 +253,44 @@ export function isNearDuplicateOpening(a: string, b: string): boolean {
   return union > 0 && inter / union >= 0.55;
 }
 
+/** The slice of WebSocket this module needs in order to ask for an end. */
+export interface EndSocket {
+  readyState: number;
+  send: (data: string) => void;
+  addEventListener: (type: "open", listener: () => void) => void;
+}
+
+/**
+ * Ask the server to end the session, even if the handshake has not finished.
+ *
+ * `stop()` only ever sent when the socket was already OPEN, so pressing "End &
+ * report" during the connecting window dropped the request on the floor: the
+ * server never learned the student was done, the session stayed running, and the
+ * button looked dead. That window is not rare — it is exactly when a student ends
+ * a session that is failing to come up, which is when they most want to.
+ *
+ * A socket still CONNECTING gets the message queued until it opens. A socket
+ * already closing or closed cannot carry it, and the caller's force-close net
+ * resolves that case instead.
+ */
+export function requestSocketEnd(socket: EndSocket): void {
+  const payload = JSON.stringify({ type: "end" });
+  if (socket.readyState === 1 /* OPEN */) {
+    socket.send(payload);
+    return;
+  }
+  if (socket.readyState === 0 /* CONNECTING */) {
+    socket.addEventListener("open", () => {
+      try {
+        socket.send(payload);
+      } catch {
+        // AUDITED: the socket died between opening and this send. The
+        // force-close net in stop() resolves the session either way.
+      }
+    });
+  }
+}
+
 /** Why the live socket closed, and what to tell the student about it. */
 export type CloseReason = "superseded" | "session_gone" | "auth" | "network" | "server";
 
@@ -346,7 +357,14 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
 
   const [status, setStatus] = useState<LiveStatus>("idle");
   const [error, setError] = useState<string>("");
-  /** Whether the current failure is safe to resolve by starting this session again. */
+  /**
+   * Whether starting this session again could plausibly work.
+   *
+   * A refused or dropped connection is worth retrying; rejected credentials are
+   * not, and offering a Retry button for them just makes the student press it
+   * repeatedly. The server states this on the error frame, and the default is
+   * `true` so an older server (or any unclassified failure) keeps the button.
+   */
   const [errorRetryable, setErrorRetryable] = useState(true);
   const [aiSpeaking, setAiSpeaking] = useState(false);
   const [micMuted, setMicMuted] = useState(false);
@@ -423,8 +441,6 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
   const hadActivityRef = useRef(false);
   /** The server confirmed a deliberate end with nothing recorded. */
   const abortedReceivedRef = useRef(false);
-  /** Suppresses failure classification while an intentional End is in flight. */
-  const endRequestedRef = useRef(false);
   // The mic is "gated" (not streamed) until the AI finishes its opening
   // greeting. Streaming ambient noise during the greeting makes the Live model
   // treat it as a turn and greet a second time, and can destabilize the socket.
@@ -834,6 +850,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
             context: { feature: "live", mode, reason: "server_error_message" },
           });
           setError(String(msg.message ?? "Live engine error"));
+          // Absent means retryable, so an unclassified failure keeps the button.
           setErrorRetryable(msg.retryable !== false);
           setStatus("error");
           break;
@@ -879,15 +896,11 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
       startTrace();
       setStatus("connecting");
       setError("");
-      setErrorRetryable(true);
       setCaptions([]);
       setEvents([]);
       setSummary(null);
       setEndedEarly(false);
       setAudioBlocked(false);
-      endRequestedRef.current = false;
-      abortedReceivedRef.current = false;
-      endedReceivedRef.current = false;
       videoEnabledRef.current = true;
       setVideoEnabled(true);
 
@@ -1077,12 +1090,21 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
       // Set immediately so a concurrent start() is rejected.
       wsRef.current = ws;
       startInFlightRef.current = false;
-      ws.onmessage = handleMessage;
+      // Only the CURRENT socket may write to this hook's state.
+      //
+      // Without this check, a socket that has been replaced keeps delivering
+      // messages into the same transcript buffer as the live one. Two handlers
+      // each streaming their own opening produced a single caption containing the
+      // greeting several times over — the "AI is speaking duplicates" report. The
+      // server already closes a superseded connection (4409), but the close is
+      // asynchronous, and everything that arrived before it still landed here.
+      ws.onmessage = (event) => {
+        if (wsRef.current !== ws) return;
+        handleMessage(event);
+      };
       ws.onerror = () => {
-        // An intentional End may race a CONNECTING handshake. That close/error
-        // is teardown, not a live-engine failure, and must not overwrite the
-        // immediate aborted/finalizing state with a red error panel.
-        if (endRequestedRef.current) return;
+        // A replaced socket failing is not this session's problem.
+        if (wsRef.current !== ws) return;
         // Never pass the socket URL here — it embeds the student's JWT as a
         // query param (see the warning on wsUrl).
         report("live websocket error", {
@@ -1096,7 +1118,11 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
         // Only treat a close as a clean end if the server actually sent the
         // final "ended" summary. A silent close means something failed —
         // never fabricate a completed 0% session out of it.
-        if (wsRef.current === ws) wsRef.current = null;
+        // A socket that is no longer the current one must not decide this
+        // session's outcome: a superseded connection closing moments later would
+        // otherwise drop the live session into an error state.
+        if (wsRef.current !== ws) return;
+        wsRef.current = null;
         setStatus((s) => {
           if (s === "ended" || s === "error" || s === "aborted") return s;
           if (endedReceivedRef.current) return "ended";
@@ -1180,22 +1206,17 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
 
   const stop = useCallback(() => {
     const ws = wsRef.current;
-    endRequestedRef.current = true;
     if (ws) {
-      requestSocketEnd(ws, (error) => {
+      try {
+        // Queues the request when the handshake is still in flight, instead of
+        // discarding it — see requestSocketEnd.
+        requestSocketEnd(ws);
+      } catch (e) {
         // If this send is lost the server never learns the session ended, so
-        // it never finalizes and the student never gets a report.
-        captureSilent(error, "end_send_failed", { feature: "live", mode });
-      });
-    }
-    // An unanswered End has no report to wait for. Resolve the UI immediately
-    // while the queued/open-socket message resets the server row in parallel.
-    if (!hadActivityRef.current) {
-      abortedReceivedRef.current = true;
-      setAbortMessage(
-        "You ended before answering anything, so there was nothing to record. This session is still available whenever you want to sit it.",
-      );
-      setStatus((current) => (current === "ended" ? current : "aborted"));
+        // it never finalizes and the student never gets a report. Silence here
+        // is precisely the "my session vanished" failure.
+        captureSilent(e, "end_send_failed", { feature: "live", mode });
+      }
     }
     // Tear down capture/playback media immediately (student is done talking)…
     cleanup();
@@ -1348,7 +1369,6 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     wsRef.current = null;
     endedReceivedRef.current = false;
     abortedReceivedRef.current = false;
-    endRequestedRef.current = false;
     setAbortMessage("");
     setStatus("idle");
     setError("");

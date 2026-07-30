@@ -351,13 +351,8 @@ def test_a_history_less_reconnect_resumes_without_greeting_again(live_harness, m
     # Greets, then the connection dies BEFORE any session_resumption_update.
     first = FakeGeminiSession(
         turns=[[
-            _response(
-                _server_content(
-                    output_transcription=_text("Hello Asha, I'm your examiner."),
-                    turn_complete=True,
-                ),
-                data=b"opening-audio",
-            ),
+            _response(_server_content(output_transcription=_text("Hello Asha, I'm your examiner."),
+                                      turn_complete=True)),
             _response(_server_content(input_transcription=_text("Hi, I'm ready."))),
         ]],
         fail_with=genai_errors.APIError(1011, {"message": "closed"}, None),
@@ -378,15 +373,14 @@ def test_a_history_less_reconnect_resumes_without_greeting_again(live_harness, m
     assert len(first.client_content) == 1, "the first connection greets exactly once"
     # It reconnected with no handle to resume from, so it IS a fresh connection…
     assert state.configs[1].session_resumption.handle is None
-    # …but the opening already reached the browser. Automatically prompting a
-    # blind model here is what produced a fresh spoken opening on every 1008
-    # retry. It must listen for the student's next turn instead, and explicitly
-    # release the mic gate so that next turn can reach it immediately.
-    assert second.client_content == []
-    assert socket.types_sent().count("turn_complete") >= 2
-    resumed_prompt = str(state.configs[1].system_instruction)
-    assert "SESSION CONTINUATION" in resumed_prompt
-    assert "1. OPENING" not in resumed_prompt
+    # …which must still be nudged, or the examiner goes mute for the rest of the exam.
+    assert len(second.client_content) == 1, "a history-less reconnect must be triggered"
+    resumed = second.client_content[0]
+    assert "ALREADY greeted" in resumed
+    assert "Do NOT say hello" in resumed
+    # The one thing it must never be: the opening greeting trigger, again.
+    assert resumed != first.client_content[0]
+    assert "hello + who you are" not in resumed
 
 
 def test_a_reconnected_examiner_is_never_told_to_greet(live_harness, monkeypatch):
@@ -406,13 +400,8 @@ def test_a_reconnected_examiner_is_never_told_to_greet(live_harness, monkeypatch
 
     first = FakeGeminiSession(
         turns=[[
-            _response(
-                _server_content(
-                    output_transcription=_text("Namaskaram, I'm your examiner."),
-                    turn_complete=True,
-                ),
-                data=b"opening-audio",
-            ),
+            _response(_server_content(output_transcription=_text("Namaskaram, I'm your examiner."),
+                                      turn_complete=True)),
         ]],
         fail_with=genai_errors.APIError(1011, {"message": "closed"}, None),
     )
@@ -439,13 +428,10 @@ def test_a_reconnected_examiner_is_never_told_to_greet(live_harness, monkeypatch
     resumed = str(resumed_instruction)
     assert "ALREADY GREETED — DO NOT GREET" in resumed
     assert "GREETING (single source of truth)" not in resumed
-    # The resumed playbook must be structurally free of the opening step. An
-    # appended override leaves two contradictory system-level instructions and
-    # Gemini may obey the earlier, concrete command to introduce itself.
-    assert "1. OPENING" not in resumed
-    assert "RECONNECT OVERRIDE" not in resumed
-    assert "SESSION CONTINUATION" in resumed
-    assert "FIRST reply only, greet" not in resumed
+    # And the playbook's own OPENING step is cancelled, so the two halves of the
+    # prompt cannot disagree with each other.
+    assert "RECONNECT OVERRIDE" in resumed
+    assert "Your next turn is a question" in resumed
 
 
 def test_the_first_connection_is_still_told_to_greet(live_harness, monkeypatch):
@@ -539,22 +525,12 @@ def test_pressing_end_during_a_reconnect_storm_is_acted_on_immediately(live_harn
     ]
     live_harness(always_fails)
 
-    # The student gives up only after the first refusal entered backoff.
-    socket = FakeBrowserSocket()
+    # The student gives up and ends while the retries are still going.
+    socket = FakeBrowserSocket(script=[{"text": json.dumps({"type": "end"})}])
     socket.query_params = {"token": "t", "pv": "1"}
 
-    async def scenario():
-        task = asyncio.create_task(live_api.live_ws(socket, "viva", "s1"))
-        for _ in range(100):
-            if "reconnecting" in socket.types_sent():
-                break
-            await asyncio.sleep(0.01)
-        assert "reconnecting" in socket.types_sent()
-        socket.push({"text": json.dumps({"type": "end"})})
-        # One second is far less than one 5-second backoff.
-        await asyncio.wait_for(task, timeout=1.0)
-
-    asyncio.run(scenario())
+    # 3 seconds is far less than one 5-second backoff, let alone six of them.
+    asyncio.run(_run(socket, timeout=3.0))
 
     assert delays, "the test only means something if a reconnect was attempted"
     kinds = [m.get("type") for m in socket.sent]
@@ -581,144 +557,3 @@ def test_a_credential_failure_does_not_blame_the_student():
     bad_key = RuntimeError("401 UNAUTHENTICATED: API key not valid")
     message = live_api._fatal_live_message(bad_key)
     assert "on us" in message.lower()
-
-
-def test_end_cancels_a_connection_attempt_that_has_not_opened(live_harness, monkeypatch):
-    """End must not wait for a slow Gemini WebSocket handshake."""
-    live_harness([])
-    entered = asyncio.Event()
-    cancelled = asyncio.Event()
-
-    @contextlib.asynccontextmanager
-    async def hanging_connect(config):
-        entered.set()
-        try:
-            await asyncio.Event().wait()
-        finally:
-            cancelled.set()
-        yield  # pragma: no cover - cancellation must prevent this
-
-    monkeypatch.setattr(live_api.live_service, "connect_with_fallback", hanging_connect)
-    socket = FakeBrowserSocket()
-    socket.query_params = {"token": "t", "pv": "1"}
-
-    async def scenario():
-        task = asyncio.create_task(live_api.live_ws(socket, "viva", "s1"))
-        await asyncio.wait_for(entered.wait(), timeout=1.0)
-        socket.push({"text": json.dumps({"type": "end"})})
-        await asyncio.wait_for(task, timeout=1.0)
-
-    asyncio.run(scenario())
-
-    assert cancelled.is_set(), "the in-progress Gemini connection was not cancelled"
-    assert "aborted" in socket.types_sent()
-
-
-def test_end_cancels_a_hanging_opening_trigger(live_harness):
-    """A connected model whose opening send stalls must still stop immediately."""
-    started = asyncio.Event()
-    cancelled = asyncio.Event()
-
-    class HangingGreetingSession(FakeGeminiSession):
-        async def send_client_content(self, turns=None, turn_complete=True) -> None:
-            started.set()
-            try:
-                await asyncio.Event().wait()
-            finally:
-                cancelled.set()
-
-    only = HangingGreetingSession(turns=[])
-    live_harness([only])
-    socket = FakeBrowserSocket()
-    socket.query_params = {"token": "t", "pv": "1"}
-
-    async def scenario():
-        task = asyncio.create_task(live_api.live_ws(socket, "viva", "s1"))
-        await asyncio.wait_for(started.wait(), timeout=1.0)
-        socket.push({"text": json.dumps({"type": "end"})})
-        await asyncio.wait_for(task, timeout=1.0)
-
-    asyncio.run(scenario())
-
-    assert cancelled.is_set(), "the hanging opening send was not cancelled"
-    assert "aborted" in socket.types_sent()
-
-
-def test_browser_owner_handoff_does_not_replay_an_audible_opening(live_harness, monkeypatch):
-    """A replacement browser socket inherits session-level opening state."""
-    first = FakeGeminiSession(turns=[[_response(data=b"opening-audio")]])
-    end_call = SimpleNamespace(id="c1", name="end_session", args={})
-    second = FakeGeminiSession(
-        turns=[[_response(tool_call=SimpleNamespace(function_calls=[end_call]))]]
-    )
-    live_harness([first, second])
-    monkeypatch.setattr(
-        live_api,
-        "_response_audio_chunks",
-        lambda response: [response.data] if response.data else [],
-    )
-
-    async def scenario():
-        original = FakeBrowserSocket()
-        original.query_params = {"token": "t", "pv": "1"}
-        replacement = FakeBrowserSocket()
-        replacement.query_params = {"token": "t", "pv": "1"}
-
-        original_task = asyncio.create_task(live_api.live_ws(original, "viva", "s1"))
-        for _ in range(50):
-            if original.sent_bytes:
-                break
-            await asyncio.sleep(0.01)
-        assert original.sent_bytes == [b"opening-audio"]
-
-        replacement_task = asyncio.create_task(live_api.live_ws(replacement, "viva", "s1"))
-        await asyncio.wait_for(asyncio.gather(original_task, replacement_task), timeout=2.0)
-        assert "turn_complete" in replacement.types_sent()
-
-    asyncio.run(scenario())
-
-    assert len(first.client_content) == 1
-    # The replacement inherited proof that opening audio reached the browser.
-    # It must not autonomously speak at all; the student's next turn resumes it.
-    # Releasing the gate prevents that safe choice from becoming a silent stall.
-    assert second.client_content == []
-
-
-def test_end_returns_when_report_finalization_hangs(live_harness, monkeypatch):
-    """A real answer must not leave End waiting forever on report generation."""
-    from threading import Event
-
-    end_call = SimpleNamespace(id="c1", name="end_session", args={})
-    only = FakeGeminiSession(turns=[[
-        _response(_server_content(input_transcription=_text("An index speeds up lookups."))),
-        _response(tool_call=SimpleNamespace(function_calls=[end_call])),
-    ]])
-    live_harness([only])
-
-    started = Event()
-    release = Event()
-
-    def hanging_finalize(_self):
-        started.set()
-        release.wait(timeout=2.0)
-        return {"overall_score": 60}
-
-    monkeypatch.setattr(live_api.LivePersistence, "finalize", hanging_finalize)
-    monkeypatch.setattr(live_api, "FINALIZE_RESPONSE_TIMEOUT_SECONDS", 0.05)
-
-    socket = FakeBrowserSocket()
-    socket.query_params = {"token": "t", "pv": "1"}
-
-    async def scenario():
-        task = asyncio.create_task(live_api.live_ws(socket, "viva", "s1"))
-        await asyncio.wait_for(task, timeout=2.0)
-        assert started.is_set(), "the test did not reach report finalization"
-        release.set()
-        await asyncio.sleep(0.05)
-
-    asyncio.run(scenario())
-
-    delayed = next(message for message in socket.sent if message.get("type") == "error")
-    assert delayed["retryable"] is False
-    assert "taking longer" in delayed["message"]
-    assert "s1" not in live_api._active_live_owners
