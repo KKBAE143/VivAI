@@ -68,11 +68,38 @@ MIN_ANSWER_WORDS = 6
 # The examiner's turn has to have actually ASKED something. Its reactions
 # ("good, thank you", "right, let's move on") are not questions, and pairing the
 # next answer with one of those would put a nonsense entry in the panel.
+#
+# Covers the languages students actually pick here, romanised the way this app
+# renders them on screen — the same reasoning as `integrity.HESITATION_MARKERS`.
+# An English-only list would leave the evaluation panel completely empty for a
+# Telugu or Hindi viva, which is most of the point of the platform.
 _QUESTION_CUES = (
+    # English
     "what", "why", "how", "when", "where", "which", "who", "explain", "describe",
     "tell me", "walk me", "give me", "can you", "could you", "would you",
     "define", "difference", "compare", "suppose", "consider", "elaborate",
+    # Hindi / Urdu
+    "kya", "kaise", "kyun", "kyon", "kab", "kahan", "kaun", "kitna",
+    "batao", "bataiye", "samjhao", "samjhaiye",
+    # Telugu
+    "enti", "ela", "enduku", "eppudu", "ekkada", "evaru", "entha",
+    "cheppandi", "cheppu", "vivarinchandi", "chudandi",
+    # Tamil
+    "enna", "eppadi", "yen", "eppo", "enga", "yaar", "evvalavu",
+    "sollunga", "sollu", "vilakkunga",
+    # Kannada / Malayalam
+    "yenu", "hege", "yaake", "yaavaga", "helu", "heli",
+    "entha", "engane", "enthinu", "parayu",
 )
+
+# When no cue and no question mark are found, LENGTH decides.
+#
+# Neither signal is reliable: speech-to-text drops question marks constantly, and
+# no cue list covers every language a student might choose. So a substantial
+# examiner turn followed by a substantial answer is treated as a question, while a
+# SHORT cue-less turn is treated as a reaction. "Good, that's right" is four words;
+# a real question rarely is.
+MIN_PROMPT_WORDS_WITHOUT_CUE = 8
 
 MAX_QUESTION_CHARS = 600
 MAX_ANSWER_CHARS = 3000
@@ -96,12 +123,28 @@ def looks_like_a_question(text: str) -> bool:
     )
 
 
+def is_gradable_prompt(text: str) -> bool:
+    """Did this examiner turn plausibly contain a question?
+
+    Deliberately more permissive than `looks_like_a_question`. Being wrong in the
+    two directions costs very different amounts: a false pair puts one odd card in
+    the panel, while a false reject in a language whose cues we do not cover leaves
+    the panel empty for the entire session. So length is accepted as evidence when
+    the explicit signals are absent.
+    """
+    if looks_like_a_question(text):
+        return True
+    return len((text or "").split()) >= MIN_PROMPT_WORDS_WITHOUT_CUE
+
+
 def extract_question(text: str) -> str:
     """The question out of an examiner turn that also contained a reaction.
 
     A turn is usually "good, that's right — now, what is 3NF?". Putting the whole
     thing in the panel as the question is noisy, so prefer the last sentence that
-    reads as a question and fall back to the whole turn.
+    reads as a question. Failing that, take the last sentence rather than the whole
+    turn: in every language the question comes at the end, after the reaction to
+    the previous answer.
     """
     stripped = (text or "").strip()
     if not stripped:
@@ -110,12 +153,12 @@ def extract_question(text: str) -> str:
     for sentence in reversed(sentences):
         if looks_like_a_question(sentence):
             return sentence[:MAX_QUESTION_CHARS]
-    return stripped[:MAX_QUESTION_CHARS]
+    return (sentences[-1] if sentences else stripped)[:MAX_QUESTION_CHARS]
 
 
 def should_grade(question: str, answer: str) -> bool:
     """Is this exchange worth a call? Checked before spending one."""
-    if not looks_like_a_question(question or ""):
+    if not is_gradable_prompt(question or ""):
         return False
     return len((answer or "").split()) >= MIN_ANSWER_WORDS
 

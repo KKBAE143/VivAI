@@ -874,6 +874,19 @@ async def _check_turn_integrity(turn, websocket, persist, session_id: str, mode:
     })
 
 
+def last_examiner_turn(transcript: list[dict]) -> str:
+    """The examiner turn that just finished, from the transcript.
+
+    Used to decide whether it asked a question or delivered a closing remark. Read
+    from the transcript rather than from a tool call, so it does not depend on the
+    examiner reporting anything about itself.
+    """
+    for item in reversed(coalesce_turns(transcript)):
+        if item.get("role") == "examiner":
+            return str(item.get("text") or "")
+    return ""
+
+
 def last_examiner_question(transcript: list[dict]) -> str:
     """The question the student was answering, from the transcript so far.
 
@@ -892,6 +905,13 @@ def last_examiner_question(transcript: list[dict]) -> str:
         if turns[i].get("role") == "examiner":
             return str(turns[i].get("text") or "")
     return ""
+
+
+# How long both sides must stay completely silent after the examiner delivers a
+# closing remark before the server treats the session as finished. Long enough that
+# a student drawing breath to ask one last thing is never cut off, short enough
+# that nobody sits watching a dead screen wondering whether to press End.
+_CLOSING_SILENCE_SECONDS = 25
 
 
 # At most this many gradings may be in flight for one session. A student who
@@ -1221,6 +1241,63 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
     # deliberately detached from the conversation: the examiner never waits for one.
     grading_tasks: set[asyncio.Task] = set()
 
+    # How many real questions the examiner has asked, counted from the transcript.
+    # Deliberately not `len(persist.questions)`: grading is asynchronous and skips
+    # short answers, so it lags and undercounts, and this gates an ending.
+    asked = {"count": 0}
+    closing_task: asyncio.Task | None = None
+
+    def cancel_closing() -> None:
+        """Anything at all happening means the session is not over."""
+        nonlocal closing_task
+        if closing_task is not None and not closing_task.done():
+            closing_task.cancel()
+        closing_task = None
+
+    async def closing_watch() -> None:
+        """End the session once the examiner has clearly finished.
+
+        Replaces the `end_session` tool call. The tool was the model's decision;
+        this is an observation of what actually happened, which is both more
+        reliable and impossible to confuse with a speaking turn.
+
+        Armed only when the examiner has asked its planned number of questions AND
+        its latest turn contained no question at all — i.e. it delivered a closing
+        remark and stopped. Then it waits for real silence from both sides, and any
+        further activity disarms it.
+
+        Biased hard against firing. Ending a live exam early is a much worse failure
+        than making a student press the End button they can already see, so every
+        condition here has to hold.
+        """
+        await asyncio.sleep(_CLOSING_SILENCE_SECONDS)
+        if end_requested.is_set() or browser_gone.is_set():
+            return
+        logger.info(
+            "examiner closed and went silent — ending the session",
+            extra={"session_id": session_id, "mode": mode, "event": "live_examiner_closed",
+                   "reason": "closing_remark_then_silence", "questions": asked["count"]},
+        )
+        try:
+            await websocket.send_json({"type": "time_up", "grace_seconds": 0})
+        except Exception:  # noqa: BLE001 — the socket may already be closing
+            pass
+        end_requested.set()
+
+    def note_examiner_turn(text: str) -> None:
+        """Count a finished examiner turn, and arm the ending if it was a closing."""
+        nonlocal closing_task
+        cancel_closing()
+        if turn_grader.looks_like_a_question(text):
+            asked["count"] += 1
+            return
+        planned, _ = live_service.question_budget_for(budget_minutes or None)
+        if asked["count"] < planned:
+            # It stopped asking early — the student may still have something to
+            # say, or it may simply have paused. Not our call to end it.
+            return
+        closing_task = asyncio.create_task(closing_watch())
+
     def spawn_grading(answer: str) -> None:
         """Start grading a finished exchange, or skip it if we are already behind."""
         for task in list(grading_tasks):
@@ -1422,6 +1499,9 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                 if sc:
                     it = getattr(sc, "input_transcription", None)
                     if it and getattr(it, "text", None):
+                        # The student is talking, so the session is plainly not
+                        # over — whatever the examiner's last turn looked like.
+                        cancel_closing()
                         persist.on_user_text(it.text)
                         turn.add(it.text)
                         await websocket.send_json({"type": "user_transcript", "text": it.text})
@@ -1444,6 +1524,9 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                     if getattr(sc, "interrupted", None):
                         await websocket.send_json({"type": "interrupted"})
                     if getattr(sc, "turn_complete", None):
+                        # The examiner's turn is finished, so it can now be judged
+                        # as a question or as a closing remark.
+                        note_examiner_turn(last_examiner_turn(persist.transcript))
                         await _forward_turn_complete(
                             websocket, first_turn_done, open_gate=not client_owns_mic_gate
                         )
@@ -1779,6 +1862,7 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                 task.cancel()
         if grading_tasks:
             await asyncio.gather(*grading_tasks, return_exceptions=True)
+        cancel_closing()
     logger.info(
         "live session stopped",
         extra={

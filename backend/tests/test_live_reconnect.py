@@ -693,3 +693,131 @@ def test_the_live_config_carries_no_tools_when_they_are_disabled():
         assert config.tools
     else:
         assert not getattr(config, "tools", None)
+
+
+# --------------------------------------------------------------------------- #
+# Ending the session without an `end_session` tool
+# --------------------------------------------------------------------------- #
+def _viva_exchange(question: str, answer: str) -> list:
+    """One complete question-and-answer round, as the Live API delivers it."""
+    return [
+        _response(data=b"\x01\x02"),
+        _response(_server_content(output_transcription=_text(question))),
+        _response(_server_content(turn_complete=True)),
+        _response(_server_content(input_transcription=_text(answer))),
+    ]
+
+
+def _finalize_stubs(monkeypatch):
+    monkeypatch.setattr(live_api.live_service, "analyze_transcript",
+                        lambda *a, **k: {"questions": [], "overall_score": 50, "summary": "",
+                                         "strengths": [], "weaknesses": []})
+    monkeypatch.setattr(live_api.report_service, "build_report", lambda **k: None)
+    # Live grading is not what these tests are about, and a real call would reach
+    # the network.
+    monkeypatch.setattr(live_api.turn_grader, "grade_exchange", lambda **k: None)
+
+
+def test_the_session_ends_when_the_examiner_closes_and_goes_quiet(live_harness, monkeypatch):
+    """The replacement for `end_session`.
+
+    The tool was the model's decision to end, made inside a speaking turn — which
+    is what silenced the voice. This is an observation of what actually happened:
+    the planned questions were asked, the last turn contained no question, and then
+    nobody said anything. A student should not have to press End because the model
+    has no way to tell us it finished.
+    """
+    monkeypatch.setattr(live_api, "_CLOSING_SILENCE_SECONDS", 0.05)
+    monkeypatch.setattr(live_api.live_service, "question_budget_for", lambda m: (2, 3))
+    _finalize_stubs(monkeypatch)
+
+    only = FakeGeminiSession(turns=[
+        _viva_exchange("What is 3NF?", "It removes transitive dependencies from a relation."),
+        _viva_exchange("How do you index that?", "A B-tree index on the foreign key column."),
+        # The closing remark: no question anywhere in it.
+        [
+            _response(data=b"\x03"),
+            _response(_server_content(
+                output_transcription=_text("That's everything from my side. Thank you, Asha."))),
+            _response(_server_content(turn_complete=True)),
+        ],
+    ])
+    live_harness([only])
+
+    socket = FakeBrowserSocket()
+    socket.query_params = {"token": "t", "pv": "1"}
+    asyncio.run(_run(socket))
+
+    # It finalized on its own, without the browser ever sending `end`.
+    assert "finalizing" in socket.types_sent()
+    assert "ended" in socket.types_sent()
+
+
+def test_a_pause_before_the_questions_are_done_does_not_end_the_session(live_harness, monkeypatch):
+    """The guard against the worst possible failure here: ending a live exam early.
+
+    An examiner turn with no question is not necessarily a closing — it may be a
+    reaction, or a pause. Until the planned questions have been asked, it is not the
+    server's call to end anything.
+    """
+    monkeypatch.setattr(live_api, "_CLOSING_SILENCE_SECONDS", 0.05)
+    # Far more questions planned than this session will get through.
+    monkeypatch.setattr(live_api.live_service, "question_budget_for", lambda m: (8, 10))
+    _finalize_stubs(monkeypatch)
+
+    only = FakeGeminiSession(turns=[
+        _viva_exchange("What is 3NF?", "It removes transitive dependencies from a relation."),
+        [
+            _response(data=b"\x03"),
+            _response(_server_content(output_transcription=_text("Good, that's right."))),
+            _response(_server_content(turn_complete=True)),
+        ],
+    ])
+    live_harness([only])
+
+    socket = FakeBrowserSocket()
+    socket.query_params = {"token": "t", "pv": "1"}
+
+    async def scenario():
+        task = asyncio.create_task(live_api.live_ws(socket, "viva", "s1"))
+        # Well past the closing window. Nothing should have ended.
+        await asyncio.sleep(0.4)
+        assert "finalizing" not in socket.types_sent(), socket.types_sent()
+        socket.push({"type": "websocket.receive", "text": json.dumps({"type": "end"})})
+        await asyncio.wait_for(task, timeout=5.0)
+
+    asyncio.run(scenario())
+    # And once the student ends it deliberately, it still finalizes normally.
+    assert "finalizing" in socket.types_sent()
+
+
+def test_the_student_speaking_again_disarms_the_ending(live_harness, monkeypatch):
+    """A closing remark followed by "wait, one more thing" is a live session, not a
+    finished one."""
+    monkeypatch.setattr(live_api, "_CLOSING_SILENCE_SECONDS", 0.3)
+    monkeypatch.setattr(live_api.live_service, "question_budget_for", lambda m: (1, 2))
+    _finalize_stubs(monkeypatch)
+
+    only = FakeGeminiSession(turns=[
+        _viva_exchange("What is 3NF?", "It removes transitive dependencies from a relation."),
+        [
+            _response(_server_content(output_transcription=_text("That's everything, thank you."))),
+            _response(_server_content(turn_complete=True)),
+            # The student jumps back in before the silence window elapses.
+            _response(_server_content(
+                input_transcription=_text("Sorry sir, can I add one more point about indexing?"))),
+        ],
+    ])
+    live_harness([only])
+
+    socket = FakeBrowserSocket()
+    socket.query_params = {"token": "t", "pv": "1"}
+
+    async def scenario():
+        task = asyncio.create_task(live_api.live_ws(socket, "viva", "s1"))
+        await asyncio.sleep(0.6)  # past the original window
+        assert "finalizing" not in socket.types_sent(), socket.types_sent()
+        socket.push({"type": "websocket.receive", "text": json.dumps({"type": "end"})})
+        await asyncio.wait_for(task, timeout=5.0)
+
+    asyncio.run(scenario())

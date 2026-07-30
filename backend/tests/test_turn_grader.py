@@ -362,3 +362,102 @@ def test_grading_is_bounded_per_session():
     """A student answering faster than a rate-limited key can grade must not
     accumulate work."""
     assert live_api._MAX_INFLIGHT_GRADINGS <= 3
+
+
+# --------------------------------------------------------------------------- #
+# Every language, not just English
+# --------------------------------------------------------------------------- #
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Normalization gurinchi cheppandi",          # Telugu
+        "Idi ela pani chestundi",                    # Telugu
+        "Iska matlab kya hai",                       # Hindi
+        "Yeh kaise kaam karta hai",                  # Hindi
+        "Indexing ke baare mein bataiye",            # Hindi
+        "Idhu eppadi velai seiyum",                  # Tamil
+        "Transaction pattri sollunga",               # Tamil
+        "Ee concept hege kelasa madutte",            # Kannada
+    ],
+)
+def test_a_question_in_an_indian_language_is_recognised(text):
+    """The examiner speaks the language the student chose, romanised on screen.
+    An English-only cue list left the evaluation panel EMPTY for a whole Telugu or
+    Hindi viva — for the students this platform exists for. Same reasoning as
+    integrity.HESITATION_MARKERS."""
+    assert turn_grader.looks_like_a_question(text)
+
+
+def test_a_long_prompt_with_no_recognised_cue_is_still_graded():
+    """No cue list covers every language a student may pick, and transcription
+    drops question marks. Length is accepted as evidence so an unrecognised
+    language degrades to "graded" rather than to "panel permanently empty"."""
+    long_turn = " ".join(["prashna"] * 12)
+    assert not turn_grader.looks_like_a_question(long_turn)
+    assert turn_grader.is_gradable_prompt(long_turn)
+
+
+def test_a_short_cueless_reaction_is_still_not_gradable():
+    """The other side of the same trade: a brief cue-less turn is a reaction, and
+    must not be paired with the next answer."""
+    assert not turn_grader.is_gradable_prompt("Chaala baagundi.")
+    assert not turn_grader.is_gradable_prompt("Bahut accha.")
+    assert not turn_grader.is_gradable_prompt("Good, that's right.")
+
+
+def test_the_question_falls_back_to_the_last_sentence_not_the_whole_turn():
+    """In every language the question comes after the reaction to the previous
+    answer, so the last sentence is a far better guess than the entire turn."""
+    asked = turn_grader.extract_question("Chaala baagundi. Ippudu indexing gurinchi cheppandi.")
+    assert asked == "Ippudu indexing gurinchi cheppandi."
+
+
+def test_an_indian_language_exchange_is_graded_end_to_end(monkeypatch):
+    seen = {}
+
+    def fake(prompt, *args, **kwargs):
+        seen["prompt"] = prompt
+        return {"topic": "Normalization", "score": 64, "feedback": "Idea correct, no example."}
+
+    monkeypatch.setattr(turn_grader.gemini_service, "generate_json", fake)
+    graded = turn_grader.grade_exchange(
+        mode="viva",
+        question="Chaala baagundi. Normalization gurinchi cheppandi.",
+        answer="Normalization ante data redundancy thagginchadam, tables ni split chesi.",
+        subject="DBMS",
+    )
+    assert graded is not None
+    assert graded["score"] == 64
+    assert graded["question"] == "Normalization gurinchi cheppandi."
+    # Content is graded, never the student's English.
+    assert "not on its English" in seen["prompt"]
+
+
+# --------------------------------------------------------------------------- #
+# Ending the session without an `end_session` tool
+# --------------------------------------------------------------------------- #
+def test_the_examiner_turn_is_read_from_the_transcript():
+    transcript = [
+        {"role": "examiner", "text": "What is 3NF?", "ts_ms": 0},
+        {"role": "student", "text": "It removes transitive dependencies.", "ts_ms": 1000},
+        {"role": "examiner", "text": "Good. That's", "ts_ms": 2000},
+        {"role": "examiner", "text": " everything from my side.", "ts_ms": 2100},
+    ]
+    assert live_api.last_examiner_turn(transcript) == "Good. That's everything from my side."
+
+
+def test_no_examiner_turn_yet_is_empty():
+    assert live_api.last_examiner_turn([{"role": "student", "text": "Hello?", "ts_ms": 0}]) == ""
+
+
+def test_a_closing_remark_is_not_counted_as_a_question():
+    """The count gates the ending, so a closing remark inflating it would let the
+    session end one question early."""
+    assert not turn_grader.looks_like_a_question("That's everything from my side, thank you.")
+    assert not turn_grader.looks_like_a_question("Mee viva complete ayindi. Dhanyavadalu.")
+
+
+def test_the_closing_silence_is_generous_enough_not_to_cut_anyone_off():
+    """Ending a live exam early is a far worse failure than making a student press
+    the End button they can already see."""
+    assert live_api._CLOSING_SILENCE_SECONDS >= 20
