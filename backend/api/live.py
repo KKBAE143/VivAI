@@ -80,6 +80,30 @@ INBOUND_QUEUE_MAX = 512
 
 
 @dataclass
+class LiveSessionState:
+    """State that outlives any one browser socket for a single app session.
+
+    Exists for one fact: whether the examiner's opening was actually HEARD. That
+    cannot live on the connection, because a reload or a remount replaces the
+    connection while the student is still sitting the same viva — and a fresh
+    connection with no memory of the opening will deliver another one.
+    """
+
+    # Set only once examiner audio has genuinely been forwarded to the browser.
+    #
+    # Deliberately not "we sent the greeting trigger". A trigger being accepted
+    # proves nothing: if the AI service dies or refuses before producing audio
+    # (the observed 1008), marking the session greeted on the strength of the
+    # trigger tells the retry "you have already introduced yourself, just carry
+    # on" — and a model with no history, forbidden to greet, simply says nothing
+    # at all until the student speaks first. That is the silent examiner.
+    opening_delivered: bool = False
+
+
+_live_session_states: dict[str, LiveSessionState] = {}
+
+
+@dataclass
 class LiveOwner:
     """A single browser WebSocket's claim on an app session_id.
 
@@ -95,6 +119,8 @@ class LiveOwner:
     websocket: WebSocket
     superseded: asyncio.Event = field(default_factory=asyncio.Event)
     released: asyncio.Event = field(default_factory=asyncio.Event)
+    # Shared with every other socket that has held this session.
+    session_state: LiveSessionState = field(default_factory=LiveSessionState)
 
 
 _active_live_owners: dict[str, LiveOwner] = {}
@@ -110,6 +136,9 @@ async def claim_live_owner(session_id: str, owner: LiveOwner) -> LiveOwner | Non
     """
     async with _active_live_lock:
         previous = _active_live_owners.get(session_id)
+        # Carry the session's opening state across the handover, so a reload does
+        # not hand the student a second spoken introduction.
+        owner.session_state = _live_session_states.setdefault(session_id, owner.session_state)
         _active_live_owners[session_id] = owner
     if previous is None or previous is owner:
         return None
@@ -134,6 +163,12 @@ async def release_live_owner(session_id: str, owner: LiveOwner) -> None:
     async with _active_live_lock:
         if _active_live_owners.get(session_id) is owner:
             _active_live_owners.pop(session_id, None)
+            # Nobody holds this session any more, so the next socket for it is a
+            # genuinely new sitting and must be greeted. Only the LAST owner
+            # clears this: a superseded owner releasing after its replacement has
+            # claimed the session must not wipe the state that replacement is
+            # relying on.
+            _live_session_states.pop(session_id, None)
     owner.released.set()
 
 
@@ -1064,7 +1099,9 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
     # app session. Deliberately separate from the resumption handle: the handle
     # arrives seconds into the session, so it cannot answer "did we greet yet?"
     # during the opening — the window where a drop used to re-greet.
-    greeted = False
+    # Seeded from the session, not from this connection: a replacement socket for a
+    # viva already in progress must not replay an audible opening.
+    greeted = owner.session_state.opening_delivered
     reconnects = 0
     resume_handle: str | None = None
     end_requested = asyncio.Event()
@@ -1186,13 +1223,25 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
         "empty iteration" exit here; the supervisor below classifies the
         exception and reconnects or finalizes.
         """
-        nonlocal resume_handle
+        nonlocal resume_handle, greeted
         while True:
             async for response in session.receive():
                 try:
                     for audio_chunk in _response_audio_chunks(response):
                         if audio_chunk:
+                            # A socket that has lost ownership must not leak one
+                            # more frame after its replacement has started
+                            # speaking. That overlap alone was enough to make two
+                            # openings audible at once.
+                            if owner.superseded.is_set():
+                                return
                             await websocket.send_bytes(audio_chunk)
+                            # The first trustworthy proof that the examiner was
+                            # actually HEARD. Recorded on the shared session state
+                            # so a reload, a remount or a reconnect all consult the
+                            # same fact instead of re-deciding it.
+                            owner.session_state.opening_delivered = True
+                            greeted = True
                 except Exception as audio_exc:
                     # Never let one bad PCM frame kill the whole receive loop —
                     # that was a silent "AI voice not coming" mode.
@@ -1353,10 +1402,29 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                 # "reconnecting" banner and go back to live.
                 await websocket.send_json({"type": "reconnected", "resumed": not fresh})
             if fresh:
-                # A history-less connection needs SOME trigger or the model stays
-                # mute; `greeted` picks the one that does not re-say hello.
-                await send_greeting(session, already_greeted=greeted)
-                greeted = True
+                # A history-less connection needs a turn from us or the model stays
+                # mute — but WHICH turn depends on whether the student has actually
+                # heard the examiner yet, not on whether we once sent a trigger.
+                #
+                # `greeted` used to be set the moment a trigger was accepted. When
+                # the AI service refused or died before producing any audio, that
+                # marked the session greeted on the strength of a trigger nobody
+                # heard: the retry then came up under "you have already introduced
+                # yourself, just continue", and a blind model forbidden to greet
+                # said nothing at all until the student spoke first. That is the
+                # silent examiner. It is now driven by delivered audio.
+                if greeted:
+                    # The opening WAS heard, so do not speak another one. Release
+                    # the mic gates instead and let the student's next turn resume
+                    # the conversation — the alternative, an autonomous nudge, is
+                    # what turns repeated 1008 retries into repeated questions.
+                    await _forward_turn_complete(
+                        websocket, first_turn_done, open_gate=not client_owns_mic_gate
+                    )
+                else:
+                    # Nothing has been heard yet, so this is still the one
+                    # legitimate opening attempt.
+                    await send_greeting(session, already_greeted=False)
 
             recv_task = asyncio.create_task(gemini_to_client(session))
             pump_task = asyncio.create_task(pump_to_gemini(session))

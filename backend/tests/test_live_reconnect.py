@@ -338,19 +338,22 @@ def fake_updates(sb, table_name: str) -> list[dict]:
     return [call[1][0] for call in table.calls if call[0] == "update" and call[1]]
 
 
-def test_a_history_less_reconnect_resumes_without_greeting_again(live_harness, monkeypatch):
+def test_a_history_less_reconnect_does_not_greet_again_once_audio_was_heard(
+    live_harness, monkeypatch
+):
     """The double greeting: the resumption handle only arrives SECONDS into the
     session, so a drop during the opening reconnects with `resume_handle is None`.
 
-    The old code inferred "should I greet?" from that handle alone, so this path
-    spoke the full opening a second time. It must instead send a resume trigger:
-    something (a Live model stays mute without a turn), but never a second hello.
+    The old code inferred "should I greet?" from that handle alone and spoke the
+    full opening a second time. What settles it is whether the student actually
+    HEARD the examiner — so the first connection here delivers real audio.
     """
     monkeypatch.setattr(live_api, "_reconnect_delay", lambda attempt: 0.0)
 
-    # Greets, then the connection dies BEFORE any session_resumption_update.
+    # Greets AUDIBLY, then dies before any session_resumption_update.
     first = FakeGeminiSession(
         turns=[[
+            _response(data=b"\x01\x02"),
             _response(_server_content(output_transcription=_text("Hello Asha, I'm your examiner."),
                                       turn_complete=True)),
             _response(_server_content(input_transcription=_text("Hi, I'm ready."))),
@@ -373,14 +376,55 @@ def test_a_history_less_reconnect_resumes_without_greeting_again(live_harness, m
     assert len(first.client_content) == 1, "the first connection greets exactly once"
     # It reconnected with no handle to resume from, so it IS a fresh connection…
     assert state.configs[1].session_resumption.handle is None
-    # …which must still be nudged, or the examiner goes mute for the rest of the exam.
-    assert len(second.client_content) == 1, "a history-less reconnect must be triggered"
-    resumed = second.client_content[0]
-    assert "ALREADY greeted" in resumed
-    assert "Do NOT say hello" in resumed
-    # The one thing it must never be: the opening greeting trigger, again.
-    assert resumed != first.client_content[0]
-    assert "hello + who you are" not in resumed
+    # …and because the opening was heard, it must NOT be prompted to speak again.
+    # The student's next turn resumes the conversation instead; an autonomous nudge
+    # here is what turned repeated retries into repeated spoken questions.
+    assert second.client_content == [], "an already-heard opening must not be re-triggered"
+    # The client is told the turn is over so its mic gate opens and the student can
+    # carry on — otherwise the viva stalls in silence.
+    assert "turn_complete" in socket.types_sent()
+
+
+def test_a_trigger_nobody_heard_does_not_count_as_greeted(live_harness, monkeypatch):
+    """The silent examiner, and the regression that caused it.
+
+    `greeted` used to be set the moment the greeting trigger was accepted. When
+    the AI service refused or died before producing any audio — the observed 1008 —
+    that marked the session greeted on the strength of a trigger nobody heard. The
+    retry then came up under "you have already introduced yourself, just continue",
+    and a blind model forbidden to greet said nothing at all until the student
+    spoke first. No voice, no question, and then feedback the moment they talked.
+
+    A trigger is not a greeting. Only delivered audio is.
+    """
+    monkeypatch.setattr(live_api, "_reconnect_delay", lambda attempt: 0.0)
+
+    # Accepts the trigger, produces NO audio, then dies.
+    silent = FakeGeminiSession(
+        turns=[[]],
+        fail_with=genai_errors.APIError(1008, {"message": "aborted"}, None),
+    )
+    end_call = SimpleNamespace(id="c1", name="end_session", args={})
+    second = FakeGeminiSession(turns=[[
+        _response(data=b"\x01"),
+        _response(tool_call=SimpleNamespace(function_calls=[end_call])),
+    ]])
+    state = live_harness([silent, second])
+
+    socket = FakeBrowserSocket()
+    socket.query_params = {"token": "t", "pv": "1"}
+    monkeypatch.setattr(live_api.live_service, "analyze_transcript",
+                        lambda *a, **k: {"questions": [], "overall_score": 50, "summary": "",
+                                         "strengths": [], "weaknesses": []})
+    monkeypatch.setattr(live_api.report_service, "build_report", lambda **k: None)
+
+    asyncio.run(_run(socket))
+
+    # The retry must deliver a REAL opening, not a silent continuation.
+    assert len(second.client_content) == 1, "nothing was heard, so it must still greet"
+    assert "hello" in second.client_content[0].lower()
+    # And its instructions must not forbid the greeting it has been asked for.
+    assert "ALREADY GREETED" not in str(state.configs[1].system_instruction)
 
 
 def test_a_reconnected_examiner_is_never_told_to_greet(live_harness, monkeypatch):
@@ -400,6 +444,8 @@ def test_a_reconnected_examiner_is_never_told_to_greet(live_harness, monkeypatch
 
     first = FakeGeminiSession(
         turns=[[
+            # Audible: this is what makes the session "already greeted".
+            _response(data=b"\x01\x02"),
             _response(_server_content(output_transcription=_text("Namaskaram, I'm your examiner."),
                                       turn_complete=True)),
         ]],

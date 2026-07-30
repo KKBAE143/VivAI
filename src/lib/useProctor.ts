@@ -68,6 +68,13 @@ export function useProctor(opts: {
   const [exitPending, setExitPending] = useState(false);
   const [focusLosses, setFocusLosses] = useState(0);
 
+  /**
+   * The session panel.
+   *
+   * No longer the fullscreen target (see `enterFullscreen`) — kept because the
+   * stage still needs a root to attach to, and because a future control may want
+   * to scope behaviour to the session rather than the page.
+   */
   const rootRef = useRef<HTMLElement | null>(null);
   const queueRef = useRef<{ kind: ProctorEventKind; at_ms: number; detail?: string }[]>([]);
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -108,7 +115,21 @@ export function useProctor(opts: {
   }, []);
 
   const enterFullscreen = useCallback(async () => {
-    const el = rootRef.current;
+    /*
+      Fullscreen the whole DOCUMENT, not the session panel.
+
+      When a single element goes fullscreen, the browser renders that element and
+      its descendants and NOTHING else. The "End this session?" confirmation, the
+      "Preparing your report…" overlay, toasts and the consent dialog are all
+      rendered outside the session panel — as siblings, or in portals on <body> —
+      so they became invisible the moment the session entered fullscreen. Pressing
+      "End & report" opened a dialog nobody could see, which is exactly why the
+      button appeared to do nothing.
+
+      Fullscreening the document root keeps every overlay inside the fullscreen
+      subtree, which is also what makes this safe for anything added later.
+    */
+    const el = document.documentElement;
     if (!el?.requestFullscreen || document.fullscreenElement) return false;
     try {
       await el.requestFullscreen();
@@ -173,8 +194,10 @@ export function useProctor(opts: {
   // ----------------------------- fullscreen ------------------------------ //
   useEffect(() => {
     const onChange = () => {
-      const el = rootRef.current;
-      const inside = Boolean(el && document.fullscreenElement === el);
+      // Any fullscreen element counts. Comparing against one specific node broke
+      // the moment the target became the document root, and the question this
+      // answers is only ever "are we in fullscreen".
+      const inside = Boolean(document.fullscreenElement);
       setIsFullscreen(inside);
       if (!active) return;
       if (inside) {
