@@ -33,7 +33,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from google.genai import types
 
-from ai import delivery_metrics, integrity, live_service, report_service, viva_core
+from ai import delivery_metrics, integrity, live_service, report_service, turn_grader, viva_core
 from ai.registry import find_scenario_by_label, get_scenario
 from core.database import get_supabase
 from core.deps import user_from_token
@@ -410,6 +410,37 @@ class LivePersistence:
             self._buffer_event("score", target, now)
             return {"type": "event", "event": "score", "id": target.get("id"), "score": score, "feedback": feedback, "topic": target.get("topic")}
         return None
+
+    def on_graded_turn(self, graded: dict) -> list[dict]:
+        """Record one exchange graded from the transcript, mid-session.
+
+        The server-side replacement for what `record_question` and
+        `score_response` used to do from inside the examiner's speaking turn. Same
+        rows, same client events, same shapes the panel already renders — the only
+        difference is who produced them, which is the entire point: the examiner is
+        now free to just talk.
+
+        Returns the client events to forward, in order.
+        """
+        now = self.now_ms()
+        item = {
+            "id": f"q_{len(self.questions) + 1}",
+            "question": str(graded.get("question") or "").strip() or "(live discussion)",
+            "topic": graded.get("topic"),
+            "answer": graded.get("answer"),
+            "score": graded.get("score"),
+            "feedback": graded.get("feedback"),
+            "ts_ms": now,
+        }
+        self.questions.append(item)
+        self._buffer_event("question", item, now)
+        self._buffer_event("score", item, now)
+        return [
+            {"type": "event", "event": "question", "id": item["id"],
+             "question": item["question"], "topic": item["topic"]},
+            {"type": "event", "event": "score", "id": item["id"],
+             "score": item["score"], "feedback": item["feedback"], "topic": item["topic"]},
+        ]
 
     # -- finalize ----------------------------------------------------------- #
     @property
@@ -843,6 +874,72 @@ async def _check_turn_integrity(turn, websocket, persist, session_id: str, mode:
     })
 
 
+def last_examiner_question(transcript: list[dict]) -> str:
+    """The question the student was answering, from the transcript so far.
+
+    Called at the moment the examiner starts replying, so the transcript ends with
+    the student's answer and the examiner turn before it is the question. Reading
+    it from the transcript rather than from a tool call is what makes this
+    independent of the examiner's cooperation.
+    """
+    turns = coalesce_turns(transcript)
+    last_student = next(
+        (i for i in range(len(turns) - 1, -1, -1) if turns[i].get("role") == "student"), None
+    )
+    if last_student is None:
+        return ""
+    for i in range(last_student - 1, -1, -1):
+        if turns[i].get("role") == "examiner":
+            return str(turns[i].get("text") or "")
+    return ""
+
+
+# At most this many gradings may be in flight for one session. A student who
+# answers three questions while a rate-limited key is still thinking about the
+# first must not accumulate work — the exchange is graded again at finalize, so
+# dropping one here costs the panel an entry and costs the report nothing.
+_MAX_INFLIGHT_GRADINGS = 2
+
+
+async def _grade_turn_live(
+    *, answer: str, persist, websocket: WebSocket, session_id: str, mode: str,
+) -> None:
+    """Grade the exchange that just finished and push it to the live panel.
+
+    Runs as a detached task. Everything here is best-effort by design: it must be
+    impossible for a grading failure, a slow key or a closing socket to disturb the
+    conversation, because the conversation is the product and this is a side panel.
+    """
+    question = last_examiner_question(persist.transcript)
+    if not turn_grader.should_grade(question, answer):
+        return
+    try:
+        graded = await asyncio.to_thread(
+            turn_grader.grade_exchange,
+            mode=mode,
+            question=question,
+            answer=answer,
+            project_context=persist.project_context,
+            subject=persist.subject,
+        )
+    except Exception:  # noqa: BLE001 — never let the panel break the exam
+        logger.warning(
+            "live turn grading failed",
+            exc_info=True,
+            extra={"session_id": session_id, "mode": mode, "event": "turn_grade_failed",
+                   "swallowed": True},
+        )
+        return
+    if not graded:
+        return
+    graded["answer"] = answer
+    for event in persist.on_graded_turn(graded):
+        try:
+            await websocket.send_json(event)
+        except Exception:  # noqa: BLE001 — the socket may already be closing
+            return
+
+
 def _question_feedback(q: dict) -> str | None:
     """Feedback plus what was missing, as one readable block.
 
@@ -1120,6 +1217,33 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
     # A dict rather than a bool because the flag is set from a nested coroutine.
     integrity_state: dict = {"warned": False}
 
+    # Live grading tasks, held only so they can be counted and cancelled. They are
+    # deliberately detached from the conversation: the examiner never waits for one.
+    grading_tasks: set[asyncio.Task] = set()
+
+    def spawn_grading(answer: str) -> None:
+        """Start grading a finished exchange, or skip it if we are already behind."""
+        for task in list(grading_tasks):
+            if task.done():
+                grading_tasks.discard(task)
+        if len(grading_tasks) >= _MAX_INFLIGHT_GRADINGS:
+            logger.info(
+                "skipping live grading — already behind",
+                extra={"session_id": session_id, "mode": mode, "event": "turn_grade_skipped",
+                       "reason": "inflight_limit"},
+            )
+            return
+        task = asyncio.create_task(
+            _grade_turn_live(
+                answer=answer, persist=persist, websocket=websocket,
+                session_id=session_id, mode=mode,
+            )
+        )
+        grading_tasks.add(task)
+        # Discard on completion so a long session cannot accumulate finished tasks,
+        # and so an unobserved exception is never silently dropped by the loop.
+        task.add_done_callback(grading_tasks.discard)
+
     errored = False
     fatal_message = ""
     fatal_retryable = True
@@ -1306,9 +1430,15 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                         # The examiner replying means the student's turn is over —
                         # the first moment a complete answer exists to assess.
                         if turn.text:
+                            # Read before the integrity check, which consumes the
+                            # turn. Grading is detached: the examiner is already
+                            # speaking its next line and must not wait on a
+                            # scoring call to finish.
+                            answered = turn.text
                             await _check_turn_integrity(
                                 turn, websocket, persist, session_id, mode, integrity_state
                             )
+                            spawn_grading(answered)
                         persist.on_ai_text(ot.text)
                         await websocket.send_json({"type": "ai_transcript", "text": ot.text})
                     if getattr(sc, "interrupted", None):
@@ -1641,6 +1771,14 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
             if not task.done():
                 task.cancel()
         await asyncio.gather(reader_task, safety_task, clock_task, return_exceptions=True)
+        # Live gradings are for the panel of a session that is now over. Waiting on
+        # one would delay the report behind a call that no longer has anywhere to
+        # send its result, and finalize re-grades the whole transcript regardless.
+        for task in list(grading_tasks):
+            if not task.done():
+                task.cancel()
+        if grading_tasks:
+            await asyncio.gather(*grading_tasks, return_exceptions=True)
     logger.info(
         "live session stopped",
         extra={
