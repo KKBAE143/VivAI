@@ -117,3 +117,51 @@ def stub_generate_json(monkeypatch):
         return return_value
 
     return _apply
+
+
+@pytest.fixture
+def live_harness(monkeypatch, fake_supabase):
+    """Drive the real `live_ws` handler against fakes, capturing each Gemini config.
+
+    Lives here rather than in one test module because several suites now exercise
+    the live session end to end — the reconnect supervisor, the automatic ending,
+    and the vision observer all need the same setup, and duplicating it would let
+    the copies drift apart.
+
+    Call the yielded function with the list of `FakeGeminiSession`s the test
+    scripts; connecting more times than that is an assertion failure, which is how a
+    reconnect bug shows up as a test failure rather than as a hang.
+    """
+    import contextlib
+
+    from api import live as live_api
+
+    live_api._active_live_owners.clear()
+    fake_supabase.preload("viva_sessions", [{"id": "s1", "profile_id": "u1", "persona": "balanced",
+                                             "language": "English", "subject": "DBMS",
+                                             "session_type": "Subject", "context": {}}])
+    fake_supabase.preload("viva_questions", [])
+    monkeypatch.setattr(live_api, "get_supabase", lambda: fake_supabase)
+    monkeypatch.setattr(live_api, "user_from_token", lambda t: {"id": "u1", "name": "Asha"})
+    monkeypatch.setattr(live_api, "_project_context", lambda pid: "")
+    monkeypatch.setattr(live_api, "log_activity", lambda *a, **k: None)
+    monkeypatch.setattr(live_api.gamification_service, "award_xp", lambda *a, **k: None)
+
+    state = SimpleNamespace(sessions=[], configs=[])
+
+    def install(sessions: list):
+        state.sessions = list(sessions)
+        pending = list(sessions)
+
+        @contextlib.asynccontextmanager
+        async def fake_connect(config):
+            state.configs.append(config)
+            if not pending:
+                raise AssertionError("connected more times than the test scripted")
+            yield pending.pop(0)
+
+        monkeypatch.setattr(live_api.live_service, "connect_with_fallback", fake_connect)
+        return state
+
+    yield install
+    live_api._active_live_owners.clear()

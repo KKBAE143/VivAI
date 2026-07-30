@@ -40,6 +40,7 @@ from ai import (
     live_service,
     report_service,
     turn_grader,
+    vision_observer,
     viva_core,
 )
 from ai.registry import find_scenario_by_label, get_scenario
@@ -953,6 +954,24 @@ def last_examiner_question(transcript: list[dict]) -> str:
     return ""
 
 
+# How often the vision observer glances at the video.
+#
+# Frames arrive several times a second. The useful rate for a spoken-style coaching
+# note is far slower than that: much faster and the panel becomes unreadable, and
+# every glance is a vision call somebody pays for.
+_VISION_INTERVAL_SECONDS = 30
+
+# A frame older than this is not what the student is doing now — the camera was
+# turned off, or the screen share stopped. Coaching on it would describe a moment
+# that has passed.
+_VISION_FRAME_STALE_SECONDS = 15
+
+# A hard ceiling on vision calls per session. Purely a runaway cost guard, not a
+# feature limit: at the interval above this covers half an hour, which is longer
+# than the longest session the UI offers.
+_MAX_VISION_CALLS = 60
+
+
 # How long both sides must stay completely silent after the examiner delivers a
 # closing remark before the server treats the session as finished. Long enough that
 # a student drawing breath to ask one last thing is never cut off, short enough
@@ -1293,6 +1312,12 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
     asked = {"count": 0}
     closing_task: asyncio.Task | None = None
 
+    # The newest video frame, kept only so the vision observer can glance at one
+    # periodically. A single slot, not a queue: an old frame is worthless, and the
+    # point of holding it here is that the observer never has to ask the client for
+    # anything or interfere with the frames going to Gemini.
+    latest_frame: dict = {"data": None, "at": 0.0}
+
     def planned_questions() -> int:
         low, _ = live_service.question_budget_for(budget_minutes or None)
         return low
@@ -1496,7 +1521,14 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
             kind = payload.get("type")
             if kind == "image" and payload.get("data"):
                 persist.frames_received += 1
-                enqueue(("image", base64.b64decode(payload["data"])))
+                frame = base64.b64decode(payload["data"])
+                # Same frame, two independent consumers. Gemini gets it for the
+                # conversation; the slot below is read on a timer by the vision
+                # observer. Storing it cannot fail and cannot block, so the frame
+                # path is unchanged for the session that depends on it.
+                latest_frame["data"] = frame
+                latest_frame["at"] = time.monotonic()
+                enqueue(("image", frame))
             elif kind == "text" and payload.get("text"):
                 enqueue(("text", payload["text"]))
             elif kind == "focus_lost":
@@ -1866,6 +1898,64 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
         )
         end_requested.set()
 
+    async def vision_watch():
+        """Glance at the video every so often and coach on what is visible.
+
+        The replacement for the `flag_moment` tool. Runs only when the session
+        actually has video, and only ever reads the newest frame the client already
+        sent — it asks the browser for nothing and touches nothing the conversation
+        depends on.
+
+        Deliberately a slow timer rather than per-frame. Frames arrive several times
+        a second; the useful rate for a human coaching note is one every half minute,
+        and anything faster would be both expensive and unreadable.
+
+        Every failure mode is silence. A timeout, a rate limit, a blank frame or a
+        model with nothing to say all produce nothing, and the session never learns
+        that anything happened.
+        """
+        if video_source not in {"camera", "screen"}:
+            return
+        calls = 0
+        while calls < _MAX_VISION_CALLS:
+            await asyncio.sleep(_VISION_INTERVAL_SECONDS)
+            if end_requested.is_set() or browser_gone.is_set():
+                return
+            frame = latest_frame["data"]
+            if not frame:
+                continue
+            if time.monotonic() - latest_frame["at"] > _VISION_FRAME_STALE_SECONDS:
+                # Video stopped — the student turned the camera off, or stopped
+                # sharing. Coaching on a frame from two minutes ago would describe a
+                # moment that has passed.
+                continue
+            calls += 1
+            try:
+                observations = await asyncio.to_thread(
+                    vision_observer.observe_frame, frame, video_source=video_source
+                )
+            except Exception:  # noqa: BLE001 — never let coaching break an exam
+                logger.warning(
+                    "vision observation failed",
+                    exc_info=True,
+                    extra={"session_id": session_id, "mode": mode,
+                           "event": "vision_observe_failed", "swallowed": True},
+                )
+                continue
+            for observation in observations:
+                event = persist.on_tool("log_observation", observation)
+                if not event:
+                    continue
+                try:
+                    await websocket.send_json(event)
+                except Exception:  # noqa: BLE001 — the socket may already be closing
+                    return
+        logger.info(
+            "vision observation budget reached",
+            extra={"session_id": session_id, "mode": mode, "event": "vision_budget_reached",
+                   "reason": "max_calls"},
+        )
+
     async def mic_gate_safety():
         # Never let a missing turn_complete / mic_open keep the mic gated forever.
         # Wait LONGER than the client's own ceiling when the client owns the gate,
@@ -1886,6 +1976,7 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
     reader_task = asyncio.create_task(browser_reader())
     safety_task = asyncio.create_task(mic_gate_safety())
     clock_task = asyncio.create_task(session_clock())
+    vision_task = asyncio.create_task(vision_watch())
     stop_reason = "ended"
     try:
         while True:
@@ -1946,10 +2037,12 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                 continue
             break
     finally:
-        for task in (reader_task, safety_task, clock_task):
+        for task in (reader_task, safety_task, clock_task, vision_task):
             if not task.done():
                 task.cancel()
-        await asyncio.gather(reader_task, safety_task, clock_task, return_exceptions=True)
+        await asyncio.gather(
+            reader_task, safety_task, clock_task, vision_task, return_exceptions=True
+        )
         # Live gradings are for the panel of a session that is now over. Waiting on
         # one would delay the report behind a call that no longer has anywhere to
         # send its result, and finalize re-grades the whole transcript regardless.

@@ -10,7 +10,6 @@ simply finished.
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import json
 from types import SimpleNamespace
 
@@ -130,40 +129,9 @@ def _text(text: str):
 # --------------------------------------------------------------------------- #
 # Harness
 # --------------------------------------------------------------------------- #
-@pytest.fixture
-def live_harness(monkeypatch, fake_supabase):
-    """Patch out auth, Supabase and Gemini; capture each config we connect with."""
-    live_api._active_live_owners.clear()
-    fake_supabase.preload("viva_sessions", [{"id": "s1", "profile_id": "u1", "persona": "balanced",
-                                             "language": "English", "subject": "DBMS",
-                                             "session_type": "Subject", "context": {}}])
-    fake_supabase.preload("viva_questions", [])
-    monkeypatch.setattr(live_api, "get_supabase", lambda: fake_supabase)
-    monkeypatch.setattr(live_api, "user_from_token", lambda t: {"id": "u1", "name": "Asha"})
-    monkeypatch.setattr(live_api, "_project_context", lambda pid: "")
-    monkeypatch.setattr(live_api, "log_activity", lambda *a, **k: None)
-    monkeypatch.setattr(live_api.gamification_service, "award_xp", lambda *a, **k: None)
-
-    state = SimpleNamespace(sessions=[], configs=[])
-
-    def install(sessions: list[FakeGeminiSession]):
-        state.sessions = list(sessions)
-        pending = list(sessions)
-
-        @contextlib.asynccontextmanager
-        async def fake_connect(config):
-            state.configs.append(config)
-            if not pending:
-                raise AssertionError("connected more times than the test scripted")
-            yield pending.pop(0)
-
-        monkeypatch.setattr(live_api.live_service, "connect_with_fallback", fake_connect)
-        return state
-
-    yield install
-    live_api._active_live_owners.clear()
-
-
+# `live_harness` now lives in conftest — several suites drive the live session end
+# to end, and duplicated setup would drift. The fakes above stay here because they
+# are plain classes and import cleanly.
 async def _run(socket: FakeBrowserSocket, timeout: float = 5.0):
     await asyncio.wait_for(live_api.live_ws(socket, "viva", "s1"), timeout=timeout)
 
