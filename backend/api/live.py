@@ -33,7 +33,15 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from google.genai import types
 
-from ai import delivery_metrics, integrity, live_service, report_service, turn_grader, viva_core
+from ai import (
+    delivery_metrics,
+    delivery_observer,
+    integrity,
+    live_service,
+    report_service,
+    turn_grader,
+    viva_core,
+)
 from ai.registry import find_scenario_by_label, get_scenario
 from core.database import get_supabase
 from core.deps import user_from_token
@@ -823,7 +831,46 @@ def _fatal_live_message(exc: BaseException) -> str:
     )
 
 
-async def _check_turn_integrity(turn, websocket, persist, session_id: str, mode: str, state: dict) -> None:
+async def _observe_delivery(
+    *, text: str, seconds: float | None, persist, websocket: WebSocket,
+    session_id: str, language: str,
+) -> None:
+    """Push delivery coaching for one finished turn to the live panel.
+
+    The replacement for the coach's `log_observation` calls. Deterministic and
+    therefore synchronous — it is arithmetic over words already in memory, with no
+    network call to wait for, so unlike grading it does not need a detached task.
+
+    Routed through the existing `log_observation` handler, which already dedupes
+    near-identical evidence inside a 20-second window. That dedupe is why the same
+    pace note does not stack up turn after turn.
+    """
+    try:
+        observations = delivery_observer.observe_turn(
+            text, seconds=seconds, language=language
+        )
+    except Exception:  # noqa: BLE001 — coaching must never break an exam
+        logger.warning(
+            "delivery observation failed",
+            exc_info=True,
+            extra={"session_id": session_id, "event": "delivery_observe_failed",
+                   "swallowed": True},
+        )
+        return
+    for observation in observations:
+        event = persist.on_tool("log_observation", observation)
+        if not event:
+            continue
+        try:
+            await websocket.send_json(event)
+        except Exception:  # noqa: BLE001 — the socket may already be closing
+            return
+
+
+async def _check_turn_integrity(
+    *, text: str, seconds: float | None, focus_lost: bool, websocket: WebSocket,
+    persist, session_id: str, mode: str, state: dict,
+) -> None:
     """Assess one finished student turn, and warn at most once per session.
 
     Warning PAUSES nothing on the server: the Gemini connection stays exactly as
@@ -836,7 +883,6 @@ async def _check_turn_integrity(turn, websocket, persist, session_id: str, mode:
     below the warning threshold, because a pattern across a session is what a human
     reviewer can judge and a single turn is not.
     """
-    text, seconds, focus_lost = turn.take()
     try:
         verdict = integrity.assess_turn(text, seconds=seconds, focus_lost=focus_lost)
     except Exception:  # noqa: BLE001 — never let proctoring break an exam
@@ -1247,6 +1293,25 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
     asked = {"count": 0}
     closing_task: asyncio.Task | None = None
 
+    def planned_questions() -> int:
+        low, _ = live_service.question_budget_for(budget_minutes or None)
+        return low
+
+    def questions_asked() -> int:
+        """How many real questions have been asked, by the best available count.
+
+        Two independent counts, each of which can only ever be too LOW:
+
+        * cue-matched examiner turns, which miss a language the cue list does not
+          cover;
+        * successfully graded exchanges, which are language-independent but lag
+          behind and skip very short answers.
+
+        Taking the larger gets the best coverage from both. Undercounting is the
+        safe direction — it keeps the automatic ending disarmed.
+        """
+        return max(asked["count"], len(persist.questions))
+
     def cancel_closing() -> None:
         """Anything at all happening means the session is not over."""
         nonlocal closing_task
@@ -1254,23 +1319,40 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
             closing_task.cancel()
         closing_task = None
 
-    async def closing_watch() -> None:
+    async def closing_watch(text: str) -> None:
         """End the session once the examiner has clearly finished.
 
-        Replaces the `end_session` tool call. The tool was the model's decision;
-        this is an observation of what actually happened, which is both more
-        reliable and impossible to confuse with a speaking turn.
+        Replaces the `end_session` tool call. The tool was the model's decision
+        announced from inside a speaking turn, which is what silenced the voice;
+        this is an observation about a turn that has already finished.
 
-        Armed only when the examiner has asked its planned number of questions AND
-        its latest turn contained no question at all — i.e. it delivered a closing
-        remark and stopped. Then it waits for real silence from both sides, and any
-        further activity disarms it.
+        Three conditions, in the order that costs least:
+          1. The examiner has asked its planned number of questions.
+          2. Both sides then stay silent for `_CLOSING_SILENCE_SECONDS`. Any
+             activity from either cancels this task outright.
+          3. A separate model call confirms the turn was a closing remark rather
+             than a question. This has to be a model call: "that's everything from
+             my side" is different in every language a student can pick, and a
+             phrase list would only work in English.
 
-        Biased hard against firing. Ending a live exam early is a much worse failure
-        than making a student press the End button they can already see, so every
-        condition here has to hold.
+        Biased hard against firing at every step, and the confirmation fails closed.
+        Ending a live exam early destroys a student's session; failing to end one
+        means pressing a button that is already on screen.
         """
         await asyncio.sleep(_CLOSING_SILENCE_SECONDS)
+        if end_requested.is_set() or browser_gone.is_set():
+            return
+        if questions_asked() < planned_questions():
+            # A grading may have landed since this was armed and revised the count
+            # down; re-check rather than trust the arming decision.
+            return
+        if not await asyncio.to_thread(turn_grader.examiner_closed, text):
+            logger.info(
+                "silence after a question-less turn, but it was not a closing",
+                extra={"session_id": session_id, "mode": mode, "event": "live_closing_rejected",
+                       "questions": asked["count"]},
+            )
+            return
         if end_requested.is_set() or browser_gone.is_set():
             return
         logger.info(
@@ -1285,18 +1367,22 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
         end_requested.set()
 
     def note_examiner_turn(text: str) -> None:
-        """Count a finished examiner turn, and arm the ending if it was a closing."""
+        """Count a finished examiner turn, and arm the ending if it may be a closing.
+
+        The question count uses the cue lists, which do not cover every language.
+        That is safe in this direction: an uncounted question keeps the count LOW,
+        which keeps the ending disarmed for longer. It can never end a session early.
+        """
         nonlocal closing_task
         cancel_closing()
         if turn_grader.looks_like_a_question(text):
             asked["count"] += 1
             return
-        planned, _ = live_service.question_budget_for(budget_minutes or None)
-        if asked["count"] < planned:
+        if questions_asked() < planned_questions():
             # It stopped asking early — the student may still have something to
             # say, or it may simply have paused. Not our call to end it.
             return
-        closing_task = asyncio.create_task(closing_watch())
+        closing_task = asyncio.create_task(closing_watch(text))
 
     def spawn_grading(answer: str) -> None:
         """Start grading a finished exchange, or skip it if we are already behind."""
@@ -1510,14 +1596,24 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                         # The examiner replying means the student's turn is over —
                         # the first moment a complete answer exists to assess.
                         if turn.text:
-                            # Read before the integrity check, which consumes the
-                            # turn. Grading is detached: the examiner is already
-                            # speaking its next line and must not wait on a
-                            # scoring call to finish.
-                            answered = turn.text
-                            await _check_turn_integrity(
-                                turn, websocket, persist, session_id, mode, integrity_state
+                            # Consumed once, here, and handed to each consumer
+                            # explicitly. Three things want this turn and they must
+                            # all see the same one.
+                            answered, spoken_for, focus_lost = turn.take()
+                            # Deterministic, so it can run inline — no network call
+                            # to wait on.
+                            await _observe_delivery(
+                                text=answered, seconds=spoken_for, persist=persist,
+                                websocket=websocket, session_id=session_id,
+                                language=language,
                             )
+                            await _check_turn_integrity(
+                                text=answered, seconds=spoken_for, focus_lost=focus_lost,
+                                websocket=websocket, persist=persist,
+                                session_id=session_id, mode=mode, state=integrity_state,
+                            )
+                            # Grading is detached: the examiner is already speaking
+                            # its next line and must not wait on a scoring call.
                             spawn_grading(answered)
                         persist.on_ai_text(ot.text)
                         await websocket.send_json({"type": "ai_transcript", "text": ot.text})

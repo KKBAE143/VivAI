@@ -718,6 +718,12 @@ def _finalize_stubs(monkeypatch):
     monkeypatch.setattr(live_api.turn_grader, "grade_exchange", lambda **k: None)
 
 
+def _closing_verdict(monkeypatch, closed: bool):
+    """Stub the multilingual closing check. Its own behaviour is covered in
+    test_turn_grader; here we only care what the supervisor does with a verdict."""
+    monkeypatch.setattr(live_api.turn_grader, "examiner_closed", lambda text: closed)
+
+
 def test_the_session_ends_when_the_examiner_closes_and_goes_quiet(live_harness, monkeypatch):
     """The replacement for `end_session`.
 
@@ -730,6 +736,7 @@ def test_the_session_ends_when_the_examiner_closes_and_goes_quiet(live_harness, 
     monkeypatch.setattr(live_api, "_CLOSING_SILENCE_SECONDS", 0.05)
     monkeypatch.setattr(live_api.live_service, "question_budget_for", lambda m: (2, 3))
     _finalize_stubs(monkeypatch)
+    _closing_verdict(monkeypatch, True)
 
     only = FakeGeminiSession(turns=[
         _viva_exchange("What is 3NF?", "It removes transitive dependencies from a relation."),
@@ -764,6 +771,8 @@ def test_a_pause_before_the_questions_are_done_does_not_end_the_session(live_har
     # Far more questions planned than this session will get through.
     monkeypatch.setattr(live_api.live_service, "question_budget_for", lambda m: (8, 10))
     _finalize_stubs(monkeypatch)
+    # Even if the check WOULD say "closed", the question gate must hold it back.
+    _closing_verdict(monkeypatch, True)
 
     only = FakeGeminiSession(turns=[
         _viva_exchange("What is 3NF?", "It removes transitive dependencies from a relation."),
@@ -797,6 +806,7 @@ def test_the_student_speaking_again_disarms_the_ending(live_harness, monkeypatch
     monkeypatch.setattr(live_api, "_CLOSING_SILENCE_SECONDS", 0.3)
     monkeypatch.setattr(live_api.live_service, "question_budget_for", lambda m: (1, 2))
     _finalize_stubs(monkeypatch)
+    _closing_verdict(monkeypatch, True)
 
     only = FakeGeminiSession(turns=[
         _viva_exchange("What is 3NF?", "It removes transitive dependencies from a relation."),
@@ -821,3 +831,40 @@ def test_the_student_speaking_again_disarms_the_ending(live_harness, monkeypatch
         await asyncio.wait_for(task, timeout=5.0)
 
     asyncio.run(scenario())
+
+
+def test_silence_alone_does_not_end_the_session(live_harness, monkeypatch):
+    """The confirmation fails CLOSED, and this is the test that matters most.
+
+    Silence after a question-less turn is suggestive, not conclusive — the examiner
+    may have asked something in a language our cue list does not cover, and the
+    student may simply be thinking. If the check cannot confirm a closing, or cannot
+    be reached at all, the session stays open and the student's End button behaves
+    exactly as before.
+    """
+    monkeypatch.setattr(live_api, "_CLOSING_SILENCE_SECONDS", 0.05)
+    monkeypatch.setattr(live_api.live_service, "question_budget_for", lambda m: (1, 2))
+    _finalize_stubs(monkeypatch)
+    _closing_verdict(monkeypatch, False)  # unreachable / not a closing
+
+    only = FakeGeminiSession(turns=[
+        _viva_exchange("What is 3NF?", "It removes transitive dependencies from a relation."),
+        [
+            _response(_server_content(output_transcription=_text("Hmm, theek hai."))),
+            _response(_server_content(turn_complete=True)),
+        ],
+    ])
+    live_harness([only])
+
+    socket = FakeBrowserSocket()
+    socket.query_params = {"token": "t", "pv": "1"}
+
+    async def scenario():
+        task = asyncio.create_task(live_api.live_ws(socket, "viva", "s1"))
+        await asyncio.sleep(0.4)
+        assert "finalizing" not in socket.types_sent(), socket.types_sent()
+        socket.push({"type": "websocket.receive", "text": json.dumps({"type": "end"})})
+        await asyncio.wait_for(task, timeout=5.0)
+
+    asyncio.run(scenario())
+    assert "finalizing" in socket.types_sent()

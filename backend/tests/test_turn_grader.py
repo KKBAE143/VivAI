@@ -91,18 +91,55 @@ def test_a_short_but_real_answer_is_still_graded():
     )
 
 
+def test_a_bare_acknowledgement_is_not_a_prompt():
+    """The only deterministic filter on the examiner side is length, so it behaves
+    identically in every language. "haan", "sari", "good" cannot be an exam
+    question anywhere."""
+    for ack in ("Good.", "Haan", "Sari", "Okay okay"):
+        assert not turn_grader.should_grade(
+            ack, "Third normal form removes transitive dependencies from a relation."
+        )
+
+
+def test_whether_an_exchange_is_real_is_decided_by_the_model_not_by_word_lists(monkeypatch):
+    """The multilingual fix.
+
+    A hand-written rule per language decided this before, which is exactly why a
+    Telugu viva graded nothing. Now the deterministic filter is length only, and the
+    model — which reads every language a student can pick here — says whether it was
+    really a question and really an answer.
+    """
+    monkeypatch.setattr(
+        turn_grader.gemini_service, "generate_json", lambda *a, **k: {"gradable": False}
+    )
+    assert turn_grader.grade_exchange(
+        mode="viva",
+        question="Good, thank you. That is all clear now.",
+        answer="Thank you so much sir, this was really very helpful for me.",
+    ) is None
+
+
+def test_a_wrong_answer_is_still_graded(monkeypatch):
+    """`gradable: false` must not become an excuse to skip bad answers — a low mark
+    is the most useful thing a mock viva produces."""
+    monkeypatch.setattr(
+        turn_grader.gemini_service, "generate_json",
+        lambda *a, **k: {"gradable": True, "question": "What is 3NF?", "topic": "DBMS",
+                         "score": 22, "feedback": "That describes 1NF, not 3NF."},
+    )
+    graded = turn_grader.grade_exchange(
+        mode="viva",
+        question="What is third normal form?",
+        answer="It means every column should have only one value in it, sir.",
+    )
+    assert graded is not None and graded["score"] == 22
+
+
 def test_a_real_answer_to_a_real_question_is_graded():
     assert turn_grader.should_grade(
         "What is third normal form?",
         "Third normal form removes transitive dependencies, so every non-key "
         "attribute depends only on the primary key.",
-    )
-
-
-def test_an_answer_to_no_question_is_not_graded():
-    assert not turn_grader.should_grade(
-        "Good, thank you.",
-        "Third normal form removes transitive dependencies from a relation entirely.",
     )
 
 
@@ -388,21 +425,25 @@ def test_a_question_in_an_indian_language_is_recognised(text):
     assert turn_grader.looks_like_a_question(text)
 
 
-def test_a_long_prompt_with_no_recognised_cue_is_still_graded():
-    """No cue list covers every language a student may pick, and transcription
-    drops question marks. Length is accepted as evidence so an unrecognised
-    language degrades to "graded" rather than to "panel permanently empty"."""
-    long_turn = " ".join(["prashna"] * 12)
-    assert not turn_grader.looks_like_a_question(long_turn)
-    assert turn_grader.is_gradable_prompt(long_turn)
+def test_an_unrecognised_language_still_reaches_the_model():
+    """The point of moving the decision off the word lists.
+
+    A language whose cues are not in the list — Marathi, Bengali, Gujarati, Punjabi
+    are all supported and none are covered — must still be graded. Only length
+    filters, so it gets through and the model judges it.
+    """
+    unknown = "Tumhi normalization baddal sangu shakta ka nemke kay aahe te"
+    assert not turn_grader.looks_like_a_question(unknown)
+    assert turn_grader.should_grade(unknown, "Normalization mhanje data duplicate kami karne.")
 
 
-def test_a_short_cueless_reaction_is_still_not_gradable():
-    """The other side of the same trade: a brief cue-less turn is a reaction, and
-    must not be paired with the next answer."""
-    assert not turn_grader.is_gradable_prompt("Chaala baagundi.")
-    assert not turn_grader.is_gradable_prompt("Bahut accha.")
-    assert not turn_grader.is_gradable_prompt("Good, that's right.")
+def test_the_cue_list_can_only_ever_prevent_an_ending_never_cause_one():
+    """`looks_like_a_question` is now an optimisation, not a gate. Its job in the
+    ending path is to short-circuit to "still asking" — so a language it misses
+    falls through to the model rather than ending somebody's exam."""
+    assert not turn_grader.examiner_closed("")
+    # A recognised question resolves with no model call at all.
+    assert not turn_grader.examiner_closed("What is 3NF?")
 
 
 def test_the_question_falls_back_to_the_last_sentence_not_the_whole_turn():
@@ -417,7 +458,9 @@ def test_an_indian_language_exchange_is_graded_end_to_end(monkeypatch):
 
     def fake(prompt, *args, **kwargs):
         seen["prompt"] = prompt
-        return {"topic": "Normalization", "score": 64, "feedback": "Idea correct, no example."}
+        return {"gradable": True, "question": "Normalization gurinchi cheppandi.",
+                "topic": "Normalization", "score": 64,
+                "feedback": "Idea correct, no example."}
 
     monkeypatch.setattr(turn_grader.gemini_service, "generate_json", fake)
     graded = turn_grader.grade_exchange(
@@ -428,9 +471,42 @@ def test_an_indian_language_exchange_is_graded_end_to_end(monkeypatch):
     )
     assert graded is not None
     assert graded["score"] == 64
+    # The question comes back in the language it was asked, identified by the model
+    # rather than pattern-matched out by us.
     assert graded["question"] == "Normalization gurinchi cheppandi."
-    # Content is graded, never the student's English.
-    assert "not on its English" in seen["prompt"]
+    # The examiner's WHOLE turn is sent, so the model can tell the reaction from the
+    # question itself in a language we do not parse.
+    assert "Chaala baagundi." in seen["prompt"]
+    # And the score must never be about the student's English.
+    assert "NEVER lower a score because of the language chosen" in seen["prompt"]
+
+
+def test_the_model_identified_question_is_preferred_over_local_extraction(monkeypatch):
+    monkeypatch.setattr(
+        turn_grader.gemini_service, "generate_json",
+        lambda *a, **k: {"gradable": True, "question": "Yeh kaise kaam karta hai?",
+                         "topic": "Indexing", "score": 55, "feedback": "Partly right."},
+    )
+    graded = turn_grader.grade_exchange(
+        mode="viva",
+        question="Theek hai. Ab batao, yeh kaise kaam karta hai?",
+        answer="Index ek B-tree structure hota hai jo search fast karta hai.",
+    )
+    assert graded["question"] == "Yeh kaise kaam karta hai?"
+
+
+def test_local_extraction_is_the_fallback_when_the_model_omits_the_question(monkeypatch):
+    monkeypatch.setattr(
+        turn_grader.gemini_service, "generate_json",
+        lambda *a, **k: {"gradable": True, "topic": "Indexing", "score": 55,
+                         "feedback": "Partly right."},
+    )
+    graded = turn_grader.grade_exchange(
+        mode="viva",
+        question="Good. Now, how does that index actually work?",
+        answer="It is a B-tree structure that makes the search much faster.",
+    )
+    assert graded["question"] == "Now, how does that index actually work?"
 
 
 # --------------------------------------------------------------------------- #
