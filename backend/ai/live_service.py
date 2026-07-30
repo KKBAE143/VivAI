@@ -197,12 +197,11 @@ def _greeting_rule(already_greeted: bool) -> str:
             "you already greeted, the next turns are ONLY reactions + questions."
         )
     return (
-        "ALREADY GREETED — DO NOT GREET (absolute): This session is ALREADY IN PROGRESS and you have "
-        "already introduced yourself. Your connection was re-established, so you cannot see the "
-        "earlier conversation — that does NOT mean it did not happen. NEVER say hello, hi, "
-        "namaskaram or welcome, never introduce yourself, never restart the viva. Your next turn is "
-        "a QUESTION and nothing else. If unsure what was covered, ask them to carry on from their "
-        "last answer."
+        "ALREADY GREETED — DO NOT GREET (absolute): This session is ALREADY IN PROGRESS and you "
+        "have already introduced yourself. Your connection was re-established, so you cannot see "
+        "the earlier conversation — that does NOT mean it did not happen. NEVER greet, never "
+        "introduce yourself, never restart the viva. Your next turn is a QUESTION and nothing "
+        "else. If unsure what was covered, ask them to carry on from their last answer."
     )
 
 
@@ -491,7 +490,8 @@ CRITICAL RULES:
 - Your SPOKEN reaction stays short and encouraging — that is bedside manner. The SCORE and the written feedback you log must be honest and specific, even when the spoken reaction was warm. A student who is told "fantastic explanation" and scored 90 for a shallow answer has been misled about their readiness.
 
 STRUCTURED LOGGING — MANDATORY, not optional (call these tools SILENTLY in the background — never read them aloud, never mention JSON, never let a tool call interrupt or delay your spoken turn):
-- `record_question`: REQUIRED every single time you ask the student a real question. Call it in the same turn as the question. Remember the question_id it returns. After the tool returns, stay SILENT until the student answers — do NOT greet again, do NOT re-ask the same question, do NOT re-introduce yourself.
+- AUDIO IS MANDATORY: every turn must contain spoken audio. Say the turn out loud, THEN call the tools. A tool call must never replace speech, or the student sits in silence watching text.
+- `record_question`: REQUIRED every single time you ask the student a real question. Speak the question aloud first, then call this immediately afterwards. Remember the question_id it returns. After the tool returns, stay SILENT until the student answers — do NOT greet again, do NOT re-ask the same question, do NOT re-introduce yourself.
 - `score_response`: REQUIRED right after you evaluate the student's answer to any recorded question — never move to the next question without scoring the previous one first. Pass question_id when you have it so the score attaches to the correct question.
 - `log_observation`: after each student turn, with a concise quote or concrete observed evidence.
 These tools are how the student's report and live feedback are built — skipping them means that moment is permanently lost from their feedback, not just delayed. Call them every time, exactly as specified, without exception."""
@@ -564,6 +564,27 @@ def resume_trigger(mode: str, language: str = "English") -> str:
     return f"{_RESUME_TRIGGER}{tail} Remember: {_language_directive(language)}"
 
 
+def speak_question_trigger(question: str, language: str = "English") -> str:
+    """Ask the examiner to actually SAY a question it only logged.
+
+    Native-audio Live models sometimes emit a turn that contains a function call
+    and a transcript but no PCM at all. The student then watches the question
+    appear as text while their speakers stay silent — which reads as "the AI is
+    not speaking" even though the session is working perfectly otherwise.
+
+    This is a recovery, not a retry: it names the question already recorded and
+    forbids logging it again, so it cannot turn into a duplicate question or a
+    second greeting.
+    """
+    asked = (question or "").strip()
+    return (
+        "SYSTEM: Your last turn produced no audio, so the student heard nothing. "
+        f"Say this question out loud now, exactly once: \"{asked}\" "
+        "Do NOT greet, do NOT introduce yourself, do NOT ask anything else, and do NOT call any "
+        f"tool — it is already recorded. Just speak. Remember: {_language_directive(language)}"
+    )
+
+
 def wrap_up_trigger(language: str = "English") -> str:
     """Tell the examiner its time is up and it must close now.
 
@@ -626,7 +647,8 @@ def _tools() -> list[types.Tool]:
                     name="record_question",
                     description=(
                         "Record an exam question you just asked the student out loud. Call this in "
-                        "the SAME turn you ask ANY real question — this is mandatory, not optional. "
+                        "AFTER you have spoken it aloud — this is mandatory, not optional, and "
+                        "the spoken question comes first. Never call this instead of speaking. "
                         "The response returns a question_id; remember it so you can pass it to "
                         "score_response for this exact question."
                     ),
