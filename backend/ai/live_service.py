@@ -37,6 +37,33 @@ logger = get_logger("live_service")
 # Current Live API models (2026), tried in order. gemini-3.1-flash-live-preview
 # is the recommended low-latency voice model; 2.5-flash-live-preview is the
 # fallback. Older *-native-audio-dialog / 2.0-flash-live names are deprecated.
+# Whether the LIVE session carries function-calling tools.
+#
+# Turned OFF after measuring it. The tools were the cause of a fortnight of
+# whack-a-mole, and every symptom traces back to them:
+#
+#   * A turn that emits a function call can carry NO audio, so the student
+#     watched a question appear as text in silence.
+#   * A native-audio turn that emits a tool call stalls until a tool response is
+#     returned; a probe against the real API with our exact config timed out
+#     waiting for turn_complete on a turn that produced a tool call, and
+#     completed normally with tools removed.
+#   * Google's own developer forums report WebSocket 1008 policy-violation
+#     closures specifically around function calling on Live models, which is the
+#     1008 in this project's diagnostics.
+#   * Every workaround for the above (speak-then-log instructions, silent-turn
+#     recovery nudges) produced its own defect: duplicate captions, a second
+#     spoken opening, and questions repeated in the wrong language.
+#
+# Nothing is actually lost. The report has never depended on these calls:
+# `finalize` always re-derives questions, answers, scores and feedback from the
+# full transcript via `analyze_transcript`, and explicitly PREFERS that result
+# over anything the tools recorded. The tools only ever fed the live side panel.
+#
+# Flip this back to True to restore them — the tool declarations and the
+# handlers are untouched.
+LIVE_TOOLS_ENABLED = False
+
 LIVE_MODELS = [
     "gemini-3.1-flash-live-preview",
     "gemini-2.5-flash-live-preview",
@@ -99,7 +126,7 @@ SESSION FLOW (follow in order):
 1. OPENING (in response to the session-start message, ~15 seconds): Introduce yourself as their AI communication coach, name the scenario you'll run, and tell them you'll be watching their delivery on camera and giving live tips. Then immediately start the scenario with your first prompt/question.
 2. Run the scenario naturally, one prompt/question at a time, and LISTEN.
 3. While they speak and between turns, give SHORT, specific, encouraging coaching based on what you SEE and HEAR — e.g. "Try to look at the camera", "Slow down a little", "Sit up straight", "Great — that was confident", "Watch the filler words". Weave 1 quick coaching tip into most of your turns, but never lecture.
-4. After every student turn, silently log 1-2 evidence-backed observations with the `log_observation` tool. Only log what you actually saw or heard; never invent body-language evidence when the camera is not useful.
+4. {observation_step}
 5. {question_budget} Keep YOUR turns short — the student should do most of the talking.
 6. When done, give a brief encouraging closing remark, tell them you're preparing their communication report, then call the `end_session` tool.""",
 }
@@ -137,6 +164,28 @@ def _budget_sentence(minutes: int | None) -> str:
         f"This session is {minutes} minutes long — that is the student's chosen limit, not a "
         f"suggestion. Cover {low}-{high} questions total across different topics and pace "
         f"yourself to finish inside {minutes} minutes."
+    )
+
+
+def _observation_step() -> str:
+    """Step 4 of the coach playbook: how delivery observations get captured.
+
+    With tools attached the coach logged them silently. With tools off there is
+    nothing to call, so the same noticing has to land in speech instead — which
+    is where a coach's feedback belongs anyway. The delivery report is rebuilt
+    from the transcript at finalize either way.
+    """
+    if not LIVE_TOOLS_ENABLED:
+        return (
+            "Keep noticing HOW they deliver it — eye contact, pace, posture, filler words, "
+            "energy — and fold one concrete observation into your spoken reaction when it is "
+            "worth saying. Only mention what you actually saw or heard; never invent "
+            "body-language evidence when the camera is not useful."
+        )
+    return (
+        "After every student turn, silently log 1-2 evidence-backed observations with the "
+        "`log_observation` tool. Only log what you actually saw or heard; never invent "
+        "body-language evidence when the camera is not useful."
     )
 
 
@@ -215,8 +264,8 @@ def _time_budget_block(minutes: int | None) -> str:
         f"- Total length: {minutes} minutes. Plan for {low}-{high} substantive questions, no more.\n"
         "- Do NOT pad the session to fill time, and do NOT keep asking questions past your plan.\n"
         "- You may receive a system message saying time is nearly up. When you do, finish the "
-        "current answer, give your short closing remark, and call `end_session` immediately — "
-        "do not start a new question.\n\n"
+        "current answer, give your short closing remark, and then stop — do not start a new "
+        "question.\n\n"
     )
 
 
@@ -363,6 +412,16 @@ def build_system_instruction(
     # The playbooks carry a placeholder rather than a fixed count, so the plan the
     # examiner works to matches the length the student actually asked for.
     playbook = playbook.replace("{question_budget}", _budget_sentence(duration_minutes))
+    playbook = playbook.replace("{observation_step}", _observation_step())
+    if not LIVE_TOOLS_ENABLED:
+        # Every playbook's last step tells the model to call `end_session`, which
+        # is not attached when tools are off. Telling a model to call a tool it
+        # does not have makes it spend turns trying instead of speaking.
+        playbook = playbook.replace(
+            "then call the `end_session` tool.", "then stop and stay silent."
+        ).replace(
+            "then call the `end_session` tool", "then stop and stay silent"
+        )
     if already_greeted:
         # Every playbook opens with an OPENING step. On a reconnect that step has
         # already happened, and leaving it in place is half the reason the model
@@ -437,7 +496,10 @@ def build_system_instruction(
             for i, q in enumerate(bank[:12], 1):
                 lines.append(f"  {i}. {q}")
         lines.append(
-            "Do NOT wander into unrelated subjects. When the bank is exhausted, end the session "
+            "Do NOT wander into unrelated subjects. When the bank is exhausted, close with a "
+            "short wrap-up and stop."
+            if not LIVE_TOOLS_ENABLED
+            else "Do NOT wander into unrelated subjects. When the bank is exhausted, end the session "
             "with a short wrap-up and call end_session."
         )
         focus_block = "\n".join(lines) + "\n\n"
@@ -483,9 +545,52 @@ CRITICAL RULES:
 - Ask ONE question at a time and then LISTEN. Never dump multiple questions at once.
 - Keep each spoken turn short (2-4 sentences). This is a dialogue, not a monologue.
 - Stay strictly in your role for this mode. {"Ground feedback in what is visible on the shared screen." if mode == "presentation" else "Coach on what you see of the student on their camera (eye contact, posture, expression) as well as what you hear." if mode == "coach" else "Do NOT mention screens or screen sharing."}
-- ENDING THE SESSION: When the session is genuinely complete (you have covered enough and delivered your brief closing remark), you MUST call the `end_session` tool exactly once. This is what generates the student's report — do NOT just fall silent and wait. Speak your one-line closing, then call `end_session`.
+- {_ending_rule()}
 
-{SCORING_BANDS_LIVE}
+{_logging_block()}"""
+
+
+def _ending_rule() -> str:
+    """How the examiner is told to finish.
+
+    With tools off there is no `end_session` to call, so the model is asked to
+    close verbally and stop. The session is then ended by the student pressing End
+    or by the server's own clock at the chosen duration — both of which are more
+    reliable than a tool call the model may never make.
+    """
+    if not LIVE_TOOLS_ENABLED:
+        return (
+            "ENDING: When you have covered enough for the time available, give ONE short closing "
+            "remark (\"that's everything from my side, thank you\") and then STOP talking and stay "
+            "silent. Do not keep asking questions after that, and do not announce a report."
+        )
+    return (
+        "ENDING THE SESSION: When the session is genuinely complete (you have covered enough and "
+        "delivered your brief closing remark), you MUST call the `end_session` tool exactly once. "
+        "This is what generates the student's report — do NOT just fall silent and wait. Speak your "
+        "one-line closing, then call `end_session`."
+    )
+
+
+def _logging_block() -> str:
+    """The structured-logging contract, or nothing at all.
+
+    Instructing the model to call tools that are not attached is worse than
+    saying nothing: it spends its turn trying to comply, and a Live model that
+    thinks it owes a function call can end a turn without speaking. When tools
+    are off, the report is built from the transcript instead — which is what it
+    was already doing at finalize regardless.
+    """
+    if not LIVE_TOOLS_ENABLED:
+        return (
+            f"{SCORING_BANDS_LIVE}\n"
+            "- Grade what was actually said, not how confidently it was said. Keep your spoken "
+            "reaction short and encouraging, but let the questions get harder when an answer is "
+            "thin — a student who is told everything is excellent learns nothing.\n"
+            "- You have NO tools and NO functions in this session. Never mention or attempt one. "
+            "Your entire job is the spoken conversation: ask, listen, react, ask again."
+        )
+    return f"""{SCORING_BANDS_LIVE}
 - Grade what was actually said, not how confidently it was said.
 - Your SPOKEN reaction stays short and encouraging — that is bedside manner. The SCORE and the written feedback you log must be honest and specific, even when the spoken reaction was warm. A student who is told "fantastic explanation" and scored 90 for a shallow answer has been misled about their readiness.
 
@@ -564,25 +669,11 @@ def resume_trigger(mode: str, language: str = "English") -> str:
     return f"{_RESUME_TRIGGER}{tail} Remember: {_language_directive(language)}"
 
 
-def speak_question_trigger(question: str, language: str = "English") -> str:
-    """Ask the examiner to actually SAY a question it only logged.
-
-    Native-audio Live models sometimes emit a turn that contains a function call
-    and a transcript but no PCM at all. The student then watches the question
-    appear as text while their speakers stay silent — which reads as "the AI is
-    not speaking" even though the session is working perfectly otherwise.
-
-    This is a recovery, not a retry: it names the question already recorded and
-    forbids logging it again, so it cannot turn into a duplicate question or a
-    second greeting.
-    """
-    asked = (question or "").strip()
-    return (
-        "SYSTEM: Your last turn produced no audio, so the student heard nothing. "
-        f"Say this question out loud now, exactly once: \"{asked}\" "
-        "Do NOT greet, do NOT introduce yourself, do NOT ask anything else, and do NOT call any "
-        f"tool — it is already recorded. Just speak. Remember: {_language_directive(language)}"
-    )
+# There is deliberately no `speak_question_trigger` here any more. It asked the
+# examiner to re-speak a question it had logged silently, and it produced a second
+# caption for the same question plus a language flip between the recorded and the
+# spoken version. The silent turn it was compensating for was caused by the tool
+# call itself — see LIVE_TOOLS_ENABLED.
 
 
 def wrap_up_trigger(language: str = "English") -> str:
@@ -593,11 +684,16 @@ def wrap_up_trigger(language: str = "English") -> str:
     a graceful close; if it is ignored, the server ends the session anyway, so
     this exists to make that ending sound deliberate rather than abrupt.
     """
+    tail = (
+        "and then call the `end_session` tool immediately."
+        if LIVE_TOOLS_ENABLED
+        else "and then stop talking. The session will be closed for you."
+    )
     return (
         "SYSTEM: The time limit for this session has been reached. Do not ask another question. "
         "Acknowledge the student's last answer in one short sentence, give your brief closing "
-        "remark, tell them you are preparing their feedback, and then call the `end_session` tool "
-        f"immediately. Remember: {_language_directive(language)}"
+        f"remark, tell them you are preparing their feedback, {tail} "
+        f"Remember: {_language_directive(language)}"
     )
 
 
@@ -802,7 +898,9 @@ def build_config(
         system_instruction=types.Content(parts=[types.Part(text=system_instruction)]),
         input_audio_transcription=input_transcription_cfg,
         output_audio_transcription=types.AudioTranscriptionConfig(),
-        tools=_tools(),
+        # See LIVE_TOOLS_ENABLED. A voice examiner's job is to talk; function
+        # calling is what stopped it talking.
+        **({"tools": _tools()} if LIVE_TOOLS_ENABLED else {}),
     )
     # ---------------------------------------------------------------- #
     # SESSION LIFETIME — the single most important setting here.

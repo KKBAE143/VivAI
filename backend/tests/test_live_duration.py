@@ -103,9 +103,37 @@ def test_every_mode_builds_with_a_duration(mode: str):
 # --------------------------------------------------------------------------- #
 def test_the_wrap_up_trigger_forbids_another_question():
     trigger = live_service.wrap_up_trigger("English")
-    assert "end_session" in trigger
     assert "not ask another question" in trigger
+    # How it closes depends on whether the session carries tools. With them off
+    # there is no `end_session` to call, so it is asked to stop talking and the
+    # server closes the session itself.
+    if live_service.LIVE_TOOLS_ENABLED:
+        assert "end_session" in trigger
+    else:
+        assert "stop talking" in trigger
+        assert "end_session" not in trigger
 
 
 def test_the_wrap_up_trigger_keeps_the_session_language():
     assert "Telugu" in live_service.wrap_up_trigger("Telugu")
+
+
+# --------------------------------------------------------------------------- #
+# The server clock is now the only automatic ending
+# --------------------------------------------------------------------------- #
+def test_a_session_with_no_configured_duration_still_has_a_ceiling():
+    """The model can no longer end a session itself.
+
+    `end_session` went away with the rest of the live tools, so a session whose
+    row carries no duration and whose scenario supplies no default would otherwise
+    run until the student pressed End or the tab died — open and billable the whole
+    time. The fallback ceiling is what bounds that case.
+    """
+    from api import live as live_api
+
+    assert live_api._FALLBACK_SESSION_MINUTES > 0
+    # Generous enough that it can never cut a real session short: every duration
+    # offered in the UI fits well inside it.
+    assert live_api._FALLBACK_SESSION_MINUTES >= 30
+    # And still inside the hard clamp the connection applies.
+    assert live_api._FALLBACK_SESSION_MINUTES <= 120

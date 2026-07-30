@@ -86,10 +86,18 @@ def test_the_live_examiner_gets_the_bands_too():
 
 
 def test_the_live_examiner_may_be_warm_aloud_but_not_in_the_mark():
+    """Warm out loud, honest in the mark — however the session is configured.
+
+    The wording differs: with tools attached the instruction talks about the score
+    it logs, and with tools off there is no logged score, so it is about letting
+    the questions get harder instead of praising a thin answer."""
     prompt = live_service.build_system_instruction(
         "viva", "balanced", "English", "", subject="DBMS", duration_minutes=10
     )
-    assert "misled about their readiness" in prompt
+    if live_service.LIVE_TOOLS_ENABLED:
+        assert "misled about their readiness" in prompt
+    else:
+        assert "told everything is excellent learns nothing" in prompt
 
 
 def test_calibration_costs_the_live_prompt_only_a_few_hundred_characters():

@@ -1360,8 +1360,13 @@ export function LiveStage({
         )}
 
         {qaItems.length === 0 && observationEvents.length === 0 && (
+          // Deliberately does not promise a live-updating scorecard. The examiner
+          // no longer reports questions and scores mid-session — that mechanism is
+          // what kept it from speaking — so the full evaluation is produced from
+          // the complete transcript when the session ends.
           <p className="py-6 text-center text-xs text-muted-foreground">
-            Evaluation, coaching tips and scores will build up here live as the session runs.
+            Every answer is being recorded. Your questions, scores and feedback are prepared from
+            the full session once you finish.
           </p>
         )}
       </aside>

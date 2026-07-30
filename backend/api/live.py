@@ -723,65 +723,25 @@ class LivePersistence:
 _send_audio = live_service.send_audio
 
 
-# How many silent turns we are willing to rescue in one session. A cap, because
-# a model that will not speak at all must not be prompted forever — that would
-# turn one silent turn into an endless loop of nudges.
-_MAX_AUDIO_RECOVERIES = 3
+# The longest a session with no configured duration is allowed to run. Only a
+# backstop: every session created through the UI carries its own duration, and a
+# scenario supplies one for legacy rows. This catches the remaining case so that
+# no session can run unbounded now that the model cannot end one itself.
+_FALLBACK_SESSION_MINUTES = 30
 
 
-async def _recover_silent_question(
-    speech: dict, session, websocket: WebSocket, session_id: str, mode: str, language: str
-) -> None:
-    """Ask for a question that was logged but never spoken.
-
-    Native-audio Live models sometimes end a turn having emitted a function call
-    and a transcript but no PCM whatsoever. The student watches the question
-    appear as text while their speakers stay silent, which reads as "the AI is not
-    speaking" even though everything else is working.
-
-    Only fires when a question was recorded AND no audio was forwarded during that
-    same turn, so a normal spoken turn never triggers it. The trigger names the
-    question already recorded and forbids re-logging it, so this cannot become a
-    duplicate question — and it says nothing about greeting, so it cannot become a
-    second hello.
-    """
-    question = speech.get("question_this_turn")
-    if speech.get("audio_this_turn") or not question:
-        return
-    if speech.get("recoveries", 0) >= _MAX_AUDIO_RECOVERIES:
-        return
-    speech["recoveries"] = speech.get("recoveries", 0) + 1
-    logger.warning(
-        "recorded question had no audio; asking the examiner to speak it",
-        extra={
-            "session_id": session_id,
-            "mode": mode,
-            "event": "question_audio_recovery",
-            "attempt": speech["recoveries"],
-        },
-    )
-    try:
-        await websocket.send_json({"type": "speech_recovery"})
-    except Exception:  # noqa: BLE001 — the socket may already be closing
-        pass
-    try:
-        # Sent as a completed turn, not as realtime input: realtime text does not
-        # reliably make the model generate, and the whole point here is to get it
-        # speaking right now.
-        await session.send_client_content(
-            turns=types.Content(
-                role="user",
-                parts=[types.Part(text=live_service.speak_question_trigger(question, language))],
-            ),
-            turn_complete=True,
-        )
-    except Exception:  # noqa: BLE001 — a failed nudge must not end the session
-        logger.warning(
-            "speech recovery could not be sent",
-            exc_info=True,
-            extra={"session_id": session_id, "mode": mode,
-                   "event": "question_audio_recovery_failed", "swallowed": True},
-        )
+# There is deliberately no "silent question recovery" here any more.
+#
+# When the examiner logged a question with a tool call but produced no audio, the
+# server used to send a follow-up trigger asking it to speak that question. It
+# reliably made things worse: the nudge produced a SECOND caption for the same
+# question, and the spoken turn often came back in a different language from the
+# recorded one. Both are exactly the defects this feature was meant to hide.
+#
+# The cause was never the missing nudge — it was the tool call. See
+# LIVE_TOOLS_ENABLED in ai/live_service.py. With no tools on the live session a
+# turn cannot end as a function call with no speech, so there is nothing to
+# rescue, and the report is rebuilt from the transcript at finalize regardless.
 
 
 def _fatal_live_retryable(exc: BaseException) -> bool:
@@ -1073,6 +1033,13 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
         budget_minutes = 0
     if budget_minutes <= 0 and scenario is not None:
         budget_minutes = int(getattr(scenario, "default_duration_min", 0) or 0)
+    if budget_minutes <= 0:
+        # There is no `end_session` tool any more (see LIVE_TOOLS_ENABLED), so the
+        # model can no longer close a session itself. Without a ceiling a session
+        # with no configured duration would stay open — and billable — until the
+        # student pressed End or the tab died. A generous cap keeps that bounded
+        # without ever cutting a real session short.
+        budget_minutes = _FALLBACK_SESSION_MINUTES
     budget_minutes = max(0, min(120, budget_minutes))
 
     project_context = await asyncio.to_thread(_project_context, project_id)
@@ -1146,9 +1113,6 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
             self.focus_lost = False
             return text, seconds, focus_lost
 
-    # Per-turn speech bookkeeping, so a turn that logs a question without speaking
-    # it can be rescued. A dict because it is mutated from a nested coroutine.
-    speech: dict = {"audio_this_turn": False, "question_this_turn": None, "recoveries": 0}
 
     turn = StudentTurn()
     # One warning per session, by design. A detector this indirect gets to raise a
@@ -1307,7 +1271,6 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                             # same fact instead of re-deciding it.
                             owner.session_state.opening_delivered = True
                             greeted = True
-                            speech["audio_this_turn"] = True
                 except Exception as audio_exc:
                     # Never let one bad PCM frame kill the whole receive loop —
                     # that was a silent "AI voice not coming" mode.
@@ -1351,14 +1314,6 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                     if getattr(sc, "interrupted", None):
                         await websocket.send_json({"type": "interrupted"})
                     if getattr(sc, "turn_complete", None):
-                        # A turn that recorded a question but produced no audio left
-                        # the student watching text appear in silence. Ask for the
-                        # speech once, then carry on.
-                        await _recover_silent_question(
-                            speech, session, websocket, session_id, mode, language
-                        )
-                        speech["audio_this_turn"] = False
-                        speech["question_this_turn"] = None
                         await _forward_turn_complete(
                             websocket, first_turn_done, open_gate=not client_owns_mic_gate
                         )
@@ -1373,11 +1328,6 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                             )
                             continue
                         args = dict(fc.args or {})
-                        if fc.name == "record_question":
-                            # Remember what was logged, so that if this turn ends
-                            # with no audio we can ask for exactly this question to
-                            # be spoken rather than inventing a new one.
-                            speech["question_this_turn"] = str(args.get("question") or "").strip()
                         event = persist.on_tool(fc.name, args)
                         if event:
                             await websocket.send_json(event)

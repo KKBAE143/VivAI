@@ -605,26 +605,35 @@ def test_a_credential_failure_does_not_blame_the_student():
     assert "on us" in message.lower()
 
 
-def test_a_question_logged_without_audio_is_asked_to_be_spoken(live_harness, monkeypatch):
-    """"It's generating the transcription but the voice is not coming."
+@pytest.mark.parametrize("examiner_spoke", [False, True], ids=["silent-turn", "spoken-turn"])
+def test_the_server_never_asks_the_examiner_to_repeat_a_question(
+    live_harness, monkeypatch, examiner_spoke
+):
+    """The duplicate-caption regression, guarded from both sides.
 
-    Native-audio Live models sometimes end a turn having emitted a function call
-    and a transcript but NO PCM at all. The question appears as text in the panel
-    while the student's speakers stay silent, which reads as a broken examiner even
-    though the session is otherwise fine. The prompt now demands speech before
-    tools, and this is the server-side net for when that is ignored.
+    The server used to notice a turn that logged a question without speaking it and
+    send a follow-up asking for the question aloud. That nudge is what produced two
+    captions for one question, and the repeat frequently came back in a different
+    language from the recorded original.
+
+    After the session's own start trigger, the server must send NO further
+    client-content turns of its own — whether or not the examiner produced audio.
+    Only the server clock's wrap-up may add one, and that is a different test.
     """
     question = SimpleNamespace(
         id="q1", name="record_question", args={"question": "What is 3NF?", "topic": "DBMS"}
     )
     end_call = SimpleNamespace(id="c2", name="end_session", args={})
-    only = FakeGeminiSession(turns=[[
-        # A turn with a transcript and a tool call, and no audio whatsoever.
+    turn = []
+    if examiner_spoke:
+        turn.append(_response(data=b"\x01\x02"))
+    turn += [
         _response(_server_content(output_transcription=_text("What is 3NF?"))),
         _response(tool_call=SimpleNamespace(function_calls=[question])),
         _response(_server_content(turn_complete=True)),
         _response(tool_call=SimpleNamespace(function_calls=[end_call])),
-    ]])
+    ]
+    only = FakeGeminiSession(turns=[turn])
     live_harness([only])
 
     socket = FakeBrowserSocket()
@@ -636,58 +645,51 @@ def test_a_question_logged_without_audio_is_asked_to_be_spoken(live_harness, mon
 
     asyncio.run(_run(socket))
 
-    # A recovery turn was sent, naming the question that was already recorded.
-    recovery = [c for c in only.client_content if "no audio" in c]
-    assert len(recovery) == 1, f"expected one recovery, got {only.client_content}"
-    assert "What is 3NF?" in recovery[0]
-    # It must not be able to become a duplicate question or a second greeting.
-    assert "do NOT call any tool" in recovery[0]
-    assert "Do NOT greet" in recovery[0]
-    # And the browser is told, so the UI can explain the pause if it wants to.
-    assert "speech_recovery" in socket.types_sent()
-
-
-def test_a_spoken_question_is_never_asked_to_repeat_itself(live_harness, monkeypatch):
-    """The guard that keeps this from becoming the duplication bug again: a turn
-    that DID produce audio must never be nudged."""
-    question = SimpleNamespace(
-        id="q1", name="record_question", args={"question": "What is 3NF?", "topic": "DBMS"}
-    )
-    end_call = SimpleNamespace(id="c2", name="end_session", args={})
-    only = FakeGeminiSession(turns=[[
-        _response(data=b"\x01\x02"),  # the examiner actually spoke
-        _response(_server_content(output_transcription=_text("What is 3NF?"))),
-        _response(tool_call=SimpleNamespace(function_calls=[question])),
-        _response(_server_content(turn_complete=True)),
-        _response(tool_call=SimpleNamespace(function_calls=[end_call])),
-    ]])
-    live_harness([only])
-
-    socket = FakeBrowserSocket()
-    socket.query_params = {"token": "t", "pv": "1"}
-    monkeypatch.setattr(live_api.live_service, "analyze_transcript",
-                        lambda *a, **k: {"questions": [], "overall_score": 50, "summary": "",
-                                         "strengths": [], "weaknesses": []})
-    monkeypatch.setattr(live_api.report_service, "build_report", lambda **k: None)
-
-    asyncio.run(_run(socket))
-
+    # Exactly one server-sent turn: the session-start trigger that opens the viva.
+    assert len(only.client_content) == 1, f"unexpected extra turns: {only.client_content}"
     assert not [c for c in only.client_content if "no audio" in c]
     assert "speech_recovery" not in socket.types_sent()
 
 
-def test_the_examiner_is_told_to_speak_before_logging():
-    """The prompt-side half of the fix. Demanding the tool call in the SAME turn as
-    the question is what produced turns containing a function call, a transcript,
-    and no speech."""
-    prompt = live_api.live_service.build_system_instruction(
+def test_the_silent_question_recovery_is_gone_for_good():
+    """It is not enough for the nudge to be unreachable — it must not exist.
+
+    Left in place behind a flag it would re-arm the duplicate caption and the
+    language flip the moment tools were switched back on, which is precisely the
+    trap this change exists to get out of.
+    """
+    assert not hasattr(live_api, "_recover_silent_question")
+    assert not hasattr(live_api, "_MAX_AUDIO_RECOVERIES")
+    assert not hasattr(live_api.live_service, "speak_question_trigger")
+
+
+def test_the_examiner_is_never_told_to_call_a_tool_it_does_not_have():
+    """Function calling is what stopped the examiner speaking, so with tools off the
+    prompt must not mention one anywhere — including the playbooks' closing step and
+    the time-budget block, which both used to name `end_session`.
+
+    A model told to call a tool it has not been given spends its turn trying to
+    comply instead of talking, which is the failure this whole change removes.
+    """
+    live_service = live_api.live_service
+    for mode in ("viva", "presentation", "pitch", "coach"):
+        prompt = live_service.build_system_instruction(
+            mode, "balanced", "English", "A DBMS project", subject="DBMS", duration_minutes=10
+        )
+        if live_service.LIVE_TOOLS_ENABLED:
+            assert "record_question" in prompt
+            continue
+        for tool in ("end_session", "record_question", "score_response", "log_observation"):
+            assert tool not in prompt, f"{mode} prompt still references {tool}"
+        assert "NO tools and NO functions" in prompt
+
+
+def test_the_live_config_carries_no_tools_when_they_are_disabled():
+    live_service = live_api.live_service
+    config = live_service.build_config(
         "viva", "balanced", "English", "A DBMS project", subject="DBMS", duration_minutes=10
     )
-    assert "AUDIO IS MANDATORY" in prompt
-    assert "never replace speech" in prompt
-    assert "same turn as the question" not in prompt
-
-
-def test_the_recovery_is_capped():
-    """A model that will not speak at all must not be nudged forever."""
-    assert live_api._MAX_AUDIO_RECOVERIES <= 3
+    if live_service.LIVE_TOOLS_ENABLED:
+        assert config.tools
+    else:
+        assert not getattr(config, "tools", None)

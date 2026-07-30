@@ -11,29 +11,29 @@ Two honesty markers you will see a lot:
 - **BLOCKED** — cannot pass until a prerequisite in §1 is done (an unset env var, or an institution not yet marked verified). Do not log these as failures.
 - **KNOWN BUG** — already understood to be broken. Confirm the symptom matches, then move on. Do not spend time debugging it.
 
-Nothing in this document has been executed in a browser. It was written from the source, so its value is telling you *where to look* and *what "correct" means*, not certifying that any of it currently passes.
+Nothing in this document has been executed in a browser. It was written from the source, so its value is telling you _where to look_ and _what "correct" means_, not certifying that any of it currently passes.
 
 ## 1. Prerequisites
 
 ### 1.1 Environment
 
-| Item | How | Expect |
-|---|---|---|
-| Backend boots | `cd backend` then `uvicorn main:app --reload --port 8000` | Starts. `GET http://localhost:8000/health` → `{"status":"ok"}` |
-| Frontend boots | `bun run dev` from the repo root | Serves on :3000 or :8080 |
-| CORS | Check `CORS_ORIGINS` in `backend/.env` | Must list the port the frontend actually serves on. Default is `http://localhost:8080,http://localhost:5173` — **a frontend on :3000 is blocked until you add it**, and the symptom is every request failing with no useful message |
-| API docs | `http://localhost:8000/docs` | Swagger loads. You will use this for §16 |
+| Item           | How                                                       | Expect                                                                                                                                                                                                                              |
+| -------------- | --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Backend boots  | `cd backend` then `uvicorn main:app --reload --port 8000` | Starts. `GET http://localhost:8000/health` → `{"status":"ok"}`                                                                                                                                                                      |
+| Frontend boots | `bun run dev` from the repo root                          | Serves on :3000 or :8080                                                                                                                                                                                                            |
+| CORS           | Check `CORS_ORIGINS` in `backend/.env`                    | Must list the port the frontend actually serves on. Default is `http://localhost:8080,http://localhost:5173` — **a frontend on :3000 is blocked until you add it**, and the symptom is every request failing with no useful message |
+| API docs       | `http://localhost:8000/docs`                              | Swagger loads. You will use this for §16                                                                                                                                                                                            |
 
 The backend starts with an empty `.env` — every setting defaults to `""` and the Supabase client is built lazily. That means **a missing key does not fail at boot, it fails per request**. Confirm these before blaming a feature:
 
-| Variable | Without it |
-|---|---|
-| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Every authenticated endpoint fails |
-| `SUPABASE_ANON_KEY` | Signup / login / refresh / OAuth / password reset misbehave (falls back to the service-role key, which is not equivalent for auth flows) |
-| `STORAGE_BUCKET` (default `uploads`) | File upload returns 500 "Storage upload failed". The bucket must already exist in Supabase |
-| `GEMINI_API_KEY` | All live voice sockets, slide analysis, pitch scoring, code-aware distillation and the REST viva turn endpoints fail or silently degrade to a score of 50 |
-| `GEMINI_LIVE_MODEL` / `GEMINI_LIVE_VOICE` | Defaults are **preview** model names (`gemini-3.1-flash-live-preview`, `Puck`). If the preview is retired, every live socket dies while REST Gemini keeps working — a confusing split failure. Check this first if voice is broken but text scoring works |
-| `VITE_API_URL` (frontend) | Defaults to `http://localhost:8000` |
+| Variable                                    | Without it                                                                                                                                                                                                                                                |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Every authenticated endpoint fails                                                                                                                                                                                                                        |
+| `SUPABASE_ANON_KEY`                         | Signup / login / refresh / OAuth / password reset misbehave (falls back to the service-role key, which is not equivalent for auth flows)                                                                                                                  |
+| `STORAGE_BUCKET` (default `uploads`)        | File upload returns 500 "Storage upload failed". The bucket must already exist in Supabase                                                                                                                                                                |
+| `GEMINI_API_KEY`                            | All live voice sockets, slide analysis, pitch scoring, code-aware distillation and the REST viva turn endpoints fail or silently degrade to a score of 50                                                                                                 |
+| `GEMINI_LIVE_MODEL` / `GEMINI_LIVE_VOICE`   | Defaults are **preview** model names (`gemini-3.1-flash-live-preview`, `Puck`). If the preview is retired, every live socket dies while REST Gemini keeps working — a confusing split failure. Check this first if voice is broken but text scoring works |
+| `VITE_API_URL` (frontend)                   | Defaults to `http://localhost:8000`                                                                                                                                                                                                                       |
 
 ### 1.2 Database migrations
 
@@ -45,12 +45,12 @@ Run `backend/migrations/001` … `007` in order in the Supabase SQL editor.
 
 You need five accounts. Creating them is itself the first test pass (§2).
 
-| Account | Role | How to get it |
-|---|---|---|
-| `student1` | student | Normal signup |
+| Account                | Role    | How to get it                                                                   |
+| ---------------------- | ------- | ------------------------------------------------------------------------------- |
+| `student1`             | student | Normal signup                                                                   |
 | `student2`, `student3` | student | Normal signup — **needed for Team Viva, which requires 3 participants minimum** |
-| `admin1` | admin | Signup, then pick "admin" in onboarding and create an institution |
-| `faculty1` | faculty | See the warning below |
+| `admin1`               | admin   | Signup, then pick "admin" in onboarding and create an institution               |
+| `faculty1`             | faculty | See the warning below                                                           |
 
 > **Faculty cannot be created through the UI.** Claiming "faculty" during onboarding parks the claim as `institution_members.requested_role` and leaves `profiles.role = 'student'` on purpose — otherwise any student could self-promote and read classmates' reports. The approval endpoints exist (`GET /api/institution/pending-faculty`, `POST /api/institution/approve-faculty`, both `require_admin`) but **no screen calls them**. So to get a faculty user, either call `POST /api/institution/approve-faculty` from Swagger as `admin1`, or set `profiles.role = 'faculty'` and `profiles.institution_id` by hand in Supabase.
 
@@ -79,18 +79,18 @@ Leave `DIAGNOSTICS_ENABLED=true`. As you walk this document, failures are captur
 
 ### 2.2 Known bugs — confirm the symptom, do not debug
 
-| Where | Symptom | Cause |
-|---|---|---|
-| `/admin` → **Export CSV** | Button does nothing at all, no error | `GET /api/institution/export` streams `text/csv`, but `api()` always calls `res.json()`; the parse throws and the handler's empty `catch {}` swallows it |
-| `/profile` | **Camera** button on the avatar does nothing; the **Profile / Account / Notifications / Preferences** list items are inert (`Profile` is hardcoded active) | No handlers |
-| `/progress`, `/projects` | The funnel **Filter** button and the per-row **More** button do nothing | No handlers |
-| `/projects/new` | The **Team Setup / Timeline / Review** steps in the stepper do not exist; there is no deadline field despite "Timeline" | Stepper is decorative |
-| `/ai` | Badges read "3 new" over 2 items and "7 new" over 4 | Hardcoded |
-| `/advanced/weakness-heatmap` → **Refresh Analysis** | Numbers may not change until you refresh a second time | The recompute mutation and the refetch fire in the same tick |
-| `/login` | **Remember me** has no effect | Uncontrolled, unused |
-| `/signup` | The "Terms of Service" link opens the privacy page | No ToS route exists |
-| `/signup` | Both consent links point at `/privacy`; there is no separate Terms page | No ToS route exists |
-| `/templates/$slug` | Checklist ticks are lost on reload | Local component state, never persisted |
+| Where                                               | Symptom                                                                                                                                                    | Cause                                                                                                                                                    |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/admin` → **Export CSV**                           | Button does nothing at all, no error                                                                                                                       | `GET /api/institution/export` streams `text/csv`, but `api()` always calls `res.json()`; the parse throws and the handler's empty `catch {}` swallows it |
+| `/profile`                                          | **Camera** button on the avatar does nothing; the **Profile / Account / Notifications / Preferences** list items are inert (`Profile` is hardcoded active) | No handlers                                                                                                                                              |
+| `/progress`, `/projects`                            | The funnel **Filter** button and the per-row **More** button do nothing                                                                                    | No handlers                                                                                                                                              |
+| `/projects/new`                                     | The **Team Setup / Timeline / Review** steps in the stepper do not exist; there is no deadline field despite "Timeline"                                    | Stepper is decorative                                                                                                                                    |
+| `/ai`                                               | Badges read "3 new" over 2 items and "7 new" over 4                                                                                                        | Hardcoded                                                                                                                                                |
+| `/advanced/weakness-heatmap` → **Refresh Analysis** | Numbers may not change until you refresh a second time                                                                                                     | The recompute mutation and the refetch fire in the same tick                                                                                             |
+| `/login`                                            | **Remember me** has no effect                                                                                                                              | Uncontrolled, unused                                                                                                                                     |
+| `/signup`                                           | The "Terms of Service" link opens the privacy page                                                                                                         | No ToS route exists                                                                                                                                      |
+| `/signup`                                           | Both consent links point at `/privacy`; there is no separate Terms page                                                                                    | No ToS route exists                                                                                                                                      |
+| `/templates/$slug`                                  | Checklist ticks are lost on reload                                                                                                                         | Local component state, never persisted                                                                                                                   |
 
 ### 2.3 Dead ends — features with no UI path
 
@@ -107,170 +107,180 @@ Do not hunt for these screens; they do not exist.
 Both fixes make previously-permitted things fail. Expect these, and do not log them as regressions:
 
 - Reading a Team Viva session or report you are not a participant in, or faculty of, now returns **403**. An unknown session id now returns **404** where the report used to return an empty object.
-- Creating any session — viva, presentation, team viva, code-aware, sentiment — or submitting a pitch now returns **403 `consent_required`** if the account has no consent on record. Reading your own reports, and the deletion endpoint, are deliberately *not* gated: withdrawing consent must not make the right to erasure unreachable.
+- Creating any session — viva, presentation, team viva, code-aware, sentiment — or submitting a pitch now returns **403 `consent_required`** if the account has no consent on record. Reading your own reports, and the deletion endpoint, are deliberately _not_ gated: withdrawing consent must not make the right to erasure unreachable.
+
+### 2.5 Function calling was removed from the solo live session
+
+`LIVE_TOOLS_ENABLED = False` in `backend/ai/live_service.py`. The examiner no longer has `record_question`, `score_response`, `log_observation` or `end_session`. This was the root cause of the silent-examiner and duplicate-caption cycle: a native-audio turn that emits a function call can carry no audio at all, and stalls waiting for a tool response. Consequences to expect, none of which are regressions:
+
+- **The evaluation panel does not stream during a session.** No per-question cards, no live scores, no coaching chips. Everything is derived from the full transcript at finalize, which is what the report already preferred.
+- **The model cannot end its own session.** Ending is the student pressing End, or the server clock at the chosen duration (plus a 45s grace), or the 30-minute fallback ceiling for a session with no duration configured.
+- **Team Viva still uses tools.** `backend/ai/team_live_service.py` is untouched — the room needs `call_on_participant` to know whose microphone to open. Do not read solo behaviour across to §13.
+
+Reverting is one flag; the declarations and handlers are still in place.
 
 ## 3. Auth and onboarding
 
-| # | Check | How | Expect |
-|---|---|---|---|
-| 3.1 | Signup | `/signup`: name, email, college, year, branch, password + confirm, tick consent, **Create Account** | Account created, redirected into `/onboarding`. A consent row is written best-effort |
-| 3.2 | Under-18 path | Tick "I am under 18" | Parental-consent warning appears; signup still completes and logs a `parental` consent |
-| 3.3 | Password validation | Password shorter than 6 chars | 422 from the API, surfaced as a form error |
-| 3.4 | Duplicate email | Sign up twice with one address | 400, readable message |
-| 3.5 | Login | `/login` with the new credentials | Lands on `/` (or `/onboarding` if incomplete, `/admin` for admins, `/faculty` for faculty) |
-| 3.6 | Wrong password | Deliberately wrong | 401, message shown, no redirect |
-| 3.7 | Already-signed-in guard | Visit `/login` with a token present | Bounced to `/` |
-| 3.8 | Google OAuth | **Continue with Google** | Redirects to Google. Needs the provider configured in Supabase; a 400 here means it is not. First login auto-creates the profile row |
-| 3.9 | Forgot password | `/forgot-password`, submit any address | Always succeeds, by design — it must not reveal whether the address exists |
-| 3.10 | Reset password | Open the emailed link → `/reset-password` | Form accepts a new password; an expired link shows the invalid state with a link back |
-| 3.11 | Student onboarding | 4 steps: institution → academics → project → goals | Progress bar tracks "Step n of m". **Skip for now** works on the institution step. Finishing lands on `/`. A project is created best-effort |
-| 3.12 | Bad institution code | Enter a nonsense code | 400 with a readable message |
-| 3.13 | Faculty claim | Pick faculty, supply an institution code, finish | Ends on a **pending approval** state. `profiles.role` stays `student`, and `institution_members.requested_role` records the claim |
-| 3.14 | Faculty claim without a code | Pick faculty, leave the code empty | 400 — a role claim requires an institution |
-| 3.15 | Admin creates an institution | Pick admin, enter a name, **Copy** the invite code, finish | Institution created unverified with a 25-seat cap; you land on `/admin` and keep the admin role |
-| 3.16 | Admin re-entry is refused | As a user already in an institution, try creating another | 409 "You already belong to an institution" — this is a squatting guard, not a bug |
-| 3.17 | Role survives onboarding | As `admin1`, finish onboarding, reload `/admin` | Still admin. There was a bug here that reset everyone to student on finish; a regression shows up as being bounced to `/` |
-| 3.18 | Toasts appear at all | Trigger any success or error above | A toast renders. `<Toaster />` was missing from the tree for a long time, which made every toast in the app silently impossible |
-| 3.19 | Token refresh | Stay signed in past access-token expiry, then act | The 401 is retried transparently via `/api/auth/refresh`; you are not kicked out |
-| 3.20 | Sign out | `/profile` → **Sign Out** | Token dropped, redirected to `/login`. Back button does not restore the session |
+| #    | Check                        | How                                                                                                 | Expect                                                                                                                                      |
+| ---- | ---------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| 3.1  | Signup                       | `/signup`: name, email, college, year, branch, password + confirm, tick consent, **Create Account** | Account created, redirected into `/onboarding`. A consent row is written best-effort                                                        |
+| 3.2  | Under-18 path                | Tick "I am under 18"                                                                                | Parental-consent warning appears; signup still completes and logs a `parental` consent                                                      |
+| 3.3  | Password validation          | Password shorter than 6 chars                                                                       | 422 from the API, surfaced as a form error                                                                                                  |
+| 3.4  | Duplicate email              | Sign up twice with one address                                                                      | 400, readable message                                                                                                                       |
+| 3.5  | Login                        | `/login` with the new credentials                                                                   | Lands on `/` (or `/onboarding` if incomplete, `/admin` for admins, `/faculty` for faculty)                                                  |
+| 3.6  | Wrong password               | Deliberately wrong                                                                                  | 401, message shown, no redirect                                                                                                             |
+| 3.7  | Already-signed-in guard      | Visit `/login` with a token present                                                                 | Bounced to `/`                                                                                                                              |
+| 3.8  | Google OAuth                 | **Continue with Google**                                                                            | Redirects to Google. Needs the provider configured in Supabase; a 400 here means it is not. First login auto-creates the profile row        |
+| 3.9  | Forgot password              | `/forgot-password`, submit any address                                                              | Always succeeds, by design — it must not reveal whether the address exists                                                                  |
+| 3.10 | Reset password               | Open the emailed link → `/reset-password`                                                           | Form accepts a new password; an expired link shows the invalid state with a link back                                                       |
+| 3.11 | Student onboarding           | 4 steps: institution → academics → project → goals                                                  | Progress bar tracks "Step n of m". **Skip for now** works on the institution step. Finishing lands on `/`. A project is created best-effort |
+| 3.12 | Bad institution code         | Enter a nonsense code                                                                               | 400 with a readable message                                                                                                                 |
+| 3.13 | Faculty claim                | Pick faculty, supply an institution code, finish                                                    | Ends on a **pending approval** state. `profiles.role` stays `student`, and `institution_members.requested_role` records the claim           |
+| 3.14 | Faculty claim without a code | Pick faculty, leave the code empty                                                                  | 400 — a role claim requires an institution                                                                                                  |
+| 3.15 | Admin creates an institution | Pick admin, enter a name, **Copy** the invite code, finish                                          | Institution created unverified with a 25-seat cap; you land on `/admin` and keep the admin role                                             |
+| 3.16 | Admin re-entry is refused    | As a user already in an institution, try creating another                                           | 409 "You already belong to an institution" — this is a squatting guard, not a bug                                                           |
+| 3.17 | Role survives onboarding     | As `admin1`, finish onboarding, reload `/admin`                                                     | Still admin. There was a bug here that reset everyone to student on finish; a regression shows up as being bounced to `/`                   |
+| 3.18 | Toasts appear at all         | Trigger any success or error above                                                                  | A toast renders. `<Toaster />` was missing from the tree for a long time, which made every toast in the app silently impossible             |
+| 3.19 | Token refresh                | Stay signed in past access-token expiry, then act                                                   | The 401 is retried transparently via `/api/auth/refresh`; you are not kicked out                                                            |
+| 3.20 | Sign out                     | `/profile` → **Sign Out**                                                                           | Token dropped, redirected to `/login`. Back button does not restore the session                                                             |
 
 ### 3.21 Privacy consent — new enforcement
 
-| # | Check | How | Expect |
-|---|---|---|---|
-| 3.21.1 | Consented users see nothing | Sign in as an account created through the signup form with the box ticked | No consent dialog. A prompt shown to someone who already consented is a bug |
-| 3.21.2 | Google account is asked | Sign in with Google (that path never passes through the signup form, so it has no consent on record) | "Before your first session" dialog with the four data points |
-| 3.21.3 | Accept | **Accept and continue** | Toast, dialog closes, does not return on reload. `consent_log` gains a row and `profiles.consent_accepted_at` is set |
-| 3.21.4 | Read first | **Read the full notice** | Goes to `/privacy`, and the dialog becomes a sticky bottom bar there instead of covering the page. Accepting from that bar works |
-| 3.21.5 | Not dismissable | Press Escape, click the backdrop, look for a corner X | None of them close it. Consent has to be answered, not escaped |
-| 3.21.6 | Decline | **Decline** | A second panel naming exactly what stops working, with **Accept**, **Read the notice** and **Sign out**. No silent dismissal |
-| 3.21.7 | Refusal blocks sessions, not the app | After declining, try to start a mock viva | 403 with the readable message "You must accept the Privacy Policy before starting a session." — **not** "Request failed (403)". Projects, teams, tasks, files and past reports still work |
-| 3.21.8 | Re-consent on a new notice | Bump `POLICY_VERSION` in `backend/api/privacy.py`, restart, reload | Asked again, with wording that says the notice changed and the earlier consent does not carry over |
-| 3.21.9 | Notice readable before signing in | Sign out, open `/privacy` directly | Renders standalone without bouncing to `/login` — a notice you cannot read until after agreeing to it is not a notice |
-| 3.21.10 | Under-18 | Set `is_minor` on a test profile with no `parental_consent_at` | The gate names the guardian-consent requirement |
-| 3.21.11 | Itemised notice | Read `/privacy` | A per-item table of data, purpose and what it enables (DPDP Rules 2025, Rule 3), the named processors including Google Gemini, the 72-hour breach window, and the route to the Data Protection Board |
-| 3.21.12 | Erasure still reachable | With no consent, `/profile` → **Delete All My Data** | Works. Consent gates what we start recording, not your right to remove it |
-| 3.21.13 | Simulate a legacy account | Clear `consent_accepted_at` for a test user in Supabase, reload | The dialog appears again |
+| #       | Check                                | How                                                                                                  | Expect                                                                                                                                                                                               |
+| ------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 3.21.1  | Consented users see nothing          | Sign in as an account created through the signup form with the box ticked                            | No consent dialog. A prompt shown to someone who already consented is a bug                                                                                                                          |
+| 3.21.2  | Google account is asked              | Sign in with Google (that path never passes through the signup form, so it has no consent on record) | "Before your first session" dialog with the four data points                                                                                                                                         |
+| 3.21.3  | Accept                               | **Accept and continue**                                                                              | Toast, dialog closes, does not return on reload. `consent_log` gains a row and `profiles.consent_accepted_at` is set                                                                                 |
+| 3.21.4  | Read first                           | **Read the full notice**                                                                             | Goes to `/privacy`, and the dialog becomes a sticky bottom bar there instead of covering the page. Accepting from that bar works                                                                     |
+| 3.21.5  | Not dismissable                      | Press Escape, click the backdrop, look for a corner X                                                | None of them close it. Consent has to be answered, not escaped                                                                                                                                       |
+| 3.21.6  | Decline                              | **Decline**                                                                                          | A second panel naming exactly what stops working, with **Accept**, **Read the notice** and **Sign out**. No silent dismissal                                                                         |
+| 3.21.7  | Refusal blocks sessions, not the app | After declining, try to start a mock viva                                                            | 403 with the readable message "You must accept the Privacy Policy before starting a session." — **not** "Request failed (403)". Projects, teams, tasks, files and past reports still work            |
+| 3.21.8  | Re-consent on a new notice           | Bump `POLICY_VERSION` in `backend/api/privacy.py`, restart, reload                                   | Asked again, with wording that says the notice changed and the earlier consent does not carry over                                                                                                   |
+| 3.21.9  | Notice readable before signing in    | Sign out, open `/privacy` directly                                                                   | Renders standalone without bouncing to `/login` — a notice you cannot read until after agreeing to it is not a notice                                                                                |
+| 3.21.10 | Under-18                             | Set `is_minor` on a test profile with no `parental_consent_at`                                       | The gate names the guardian-consent requirement                                                                                                                                                      |
+| 3.21.11 | Itemised notice                      | Read `/privacy`                                                                                      | A per-item table of data, purpose and what it enables (DPDP Rules 2025, Rule 3), the named processors including Google Gemini, the 72-hour breach window, and the route to the Data Protection Board |
+| 3.21.12 | Erasure still reachable              | With no consent, `/profile` → **Delete All My Data**                                                 | Works. Consent gates what we start recording, not your right to remove it                                                                                                                            |
+| 3.21.13 | Simulate a legacy account            | Clear `consent_accepted_at` for a test user in Supabase, reload                                      | The dialog appears again                                                                                                                                                                             |
 
 ## 4. Shell, navigation and guards
 
-| # | Check | How | Expect |
-|---|---|---|---|
-| 4.1 | Sidebar groups | Any signed-in page, desktop width | Overview / Practice / Insights / Workspace. The **Admin** group (Faculty Console, Institution) appears only for `faculty` or `admin` |
-| 4.2 | Mobile drawer | Narrow the window, open **More** | Same links as the sidebar — they share one array, so a discrepancy is a real bug |
-| 4.3 | Mobile bottom bar | Narrow width | Dashboard, Pitch Drill, Mock Viva (centre), Readiness, Projects, More |
-| 4.4 | Auth guard | Sign out, then paste any app URL | Redirected to `/login`. The guard is client-side, so a brief shell flash before the redirect is expected, not a bug |
-| 4.5 | Student blocked from `/faculty` | As `student1`, visit `/faculty` | Redirected to `/`. **Note:** the redirect happens in an effect, deliberately — returning `null` above the hooks throws "Rendered fewer hooks than expected" |
-| 4.6 | Student blocked from `/admin` | As `student1`, visit `/admin` | Redirected to `/` |
-| 4.7 | Faculty on `/admin` | As `faculty1`, visit `/admin` | **VERIFY.** The client guard only blocks `student`, so faculty renders the page; the backend `require_admin` also admits faculty despite its name. Decide whether that is intended before calling it a bug |
-| 4.8 | 404 | Visit `/nope` | Not-found page with **Go home** |
-| 4.9 | Error boundary | Force a render error | Error page with **Try again** / **Go home** |
-| 4.10 | Theme | Toggle light/dark | Persists across reload |
-| 4.11 | Unlinked routes | Confirm reachable only by URL or a copied link: `/advanced/viva-code-aware/session/$id` (post-upload navigate only), `/advanced/viva-team/join/$joinCode` (invite link only), `/reset-password` (email only), `/privacy` (signup links only), `/advanced/` (redirects to `/ai`) | As listed |
+| #    | Check                           | How                                                                                                                                                                                                                                                                             | Expect                                                                                                                                                                                                     |
+| ---- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 4.1  | Sidebar groups                  | Any signed-in page, desktop width                                                                                                                                                                                                                                               | Overview / Practice / Insights / Workspace. The **Admin** group (Faculty Console, Institution) appears only for `faculty` or `admin`                                                                       |
+| 4.2  | Mobile drawer                   | Narrow the window, open **More**                                                                                                                                                                                                                                                | Same links as the sidebar — they share one array, so a discrepancy is a real bug                                                                                                                           |
+| 4.3  | Mobile bottom bar               | Narrow width                                                                                                                                                                                                                                                                    | Dashboard, Pitch Drill, Mock Viva (centre), Readiness, Projects, More                                                                                                                                      |
+| 4.4  | Auth guard                      | Sign out, then paste any app URL                                                                                                                                                                                                                                                | Redirected to `/login`. The guard is client-side, so a brief shell flash before the redirect is expected, not a bug                                                                                        |
+| 4.5  | Student blocked from `/faculty` | As `student1`, visit `/faculty`                                                                                                                                                                                                                                                 | Redirected to `/`. **Note:** the redirect happens in an effect, deliberately — returning `null` above the hooks throws "Rendered fewer hooks than expected"                                                |
+| 4.6  | Student blocked from `/admin`   | As `student1`, visit `/admin`                                                                                                                                                                                                                                                   | Redirected to `/`                                                                                                                                                                                          |
+| 4.7  | Faculty on `/admin`             | As `faculty1`, visit `/admin`                                                                                                                                                                                                                                                   | **VERIFY.** The client guard only blocks `student`, so faculty renders the page; the backend `require_admin` also admits faculty despite its name. Decide whether that is intended before calling it a bug |
+| 4.8  | 404                             | Visit `/nope`                                                                                                                                                                                                                                                                   | Not-found page with **Go home**                                                                                                                                                                            |
+| 4.9  | Error boundary                  | Force a render error                                                                                                                                                                                                                                                            | Error page with **Try again** / **Go home**                                                                                                                                                                |
+| 4.10 | Theme                           | Toggle light/dark                                                                                                                                                                                                                                                               | Persists across reload                                                                                                                                                                                     |
+| 4.11 | Unlinked routes                 | Confirm reachable only by URL or a copied link: `/advanced/viva-code-aware/session/$id` (post-upload navigate only), `/advanced/viva-team/join/$joinCode` (invite link only), `/reset-password` (email only), `/privacy` (signup links only), `/advanced/` (redirects to `/ai`) | As listed                                                                                                                                                                                                  |
 
 ## 5. Dashboard (`/`)
 
-| # | Check | How | Expect |
-|---|---|---|---|
-| 5.1 | Empty state | Fresh account | Renders without crashing: zeroed tiles, empty lists, no console errors |
-| 5.2 | Readiness hero | After some activity | Gauge, component bars, **See full breakdown** → `/readiness`, **Start Mock Viva** → `/ai-viva/new` |
-| 5.3 | Stat tiles | — | Active Projects, Avg Progress, Pending Tasks, Practice Sessions. The small grey text beneath each is static copy, not a delta |
-| 5.4 | Lists cap out | Create 6 projects, 6 sessions, 4 teams | Shows 4 projects, 5 sessions, 3 teams, each with **View All** |
-| 5.5 | Deadlines | Add a project with a near deadline | Appears under Upcoming Deadlines |
-| 5.6 | Quick links | Each CTA | Navigates to the right screen |
-| 5.7 | Partial failure | Stop the backend, reload | Error/empty states per card rather than a blank page |
+| #   | Check           | How                                    | Expect                                                                                                                        |
+| --- | --------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| 5.1 | Empty state     | Fresh account                          | Renders without crashing: zeroed tiles, empty lists, no console errors                                                        |
+| 5.2 | Readiness hero  | After some activity                    | Gauge, component bars, **See full breakdown** → `/readiness`, **Start Mock Viva** → `/ai-viva/new`                            |
+| 5.3 | Stat tiles      | —                                      | Active Projects, Avg Progress, Pending Tasks, Practice Sessions. The small grey text beneath each is static copy, not a delta |
+| 5.4 | Lists cap out   | Create 6 projects, 6 sessions, 4 teams | Shows 4 projects, 5 sessions, 3 teams, each with **View All**                                                                 |
+| 5.5 | Deadlines       | Add a project with a near deadline     | Appears under Upcoming Deadlines                                                                                              |
+| 5.6 | Quick links     | Each CTA                               | Navigates to the right screen                                                                                                 |
+| 5.7 | Partial failure | Stop the backend, reload               | Error/empty states per card rather than a blank page                                                                          |
 
 ## 6. Projects
 
-| # | Check | How | Expect |
-|---|---|---|---|
-| 6.1 | List and filter | `/projects`, click each pill | All / PBL / Major / Mini refetch by type; **Completed** filters client-side |
-| 6.2 | Search | Type a partial title | Narrows the table |
-| 6.3 | Create | **New Project** → title, type, subject, tech, problem statement → **Create Project** | Lands on `/projects/$id`. The "min 100 chars" placeholder is not enforced |
-| 6.4 | Invalid type | Send `type` outside PBL/Major/Mini via Swagger | 400 |
-| 6.5 | Detail tabs | `/projects/$id` | Overview / Tasks / Team / Files / Viva Prep / Activity all render |
-| 6.6 | Progress | Drag the slider → **Save progress**; then **Apply** the task-derived suggestion | Ring updates, value persists across reload |
-| 6.7 | Progress bounds | `PUT /api/projects/{id}/progress` with `progress: 150` | 422 |
-| 6.8 | Edit | **Edit** → change title/subject/status/deadline/description → **Save changes** | Persists |
-| 6.9 | Empty edit | Submit with nothing changed | 400 "Nothing to update" |
-| 6.10 | Delete | **Delete project** → confirm | Removed; back on `/projects` |
-| 6.11 | Ownership | As `student2`, open `student1`'s project id | 403 |
-| 6.12 | Unknown id | `/projects/does-not-exist` | 404 handled, not a crash |
-| 6.13 | Files tab | Attach a file to the project, open the tab | **VERIFY.** The tab reads `name` / `file_type` / `url`, while `/api/files` returns `original_name` / `mime_type` / `size_bytes`. If names or download links are blank, that is the mismatch, not your data |
-| 6.14 | Viva Prep tab | **New session** | Goes to `/ai-viva/new?projectId=…` with the project preselected |
-| 6.15 | Activity tab | After tasks and vivas | Timeline derived from both |
+| #    | Check           | How                                                                                  | Expect                                                                                                                                                                                                     |
+| ---- | --------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 6.1  | List and filter | `/projects`, click each pill                                                         | All / PBL / Major / Mini refetch by type; **Completed** filters client-side                                                                                                                                |
+| 6.2  | Search          | Type a partial title                                                                 | Narrows the table                                                                                                                                                                                          |
+| 6.3  | Create          | **New Project** → title, type, subject, tech, problem statement → **Create Project** | Lands on `/projects/$id`. The "min 100 chars" placeholder is not enforced                                                                                                                                  |
+| 6.4  | Invalid type    | Send `type` outside PBL/Major/Mini via Swagger                                       | 400                                                                                                                                                                                                        |
+| 6.5  | Detail tabs     | `/projects/$id`                                                                      | Overview / Tasks / Team / Files / Viva Prep / Activity all render                                                                                                                                          |
+| 6.6  | Progress        | Drag the slider → **Save progress**; then **Apply** the task-derived suggestion      | Ring updates, value persists across reload                                                                                                                                                                 |
+| 6.7  | Progress bounds | `PUT /api/projects/{id}/progress` with `progress: 150`                               | 422                                                                                                                                                                                                        |
+| 6.8  | Edit            | **Edit** → change title/subject/status/deadline/description → **Save changes**       | Persists                                                                                                                                                                                                   |
+| 6.9  | Empty edit      | Submit with nothing changed                                                          | 400 "Nothing to update"                                                                                                                                                                                    |
+| 6.10 | Delete          | **Delete project** → confirm                                                         | Removed; back on `/projects`                                                                                                                                                                               |
+| 6.11 | Ownership       | As `student2`, open `student1`'s project id                                          | 403                                                                                                                                                                                                        |
+| 6.12 | Unknown id      | `/projects/does-not-exist`                                                           | 404 handled, not a crash                                                                                                                                                                                   |
+| 6.13 | Files tab       | Attach a file to the project, open the tab                                           | **VERIFY.** The tab reads `name` / `file_type` / `url`, while `/api/files` returns `original_name` / `mime_type` / `size_bytes`. If names or download links are blank, that is the mismatch, not your data |
+| 6.14 | Viva Prep tab   | **New session**                                                                      | Goes to `/ai-viva/new?projectId=…` with the project preselected                                                                                                                                            |
+| 6.15 | Activity tab    | After tasks and vivas                                                                | Timeline derived from both                                                                                                                                                                                 |
 
 ## 7. Tasks and the Kanban board
 
 Tasks live on `/projects/$id` → **Tasks**, with a flat view on `/progress`.
 
-| # | Check | How | Expect |
-|---|---|---|---|
-| 7.1 | Create | Title + priority + due date + assignee → add | Appears at the bottom of **To Do** |
-| 7.2 | Four columns | — | To Do / In Progress / **Review** / Done |
-| 7.3 | Drag within a column | Reorder two cards | Order holds after reload (`sort_order` is persisted) |
-| 7.4 | Drag across columns | Move a card to Review | Status changes and sticks |
-| 7.5 | Optimistic UI | Throttle the network, then drag | Card moves immediately and does not snap back on success |
-| 7.6 | Rollback | Stop the backend, then drag | Card returns to its original place and an error surfaces |
-| 7.7 | Edit | Card menu → edit → **Save changes** | Persists |
-| 7.8 | Delete | Card menu → delete | Gone |
-| 7.9 | Assignee needs a team | Assign someone with no team linked | 400 |
-| 7.10 | Assignee must be on the team | Assign a non-member | 400 |
-| 7.11 | Clear an assignee | Set assignee to none | Cleared (an explicit null is honoured) |
-| 7.12 | Bad status | `PUT /api/tasks/{id}/status` with `"Blocked"` | 400 |
-| 7.13 | Reorder guards | Swagger `PUT /api/projects/{id}/tasks/reorder`: empty `moves`, 201 moves, a negative `sort_order`, a duplicate task id, a task from another project | 422 / 422 / 422 / 400 / 404 respectively |
-| 7.14 | `/progress` list | Filter tabs, project select, search, row checkbox | Checkbox toggles Done ↔ To Do. The **Project** column prints the selected project for every row (single-project view); Priority is display-only |
+| #    | Check                        | How                                                                                                                                                 | Expect                                                                                                                                          |
+| ---- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| 7.1  | Create                       | Title + priority + due date + assignee → add                                                                                                        | Appears at the bottom of **To Do**                                                                                                              |
+| 7.2  | Four columns                 | —                                                                                                                                                   | To Do / In Progress / **Review** / Done                                                                                                         |
+| 7.3  | Drag within a column         | Reorder two cards                                                                                                                                   | Order holds after reload (`sort_order` is persisted)                                                                                            |
+| 7.4  | Drag across columns          | Move a card to Review                                                                                                                               | Status changes and sticks                                                                                                                       |
+| 7.5  | Optimistic UI                | Throttle the network, then drag                                                                                                                     | Card moves immediately and does not snap back on success                                                                                        |
+| 7.6  | Rollback                     | Stop the backend, then drag                                                                                                                         | Card returns to its original place and an error surfaces                                                                                        |
+| 7.7  | Edit                         | Card menu → edit → **Save changes**                                                                                                                 | Persists                                                                                                                                        |
+| 7.8  | Delete                       | Card menu → delete                                                                                                                                  | Gone                                                                                                                                            |
+| 7.9  | Assignee needs a team        | Assign someone with no team linked                                                                                                                  | 400                                                                                                                                             |
+| 7.10 | Assignee must be on the team | Assign a non-member                                                                                                                                 | 400                                                                                                                                             |
+| 7.11 | Clear an assignee            | Set assignee to none                                                                                                                                | Cleared (an explicit null is honoured)                                                                                                          |
+| 7.12 | Bad status                   | `PUT /api/tasks/{id}/status` with `"Blocked"`                                                                                                       | 400                                                                                                                                             |
+| 7.13 | Reorder guards               | Swagger `PUT /api/projects/{id}/tasks/reorder`: empty `moves`, 201 moves, a negative `sort_order`, a duplicate task id, a task from another project | 422 / 422 / 422 / 400 / 404 respectively                                                                                                        |
+| 7.14 | `/progress` list             | Filter tabs, project select, search, row checkbox                                                                                                   | Checkbox toggles Done ↔ To Do. The **Project** column prints the selected project for every row (single-project view); Priority is display-only |
 
 ## 8. Teams and project linking
 
-| # | Check | How | Expect |
-|---|---|---|---|
-| 8.1 | Create | `/teams` → **New Team** → name → **Create** | Created; you are Lead. Uses the `create_team_with_lead` RPC and falls back to manual inserts if migration 002 is missing |
-| 8.2 | Join by code | As `student2`, paste the invite code → **Join** | Added as Member |
-| 8.3 | Re-join | Same code again | 200 `already_member`, no duplicate |
-| 8.4 | Bad code | Nonsense code | 400 |
-| 8.5 | Dashboard | `/teams/$id` | Overview / Members / Projects / Tasks / Activity / Settings |
-| 8.6 | Non-member | As `student3`, open the team id | 403 |
-| 8.7 | Lead-only settings | As `student2` (Member), open Settings | "Only the team lead can change settings." No redirect — in-page copy is the guard |
-| 8.8 | Rename | As Lead → **Rename** → **Save** | Persists. As Member via Swagger → 403 |
-| 8.9 | Role toggle | Lead promotes `student2` to Lead | Both are Leads; `student2` now sees Settings |
-| 8.10 | Remove member | Lead removes `student3` | Removed. Members can remove themselves (leave) but not others |
-| 8.11 | Leave | As a Member, **Leave team** | Confirm dialog, then gone from the team |
-| 8.12 | Delete | Lead → **Delete team** → confirm | Team and memberships gone |
-| 8.13 | Instant link | `/projects/$id` → Team → pick one of your teams | Linked immediately |
-| 8.14 | Link a team you are not in | Via Swagger | 403 "must be a member of this team" |
-| 8.15 | Request by code | Team tab → enter another team's invite code | Request created. Sending it twice returns the existing row rather than 409 |
-| 8.16 | Cancel a request | **Cancel request** | Cancelled; cancelling twice → 404 "No pending request found" |
-| 8.17 | Accept | As that team's Lead, `/teams/$id` → Overview → **Accept** | Project linked, request cleared. Non-leads → 403 |
-| 8.18 | Decline | **Decline** | Request closed, no link |
-| 8.19 | Unlink | Team tab → unlink → confirm | Unlinked. Unlinking with nothing linked → 400 |
-| 8.20 | Activity | `/teams/$id` → Activity | Feed populates; `?limit=` clamps to 1–200 |
+| #    | Check                      | How                                                       | Expect                                                                                                                   |
+| ---- | -------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| 8.1  | Create                     | `/teams` → **New Team** → name → **Create**               | Created; you are Lead. Uses the `create_team_with_lead` RPC and falls back to manual inserts if migration 002 is missing |
+| 8.2  | Join by code               | As `student2`, paste the invite code → **Join**           | Added as Member                                                                                                          |
+| 8.3  | Re-join                    | Same code again                                           | 200 `already_member`, no duplicate                                                                                       |
+| 8.4  | Bad code                   | Nonsense code                                             | 400                                                                                                                      |
+| 8.5  | Dashboard                  | `/teams/$id`                                              | Overview / Members / Projects / Tasks / Activity / Settings                                                              |
+| 8.6  | Non-member                 | As `student3`, open the team id                           | 403                                                                                                                      |
+| 8.7  | Lead-only settings         | As `student2` (Member), open Settings                     | "Only the team lead can change settings." No redirect — in-page copy is the guard                                        |
+| 8.8  | Rename                     | As Lead → **Rename** → **Save**                           | Persists. As Member via Swagger → 403                                                                                    |
+| 8.9  | Role toggle                | Lead promotes `student2` to Lead                          | Both are Leads; `student2` now sees Settings                                                                             |
+| 8.10 | Remove member              | Lead removes `student3`                                   | Removed. Members can remove themselves (leave) but not others                                                            |
+| 8.11 | Leave                      | As a Member, **Leave team**                               | Confirm dialog, then gone from the team                                                                                  |
+| 8.12 | Delete                     | Lead → **Delete team** → confirm                          | Team and memberships gone                                                                                                |
+| 8.13 | Instant link               | `/projects/$id` → Team → pick one of your teams           | Linked immediately                                                                                                       |
+| 8.14 | Link a team you are not in | Via Swagger                                               | 403 "must be a member of this team"                                                                                      |
+| 8.15 | Request by code            | Team tab → enter another team's invite code               | Request created. Sending it twice returns the existing row rather than 409                                               |
+| 8.16 | Cancel a request           | **Cancel request**                                        | Cancelled; cancelling twice → 404 "No pending request found"                                                             |
+| 8.17 | Accept                     | As that team's Lead, `/teams/$id` → Overview → **Accept** | Project linked, request cleared. Non-leads → 403                                                                         |
+| 8.18 | Decline                    | **Decline**                                               | Request closed, no link                                                                                                  |
+| 8.19 | Unlink                     | Team tab → unlink → confirm                               | Unlinked. Unlinking with nothing linked → 400                                                                            |
+| 8.20 | Activity                   | `/teams/$id` → Activity                                   | Feed populates; `?limit=` clamps to 1–200                                                                                |
 
 ## 9. Files
 
-| # | Check | How | Expect |
-|---|---|---|---|
-| 9.1 | Upload by button | `/files` → **Upload** → pick a PDF | Appears in the list with size and date |
-| 9.2 | Drag and drop | Drop a file on the card | Same result |
-| 9.3 | Allowed types | Try pdf, docx, pptx, zip, png, jpeg, webp | All accepted |
-| 9.4 | Blocked type | Try `.exe` or `.txt` | 400 |
-| 9.5 | Size cap | Upload over 25 MB | 400 from the server. **Note:** there is no client-side check, so the file uploads fully before being rejected |
-| 9.6 | Download | Row **Download** | Opens via a 1-hour signed URL |
-| 9.7 | Delete | Row **Delete** | Row gone; the storage object is deleted best-effort |
-| 9.8 | Ownership | Fetch another user's file id | 404 (not 403 — it is scoped by owner) |
-| 9.9 | Missing bucket | Rename `STORAGE_BUCKET` to something absent, upload | 500 "Storage upload failed". Restore it afterwards |
-| 9.10 | Multi-select | Select two files at once | Only the first uploads — single-file by design |
+| #    | Check            | How                                                 | Expect                                                                                                        |
+| ---- | ---------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| 9.1  | Upload by button | `/files` → **Upload** → pick a PDF                  | Appears in the list with size and date                                                                        |
+| 9.2  | Drag and drop    | Drop a file on the card                             | Same result                                                                                                   |
+| 9.3  | Allowed types    | Try pdf, docx, pptx, zip, png, jpeg, webp           | All accepted                                                                                                  |
+| 9.4  | Blocked type     | Try `.exe` or `.txt`                                | 400                                                                                                           |
+| 9.5  | Size cap         | Upload over 25 MB                                   | 400 from the server. **Note:** there is no client-side check, so the file uploads fully before being rejected |
+| 9.6  | Download         | Row **Download**                                    | Opens via a 1-hour signed URL                                                                                 |
+| 9.7  | Delete           | Row **Delete**                                      | Row gone; the storage object is deleted best-effort                                                           |
+| 9.8  | Ownership        | Fetch another user's file id                        | 404 (not 403 — it is scoped by owner)                                                                         |
+| 9.9  | Missing bucket   | Rename `STORAGE_BUCKET` to something absent, upload | 500 "Storage upload failed". Restore it afterwards                                                            |
+| 9.10 | Multi-select     | Select two files at once                            | Only the first uploads — single-file by design                                                                |
 
 ## 10. Templates
 
-| # | Check | How | Expect |
-|---|---|---|---|
-| 10.1 | List | `/templates` | Cards grouped PBL / Major / Mini / Viva |
-| 10.2 | Detail | Open one | Headings, bullets and paragraphs render (a minimal custom renderer — `#`, `##`, `###`, `- ` only, so anything fancier shows as literal text) |
-| 10.3 | Checklist | Tick items | Ticks work, then **are lost on reload** (known, §2.2) |
-| 10.4 | Download | **Checklist** download | A `.txt` file, generated client-side |
-| 10.5 | Bad slug | `/templates/nope` | 404 handled |
-| 10.6 | No auth needed | Hit `GET /api/templates` with no token | 200 — these three endpoints are deliberately public |
+| #    | Check          | How                                    | Expect                                                                                                                                       |
+| ---- | -------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| 10.1 | List           | `/templates`                           | Cards grouped PBL / Major / Mini / Viva                                                                                                      |
+| 10.2 | Detail         | Open one                               | Headings, bullets and paragraphs render (a minimal custom renderer — `#`, `##`, `###`, `- ` only, so anything fancier shows as literal text) |
+| 10.3 | Checklist      | Tick items                             | Ticks work, then **are lost on reload** (known, §2.2)                                                                                        |
+| 10.4 | Download       | **Checklist** download                 | A `.txt` file, generated client-side                                                                                                         |
+| 10.5 | Bad slug       | `/templates/nope`                      | 404 handled                                                                                                                                  |
+| 10.6 | No auth needed | Hit `GET /api/templates` with no token | 200 — these three endpoints are deliberately public                                                                                          |
 
 ## 11. Live voice sessions — shared behaviour
 
@@ -278,84 +288,89 @@ Four features share one engine (`useLiveSession` → `WS /ws/live/{mode}/{sessio
 
 Use headphones. Several checks below are specifically about speaker-to-mic echo.
 
-| # | Check | How | Expect |
-|---|---|---|---|
-| 11.1 | Preflight | Start any live session | Video-source picker (per mode), mic level meter, language, examiner style where offered, **Start** |
-| 11.2 | Mic denied | Refuse the browser permission | Readable error, **Retry** offered, no dead screen |
-| 11.3 | Greeting — **the regression that started all this** | Start a session and listen to the whole opening | The examiner greets you **exactly once**. A second "Hello \<name\>, I'm your examiner…" is the bug returning |
-| 11.4 | Greeting after a drop | Kill wifi during the opening (within the first few seconds), restore it | Reconnects and **carries on** — it neither greets again nor goes silent. This window is where the original bug lived: a handle-less reconnect used to look like a fresh session |
-| 11.5 | Mic gate | Talk over the greeting deliberately | Your speech is dropped until the greeting finishes; it is not scored as an answer |
-| 11.6 | Echo | With speakers instead of headphones, stay silent through the greeting | The examiner does not respond to its own voice. Protocol v1 clients get a 45s server safety release specifically so the client's own 30s gate closes first |
-| 11.7 | Turn taking | Answer a question | Transcript shows your words, then the examiner responds |
-| 11.8 | Interrupt | Start talking mid-answer from the examiner | It stops; an `interrupted` state is visible |
-| 11.9 | Mute | **Mute**, talk, **Unmute** | Nothing is transcribed while muted |
-| 11.10 | Pause | **Pause**, wait, **Resume** | Audio suspends and resumes |
-| 11.11 | Text input | Type a message → send | Delivered as a turn |
-| 11.12 | Autoplay block | Start a session without interacting first | A tap-to-enable-audio affordance appears rather than silent failure |
-| 11.13 | Long session | Run past 10 and past 15 minutes | Survives the ~10-minute connection recycle and the 15-minute cap: `reconnecting` then `reconnected`, transcript intact. A session that ends itself here is the session-lifetime bug |
-| 11.14 | Two tabs | Open the same session id in a second tab | The newest socket wins; the old one closes with 4409. The new tab works — a stale socket holding the lock used to present as "the AI never speaks" |
-| 11.15 | End | **End session and see report** → **End & see report** | `finalizing` → report. **Keep going** cancels |
-| 11.16 | Report | — | Scores, per-question detail, delivery panel |
-| 11.17 | Close codes | Bad token / bad mode / someone else's session | 4401 / 4400 / 4404 |
-| 11.18 | No Gemini key | Blank `GEMINI_API_KEY`, start a session | Fails with an error, not an indefinite hang. Restore the key afterwards |
+| #     | Check                                               | How                                                                     | Expect                                                                                                                                                                                              |
+| ----- | --------------------------------------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 11.1  | Preflight                                           | Start any live session                                                  | Video-source picker (per mode), mic level meter, language, examiner style where offered, **Start**                                                                                                  |
+| 11.2  | Mic denied                                          | Refuse the browser permission                                           | Readable error, **Retry** offered, no dead screen                                                                                                                                                   |
+| 11.3  | Greeting — **the regression that started all this** | Start a session and listen to the whole opening                         | The examiner greets you **exactly once**. A second "Hello \<name\>, I'm your examiner…" is the bug returning                                                                                        |
+| 11.4  | Greeting after a drop                               | Kill wifi during the opening (within the first few seconds), restore it | Reconnects and **carries on** — it neither greets again nor goes silent. This window is where the original bug lived: a handle-less reconnect used to look like a fresh session                     |
+| 11.5  | Mic gate                                            | Talk over the greeting deliberately                                     | Your speech is dropped until the greeting finishes; it is not scored as an answer                                                                                                                   |
+| 11.6  | Echo                                                | With speakers instead of headphones, stay silent through the greeting   | The examiner does not respond to its own voice. Protocol v1 clients get a 45s server safety release specifically so the client's own 30s gate closes first                                          |
+| 11.7  | Turn taking                                         | Answer a question                                                       | Transcript shows your words, then the examiner responds                                                                                                                                             |
+| 11.8  | Interrupt                                           | Start talking mid-answer from the examiner                              | It stops; an `interrupted` state is visible                                                                                                                                                         |
+| 11.9  | Mute                                                | **Mute**, talk, **Unmute**                                              | Nothing is transcribed while muted                                                                                                                                                                  |
+| 11.10 | Pause                                               | **Pause**, wait, **Resume**                                             | Audio suspends and resumes                                                                                                                                                                          |
+| 11.11 | Text input                                          | Type a message → send                                                   | Delivered as a turn                                                                                                                                                                                 |
+| 11.12 | Autoplay block                                      | Start a session without interacting first                               | A tap-to-enable-audio affordance appears rather than silent failure                                                                                                                                 |
+| 11.13 | Long session                                        | Run past 10 and past 15 minutes                                         | Survives the ~10-minute connection recycle and the 15-minute cap: `reconnecting` then `reconnected`, transcript intact. A session that ends itself here is the session-lifetime bug                 |
+| 11.14 | Two tabs                                            | Open the same session id in a second tab                                | The newest socket wins; the old one closes with 4409. The new tab works — a stale socket holding the lock used to present as "the AI never speaks"                                                  |
+| 11.15 | End                                                 | **End session and see report** → **End & see report**                   | `finalizing` → report. **Keep going** cancels                                                                                                                                                       |
+| 11.16 | Report                                              | —                                                                       | Scores, per-question detail, delivery panel                                                                                                                                                         |
+| 11.17 | Close codes                                         | Bad token / bad mode / someone else's session                           | 4401 / 4400 / 4404                                                                                                                                                                                  |
+| 11.18 | No Gemini key                                       | Blank `GEMINI_API_KEY`, start a session                                 | Fails with an error, not an indefinite hang. Restore the key afterwards                                                                                                                             |
+| 11.19 | **Every question is spoken**                        | Run a full session and watch the captions against your speakers         | Each question is **heard**, not just printed. A question that appears as text in silence is the defect the tools removal fixes                                                                      |
+| 11.20 | **One caption per question**                        | Same session                                                            | Each question appears **once**. Two captions for the same question — especially with the second in a different language — is the silent-question nudge returning; it has been deleted, not disabled |
+| 11.21 | Evaluation panel during the session                 | Watch the right-hand panel while answering                              | It stays on "Every answer is being recorded…" and does **not** stream per-question scores. That is expected now; the evaluation is built from the full transcript at the end                        |
+| 11.22 | Time limit is the only auto-ending                  | Pick 5 minutes and keep answering past it                               | `time_up`, the examiner closes, and the server ends the session ~45s later. The model no longer has an `end_session` tool, so this clock is the only automatic stop                                 |
+| 11.23 | Session with no duration                            | Start a legacy session row that has no `duration_minutes`               | Still ends: the fallback ceiling (30 min) applies rather than running unbounded                                                                                                                     |
 
 ## 12. Per-feature live modes
 
 ### 12.1 AI Mock Viva
 
-| # | Check | How | Expect |
-|---|---|---|---|
-| 12.1.1 | Quick start | `/ai-viva` → **Quick 5-min Viva** → subject → language pill → **Start viva** | Session created and running |
-| 12.1.2 | Full config | `/ai-viva/new`: type, duration, difficulty, persona, project or subject, language | Personas come from `/api/catalog/personas`; a hardcoded 4-item list shows only while that request is in flight |
-| 12.1.3 | Validation | Project viva with no project; Subject viva with empty text | Blocked with a message |
-| 12.1.4 | Language | Run one session each in English, Hindi and Hinglish | The examiner speaks the chosen language and keeps technical terms in English (code-mix is a deliberate feature) |
-| 12.1.5 | Video source | Start a session | **VERIFY.** The route asks for camera-or-none while the mode default is none-only; whichever wins, the picker and the actual stream must agree |
-| 12.1.6 | Review | Open a completed session | Report or delivery panel, then per-question cards with your answer, feedback and a model answer |
-| 12.1.7 | Stats | `/ai-viva` snapshot | Totals and averages move after a session |
-| 12.1.8 | Missing `persona` column | If session creation 500s | Migration 002 is not applied — there is deliberately no fallback |
+| #      | Check                    | How                                                                               | Expect                                                                                                                                         |
+| ------ | ------------------------ | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| 12.1.1 | Quick start              | `/ai-viva` → **Quick 5-min Viva** → subject → language pill → **Start viva**      | Session created and running                                                                                                                    |
+| 12.1.2 | Full config              | `/ai-viva/new`: type, duration, difficulty, persona, project or subject, language | Personas come from `/api/catalog/personas`; a hardcoded 4-item list shows only while that request is in flight                                 |
+| 12.1.3 | Validation               | Project viva with no project; Subject viva with empty text                        | Blocked with a message                                                                                                                         |
+| 12.1.4 | Language                 | Run one session each in English, Hindi and Hinglish                               | The examiner speaks the chosen language and keeps technical terms in English (code-mix is a deliberate feature)                                |
+| 12.1.5 | Video source             | Start a session                                                                   | **VERIFY.** The route asks for camera-or-none while the mode default is none-only; whichever wins, the picker and the actual stream must agree |
+| 12.1.6 | Review                   | Open a completed session                                                          | Report or delivery panel, then per-question cards with your answer, feedback and a model answer                                                |
+| 12.1.7 | Stats                    | `/ai-viva` snapshot                                                               | Totals and averages move after a session                                                                                                       |
+| 12.1.8 | Missing `persona` column | If session creation 500s                                                          | Migration 002 is not applied — there is deliberately no fallback                                                                               |
 
 ### 12.2 AI Presentation
 
-| # | Check | How | Expect |
-|---|---|---|---|
-| 12.2.1 | Create | `/ai-presentation` → project, type, duration, topic → **Begin Presentation** | Session created |
-| 12.2.2 | Screen share | Preflight | Screen is the only source for this mode |
-| 12.2.3 | Slide questions | Present a few slides | The examiner asks about what it sees |
-| 12.2.4 | Report | End the session | Score tiles, summary, gaps, examiner Q&A, slide feedback |
-| 12.2.5 | Bad scenario | Create with an unknown `scenario_id` via Swagger | 400 "Unknown scenario_id" |
-| 12.2.6 | Recording row | — | "Recording — Enabled" is static text with nothing behind it |
+| #      | Check           | How                                                                          | Expect                                                      |
+| ------ | --------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| 12.2.1 | Create          | `/ai-presentation` → project, type, duration, topic → **Begin Presentation** | Session created                                             |
+| 12.2.2 | Screen share    | Preflight                                                                    | Screen is the only source for this mode                     |
+| 12.2.3 | Slide questions | Present a few slides                                                         | The examiner asks about what it sees                        |
+| 12.2.4 | Report          | End the session                                                              | Score tiles, summary, gaps, examiner Q&A, slide feedback    |
+| 12.2.5 | Bad scenario    | Create with an unknown `scenario_id` via Swagger                             | 400 "Unknown scenario_id"                                   |
+| 12.2.6 | Recording row   | —                                                                            | "Recording — Enabled" is static text with nothing behind it |
 
 ### 12.3 Pitch Drill
 
-| # | Check | How | Expect |
-|---|---|---|---|
-| 12.3.1 | Live mode | `/pitch-drill` → **Live AI Coach** → project + what you are pitching → **Start live pitch** | Live coach session, then a pitch report |
-| 12.3.2 | Timed mode | **Timed Drill** → **Start Pitch** | 90s ring counts down, live transcript fills |
-| 12.3.3 | Hard stop | Keep talking past the limit | Cuts off at 120s (target + 30) |
-| 12.3.4 | Score | **Stop & Score** | Clarity / Structure / Timing, covered and missing chips, feedback, an improved pitch |
-| 12.3.5 | Browser support | Open timed mode in Firefox or Safari | Chrome-only warning, **Start Pitch** disabled — it depends on browser SpeechRecognition |
-| 12.3.6 | Empty transcript | `POST /api/readiness/pitch` with `""` | 400 |
-| 12.3.7 | Bounds | `target_seconds` outside 30–180, or `actual_seconds` 0 | 422 |
+| #      | Check            | How                                                                                         | Expect                                                                                  |
+| ------ | ---------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| 12.3.1 | Live mode        | `/pitch-drill` → **Live AI Coach** → project + what you are pitching → **Start live pitch** | Live coach session, then a pitch report                                                 |
+| 12.3.2 | Timed mode       | **Timed Drill** → **Start Pitch**                                                           | 90s ring counts down, live transcript fills                                             |
+| 12.3.3 | Hard stop        | Keep talking past the limit                                                                 | Cuts off at 120s (target + 30)                                                          |
+| 12.3.4 | Score            | **Stop & Score**                                                                            | Clarity / Structure / Timing, covered and missing chips, feedback, an improved pitch    |
+| 12.3.5 | Browser support  | Open timed mode in Firefox or Safari                                                        | Chrome-only warning, **Start Pitch** disabled — it depends on browser SpeechRecognition |
+| 12.3.6 | Empty transcript | `POST /api/readiness/pitch` with `""`                                                       | 400                                                                                     |
+| 12.3.7 | Bounds           | `target_seconds` outside 30–180, or `actual_seconds` 0                                      | 422                                                                                     |
 
 ### 12.4 Live Coach (`/advanced/sentiment-analysis`)
 
-| # | Check | How | Expect |
-|---|---|---|---|
-| 12.4.1 | Scenarios | Open the page | Grouped by category from `/api/catalog/scenarios` |
-| 12.4.2 | Run one | Pick a scenario, choose a language, **Start** | Camera-based coach session |
-| 12.4.3 | Report | End | Delivery meters (Confidence / Communication / Clarity / Engagement), summary, strengths, weaknesses, recommendations |
-| 12.4.4 | Naming | — | Despite the route name this does **not** use the sentiment API (§2.3) |
+| #      | Check     | How                                           | Expect                                                                                                               |
+| ------ | --------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| 12.4.1 | Scenarios | Open the page                                 | Grouped by category from `/api/catalog/scenarios`                                                                    |
+| 12.4.2 | Run one   | Pick a scenario, choose a language, **Start** | Camera-based coach session                                                                                           |
+| 12.4.3 | Report    | End                                           | Delivery meters (Confidence / Communication / Clarity / Engagement), summary, strengths, weaknesses, recommendations |
+| 12.4.4 | Naming    | —                                             | Despite the route name this does **not** use the sentiment API (§2.3)                                                |
 
 ### 12.5 Code-Aware Viva — a differentiator
 
-| # | Check | How | Expect |
-|---|---|---|---|
-| 12.5.1 | Upload | `/advanced/viva-code-aware` → pick a project → drop a real project ZIP | Client-side analysis progresses through phases, then a viva session opens |
-| 12.5.2 | Questions are about *your* code | Answer a few | Questions reference actual files, functions and choices from the ZIP — not generic questions about the subject. This is the whole feature: it should be able to expose someone who did not write the code they submitted |
-| 12.5.3 | Empty ZIP | Upload a ZIP with no source files | 400 "No readable source files found" |
-| 12.5.4 | Large repo | Upload something substantial | Completes or fails cleanly; note the time |
-| 12.5.5 | Storage off | With a bad bucket | Still works — the storage write is deliberately soft-failed |
-| 12.5.6 | Report | End the session | Same review shape as a normal viva |
+| #      | Check                           | How                                                                    | Expect                                                                                                                                                                                                                   |
+| ------ | ------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 12.5.1 | Upload                          | `/advanced/viva-code-aware` → pick a project → drop a real project ZIP | Client-side analysis progresses through phases, then a viva session opens                                                                                                                                                |
+| 12.5.2 | Questions are about _your_ code | Answer a few                                                           | Questions reference actual files, functions and choices from the ZIP — not generic questions about the subject. This is the whole feature: it should be able to expose someone who did not write the code they submitted |
+| 12.5.3 | Empty ZIP                       | Upload a ZIP with no source files                                      | 400 "No readable source files found"                                                                                                                                                                                     |
+| 12.5.4 | Large repo                      | Upload something substantial                                           | Completes or fails cleanly; note the time                                                                                                                                                                                |
+| 12.5.5 | Storage off                     | With a bad bucket                                                      | Still works — the storage write is deliberately soft-failed                                                                                                                                                              |
+| 12.5.6 | Report                          | End the session                                                        | Same review shape as a normal viva                                                                                                                                                                                       |
 
 ## 13. Team Viva — the centrepiece, and the least verified
 
@@ -363,124 +378,124 @@ Needs **three browsers** (separate profiles or windows, three different accounts
 
 Read §2.1 first: two connection-level bugs were fixed here without ever being observed working.
 
-| # | Check | How | Expect |
-|---|---|---|---|
-| 13.1 | Socket connects at all | As the Lead, `/advanced/viva-team` → team + subject → **Create Lobby** | The lobby appears and stays connected. A failure to connect at all is §2.1 returning; check the browser network tab for the handshake path and confirm it is `/api/advanced/ws/team-viva/{id}` |
-| 13.2 | Invite | Copy the invite link, open it as `student2` and `student3` → **Join lobby** | Both appear in the lobby on every screen |
-| 13.3 | Identity | — | Names come from each user's own login, never a typed field |
-| 13.4 | Minimum | Try **Start Viva** with two people | Refused: three participants minimum |
-| 13.5 | Lead only | Send `start` as `student2` | Refused |
-| 13.6 | Capacity | Try to add a sixth participant | Closed with "This viva lobby is full" (max 5) |
-| 13.7 | Wrong team | Open the invite link as someone not on the team | 403 |
-| 13.8 | One greeting for the group | **Start Viva** | The examiner greets the team **once**, and all three hear it |
-| 13.9 | Floor control | Let the examiner run | It calls on one student by name; only that student's mic is live. Others see "Not your turn". **Note:** nothing guarantees everyone gets called on — if a participant is never asked, they cannot be graded (§2.3) |
-| 13.10 | **Students hear each other** | While `student1` holds the floor, listen on `student2` and `student3` | You hear `student1`. This did not work at all until recently — mic audio went only to the model, so a "group viva" was three people in mutual silence |
-| 13.11 | No self-echo | While speaking | You do not hear yourself relayed back |
-| 13.12 | Not chipmunked | Listen to relayed speech carefully | Normal pitch. Human mics are 16 kHz and AI speech is 24 kHz; a fast, high-pitched voice means the frame header is being ignored |
-| 13.13 | Side chatter is dropped | Have a student without the floor talk | Neither relayed nor sent to the examiner |
-| 13.14 | Attribution | Watch the transcript | Each answer is attributed to the right student — floor control is what makes per-student marks defensible |
-| 13.15 | Dropped floor holder | Close the tab of whoever holds the floor | The floor is released and the viva continues instead of stalling |
-| 13.16 | Reconnect | Kill and restore wifi on one participant | They rejoin; the examiner does not restart or re-greet |
-| 13.17 | End | Lead → **End Viva** | Per-member scores plus a team score on every screen |
-| 13.18 | Report | `GET /api/advanced/team-viva/{id}/report` | Per-member and team scores match the summary |
+| #     | Check                        | How                                                                         | Expect                                                                                                                                                                                                             |
+| ----- | ---------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 13.1  | Socket connects at all       | As the Lead, `/advanced/viva-team` → team + subject → **Create Lobby**      | The lobby appears and stays connected. A failure to connect at all is §2.1 returning; check the browser network tab for the handshake path and confirm it is `/api/advanced/ws/team-viva/{id}`                     |
+| 13.2  | Invite                       | Copy the invite link, open it as `student2` and `student3` → **Join lobby** | Both appear in the lobby on every screen                                                                                                                                                                           |
+| 13.3  | Identity                     | —                                                                           | Names come from each user's own login, never a typed field                                                                                                                                                         |
+| 13.4  | Minimum                      | Try **Start Viva** with two people                                          | Refused: three participants minimum                                                                                                                                                                                |
+| 13.5  | Lead only                    | Send `start` as `student2`                                                  | Refused                                                                                                                                                                                                            |
+| 13.6  | Capacity                     | Try to add a sixth participant                                              | Closed with "This viva lobby is full" (max 5)                                                                                                                                                                      |
+| 13.7  | Wrong team                   | Open the invite link as someone not on the team                             | 403                                                                                                                                                                                                                |
+| 13.8  | One greeting for the group   | **Start Viva**                                                              | The examiner greets the team **once**, and all three hear it                                                                                                                                                       |
+| 13.9  | Floor control                | Let the examiner run                                                        | It calls on one student by name; only that student's mic is live. Others see "Not your turn". **Note:** nothing guarantees everyone gets called on — if a participant is never asked, they cannot be graded (§2.3) |
+| 13.10 | **Students hear each other** | While `student1` holds the floor, listen on `student2` and `student3`       | You hear `student1`. This did not work at all until recently — mic audio went only to the model, so a "group viva" was three people in mutual silence                                                              |
+| 13.11 | No self-echo                 | While speaking                                                              | You do not hear yourself relayed back                                                                                                                                                                              |
+| 13.12 | Not chipmunked               | Listen to relayed speech carefully                                          | Normal pitch. Human mics are 16 kHz and AI speech is 24 kHz; a fast, high-pitched voice means the frame header is being ignored                                                                                    |
+| 13.13 | Side chatter is dropped      | Have a student without the floor talk                                       | Neither relayed nor sent to the examiner                                                                                                                                                                           |
+| 13.14 | Attribution                  | Watch the transcript                                                        | Each answer is attributed to the right student — floor control is what makes per-student marks defensible                                                                                                          |
+| 13.15 | Dropped floor holder         | Close the tab of whoever holds the floor                                    | The floor is released and the viva continues instead of stalling                                                                                                                                                   |
+| 13.16 | Reconnect                    | Kill and restore wifi on one participant                                    | They rejoin; the examiner does not restart or re-greet                                                                                                                                                             |
+| 13.17 | End                          | Lead → **End Viva**                                                         | Per-member scores plus a team score on every screen                                                                                                                                                                |
+| 13.18 | Report                       | `GET /api/advanced/team-viva/{id}/report`                                   | Per-member and team scores match the summary                                                                                                                                                                       |
 
 ### 13.19 Faculty in the room
 
-| # | Check | How | Expect |
-|---|---|---|---|
-| 13.19.1 | Admission | As `faculty1` (same institution as the session), open the session | Admitted as an **observer** |
-| 13.19.2 | Not a student slot | With 5 students already in | Faculty still gets in — observers do not consume a participant slot |
-| 13.19.3 | Never examined | Watch a while | The examiner never calls on the faculty member |
-| 13.19.4 | Visible | On the student screens | The observer list names the faculty member — students should know they are being watched |
-| 13.19.5 | Take over | Faculty → **Take over** | Students see a banner naming who paused; the examiner card reads **Paused** |
-| 13.19.6 | Humans keep talking | While paused | Faculty and students still hear each other. That is the point of a takeover |
-| 13.19.7 | Model hears nothing | While paused | Nothing said during the pause reaches the examiner |
-| 13.19.8 | Hand back | **Hand back to AI** | The examiner resumes, does **not** greet again, and does not repeat the question the faculty member just asked |
-| 13.19.9 | Give floor | Faculty picks a specific student | That student can speak, overriding the model's choice |
-| 13.19.10 | Clear floor | **Clear floor** | Control returns to the model |
-| 13.19.11 | Students cannot | Send `pause_ai` or `grant_floor` as a student | Refused with an error frame, no effect. A refusal is now also logged server-side — check `diagnostics/` for `faculty_control_refused` |
-| 13.19.12 | Other institution | As faculty from a different institution | 403 |
+| #        | Check               | How                                                               | Expect                                                                                                                                |
+| -------- | ------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| 13.19.1  | Admission           | As `faculty1` (same institution as the session), open the session | Admitted as an **observer**                                                                                                           |
+| 13.19.2  | Not a student slot  | With 5 students already in                                        | Faculty still gets in — observers do not consume a participant slot                                                                   |
+| 13.19.3  | Never examined      | Watch a while                                                     | The examiner never calls on the faculty member                                                                                        |
+| 13.19.4  | Visible             | On the student screens                                            | The observer list names the faculty member — students should know they are being watched                                              |
+| 13.19.5  | Take over           | Faculty → **Take over**                                           | Students see a banner naming who paused; the examiner card reads **Paused**                                                           |
+| 13.19.6  | Humans keep talking | While paused                                                      | Faculty and students still hear each other. That is the point of a takeover                                                           |
+| 13.19.7  | Model hears nothing | While paused                                                      | Nothing said during the pause reaches the examiner                                                                                    |
+| 13.19.8  | Hand back           | **Hand back to AI**                                               | The examiner resumes, does **not** greet again, and does not repeat the question the faculty member just asked                        |
+| 13.19.9  | Give floor          | Faculty picks a specific student                                  | That student can speak, overriding the model's choice                                                                                 |
+| 13.19.10 | Clear floor         | **Clear floor**                                                   | Control returns to the model                                                                                                          |
+| 13.19.11 | Students cannot     | Send `pause_ai` or `grant_floor` as a student                     | Refused with an error frame, no effect. A refusal is now also logged server-side — check `diagnostics/` for `faculty_control_refused` |
+| 13.19.12 | Other institution   | As faculty from a different institution                           | 403                                                                                                                                   |
 
 ### 13.20 Access scoping — the IDOR fix
 
-| # | Check | How | Expect |
-|---|---|---|---|
-| 13.20.1 | Outsider is refused | As a user on no team in this viva, `GET /api/advanced/team-viva/sessions/{id}` and `/{id}/report` in Swagger | 403 on both. A 200 with real marks means the fix regressed |
-| 13.20.2 | Same institution is not access | As another student in the same institution but a different team | Still 403 — being a classmate is not authority |
-| 13.20.3 | Participants can read | As any of the three students | 200 |
-| 13.20.4 | Faculty can read | As `faculty1`, same institution as the session | 200 |
-| 13.20.5 | Faculty of another institution | — | 403 |
-| 13.20.6 | Faculty and a practice session | As `faculty1`, against a student-created practice team viva | 403 — a practice session records no institution, so no faculty authority exists over it |
-| 13.20.7 | Unknown id | A nonsense session id | 404, not an empty report |
+| #       | Check                          | How                                                                                                          | Expect                                                                                  |
+| ------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| 13.20.1 | Outsider is refused            | As a user on no team in this viva, `GET /api/advanced/team-viva/sessions/{id}` and `/{id}/report` in Swagger | 403 on both. A 200 with real marks means the fix regressed                              |
+| 13.20.2 | Same institution is not access | As another student in the same institution but a different team                                              | Still 403 — being a classmate is not authority                                          |
+| 13.20.3 | Participants can read          | As any of the three students                                                                                 | 200                                                                                     |
+| 13.20.4 | Faculty can read               | As `faculty1`, same institution as the session                                                               | 200                                                                                     |
+| 13.20.5 | Faculty of another institution | —                                                                                                            | 403                                                                                     |
+| 13.20.6 | Faculty and a practice session | As `faculty1`, against a student-created practice team viva                                                  | 403 — a practice session records no institution, so no faculty authority exists over it |
+| 13.20.7 | Unknown id                     | A nonsense session id                                                                                        | 404, not an empty report                                                                |
 
 ## 14. Faculty console (`/faculty`)
 
-| # | Check | How | Expect |
-|---|---|---|---|
-| 14.1 | Access | As `faculty1` | Loads. As `student1` → redirected to `/` |
-| 14.2 | Stats | — | Scheduled / Running now / Completed / Awaiting your sign-off |
-| 14.3 | Schedule | **Schedule viva** → team, subject, duration → **Schedule viva** | A join code comes back; **Copy** then **Done** |
-| 14.4 | Duration bounds | 4 or 121 minutes via Swagger | 422 |
-| 14.5 | Unknown team | A nonsense `team_id` | 404 "That team does not exist" |
-| 14.6 | Students join | Students enter the join code from their own logins | They reach the lobby without typing a name |
-| 14.7 | Assessed vs practice | Open a **practice** (student-created) session as faculty | 403 "You cannot review this session" — assessed sessions are marked at creation, and faculty authority is recorded on the session context |
-| 14.8 | Review | A completed assessed viva → **Review** | AI overall score plus per-question detail |
-| 14.9 | Unfinished | **Review** a session still running | 409 "This viva has not finished yet" |
-| 14.10 | Override | Enter a mark, add a note, **Sign off** | Row shows "Signed off". The AI's original number is preserved under `context.ai_score`, so a human changing a mark stays auditable — check the row in Supabase |
-| 14.11 | Override bounds | 101, or a note over 2000 chars | 422 |
-| 14.12 | Cross-institution | Review a session from another institution | 403 |
-| 14.13 | Faculty is optional | Run an assessed viva with no faculty present, then review afterwards | Works. Attendance is per-session and optional by design |
+| #     | Check                | How                                                                  | Expect                                                                                                                                                         |
+| ----- | -------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 14.1  | Access               | As `faculty1`                                                        | Loads. As `student1` → redirected to `/`                                                                                                                       |
+| 14.2  | Stats                | —                                                                    | Scheduled / Running now / Completed / Awaiting your sign-off                                                                                                   |
+| 14.3  | Schedule             | **Schedule viva** → team, subject, duration → **Schedule viva**      | A join code comes back; **Copy** then **Done**                                                                                                                 |
+| 14.4  | Duration bounds      | 4 or 121 minutes via Swagger                                         | 422                                                                                                                                                            |
+| 14.5  | Unknown team         | A nonsense `team_id`                                                 | 404 "That team does not exist"                                                                                                                                 |
+| 14.6  | Students join        | Students enter the join code from their own logins                   | They reach the lobby without typing a name                                                                                                                     |
+| 14.7  | Assessed vs practice | Open a **practice** (student-created) session as faculty             | 403 "You cannot review this session" — assessed sessions are marked at creation, and faculty authority is recorded on the session context                      |
+| 14.8  | Review               | A completed assessed viva → **Review**                               | AI overall score plus per-question detail                                                                                                                      |
+| 14.9  | Unfinished           | **Review** a session still running                                   | 409 "This viva has not finished yet"                                                                                                                           |
+| 14.10 | Override             | Enter a mark, add a note, **Sign off**                               | Row shows "Signed off". The AI's original number is preserved under `context.ai_score`, so a human changing a mark stays auditable — check the row in Supabase |
+| 14.11 | Override bounds      | 101, or a note over 2000 chars                                       | 422                                                                                                                                                            |
+| 14.12 | Cross-institution    | Review a session from another institution                            | 403                                                                                                                                                            |
+| 14.13 | Faculty is optional  | Run an assessed viva with no faculty present, then review afterwards | Works. Attendance is per-session and optional by design                                                                                                        |
 
 ## 15. Institution admin (`/admin`)
 
 Needs `institutions.verified_at` set by hand (§1.3) for the cohort-data checks.
 
-| # | Check | How | Expect |
-|---|---|---|---|
-| 15.1 | Access | As `admin1` | Loads. As `student1` → redirected |
-| 15.2 | Stats | — | Total Students, Active This Week, Avg DRS, Avg Viva Score |
-| 15.3 | Charts | — | Readiness distribution, by branch, by year, college-wide weak topics |
-| 15.4 | Students table | Filter by branch and year, page with **Previous** / **Next** | Filters and pagination both work |
-| 15.5 | Unverified institution | Before setting `verified_at` | 403 `institution_unverified` on students / readiness-report / export. **This is the squatting guard, not a bug** |
-| 15.6 | Invite code | **Copy Invite Code** | A code you can use in student onboarding |
-| 15.7 | Seat cap | Add more than 25 students to a self-serve institution | Refused at the cap |
-| 15.8 | Export | **Export CSV** | **KNOWN BUG** (§2.2) — nothing happens. Verify the data itself with `GET /api/institution/export` in Swagger instead |
-| 15.9 | Empty export | With no students | 404 "No students in institution" |
-| 15.10 | Approve faculty | Swagger: `GET /api/institution/pending-faculty`, then `POST /api/institution/approve-faculty` | The claim is listed and approving flips `profiles.role` to faculty. **There is no UI for this** (§2.3) |
-| 15.11 | Approval guards | Approve an already-approved claim, one from another institution, or a nonexistent member | 403 / 403 / 404 |
-| 15.12 | Refuse | `approve: false` | Claim closed, role unchanged |
+| #     | Check                  | How                                                                                           | Expect                                                                                                               |
+| ----- | ---------------------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| 15.1  | Access                 | As `admin1`                                                                                   | Loads. As `student1` → redirected                                                                                    |
+| 15.2  | Stats                  | —                                                                                             | Total Students, Active This Week, Avg DRS, Avg Viva Score                                                            |
+| 15.3  | Charts                 | —                                                                                             | Readiness distribution, by branch, by year, college-wide weak topics                                                 |
+| 15.4  | Students table         | Filter by branch and year, page with **Previous** / **Next**                                  | Filters and pagination both work                                                                                     |
+| 15.5  | Unverified institution | Before setting `verified_at`                                                                  | 403 `institution_unverified` on students / readiness-report / export. **This is the squatting guard, not a bug**     |
+| 15.6  | Invite code            | **Copy Invite Code**                                                                          | A code you can use in student onboarding                                                                             |
+| 15.7  | Seat cap               | Add more than 25 students to a self-serve institution                                         | Refused at the cap                                                                                                   |
+| 15.8  | Export                 | **Export CSV**                                                                                | **KNOWN BUG** (§2.2) — nothing happens. Verify the data itself with `GET /api/institution/export` in Swagger instead |
+| 15.9  | Empty export           | With no students                                                                              | 404 "No students in institution"                                                                                     |
+| 15.10 | Approve faculty        | Swagger: `GET /api/institution/pending-faculty`, then `POST /api/institution/approve-faculty` | The claim is listed and approving flips `profiles.role` to faculty. **There is no UI for this** (§2.3)               |
+| 15.11 | Approval guards        | Approve an already-approved claim, one from another institution, or a nonexistent member      | 403 / 403 / 404                                                                                                      |
+| 15.12 | Refuse                 | `approve: false`                                                                              | Claim closed, role unchanged                                                                                         |
 
 ## 16. Endpoints with no UI — Swagger or curl only
 
 These have no screen, so they are the most likely to have rotted. Sign in, copy the token from `localStorage.cpn_token`, and use **Authorize** in `/docs`.
 
-| # | Surface | Walk |
-|---|---|---|
-| 16.1 | REST viva lifecycle | `POST /api/viva/sessions` → `/start` → `/answer` → `/hint` → `/skip` → `/end` → `GET /transcript`. Expect a question, then scoring, then a summary. Calling `/answer` before `/start` → 400 "No open question"; `/start` on a completed session → 400 |
-| 16.2 | REST presentation lifecycle | `/start` → `/upload-slide` (an image) → `/question` → `/answer` → `/end`. A non-image to `/upload-slide` → 400; `/answer` before `/question` → 400 |
-| 16.3 | Sentiment API | `POST /api/advanced/sentiment/session` → `WS /api/advanced/ws/sentiment/{id}` with `{"type":"frame","data":"<base64 jpeg>","mime_type":"image/jpeg"}` → `/end` → `/report`. Only every third frame is analysed (free-tier throttle). Another user's session id → 4404 |
-| 16.4 | Code-aware alternates | `POST /api/advanced/code-aware/upload`, then `POST /api/advanced/code-aware/session` with the returned `snapshot_id`. Unknown snapshot → 404; a snapshot with no files → 400; `duration_minutes` outside 5–20 → 422 |
-| 16.5 | Privacy reads | `GET /api/privacy/consent-status`, `/delete-status`, `/policy`, `/grievance`. The last two need no auth. `/privacy` now renders whatever `/policy` returns, so the served notice and the displayed notice cannot diverge — check that the version in the page header matches `POLICY_VERSION` |
-| 16.6 | Template checklist | `GET /api/templates/{slug}/checklist` |
-| 16.7 | Teams legacy join | `POST /api/teams/{team_id}/join` — delegates to `/join` and ignores the id |
-| 16.8 | Logout | `POST /api/auth/logout` — a no-op; the client just drops the token |
-| 16.9 | Team viva scoping | The access checks in §13.20 |
-| 16.10 | Consent gate | With a user whose `consent_accepted_at` is null, call each endpoint in §2.4: viva/presentation/team-viva session creation, the two code-aware creators, the sentiment session, and `POST /api/readiness/pitch`. Then `POST /api/privacy/consent` and repeat | 403 `consent_required` each time, then 200/201 after consenting |
+| #     | Surface                     | Walk                                                                                                                                                                                                                                                                                          |
+| ----- | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| 16.1  | REST viva lifecycle         | `POST /api/viva/sessions` → `/start` → `/answer` → `/hint` → `/skip` → `/end` → `GET /transcript`. Expect a question, then scoring, then a summary. Calling `/answer` before `/start` → 400 "No open question"; `/start` on a completed session → 400                                         |
+| 16.2  | REST presentation lifecycle | `/start` → `/upload-slide` (an image) → `/question` → `/answer` → `/end`. A non-image to `/upload-slide` → 400; `/answer` before `/question` → 400                                                                                                                                            |
+| 16.3  | Sentiment API               | `POST /api/advanced/sentiment/session` → `WS /api/advanced/ws/sentiment/{id}` with `{"type":"frame","data":"<base64 jpeg>","mime_type":"image/jpeg"}` → `/end` → `/report`. Only every third frame is analysed (free-tier throttle). Another user's session id → 4404                         |
+| 16.4  | Code-aware alternates       | `POST /api/advanced/code-aware/upload`, then `POST /api/advanced/code-aware/session` with the returned `snapshot_id`. Unknown snapshot → 404; a snapshot with no files → 400; `duration_minutes` outside 5–20 → 422                                                                           |
+| 16.5  | Privacy reads               | `GET /api/privacy/consent-status`, `/delete-status`, `/policy`, `/grievance`. The last two need no auth. `/privacy` now renders whatever `/policy` returns, so the served notice and the displayed notice cannot diverge — check that the version in the page header matches `POLICY_VERSION` |
+| 16.6  | Template checklist          | `GET /api/templates/{slug}/checklist`                                                                                                                                                                                                                                                         |
+| 16.7  | Teams legacy join           | `POST /api/teams/{team_id}/join` — delegates to `/join` and ignores the id                                                                                                                                                                                                                    |
+| 16.8  | Logout                      | `POST /api/auth/logout` — a no-op; the client just drops the token                                                                                                                                                                                                                            |
+| 16.9  | Team viva scoping           | The access checks in §13.20                                                                                                                                                                                                                                                                   |
+| 16.10 | Consent gate                | With a user whose `consent_accepted_at` is null, call each endpoint in §2.4: viva/presentation/team-viva session creation, the two code-aware creators, the sentiment session, and `POST /api/readiness/pitch`. Then `POST /api/privacy/consent` and repeat                                   | 403 `consent_required` each time, then 200/201 after consenting |
 
 ## 17. Diagnostics capture
 
 Do this early. Everything after it depends on failures leaving evidence.
 
-| # | Check | How | Expect |
-|---|---|---|---|
-| 17.1 | Backend capture | Trigger any 403 (e.g. open another user's project) | A JSONL event appears under `diagnostics/` |
-| 17.2 | Frontend capture | Stop the backend, click something that fetches | An event with `source: "frontend"` |
-| 17.3 | Digest | Run `diagnose.bat` | `diagnostics/REPORT.md` groups events by fingerprint |
-| 17.4 | Redaction | Search the captured files for your token and password | Neither appears. Context keys are allowlisted, so unknown fields are dropped rather than redacted |
-| 17.5 | Refused faculty control | §13.19.11 | A `faculty_control_refused` event with `component: pause` or `grant_floor` and a `reason` |
+| #    | Check                   | How                                                          | Expect                                                                                                                                                                              |
+| ---- | ----------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 17.1 | Backend capture         | Trigger any 403 (e.g. open another user's project)           | A JSONL event appears under `diagnostics/`                                                                                                                                          |
+| 17.2 | Frontend capture        | Stop the backend, click something that fetches               | An event with `source: "frontend"`                                                                                                                                                  |
+| 17.3 | Digest                  | Run `diagnose.bat`                                           | `diagnostics/REPORT.md` groups events by fingerprint                                                                                                                                |
+| 17.4 | Redaction               | Search the captured files for your token and password        | Neither appears. Context keys are allowlisted, so unknown fields are dropped rather than redacted                                                                                   |
+| 17.5 | Refused faculty control | §13.19.11                                                    | A `faculty_control_refused` event with `component: pause` or `grant_floor` and a `reason`                                                                                           |
 | 17.6 | Dead socket in the room | During a Team Viva, kill one participant's browser mid-relay | A `room_send_failed` event naming the channel (`ai_audio`, `human_relay` or `lobby`). **Exactly one per recipient per channel** — a flood of duplicates means the suppression broke |
-| 17.7 | Frame decode | Only reachable by corrupting a frame deliberately | A `frame_decode_failed` event with a reason. Untagged audio from an older server must stay silent — that is a fallback, not a fault |
-| 17.8 | Trace joining | Cause a backend 500 | The frontend event and the backend event share a `trace_id` |
+| 17.7 | Frame decode            | Only reachable by corrupting a frame deliberately            | A `frame_decode_failed` event with a reason. Untagged audio from an older server must stay silent — that is a fallback, not a fault                                                 |
+| 17.8 | Trace joining           | Cause a backend 500                                          | The frontend event and the backend event share a `trace_id`                                                                                                                         |
 
 ## 18. Recording results
 
@@ -494,7 +509,7 @@ Triage order when several things fail at once:
 
 ## 19. What this document cannot cover
 
-- **Assessment quality.** Whether a score is *right* is not a pass/fail check. Run a viva you could grade yourself and judge the marks against your own.
+- **Assessment quality.** Whether a score is _right_ is not a pass/fail check. Run a viva you could grade yourself and judge the marks against your own.
 - **Acoustics at scale.** Three participants in one room, on real hardware, over real networks. Nothing here substitutes for that.
 - **Concurrency.** Two faculty taking over at once, a lead ending a viva mid-answer, simultaneous drags on one board.
 - **Load.** Several live sessions on one backend; every live session holds a Gemini connection.
