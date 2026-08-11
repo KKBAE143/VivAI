@@ -292,7 +292,9 @@ export function PreflightSetup({
 
     // Create a synthetic MediaStream from the canvas
     // canvas.captureStream(fps) returns a MediaStream
-    const syntheticStream = (canvas as HTMLCanvasElement & { captureStream?: (fps: number) => MediaStream }).captureStream?.(1);
+    const syntheticStream = (
+      canvas as HTMLCanvasElement & { captureStream?: (fps: number) => MediaStream }
+    ).captureStream?.(1);
     if (!syntheticStream) {
       // captureStream not supported in this WebView — stop native capture and throw
       bridge.stopCapture();
@@ -372,7 +374,7 @@ export function PreflightSetup({
       startingRef.current = false;
       setStarting(false);
     }
-  }, [source, language, persona, onReady]);
+  }, [source, language, persona, onReady, nativeScreenShareAvailable, startNativeScreenCapture]);
 
   const copy = MODE_COPY[mode] ?? MODE_COPY.viva;
   const ALL_SOURCES: { id: VideoSource; label: string; icon: typeof MonitorUp }[] = [

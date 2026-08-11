@@ -39,9 +39,10 @@ CREATE TABLE IF NOT EXISTS data_deletion_requests (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   profile_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   requested_at TIMESTAMPTZ DEFAULT NOW(),
-  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'cancelled')),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'failed', 'completed', 'cancelled')),
   completed_at TIMESTAMPTZ,
-  deleted_tables JSONB DEFAULT '[]'
+  deleted_tables JSONB DEFAULT '[]',
+  failure_detail JSONB DEFAULT '[]'
 );
 
 CREATE INDEX IF NOT EXISTS idx_deletion_requests_profile ON data_deletion_requests(profile_id);

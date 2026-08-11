@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 
-import { api, ApiError } from "../api";
+import { api, apiBlob, apiText, ApiError } from "../api";
 
 /**
  * The backend's gates raise a structured detail (`{error, message}`) rather than
@@ -78,5 +78,30 @@ describe("api() error details", () => {
 
     expect(error.message).toBe("Request failed (500)");
     expect(error.code).toBeUndefined();
+  });
+
+  it("returns successful CSV as text without changing JSON defaults", async () => {
+    globalThis.fetch = (async () =>
+      new Response('Name,Branch\r\n"Rao, Asha",CSE\r\n', {
+        headers: { "Content-Type": "text/csv; charset=utf-8" },
+      })) as unknown as typeof fetch;
+
+    expect(await apiText("/api/institution/export")).toBe('Name,Branch\r\n"Rao, Asha",CSE\r\n');
+  });
+
+  it("supports authenticated blob downloads", async () => {
+    globalThis.fetch = (async () =>
+      new Response("binary", {
+        headers: { "Content-Type": "application/octet-stream" },
+      })) as unknown as typeof fetch;
+
+    const blob = await apiBlob("/api/files/x/download");
+    expect(await blob.text()).toBe("binary");
+  });
+
+  it("still surfaces JSON errors when text mode was requested", async () => {
+    respondWith(404, { detail: "No students in institution" });
+    const error = (await apiText("/api/institution/export").catch((e) => e)) as ApiError;
+    expect(error.message).toBe("No students in institution");
   });
 });

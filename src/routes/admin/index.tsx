@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Users, Activity, BarChart3, Download, Share2, AlertTriangle } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { AppShell, Card, PageHeader, Badge } from "@/components/app-shell";
 import { ErrorState } from "@/components/error-state";
@@ -14,7 +15,7 @@ import {
   useInstitutionWeakTopics,
   useInstitutionInvite,
 } from "@/lib/hooks-features";
-import { api } from "@/lib/api";
+import { apiText } from "@/lib/api";
 
 export const Route = createFileRoute("/admin/")({
   head: () => ({
@@ -99,17 +100,17 @@ function AdminDashboard() {
 
   const handleExport = async () => {
     try {
-      const res = await api<string>("/api/institution/export");
-      // The API returns CSV — open as blob download
-      const blob = new Blob([res], { type: "text/csv" });
+      const csv = await apiText("/api/institution/export");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = `vivai_readiness_${new Date().toISOString().slice(0, 10)}.csv`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch {
-      // handled by api layer
+      toast.success("CSV export downloaded");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "CSV export failed");
     }
   };
 

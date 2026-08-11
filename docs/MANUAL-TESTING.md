@@ -17,12 +17,12 @@ Nothing in this document has been executed in a browser. It was written from the
 
 ### 1.1 Environment
 
-| Item           | How                                                       | Expect                                                                                                                                                                                                                              |
-| -------------- | --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Backend boots  | `cd backend` then `uvicorn main:app --reload --port 8000` | Starts. `GET http://localhost:8000/health` → `{"status":"ok"}`                                                                                                                                                                      |
-| Frontend boots | `bun run dev` from the repo root                          | Serves on :3000 or :8080                                                                                                                                                                                                            |
-| CORS           | Check `CORS_ORIGINS` in `backend/.env`                    | Must list the port the frontend actually serves on. Default is `http://localhost:8080,http://localhost:5173` — **a frontend on :3000 is blocked until you add it**, and the symptom is every request failing with no useful message |
-| API docs       | `http://localhost:8000/docs`                              | Swagger loads. You will use this for §16                                                                                                                                                                                            |
+| Item           | How                                                       | Expect                                                                                                                                                               |
+| -------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Backend boots  | `cd backend` then `uvicorn main:app --reload --port 8000` | Starts. `GET http://localhost:8000/health` → `{"status":"ok"}`                                                                                                       |
+| Frontend boots | `bun run dev` from the repo root                          | Serves on canonical `http://localhost:8080`                                                                                                                          |
+| CORS           | Check `CORS_ORIGINS` in `backend/.env`                    | Must list the port the frontend actually serves on. Default is `http://localhost:8080,http://localhost:5173`; `5173` is retained for intentional Vite compatibility. |
+| API docs       | `http://localhost:8000/docs`                              | Swagger loads. You will use this for §16                                                                                                                             |
 
 The backend starts with an empty `.env` — every setting defaults to `""` and the Supabase client is built lazily. That means **a missing key does not fail at boot, it fails per request**. Confirm these before blaming a feature:
 

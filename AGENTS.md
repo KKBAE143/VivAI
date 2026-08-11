@@ -51,7 +51,7 @@ Frontend (root):
 
 ```bash
 bun install
-bun run dev               # vite dev server, default :3000 (or :8080)
+bun run dev               # vite dev server, canonical http://localhost:8080
 bun run build             # production build
 bun run lint
 bun run format

@@ -61,7 +61,9 @@ export function GamificationStrip({ data }: { data?: Gamification }) {
               key={it.label}
               className="flex items-center gap-3 rounded-2xl bg-card p-3.5 sm:p-4 shadow-[var(--shadow-card)] sm:w-36"
             >
-              <span className={`grid h-9 w-9 sm:h-10 sm:w-10 shrink-0 place-items-center rounded-xl ${it.bg} ${it.tint}`}>
+              <span
+                className={`grid h-9 w-9 sm:h-10 sm:w-10 shrink-0 place-items-center rounded-xl ${it.bg} ${it.tint}`}
+              >
                 <I className="h-4 w-4 sm:h-5 sm:w-5" />
               </span>
               <div className="min-w-0">

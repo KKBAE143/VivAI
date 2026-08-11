@@ -1,14 +1,15 @@
-import { defineConfig } from "vite";
+import { defineConfig, type PluginOption, type UserConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import tsConfigPaths from "vite-tsconfig-paths";
 import tailwindcss from "@tailwindcss/vite";
+import { nitro } from "nitro/vite";
 // Lives outside src/ on purpose: it imports node:fs, and vite.config.ts is not
 // part of any bundle graph, so importProtection never sees it.
 import { diagnosticsPlugin } from "./tools/diagnostics-vite-plugin";
 
-export default defineConfig(async ({ command }) => {
-  const plugins = [
+export default defineConfig(({ command }): UserConfig => {
+  const plugins: PluginOption[] = [
     tsConfigPaths({ projects: ["./tsconfig.json"] }),
     tanstackStart({
       server: { entry: "server" },
@@ -36,11 +37,7 @@ export default defineConfig(async ({ command }) => {
         "VITE_API_URL is not set. The production bundle would hard-code " +
         "http://localhost:8000 as the API endpoint and fail for every visitor. " +
         "Set VITE_API_URL to the deployed backend URL before building.";
-      if (
-        process.env.ALLOW_LOCALHOST_API_BUILD === "1" ||
-        process.env.VERCEL ||
-        process.env.CI
-      ) {
+      if (process.env.ALLOW_LOCALHOST_API_BUILD === "1" || process.env.VERCEL || process.env.CI) {
         console.warn(`\n[build] WARNING: ${message}\n`);
       } else {
         throw new Error(
@@ -50,7 +47,6 @@ export default defineConfig(async ({ command }) => {
       }
     }
 
-    const { nitro } = await import("nitro/vite");
     plugins.push(
       nitro({
         defaultPreset: "cloudflare-module",

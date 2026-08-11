@@ -55,16 +55,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Typecheck
-        # tsconfig currently has zero errors under src/ and tools/; vite.config.ts
-        # carries one long-standing overload error, so the check is scoped rather
-        # than disabled — a new type error anywhere in the app still fails.
-        run: |
-          bun x tsc --noEmit -p tsconfig.json > tsc.log 2>&1 || true
-          if grep -E '^(src|tools)/' tsc.log; then
-            echo "::error::TypeScript errors in src/ or tools/"
-            exit 1
-          fi
-          echo "No type errors in src/ or tools/."
+        run: bun run typecheck
 
       - name: Unit tests
         run: bun test

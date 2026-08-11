@@ -46,11 +46,15 @@ describe("validateStep — institution", () => {
   });
 
   it("accepts a real generated code", () => {
-    expect(validateStep("institution", "faculty", values({ institutionCode: "A1B2C3D4" }))).toBeNull();
+    expect(
+      validateStep("institution", "faculty", values({ institutionCode: "A1B2C3D4" })),
+    ).toBeNull();
   });
 
   it("ignores surrounding whitespace", () => {
-    expect(validateStep("institution", "faculty", values({ institutionCode: "  A1B2C3D4  " }))).toBeNull();
+    expect(
+      validateStep("institution", "faculty", values({ institutionCode: "  A1B2C3D4  " })),
+    ).toBeNull();
   });
 });
 

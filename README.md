@@ -11,7 +11,7 @@ You need [Bun](https://bun.sh) (>= 1.3) and Python 3.10+.
 ```bash
 # 1. Frontend
 bun install
-bun run dev               # http://localhost:3000
+bun run dev               # http://localhost:8080
 
 # 2. Backend (in another terminal)
 cd backend

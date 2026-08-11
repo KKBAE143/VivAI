@@ -140,7 +140,9 @@ function ReadinessHero({ readiness }: { readiness?: import("@/lib/hooks-features
             <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Defense Readiness
             </p>
-            <p className="mt-1 text-base sm:text-lg font-bold leading-tight text-balance">{label}</p>
+            <p className="mt-1 text-base sm:text-lg font-bold leading-tight text-balance">
+              {label}
+            </p>
             <Link
               to="/readiness"
               className="mt-1.5 sm:mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary"
@@ -250,13 +252,19 @@ function StatRow({ stats }: { stats?: DashboardStats }) {
           >
             <div className="flex items-start justify-between gap-1">
               <span className="text-xs font-medium text-muted-foreground">{s.label}</span>
-              <I className={`h-4 w-4 shrink-0 ${primary ? "text-primary" : "text-muted-foreground"}`} />
+              <I
+                className={`h-4 w-4 shrink-0 ${primary ? "text-primary" : "text-muted-foreground"}`}
+              />
             </div>
-            <div className="mt-3 sm:mt-4 text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{s.value}</div>
+            <div className="mt-3 sm:mt-4 text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+              {s.value}
+            </div>
             <div
               className={`mt-1 flex items-center gap-1 text-[11px] sm:text-xs font-medium ${s.tone === "up" ? "text-success" : "text-warning"}`}
             >
-              <ArrowUpRight className={`h-3 w-3 shrink-0 ${s.tone === "down" ? "rotate-180" : ""}`} />{" "}
+              <ArrowUpRight
+                className={`h-3 w-3 shrink-0 ${s.tone === "down" ? "rotate-180" : ""}`}
+              />{" "}
               <span className="truncate">{s.delta}</span>
             </div>
           </div>

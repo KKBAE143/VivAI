@@ -20,7 +20,7 @@ router = APIRouter(prefix="/api/privacy", tags=["privacy"])
 # 2.0 restructures the notice to the itemised shape the DPDP Rules 2025 require,
 # and removes three claims the previous version made that the code did not
 # support — see the comment above `PRIVACY_POLICY`.
-POLICY_VERSION = "2.0"
+POLICY_VERSION = "2.1"
 
 # Shaped for Rule 3 of the Digital Personal Data Protection Rules 2025 (notified
 # 13 November 2025), which requires a notice that stands on its own, in plain
@@ -132,9 +132,12 @@ PRIVACY_POLICY = {
                     "Transcripts, scores, reports and uploaded project files are kept until you "
                     "delete them or delete your account, because they are what your progress history "
                     "and your faculty's records are made of. Per-turn diagnostic events are kept for "
-                    "90 days and then pruned. If your institution is required by its own regulations "
-                    "to retain assessment records, that obligation takes precedence over erasure for "
-                    "those records only.",
+                    "90 days and then pruned. Account erasure deletes your uploads, sessions, "
+                    "memberships, profile and sign-in account. Shared team projects survive with "
+                    "your ownership and membership removed, so another person's work is not destroyed. "
+                    "De-identified deletion and security-audit records may be retained to prove compliance. "
+                    "If a law requires an institution to retain an assessment record, we will isolate "
+                    "and de-identify it where possible and tell you what was retained and why.",
         },
         {
             "heading": "Your rights under the DPDP Act 2023",
@@ -254,22 +257,24 @@ def request_deletion(user=Depends(get_current_user)):
     sb = get_supabase()
     uid = user["id"]
 
-    # Check for existing pending/processing request
+    # Reuse retryable requests so retries are idempotent and preserve history.
     existing = (
         sb.table("data_deletion_requests")
         .select("id, status")
         .eq("profile_id", uid)
-        .in_("status", ["pending", "processing"])
+        .in_("status", ["pending", "processing", "failed"])
+        .order("requested_at", desc=True)
+        .limit(1)
         .execute().data
     )
-    if existing:
+    if existing and existing[0]["status"] in ("pending", "processing"):
         return {"ok": True, "status": existing[0]["status"], "message": "Deletion already in progress."}
 
-    # Create deletion request
-    sb.table("data_deletion_requests").insert({
-        "profile_id": uid,
-        "status": "pending",
-    }).execute()
+    if not existing:
+        sb.table("data_deletion_requests").insert({
+            "profile_id": uid,
+            "status": "pending",
+        }).execute()
 
     # Mark profile
     sb.table("profiles").update({
@@ -278,7 +283,7 @@ def request_deletion(user=Depends(get_current_user)):
 
     # Execute deletion synchronously (data volumes are small per-user)
     result = deletion_service.execute_deletion(uid)
-    return {"ok": True, **result}
+    return {"ok": result["status"] == "completed", **result}
 
 
 @router.get("/delete-status")
@@ -287,7 +292,7 @@ def deletion_status(user=Depends(get_current_user)):
     sb = get_supabase()
     rows = (
         sb.table("data_deletion_requests")
-        .select("status, requested_at, completed_at")
+        .select("status, requested_at, completed_at, failure_detail")
         .eq("profile_id", user["id"])
         .order("requested_at", desc=True)
         .limit(1)
@@ -300,6 +305,7 @@ def deletion_status(user=Depends(get_current_user)):
         "status": row["status"],
         "requested_at": row.get("requested_at"),
         "completed_at": row.get("completed_at"),
+        "failures": row.get("failure_detail") or [],
     }
 
 

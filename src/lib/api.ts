@@ -103,10 +103,14 @@ async function refreshAccessToken(): Promise<string | null> {
   return refreshInFlight;
 }
 
+export type ApiResponseType = "json" | "text" | "blob";
+
 export interface ApiOptions {
   method?: string;
   body?: unknown;
   signal?: AbortSignal;
+  /** Successful response decoding. JSON remains the backward-compatible default. */
+  responseType?: ApiResponseType;
 }
 
 /**
@@ -234,7 +238,19 @@ export async function api<T = unknown>(path: string, options: ApiOptions = {}): 
   }
 
   if (res.status === 204) return undefined as T;
+  if (options.responseType === "text") return (await res.text()) as T;
+  if (options.responseType === "blob") return (await res.blob()) as T;
   return (await res.json()) as T;
+}
+
+/** Authenticated text download using the same refresh/error behavior as api(). */
+export function apiText(path: string, options: Omit<ApiOptions, "responseType"> = {}) {
+  return api<string>(path, { ...options, responseType: "text" });
+}
+
+/** Authenticated binary download using the same refresh/error behavior as api(). */
+export function apiBlob(path: string, options: Omit<ApiOptions, "responseType"> = {}) {
+  return api<Blob>(path, { ...options, responseType: "blob" });
 }
 
 /** Absolute URL for a backend path (e.g. for downloads). */
