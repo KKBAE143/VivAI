@@ -83,14 +83,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "CollgePro Navigator — Academic OS for B.Tech students" },
+      { title: "VivAI — Academic OS for B.Tech students" },
       {
         name: "description",
         content:
           "Manage projects, prep mock vivas & presentations with AI, and collaborate with your team — built for B.Tech students.",
       },
-      { name: "author", content: "CollgePro Navigator" },
-      { property: "og:title", content: "CollgePro Navigator" },
+      { name: "author", content: "VivAI" },
+      { property: "og:title", content: "VivAI" },
       {
         property: "og:description",
         content:

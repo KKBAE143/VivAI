@@ -5,7 +5,7 @@ import { AppShell, Card, Badge } from "@/components/app-shell";
 import { useTemplate } from "@/lib/hooks";
 
 export const Route = createFileRoute("/templates/$slug")({
-  head: () => ({ meta: [{ title: "Guide — CollgePro Navigator" }] }),
+  head: () => ({ meta: [{ title: "Guide — VivAI" }] }),
   component: TemplateDetail,
 });
 

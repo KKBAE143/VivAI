@@ -9,7 +9,7 @@ import { LIVE_LANGUAGES } from "@/lib/languages";
 import { usePersonaCatalog } from "@/lib/hooks-features";
 
 export const Route = createFileRoute("/advanced/viva-code-aware")({
-  head: () => ({ meta: [{ title: "Code-Aware Viva — CollgePro Navigator" }] }),
+  head: () => ({ meta: [{ title: "Code-Aware Viva — VivAI" }] }),
   component: CodeAwareVivaPage,
 });
 

@@ -8,7 +8,7 @@ import { useAuth } from "../lib/auth-context";
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
-      { title: "Sign in — CollgePro Navigator" },
+      { title: "Sign in — VivAI" },
       {
         name: "description",
         content: "Sign in to manage your B.Tech projects and prep for vivas.",
@@ -100,7 +100,7 @@ function Login() {
           <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary-foreground/15">
             <GraduationCap className="h-5 w-5" />
           </div>
-          CollgePro Navigator
+          VivAI
         </div>
         <div className="relative z-10">
           <h1 className="text-4xl font-bold leading-tight tracking-tight">

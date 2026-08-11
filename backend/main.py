@@ -1,4 +1,4 @@
-"""CollgePro Navigator — FastAPI backend entry point."""
+"""VivAI — FastAPI backend entry point."""
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -61,7 +61,7 @@ async def lifespan(_app: FastAPI):
             pass
 
 
-app = FastAPI(title="CollgePro Navigator API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="VivAI API", version="1.0.0", lifespan=lifespan)
 
 # Middleware order matters: the LAST middleware added is the OUTERMOST wrapper.
 # We add the catch-all FIRST (inner) and CORS LAST (outer) so that every

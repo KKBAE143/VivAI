@@ -8,7 +8,7 @@ import { SessionReport } from "@/components/reports/session-report";
 import type { SessionReport as SessionReportData } from "@/lib/types";
 
 export const Route = createFileRoute("/advanced/viva-code-aware_/session/$id")({
-  head: () => ({ meta: [{ title: "Code-Aware Viva Session — CollgePro Navigator" }] }),
+  head: () => ({ meta: [{ title: "Code-Aware Viva Session — VivAI" }] }),
   component: CodeAwareSessionPage,
 });
 

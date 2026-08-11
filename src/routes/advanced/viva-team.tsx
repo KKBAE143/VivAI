@@ -7,7 +7,7 @@ import { useCreateTeamViva } from "@/lib/hooks-advanced";
 import { TeamVivaRoom } from "@/components/live/team-viva-room";
 
 export const Route = createFileRoute("/advanced/viva-team")({
-  head: () => ({ meta: [{ title: "Team Viva — CollgePro Navigator" }] }),
+  head: () => ({ meta: [{ title: "Team Viva — VivAI" }] }),
   component: TeamViva,
 });
 

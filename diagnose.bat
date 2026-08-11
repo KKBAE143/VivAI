@@ -1,6 +1,6 @@
 @echo off
 REM ============================================================
-REM  CollegePro Navigator diagnostics report
+REM  VivAI diagnostics report
 REM  Double-click this file after reproducing a bug, or run it
 REM  from a terminal with options:
 REM     diagnose.bat -Hours 2      only the last 2 hours

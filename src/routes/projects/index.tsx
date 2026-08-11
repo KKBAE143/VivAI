@@ -11,7 +11,7 @@ import { useProjects } from "@/lib/hooks";
 export const Route = createFileRoute("/projects/")({
   head: () => ({
     meta: [
-      { title: "My Projects — CollgePro Navigator" },
+      { title: "My Projects — VivAI" },
       { name: "description", content: "Manage your PBL, Major and Mini projects in one place." },
     ],
   }),

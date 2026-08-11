@@ -8,7 +8,7 @@ import { usePersonaCatalog } from "@/lib/hooks-features";
 import { LIVE_LANGUAGES } from "@/lib/languages";
 
 export const Route = createFileRoute("/ai-viva/new")({
-  head: () => ({ meta: [{ title: "Configure Mock Viva — CollgePro Navigator" }] }),
+  head: () => ({ meta: [{ title: "Configure Mock Viva — VivAI" }] }),
   validateSearch: (search: Record<string, unknown>): { projectId?: string } => ({
     projectId: typeof search.projectId === "string" ? search.projectId : undefined,
   }),

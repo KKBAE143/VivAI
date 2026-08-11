@@ -22,7 +22,7 @@ import { api } from "@/lib/api";
 export const Route = createFileRoute("/profile")({
   head: () => ({
     meta: [
-      { title: "Profile — CollgePro Navigator" },
+      { title: "Profile — VivAI" },
       { name: "description", content: "Manage your profile, account, and preferences." },
     ],
   }),

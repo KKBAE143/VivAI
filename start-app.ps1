@@ -1,5 +1,5 @@
 <#
-    CollegePro Navigator - one-shot dev launcher (Windows / PowerShell)
+    VivAI - one-shot dev launcher (Windows / PowerShell)
     -------------------------------------------------------------------
     - Frees ONLY the ports this app needs (frontend 8080, backend 8000).
       It never touches any other process/port.
@@ -23,7 +23,7 @@ $Root         = $PSScriptRoot # repo root = folder this script lives in
 $BackendDir   = Join-Path $Root "backend"
 
 Write-Host ""
-Write-Host "===== CollegePro Navigator launcher =====" -ForegroundColor Cyan
+Write-Host "===== VivAI launcher =====" -ForegroundColor Cyan
 Write-Host "Project: $Root"
 Write-Host ""
 

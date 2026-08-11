@@ -1,4 +1,4 @@
-# CollegePro Navigator
+# VivAI
 
 AI-powered student companion app — projects, teams, AI Mock Viva, AI Presentation Mock, college predictor, and more.
 

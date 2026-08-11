@@ -1,6 +1,6 @@
 # Manual testing guide
 
-Every user-facing feature in VivAI / CollegePro Navigator, in the order you should walk it.
+Every user-facing feature in VivAI, in the order you should walk it.
 
 ## How to read this
 

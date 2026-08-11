@@ -32,7 +32,7 @@ import { ProjectTeamTab } from "@/components/projects/team-tab";
 import { taskDerivedProgress } from "@/lib/utils";
 
 export const Route = createFileRoute("/projects/$id")({
-  head: () => ({ meta: [{ title: "Project — CollgePro Navigator" }] }),
+  head: () => ({ meta: [{ title: "Project — VivAI" }] }),
   component: ProjectDetail,
 });
 

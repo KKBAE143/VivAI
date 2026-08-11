@@ -32,7 +32,7 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/onboarding")({
   head: () => ({
     meta: [
-      { title: "Get started — CollgePro Navigator" },
+      { title: "Get started — VivAI" },
       {
         name: "description",
         content: "Tell us about your major, project type, and goals to personalize your dashboard.",
@@ -306,7 +306,7 @@ function Onboarding() {
             <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-primary-foreground">
               <GraduationCap className="h-5 w-5" />
             </div>
-            <span className="font-semibold">CollgePro Navigator</span>
+            <span className="font-semibold">VivAI</span>
           </div>
           {role && !pending && (
             <span className="text-xs text-muted-foreground" aria-live="polite">

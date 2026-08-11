@@ -11,7 +11,7 @@ import { useCreateVivaSession, useVivaSessions, useVivaStats } from "@/lib/hooks
 export const Route = createFileRoute("/ai-viva/")({
   head: () => ({
     meta: [
-      { title: "AI Mock Viva — CollgePro Navigator" },
+      { title: "AI Mock Viva — VivAI" },
       {
         name: "description",
         content:

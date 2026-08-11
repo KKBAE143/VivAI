@@ -10,7 +10,7 @@ import { useCreateTeam, useJoinTeam, useMe, useTeams, type ApiRecord } from "@/l
 export const Route = createFileRoute("/teams/")({
   head: () => ({
     meta: [
-      { title: "My Teams — CollgePro Navigator" },
+      { title: "My Teams — VivAI" },
       {
         name: "description",
         content: "Manage your project teams and collaborate with classmates.",

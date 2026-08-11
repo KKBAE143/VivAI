@@ -8,7 +8,7 @@ import { SessionReport } from "@/components/reports/session-report";
 import type { SessionReport as SessionReportData } from "@/lib/types";
 
 export const Route = createFileRoute("/ai-viva/session/$id")({
-  head: () => ({ meta: [{ title: "Live Viva Session — CollgePro Navigator" }] }),
+  head: () => ({ meta: [{ title: "Live Viva Session — VivAI" }] }),
   component: VivaSession,
 });
 

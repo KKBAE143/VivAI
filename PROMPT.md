@@ -1,8 +1,8 @@
-# COLLGEPRO NAVIGATOR — BACKEND INTEGRATION TASK
+# VIVAI — BACKEND INTEGRATION TASK
 
 ## 📋 OVERVIEW
 
-You are building the **backend** for **"CollgePro Navigator"** — a SaaS platform for B.Tech college students in India. The frontend is already built using **TanStack Start** (SSR React framework). Your job is to **add the backend server, API layer, and new frontend UI** to make it functional.
+You are building the **backend** for **"VivAI"** — a SaaS platform for B.Tech college students in India. The frontend is already built using **TanStack Start** (SSR React framework). Your job is to **add the backend server, API layer, and new frontend UI** to make it functional.
 
 The platform's core unique value is: **your B.Tech project content feeds into AI viva questions, presentation feedback, and team collaboration — all connected in one workflow.** The advanced features below extend these connections in ways no other platform does.
 
@@ -294,7 +294,7 @@ collgepro-navigator-main/
 
 ## 🚀 ADVANCED FEATURES (UNIQUE — extends core platform)
 
-These 7 features are what make CollgePro Navigator truly unique. Each one requires:
+These 7 features are what make VivAI truly unique. Each one requires:
 
 1. **New frontend route page(s)** in `src/routes/advanced/`
 2. **New backend API endpoints** in `api/advanced.py`

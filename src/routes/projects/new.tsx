@@ -6,7 +6,7 @@ import { useRequireAuth } from "@/lib/auth-context";
 import { useCreateProject } from "@/lib/hooks";
 
 export const Route = createFileRoute("/projects/new")({
-  head: () => ({ meta: [{ title: "New Project — CollgePro Navigator" }] }),
+  head: () => ({ meta: [{ title: "New Project — VivAI" }] }),
   component: NewProject,
 });
 

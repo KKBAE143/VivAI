@@ -34,13 +34,13 @@ import {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Dashboard — CollgePro Navigator" },
+      { title: "Dashboard — VivAI" },
       {
         name: "description",
         content:
           "Stay on top of your tasks, monitor progress, and track status across all your academic projects.",
       },
-      { property: "og:title", content: "CollgePro Navigator" },
+      { property: "og:title", content: "VivAI" },
       {
         property: "og:description",
         content: "The smarter way for B.Tech students to manage projects and prep for vivas.",

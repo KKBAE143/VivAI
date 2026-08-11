@@ -1,5 +1,5 @@
 <#
-    CollegePro Navigator - one-time setup (Windows / PowerShell)
+    VivAI - one-time setup (Windows / PowerShell)
     ------------------------------------------------------------
     Run this ONCE on a fresh Windows machine. It will:
 
@@ -30,7 +30,7 @@ $BackendDir = Join-Path $Root "backend"
 $BunBinDir  = Join-Path $env:USERPROFILE ".bun\bin"
 
 Write-Host ""
-Write-Host "===== CollegePro Navigator - first-time setup =====" -ForegroundColor Cyan
+Write-Host "===== VivAI - first-time setup =====" -ForegroundColor Cyan
 Write-Host "Project: $Root"
 Write-Host ""
 

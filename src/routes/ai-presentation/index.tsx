@@ -10,7 +10,7 @@ import { useCreatePresentation, usePresentations, useProjects } from "@/lib/hook
 export const Route = createFileRoute("/ai-presentation/")({
   head: () => ({
     meta: [
-      { title: "AI Presentation Mock — CollgePro Navigator" },
+      { title: "AI Presentation Mock — VivAI" },
       {
         name: "description",
         content: "Present to AI, share your screen, and get faculty-style real-time feedback.",

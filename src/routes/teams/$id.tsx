@@ -38,7 +38,7 @@ import {
 } from "@/lib/hooks";
 
 export const Route = createFileRoute("/teams/$id")({
-  head: () => ({ meta: [{ title: "Team Dashboard — CollgePro Navigator" }] }),
+  head: () => ({ meta: [{ title: "Team Dashboard — VivAI" }] }),
   component: TeamDashboard,
 });
 

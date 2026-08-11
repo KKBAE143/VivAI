@@ -16,7 +16,7 @@ import { AppShell, Card, PageHeader, Badge } from "@/components/app-shell";
 export const Route = createFileRoute("/ai")({
   head: () => ({
     meta: [
-      { title: "AI Hub — CollgePro Navigator" },
+      { title: "AI Hub — VivAI" },
       {
         name: "description",
         content:

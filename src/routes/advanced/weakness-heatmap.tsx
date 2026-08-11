@@ -7,7 +7,7 @@ import { useProjects, useApiMutation } from "@/lib/hooks";
 import { useHeatmap } from "@/lib/hooks-advanced";
 
 export const Route = createFileRoute("/advanced/weakness-heatmap")({
-  head: () => ({ meta: [{ title: "Weakness Heatmap — CollgePro Navigator" }] }),
+  head: () => ({ meta: [{ title: "Weakness Heatmap — VivAI" }] }),
   component: WeaknessHeatmap,
 });
 

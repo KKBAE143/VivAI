@@ -13,7 +13,7 @@ import { useTemplates } from "@/lib/hooks";
 export const Route = createFileRoute("/templates/")({
   head: () => ({
     meta: [
-      { title: "Templates & Guidelines — CollgePro Navigator" },
+      { title: "Templates & Guidelines — VivAI" },
       {
         name: "description",
         content: "Learn what PBL, Major and Mini projects are, and how to prepare for vivas.",

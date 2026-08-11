@@ -20,7 +20,7 @@ import { useDeleteFile, useFiles, useUploadFile } from "@/lib/hooks";
 export const Route = createFileRoute("/files")({
   head: () => ({
     meta: [
-      { title: "Files & Resources — CollgePro Navigator" },
+      { title: "Files & Resources — VivAI" },
       {
         name: "description",
         content: "All your project documents, reports, and slides in one place.",

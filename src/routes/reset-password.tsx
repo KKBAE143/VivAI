@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 
 export const Route = createFileRoute("/reset-password")({
-  head: () => ({ meta: [{ title: "Set a new password — CollgePro Navigator" }] }),
+  head: () => ({ meta: [{ title: "Set a new password — VivAI" }] }),
   component: ResetPassword,
 });
 

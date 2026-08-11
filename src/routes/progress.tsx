@@ -30,7 +30,7 @@ import {
 export const Route = createFileRoute("/progress")({
   head: () => ({
     meta: [
-      { title: "Progress & Tasks — CollgePro Navigator" },
+      { title: "Progress & Tasks — VivAI" },
       { name: "description", content: "All your tasks across projects in one focused view." },
     ],
   }),
