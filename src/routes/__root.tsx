@@ -37,15 +37,59 @@ function NotFoundComponent() {
   );
 }
 
+function isChunkLoadError(error: unknown): boolean {
+  if (!error) return false;
+  const msg = String(error instanceof Error ? error.message : error);
+  return (
+    msg.includes("Failed to fetch dynamically imported module") ||
+    msg.includes("Importing a module script failed") ||
+    msg.includes("Loading chunk") ||
+    msg.includes("error loading dynamically imported module")
+  );
+}
+
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
+  const isChunkError = isChunkLoadError(error);
 
   // Capture in an effect, not during render: React StrictMode double-invokes
   // render in development, which would double-report every render failure.
   useEffect(() => {
     report(error, { kind: "render_error", context: { component: "route" } });
-  }, [error]);
+    if (isChunkError && typeof window !== "undefined") {
+      const key = "vivai_last_chunk_reload";
+      const last = sessionStorage.getItem(key);
+      const now = Date.now();
+      if (!last || now - parseInt(last, 10) > 10000) {
+        sessionStorage.setItem(key, String(now));
+        window.location.reload();
+      }
+    }
+  }, [error, isChunkError]);
+
+  if (isChunkError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="max-w-md text-center">
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">
+            Updating VivAI to latest version
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            A new version was recently deployed. Reloading the latest modules...
+          </p>
+          <div className="mt-6">
+            <button
+              onClick={() => window.location.reload()}
+              className="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground shadow-sm hover:opacity-90"
+            >
+              Refresh Now
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -135,6 +179,21 @@ function RootComponent() {
   // so the browser had no global capture at all.
   useEffect(() => {
     initDiagnostics();
+
+    const handlePreloadError = () => {
+      const key = "vivai_last_chunk_reload";
+      const last = sessionStorage.getItem(key);
+      const now = Date.now();
+      if (!last || now - parseInt(last, 10) > 10000) {
+        sessionStorage.setItem(key, String(now));
+        window.location.reload();
+      }
+    };
+
+    window.addEventListener("vite:preloadError", handlePreloadError);
+    return () => {
+      window.removeEventListener("vite:preloadError", handlePreloadError);
+    };
   }, []);
 
   return (
