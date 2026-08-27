@@ -1,30 +1,26 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
-  BookOpen,
   FolderKanban,
   BrainCircuit,
   MonitorSmartphone,
   Users,
-  FileText,
   Settings,
   Search,
   Bell,
-  HelpCircle,
   LogOut,
   GraduationCap,
   Sparkles,
   Sun,
   Moon,
-  Target,
   Gauge,
   Timer,
-  Trophy,
   Video,
   Building2,
   ClipboardCheck,
   Menu,
   X,
+  ArrowUpRight,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { ConsentGate } from "@/components/consent-gate";
@@ -32,50 +28,33 @@ import { useTheme } from "@/lib/theme";
 import { useAuth, useRequireAuth } from "@/lib/auth-context";
 import { useProfile } from "@/lib/hooks";
 
-type NavItem = { to: string; icon: typeof LayoutDashboard; label: string };
+type NavItem = {
+  to: string;
+  icon: typeof LayoutDashboard;
+  label: string;
+  badge?: string;
+};
 
-const navGroups: { heading: string; items: NavItem[] }[] = [
-  {
-    heading: "Overview",
-    items: [{ to: "/", icon: LayoutDashboard, label: "Dashboard" }],
-  },
-  {
-    heading: "Practice",
-    items: [
-      { to: "/ai-viva", icon: BrainCircuit, label: "Mock Viva" },
-      { to: "/ai-presentation", icon: MonitorSmartphone, label: "Presentation" },
-      { to: "/pitch-drill", icon: Timer, label: "Pitch Drill" },
-      { to: "/advanced/sentiment-analysis", icon: Video, label: "Live Coach" },
-      { to: "/ai", icon: Sparkles, label: "AI Tools" },
-    ],
-  },
-  {
-    heading: "Insights",
-    items: [
-      { to: "/readiness", icon: Gauge, label: "Readiness" },
-      { to: "/progress", icon: Target, label: "Progress" },
-      { to: "/leaderboard", icon: Trophy, label: "Leaderboard" },
-    ],
-  },
-  {
-    heading: "Workspace",
-    items: [
-      { to: "/projects", icon: FolderKanban, label: "Projects" },
-      { to: "/templates", icon: BookOpen, label: "Templates" },
-      { to: "/teams", icon: Users, label: "Teams" },
-      { to: "/files", icon: FileText, label: "Files" },
-      { to: "/profile", icon: Settings, label: "Profile" },
-    ],
-  },
+const navItems: NavItem[] = [
+  { to: "/", icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/ai-viva", icon: BrainCircuit, label: "Mock Viva" },
+  { to: "/ai-presentation", icon: MonitorSmartphone, label: "Presentation" },
+  { to: "/pitch-drill", icon: Timer, label: "Pitch Drill" },
+  { to: "/advanced/sentiment-analysis", icon: Video, label: "Live Coach", badge: "2" },
+  { to: "/readiness", icon: Gauge, label: "Readiness" },
+  { to: "/projects", icon: FolderKanban, label: "Projects" },
+  { to: "/teams", icon: Users, label: "Teams" },
+  { to: "/profile", icon: Settings, label: "Settings" },
 ];
 
 export function AppShell({
   children,
-  /** Full-width workspace: hides the left sidebar so dense tools (e.g. Code-Aware) can breathe. */
   wide = false,
+  hideTopBar = false,
 }: {
   children: ReactNode;
   wide?: boolean;
+  hideTopBar?: boolean;
 }) {
   const { ready, isLoading } = useRequireAuth();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -102,23 +81,21 @@ export function AppShell({
   }
   return (
     <div className="relative min-h-screen bg-background overflow-x-hidden">
-      {/* Apple-style atmospheric ambient light mesh */}
+      {/* Atmospheric ambient light mesh */}
       <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
         <div className="absolute -top-40 right-[-10%] h-[550px] w-[550px] rounded-full bg-primary/10 blur-[130px] dark:bg-primary/15" />
         <div className="absolute top-[35%] -left-32 h-[500px] w-[500px] rounded-full bg-[oklch(0.772_0.024_205/0.12)] blur-[140px] dark:bg-[oklch(0.35_0.035_208/0.4)]" />
         <div className="absolute -bottom-40 right-[20%] h-[600px] w-[600px] rounded-full bg-primary/8 blur-[150px] dark:bg-primary/10" />
       </div>
-      <div className="relative z-10 flex w-full gap-6 p-3 sm:p-4 lg:p-6">
+      <div className="relative z-10 flex w-full gap-4 sm:gap-5 p-3 sm:p-4 lg:p-5">
         <Sidebar />
-        <main className="min-w-0 flex-1 space-y-6 pb-24 lg:pb-0">
-          <TopBar onOpenMenu={() => setDrawerOpen(true)} />
+        <main className="min-w-0 flex-1 space-y-4 pb-20 lg:pb-0">
+          {!hideTopBar && <TopBar onOpenMenu={() => setDrawerOpen(true)} />}
           {children}
         </main>
       </div>
       <MobileNav onOpenMenu={() => setDrawerOpen(true)} />
       <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
-      {/* Mounted in the shell, not per route: consent gates every session
-          feature, and it reads the profile the shell already has. */}
       <ConsentGate />
     </div>
   );
@@ -131,86 +108,112 @@ function Sidebar() {
   const navigate = useNavigate();
   const isActive = (to: string) => (to === "/" ? pathname === "/" : pathname.startsWith(to));
   const isAdmin = profile?.role === "admin" || profile?.role === "faculty";
+
   return (
-    <aside className="sticky top-6 hidden h-[calc(100vh-3rem)] w-[236px] shrink-0 flex-col justify-between overflow-y-auto rounded-3xl bg-card/75 backdrop-blur-2xl backdrop-saturate-150 border border-white/50 dark:border-white/10 px-3 py-5 shadow-[var(--shadow-glass)] lg:flex">
-      <div>
-        <Link to="/" aria-label="Home" className="mb-6 flex items-center gap-2.5 px-2">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
+    <aside className="sticky top-5 hidden h-[calc(100vh-2.5rem)] w-[210px] shrink-0 flex-col justify-between overflow-y-auto rounded-3xl bg-card/85 backdrop-blur-2xl border border-white/40 dark:border-white/10 p-3.5 shadow-[var(--shadow-glass)] lg:flex">
+      <div className="flex flex-col gap-5">
+        {/* Brand Logo */}
+        <Link to="/" aria-label="Home" className="flex items-center gap-2.5 px-2 pt-1">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
             <GraduationCap className="h-5 w-5" />
           </span>
-          <span className="text-lg font-bold tracking-tight">VivAI</span>
+          <span className="text-lg font-bold tracking-tight text-foreground">VivAI</span>
         </Link>
-        <nav className="flex flex-col gap-5">
-          {navGroups.map((group) => (
-            <div key={group.heading}>
-              <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-                {group.heading}
-              </p>
-              <div className="flex flex-col gap-0.5">
-                {group.items.map((item) => {
-                  const Icon = item.icon;
-                  const active = isActive(item.to);
-                  return (
-                    <Link
-                      key={item.to}
-                      to={item.to}
-                      className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all ${
-                        active
-                          ? "bg-foreground text-background shadow-xs"
-                          : "text-muted-foreground hover:bg-secondary/70 hover:backdrop-blur-md hover:text-foreground"
-                      }`}
-                    >
-                      <Icon className="h-[18px] w-[18px] shrink-0" />
-                      {item.label}
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
+
+        {/* Clean Flat Navigation Items matching ref */}
+        <nav className="flex flex-col gap-1">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const active = isActive(item.to);
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
+                className={`group relative flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition-all ${
+                  active
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-muted-foreground hover:bg-secondary/70 hover:text-foreground"
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span>{item.label}</span>
+                </div>
+                {item.badge && (
+                  <span
+                    className={`grid h-4 min-w-[16px] place-items-center rounded-full px-1 text-[9px] font-bold ${
+                      active ? "bg-primary-foreground text-primary" : "bg-primary/20 text-primary"
+                    }`}
+                  >
+                    {item.badge}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+
           {isAdmin && (
-            <div>
-              <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-                Admin
-              </p>
-              <div className="flex flex-col gap-0.5">
-                <Link
-                  to="/faculty"
-                  className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all ${
-                    isActive("/faculty")
-                      ? "bg-foreground text-background shadow-xs"
-                      : "text-muted-foreground hover:bg-secondary/70 hover:backdrop-blur-md hover:text-foreground"
-                  }`}
-                >
-                  <ClipboardCheck className="h-[18px] w-[18px] shrink-0" />
-                  Faculty Console
-                </Link>
-                <Link
-                  to="/admin"
-                  className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all ${
-                    isActive("/admin")
-                      ? "bg-foreground text-background shadow-xs"
-                      : "text-muted-foreground hover:bg-secondary/70 hover:backdrop-blur-md hover:text-foreground"
-                  }`}
-                >
-                  <Building2 className="h-[18px] w-[18px] shrink-0" />
-                  Institution
-                </Link>
-              </div>
+            <div className="mt-2 pt-2 border-t border-border/40 flex flex-col gap-1">
+              <Link
+                to="/faculty"
+                className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold transition-all ${
+                  isActive("/faculty")
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-muted-foreground hover:bg-secondary/70 hover:text-foreground"
+                }`}
+              >
+                <ClipboardCheck className="h-4 w-4 shrink-0" />
+                <span>Faculty</span>
+              </Link>
+              <Link
+                to="/admin"
+                className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold transition-all ${
+                  isActive("/admin")
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-muted-foreground hover:bg-secondary/70 hover:text-foreground"
+                }`}
+              >
+                <Building2 className="h-4 w-4 shrink-0" />
+                <span>Institution</span>
+              </Link>
             </div>
           )}
         </nav>
       </div>
-      <button
-        onClick={() => {
-          logout();
-          navigate({ to: "/login" });
-        }}
-        className="mt-4 flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition-all hover:bg-secondary/70 hover:backdrop-blur-md hover:text-foreground"
-      >
-        <LogOut className="h-[18px] w-[18px]" />
-        Sign out
-      </button>
+
+      {/* Bottom Area: Promo Card + Sign Out */}
+      <div className="flex flex-col gap-3">
+        {/* Rounded Promo/Download Card matching ref */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-transparent p-3 border border-primary/25">
+          <div className="flex items-start justify-between">
+            <div className="grid h-7 w-7 place-items-center rounded-xl bg-primary/20 text-primary">
+              <Sparkles className="h-3.5 w-3.5" />
+            </div>
+            <Link
+              to="/ai-viva/new"
+              className="grid h-6 w-6 place-items-center rounded-full bg-primary text-primary-foreground shadow-xs hover:scale-105 transition-transform"
+            >
+              <ArrowUpRight className="h-3 w-3" />
+            </Link>
+          </div>
+          <p className="mt-2 text-xs font-bold text-foreground">AI Viva Coach</p>
+          <p className="text-[10px] text-muted-foreground leading-tight">
+            Practice oral defense on demand
+          </p>
+        </div>
+
+        {/* Sign out */}
+        <button
+          onClick={() => {
+            logout();
+            navigate({ to: "/login" });
+          }}
+          className="flex items-center gap-2.5 rounded-xl px-3 py-1.5 text-xs font-medium text-muted-foreground transition-all hover:bg-secondary/70 hover:text-foreground"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          <span>Sign out</span>
+        </button>
+      </div>
     </aside>
   );
 }
@@ -268,15 +271,10 @@ function TopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
       .slice(0, 2)
       .join("")
       .toUpperCase() || "S";
-  const meta = [
-    profile?.year ? `${String(profile.year)} Year` : null,
-    profile?.branch ? String(profile.branch) : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
   const title = pageTitle(pathname);
+
   return (
-    <header className="flex flex-wrap items-center justify-between gap-2.5 rounded-2xl bg-card/75 backdrop-blur-2xl backdrop-saturate-150 border border-white/50 dark:border-white/10 p-2.5 shadow-[var(--shadow-glass)] sm:p-3">
+    <header className="flex flex-wrap items-center justify-between gap-2.5 rounded-2xl bg-card/75 backdrop-blur-2xl border border-white/40 dark:border-white/10 p-2.5 shadow-[var(--shadow-glass)] sm:p-3">
       <div className="flex min-w-0 items-center gap-2.5">
         <button
           onClick={onOpenMenu}
@@ -285,45 +283,66 @@ function TopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
         >
           <Menu className="h-5 w-5" />
         </button>
-        <div className="hidden grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm sm:grid lg:hidden">
-          <GraduationCap className="h-5 w-5" />
+        <div className="hidden grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm sm:grid lg:hidden">
+          <GraduationCap className="h-4 w-4" />
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold sm:text-base">{title}</p>
+          <p className="truncate text-sm font-semibold">{title}</p>
         </div>
       </div>
-      <div className="flex items-center gap-1.5 sm:gap-2">
+      <div className="flex items-center gap-2">
         <ThemeToggle />
-        <div className="hidden items-center gap-1 rounded-full bg-secondary/70 backdrop-blur-md border border-white/30 dark:border-white/10 p-1 min-[420px]:flex shadow-xs">
-          <button
-            aria-label="Search"
-            className="grid h-8 w-8 place-items-center rounded-full hover:bg-card/90 transition-colors sm:h-9 sm:w-9"
-          >
-            <Search className="h-4 w-4" />
-          </button>
-          <button
-            aria-label="Notifications"
-            className="relative grid h-8 w-8 place-items-center rounded-full hover:bg-card/90 transition-colors sm:h-9 sm:w-9"
-          >
-            <Bell className="h-4 w-4" />
-            <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />
-          </button>
-        </div>
         <Link
           to="/profile"
-          aria-label="Profile"
-          className="flex items-center gap-2.5 rounded-full bg-secondary/70 backdrop-blur-md border border-white/30 dark:border-white/10 py-1 pl-1 pr-2.5 hover:bg-secondary/90 transition-all shadow-xs sm:pr-4"
+          className="flex items-center gap-2 rounded-full border border-white/30 dark:border-white/10 bg-secondary/70 backdrop-blur-md px-2 py-1 text-xs font-medium hover:bg-secondary/90 transition-colors"
         >
-          <div className="grid h-8 w-8 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground shadow-xs sm:h-9 sm:w-9 sm:text-sm">
+          <span className="grid h-6 w-6 place-items-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
             {initials}
-          </div>
-          <div className="hidden text-left sm:block">
-            <div className="text-sm font-semibold leading-tight">{fullName}</div>
-            <div className="text-xs text-muted-foreground">{meta || "Set up your profile"}</div>
-          </div>
+          </span>
+          <span className="hidden max-w-[120px] truncate sm:inline">{fullName}</span>
         </Link>
       </div>
     </header>
+  );
+}
+
+function MobileNav({ onOpenMenu }: { onOpenMenu: () => void }) {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isActive = (to: string) => (to === "/" ? pathname === "/" : pathname.startsWith(to));
+  const mobileNav = [
+    { to: "/", icon: LayoutDashboard, label: "Home" },
+    { to: "/ai-viva", icon: BrainCircuit, label: "Viva" },
+    { to: "/ai-presentation", icon: MonitorSmartphone, label: "Slides" },
+    { to: "/readiness", icon: Gauge, label: "DRS" },
+    { to: "/projects", icon: FolderKanban, label: "Projects" },
+  ];
+  return (
+    <nav className="fixed inset-x-0 bottom-3 z-40 mx-auto flex max-w-sm items-center justify-around rounded-full border border-white/40 dark:border-white/10 bg-card/85 px-3 py-2 backdrop-blur-2xl shadow-[var(--shadow-glass)] lg:hidden">
+      {mobileNav.map((item) => {
+        const Icon = item.icon;
+        const active = isActive(item.to);
+        return (
+          <Link
+            key={item.to}
+            to={item.to}
+            className={`flex flex-col items-center gap-1 rounded-full px-3 py-1 text-[10px] font-medium transition-colors ${
+              active ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Icon className="h-4 w-4" />
+            <span>{item.label}</span>
+          </Link>
+        );
+      })}
+      <button
+        onClick={onOpenMenu}
+        aria-label="More"
+        className="flex flex-col items-center gap-1 rounded-full px-3 py-1 text-[10px] font-medium text-muted-foreground hover:text-foreground"
+      >
+        <Menu className="h-4 w-4" />
+        <span>More</span>
+      </button>
+    </nav>
   );
 }
 
@@ -333,199 +352,138 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
   const { data: profile } = useProfile();
   const navigate = useNavigate();
   const isActive = (to: string) => (to === "/" ? pathname === "/" : pathname.startsWith(to));
-  const isAdmin = profile?.role === "admin" || profile?.role === "faculty";
 
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex lg:hidden">
-      {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/40 backdrop-blur-md transition-opacity"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
-
-      {/* Drawer Container */}
-      <div className="relative flex w-4/5 max-w-xs flex-1 flex-col bg-card/90 backdrop-blur-2xl border-r border-white/30 dark:border-white/10 px-4 py-5 shadow-2xl">
-        <div className="flex items-center justify-between pb-4 border-b border-border">
-          <Link to="/" onClick={onClose} aria-label="Home" className="flex items-center gap-2.5">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-              <GraduationCap className="h-5 w-5" />
-            </span>
-            <span className="text-lg font-bold tracking-tight">VivAI</span>
-          </Link>
-          <button
-            onClick={onClose}
-            aria-label="Close menu"
-            className="grid h-9 w-9 place-items-center rounded-xl bg-secondary/70 backdrop-blur-md border border-white/20 dark:border-white/10 text-muted-foreground hover:text-foreground"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <nav className="mt-4 flex-1 space-y-5 overflow-y-auto pr-1">
-          {navGroups.map((group) => (
-            <div key={group.heading}>
-              <p className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-                {group.heading}
-              </p>
-              <div className="flex flex-col gap-1">
-                {group.items.map((item) => {
-                  const Icon = item.icon;
-                  const active = isActive(item.to);
-                  return (
-                    <Link
-                      key={item.to}
-                      to={item.to}
-                      onClick={onClose}
-                      className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all ${
-                        active
-                          ? "bg-foreground text-background shadow-xs"
-                          : "text-muted-foreground hover:bg-secondary/70 hover:backdrop-blur-md hover:text-foreground"
-                      }`}
-                    >
-                      <Icon className="h-4 w-4 shrink-0" />
-                      {item.label}
-                    </Link>
-                  );
-                })}
-              </div>
+      <div className="relative flex w-full max-w-xs flex-1 flex-col justify-between bg-card/90 backdrop-blur-2xl border-r border-white/20 p-5 shadow-2xl">
+        <div>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2.5">
+              <span className="grid h-9 w-9 place-items-center rounded-2xl bg-primary text-primary-foreground">
+                <GraduationCap className="h-5 w-5" />
+              </span>
+              <span className="text-lg font-bold">VivAI</span>
             </div>
-          ))}
-
-          {isAdmin && (
-            <div>
-              <p className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-                Admin
-              </p>
-              <div className="flex flex-col gap-1">
+            <button
+              onClick={onClose}
+              className="grid h-8 w-8 place-items-center rounded-xl bg-secondary text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <nav className="flex flex-col gap-1">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.to);
+              return (
                 <Link
-                  to="/faculty"
+                  key={item.to}
+                  to={item.to}
                   onClick={onClose}
-                  className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all ${
-                    isActive("/faculty")
-                      ? "bg-foreground text-background shadow-xs"
-                      : "text-muted-foreground hover:bg-secondary/70 hover:backdrop-blur-md hover:text-foreground"
+                  className={`flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-semibold ${
+                    active ? "bg-primary text-primary-foreground" : "text-muted-foreground"
                   }`}
                 >
-                  <ClipboardCheck className="h-4 w-4 shrink-0" />
-                  Faculty Console
+                  <div className="flex items-center gap-2.5">
+                    <Icon className="h-4 w-4" />
+                    <span>{item.label}</span>
+                  </div>
+                  {item.badge && (
+                    <span className="grid h-4 min-w-[16px] place-items-center rounded-full bg-primary/20 px-1 text-[9px] font-bold">
+                      {item.badge}
+                    </span>
+                  )}
                 </Link>
-                <Link
-                  to="/admin"
-                  onClick={onClose}
-                  className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all ${
-                    isActive("/admin")
-                      ? "bg-foreground text-background shadow-xs"
-                      : "text-muted-foreground hover:bg-secondary/70 hover:backdrop-blur-md hover:text-foreground"
-                  }`}
-                >
-                  <Building2 className="h-4 w-4 shrink-0" />
-                  Institution Admin
-                </Link>
-              </div>
-            </div>
-          )}
-        </nav>
-
-        <div className="mt-4 border-t border-border pt-3 space-y-2">
-          <button
-            onClick={() => {
-              onClose();
-              logout();
-              navigate({ to: "/login" });
-            }}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
-          >
-            <LogOut className="h-4 w-4" />
-            Sign out
-          </button>
+              );
+            })}
+          </nav>
         </div>
+
+        <button
+          onClick={() => {
+            onClose();
+            logout();
+            navigate({ to: "/login" });
+          }}
+          className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-secondary"
+        >
+          <LogOut className="h-4 w-4" />
+          <span>Sign out</span>
+        </button>
       </div>
     </div>
   );
 }
 
-function MobileNav({ onOpenMenu }: { onOpenMenu: () => void }) {
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const items = [
-    { to: "/", icon: LayoutDashboard, label: "Home" },
-    { to: "/pitch-drill", icon: Timer, label: "Pitch" },
-    { to: "/ai-viva", icon: BrainCircuit, label: "Viva", center: true },
-    { to: "/readiness", icon: Gauge, label: "Ready" },
-    { to: "/projects", icon: FolderKanban, label: "Projects" },
-  ];
+function ThemeToggle() {
+  const { theme, toggleTheme } = useTheme();
   return (
-    <nav className="fixed inset-x-3 bottom-3 z-40 flex items-center justify-around rounded-3xl bg-card/80 backdrop-blur-2xl backdrop-saturate-150 border border-white/40 dark:border-white/10 p-2 shadow-[var(--shadow-glass)] lg:hidden">
-      {items.map((i) => {
-        const Icon = i.icon;
-        const active = i.to === "/" ? pathname === "/" : pathname.startsWith(i.to);
-        if (i.center) {
-          return (
-            <Link
-              key={i.to}
-              to={i.to}
-              aria-label={i.label}
-              className="grid h-12 w-12 -translate-y-3 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg active:scale-95 transition-transform"
-            >
-              <Icon className="h-5 w-5" />
-            </Link>
-          );
-        }
-        return (
-          <Link
-            key={i.to}
-            to={i.to}
-            aria-label={i.label}
-            className={`flex flex-1 flex-col items-center gap-0.5 rounded-xl py-2 text-[10px] transition-all ${
-              active ? "text-foreground font-semibold" : "text-muted-foreground"
-            }`}
-          >
-            <Icon className="h-5 w-5" />
-            {i.label}
-          </Link>
-        );
-      })}
-      <button
-        onClick={onOpenMenu}
-        aria-label="More options"
-        className="flex flex-1 flex-col items-center gap-0.5 rounded-xl py-2 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <Menu className="h-5 w-5" />
-        More
-      </button>
-    </nav>
+    <button
+      onClick={toggleTheme}
+      aria-label="Toggle theme"
+      className="grid h-8 w-8 place-items-center rounded-full border border-white/30 dark:border-white/10 bg-secondary/70 backdrop-blur-md text-foreground hover:bg-secondary transition-colors"
+    >
+      {theme === "dark" ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+    </button>
   );
 }
 
-export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return (
-    <div
-      className={`rounded-2xl bg-card/75 backdrop-blur-xl backdrop-saturate-150 border border-white/40 dark:border-white/10 p-4 sm:p-6 shadow-[var(--shadow-card)] transition-all duration-300 hover:shadow-[var(--shadow-glass-hover)] ${className}`}
-    >
-      {children}
-    </div>
-  );
+function pageTitle(pathname: string): string {
+  if (pathname === "/") return "Dashboard";
+  if (pathname.startsWith("/ai-viva")) return "Mock Viva";
+  if (pathname.startsWith("/ai-presentation")) return "Presentation";
+  if (pathname.startsWith("/pitch-drill")) return "Pitch Drill";
+  if (pathname.startsWith("/readiness")) return "Defense Readiness";
+  if (pathname.startsWith("/projects")) return "Projects";
+  if (pathname.startsWith("/teams")) return "Teams";
+  if (pathname.startsWith("/templates")) return "Templates";
+  if (pathname.startsWith("/files")) return "Files";
+  if (pathname.startsWith("/profile")) return "Profile";
+  if (pathname.startsWith("/progress")) return "Progress";
+  if (pathname.startsWith("/leaderboard")) return "Leaderboard";
+  if (pathname.startsWith("/faculty")) return "Faculty Console";
+  if (pathname.startsWith("/admin")) return "Institution";
+  return "VivAI";
 }
 
 export function PageHeader({
   title,
-  subtitle,
+  description,
   action,
 }: {
   title: string;
-  subtitle?: string;
+  description?: string;
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-      <div className="min-w-0">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
-          {title}
-        </h1>
-        {subtitle && <p className="mt-1 text-xs text-muted-foreground sm:text-sm">{subtitle}</p>}
+    <div className="flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{title}</h1>
+        {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
       </div>
-      {action && <div className="shrink-0">{action}</div>}
+      {action && <div className="flex items-center gap-2">{action}</div>}
+    </div>
+  );
+}
+
+export function Card({
+  children,
+  className = "",
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`rounded-2xl border border-white/40 dark:border-white/10 bg-card/80 p-4 backdrop-blur-xl shadow-[var(--shadow-glass)] ${className}`}
+    >
+      {children}
     </div>
   );
 }
@@ -535,63 +493,21 @@ export function Badge({
   tone = "muted",
 }: {
   children: ReactNode;
-  tone?: "muted" | "primary" | "success" | "warning" | "destructive";
+  tone?: "primary" | "secondary" | "success" | "warning" | "destructive" | "muted";
 }) {
   const tones = {
-    muted:
-      "bg-secondary/70 backdrop-blur-md border border-white/30 dark:border-white/10 text-muted-foreground",
-    primary: "bg-primary-soft/80 backdrop-blur-md border border-primary/20 text-accent-foreground",
-    success: "bg-success/15 backdrop-blur-md border border-success/20 text-success",
-    warning: "bg-warning/15 backdrop-blur-md border border-warning/20 text-warning",
-    destructive: "bg-destructive/15 backdrop-blur-md border border-destructive/20 text-destructive",
-  } as const;
+    primary: "bg-primary/15 text-primary border-primary/20",
+    secondary: "bg-secondary text-secondary-foreground border-border/40",
+    success: "bg-success/15 text-success border-success/20",
+    warning: "bg-warning/15 text-warning border-warning/20",
+    destructive: "bg-destructive/15 text-destructive border-destructive/20",
+    muted: "bg-muted text-muted-foreground border-border/40",
+  };
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium shadow-xs ${tones[tone]}`}
+      className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-semibold ${tones[tone]}`}
     >
       {children}
     </span>
-  );
-}
-
-function pageTitle(pathname: string): string {
-  const map: Record<string, string> = {
-    "/": "Dashboard",
-    "/ai": "AI Tools",
-    "/ai-viva": "Mock Viva",
-    "/ai-presentation": "Presentation Coach",
-    "/pitch-drill": "90-Second Pitch Drill",
-    "/advanced/sentiment-analysis": "AI Communication Coach",
-    "/advanced/viva-code-aware": "Code-Aware Viva",
-    "/readiness": "Defense Readiness",
-    "/progress": "Progress",
-    "/leaderboard": "Leaderboard",
-    "/projects": "Projects",
-    "/templates": "Templates",
-    "/teams": "Teams",
-    "/files": "Files",
-    "/profile": "Profile",
-    "/privacy": "Privacy Policy",
-    "/admin": "Institution Admin",
-    "/faculty": "Faculty Console",
-  };
-  if (map[pathname]) return map[pathname];
-  const match = Object.keys(map)
-    .filter((k) => k !== "/" && pathname.startsWith(k))
-    .sort((a, b) => b.length - a.length)[0];
-  return match ? map[match] : "VivAI";
-}
-
-function ThemeToggle() {
-  const { theme, toggle } = useTheme();
-  const Icon = theme === "dark" ? Sun : Moon;
-  return (
-    <button
-      onClick={toggle}
-      aria-label="Toggle theme"
-      className="grid h-10 w-10 place-items-center rounded-full bg-secondary/70 backdrop-blur-md border border-white/30 dark:border-white/10 text-foreground hover:bg-secondary/90 transition-all shadow-xs"
-    >
-      <Icon className="h-4 w-4" />
-    </button>
   );
 }

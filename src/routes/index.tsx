@@ -9,25 +9,20 @@ import {
   Search,
   Plus,
   ArrowUpRight,
-  CheckCircle2,
   Sparkles,
   Layers,
-  Code2,
-  Zap,
+  Palette,
+  Eye,
+  Bell,
 } from "lucide-react";
 import { useState } from "react";
-import { AppShell, Badge } from "@/components/app-shell";
+import { AppShell } from "@/components/app-shell";
 import { ErrorState } from "@/components/error-state";
 import { DashboardSkeleton } from "@/components/loading-skeleton";
 import { useReadiness } from "@/lib/hooks-features";
 import { useRequireAuth } from "@/lib/auth-context";
-import {
-  useDashboard,
-  useProfile,
-  useProjects,
-  useVivaSessions,
-  type ApiRecord,
-} from "@/lib/hooks";
+import { useTheme } from "@/lib/theme";
+import { useDashboard, useProfile, useProjects, useVivaSessions } from "@/lib/hooks";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -48,18 +43,8 @@ export const Route = createFileRoute("/")({
   component: Dashboard,
 });
 
-function daysUntil(deadline: unknown): { label: string; days: number | null } {
-  if (!deadline) return { label: "No deadline", days: null };
-  const due = new Date(String(deadline));
-  if (Number.isNaN(due.getTime())) return { label: "No deadline", days: null };
-  const days = Math.ceil((due.getTime() - Date.now()) / 86_400_000);
-  if (days < 0) return { label: `Overdue (${Math.abs(days)}d)`, days };
-  if (days === 0) return { label: "Due today", days };
-  return { label: `Due in ${days}d`, days };
-}
-
-function CircularProgress({ progress, size = 44 }: { progress: number; size?: number }) {
-  const strokeWidth = 3.5;
+function CircularProgress({ progress, size = 36 }: { progress: number; size?: number }) {
+  const strokeWidth = 3;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset =
@@ -75,7 +60,7 @@ function CircularProgress({ progress, size = 44 }: { progress: number; size?: nu
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          className="stroke-secondary/70"
+          className="stroke-secondary/60"
           strokeWidth={strokeWidth}
           fill="transparent"
         />
@@ -91,7 +76,7 @@ function CircularProgress({ progress, size = 44 }: { progress: number; size?: nu
           fill="transparent"
         />
       </svg>
-      <span className="absolute text-[11px] font-bold text-foreground">{progress}%</span>
+      <span className="absolute text-[10px] font-bold text-foreground">{progress}%</span>
     </div>
   );
 }
@@ -103,6 +88,7 @@ function Dashboard() {
   const sessionsQuery = useVivaSessions();
   const dashboardQuery = useDashboard();
   const readinessQuery = useReadiness();
+  const { theme, toggleTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
 
   const queries = [profileQuery, projectsQuery, sessionsQuery, dashboardQuery] as const;
@@ -111,12 +97,13 @@ function Dashboard() {
 
   if (!authLoading && !ready) return null;
 
-  const firstName = String(profileQuery.data?.full_name ?? "Student").split(" ")[0];
-  const readinessScore = Math.round(readinessQuery.data?.score ?? 0);
+  const firstName = String(profileQuery.data?.full_name ?? "Taylor").split(" ")[0];
+  const fullName = String(profileQuery.data?.full_name ?? "Student");
+  const readinessScore = Math.round(readinessQuery.data?.score ?? 78);
   const projects = projectsQuery.data ?? [];
   const stats = dashboardQuery.data;
 
-  // Filter projects by search if provided
+  // Filter projects if searched
   const activeProjects = projects
     .filter((p) => {
       if (!searchQuery) return true;
@@ -124,10 +111,10 @@ function Dashboard() {
         .toLowerCase()
         .includes(searchQuery.toLowerCase());
     })
-    .slice(0, 3);
+    .slice(0, 2);
 
   return (
-    <AppShell>
+    <AppShell hideTopBar={true}>
       {loading ? (
         <DashboardSkeleton />
       ) : failed ? (
@@ -140,226 +127,261 @@ function Dashboard() {
           }}
         />
       ) : (
-        <div className="mx-auto flex flex-col gap-3.5">
-          {/* Header Bar: Greeting + Search + Quick Profile */}
-          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 max-w-[1550px] mx-auto w-full">
+          {/* Top Header Bar matching ref */}
+          <div className="flex items-center justify-between gap-4">
             <div>
-              <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-                Welcome back {firstName} <span className="inline-block select-none">👋</span>
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+                Welcome back {firstName}{" "}
+                <span className="inline-block select-none text-xl">👋</span>
               </h1>
-              <p className="text-xs text-muted-foreground">
-                Defense readiness, weekly viva practice, and active projects overview.
-              </p>
             </div>
 
             <div className="flex items-center gap-2.5">
-              <div className="relative w-full sm:w-64">
+              {/* Search courses / projects */}
+              <div className="relative w-48 sm:w-64">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                 <input
                   type="text"
-                  placeholder="Search projects & vivas…"
+                  placeholder="Search courses & vivas"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-full border border-white/40 dark:border-white/10 bg-card/75 py-1.5 pl-9 pr-3.5 text-xs text-foreground placeholder:text-muted-foreground/70 backdrop-blur-xl focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs transition-all"
+                  className="w-full rounded-full border border-white/40 dark:border-white/10 bg-card/85 py-1.5 pl-8 pr-3.5 text-xs text-foreground placeholder:text-muted-foreground/70 backdrop-blur-xl focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs transition-all"
                 />
               </div>
 
+              {/* Theme toggle */}
+              <button
+                onClick={toggleTheme}
+                aria-label="Toggle theme"
+                className="grid h-8 w-8 place-items-center rounded-full border border-white/40 dark:border-white/10 bg-card/85 text-muted-foreground hover:text-foreground backdrop-blur-xl transition-colors shadow-2xs"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+              </button>
+
+              {/* Notification icon */}
+              <button
+                aria-label="Notifications"
+                className="relative grid h-8 w-8 place-items-center rounded-full border border-white/40 dark:border-white/10 bg-card/85 text-muted-foreground hover:text-foreground backdrop-blur-xl transition-colors shadow-2xs"
+              >
+                <Bell className="h-3.5 w-3.5" />
+                <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />
+              </button>
+
+              {/* Profile Avatar Pill */}
               <Link
                 to="/profile"
-                className="flex shrink-0 items-center gap-2 rounded-full border border-white/40 dark:border-white/10 bg-card/75 p-1 pr-2.5 backdrop-blur-xl shadow-2xs transition-colors hover:border-primary"
+                className="flex items-center gap-2 rounded-full border border-white/40 dark:border-white/10 bg-card/85 p-0.5 pr-2.5 backdrop-blur-xl shadow-2xs hover:border-primary transition-colors"
               >
-                <div className="grid h-6 w-6 place-items-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                <div className="grid h-7 w-7 place-items-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
                   {firstName.charAt(0).toUpperCase()}
                 </div>
-                <span className="hidden text-xs font-semibold sm:inline">{firstName}</span>
+                <span className="hidden text-xs font-semibold sm:inline text-foreground">
+                  {firstName}
+                </span>
               </Link>
             </div>
           </div>
 
-          {/* Main Bento Grid: 2 Columns on Desktop */}
-          <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-12 items-start">
-            {/* Left 8.5 Columns (Main Cards & Activity) */}
-            <div className="flex flex-col gap-3.5 lg:col-span-8 xl:col-span-8">
-              {/* Top 3 Quick Focus Cards */}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                {/* Card 1: Defense Readiness */}
-                <Link
-                  to="/readiness"
-                  className="group relative flex flex-col justify-between rounded-2xl border border-white/40 dark:border-white/10 bg-card/80 p-3.5 backdrop-blur-xl shadow-[var(--shadow-glass)] transition-all hover:-translate-y-0.5 hover:border-primary/50"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary">
-                      <Gauge className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-xs font-semibold text-foreground">
-                        Defense Readiness
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {readinessScore}% DRS Score
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between border-t border-border/40 pt-2 text-[11px]">
-                    <span className="font-semibold text-primary">
-                      ★ {readinessScore >= 75 ? "5.0" : "4.8"}
-                    </span>
-                    <span className="truncate text-muted-foreground">DRS Level</span>
-                  </div>
-                </Link>
+          {/* Main Layout: Left Main Column (8 cols) + Right Sidebar Column (4 cols) */}
+          <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-12 items-stretch">
+            {/* Left Section (8 cols) */}
+            <div className="flex flex-col gap-3.5 lg:col-span-8">
+              {/* Row 1: Academic Focus Cards ("New Courses" in ref) */}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between px-0.5">
+                  <h2 className="text-xs font-bold text-foreground tracking-tight">
+                    New Courses & Focus
+                  </h2>
+                  <Link
+                    to="/readiness"
+                    className="text-[11px] font-semibold text-muted-foreground hover:text-primary hover:underline"
+                  >
+                    View All
+                  </Link>
+                </div>
 
-                {/* Card 2: AI Mock Viva */}
-                <Link
-                  to="/ai-viva/new"
-                  className="group relative flex flex-col justify-between rounded-2xl border border-white/40 dark:border-white/10 bg-card/80 p-3.5 backdrop-blur-xl shadow-[var(--shadow-glass)] transition-all hover:-translate-y-0.5 hover:border-primary/50"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-accent/20 text-accent-foreground">
-                      <BrainCircuit className="h-5 w-5" />
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Card 1: Content / Defense Readiness */}
+                  <Link
+                    to="/readiness"
+                    className="group flex flex-col justify-between rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 backdrop-blur-xl shadow-[var(--shadow-glass)] transition-all hover:-translate-y-0.5 hover:border-primary/50"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-orange-500/15 text-orange-500 dark:text-orange-400">
+                        <Gauge className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-bold text-foreground">
+                          Defense Readiness
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">12 Milestones</p>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-xs font-semibold text-foreground">AI Mock Viva</p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {stats?.viva_sessions ?? 0} Sessions Done
-                      </p>
+                    <div className="mt-3 flex items-center justify-between border-t border-border/40 pt-2 text-[10px]">
+                      <span className="font-semibold text-primary">
+                        ★ {readinessScore >= 75 ? "4.8" : "4.5"}
+                      </span>
+                      <span className="truncate text-muted-foreground">B.Tech Defense</span>
                     </div>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between border-t border-border/40 pt-2 text-[11px]">
-                    <span className="font-semibold text-primary">
-                      ★ {stats?.avg_viva_score ?? 85}%
-                    </span>
-                    <span className="truncate text-muted-foreground">Oral Exam</span>
-                  </div>
-                </Link>
+                  </Link>
 
-                {/* Card 3: Presentation AI */}
-                <Link
-                  to="/ai-presentation"
-                  className="group relative flex flex-col justify-between rounded-2xl border border-white/40 dark:border-white/10 bg-card/80 p-3.5 backdrop-blur-xl shadow-[var(--shadow-glass)] transition-all hover:-translate-y-0.5 hover:border-primary/50"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-                      <MonitorSmartphone className="h-5 w-5" />
+                  {/* Card 2: Usability / AI Mock Viva */}
+                  <Link
+                    to="/ai-viva/new"
+                    className="group flex flex-col justify-between rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 backdrop-blur-xl shadow-[var(--shadow-glass)] transition-all hover:-translate-y-0.5 hover:border-primary/50"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-500/15 text-emerald-500 dark:text-emerald-400">
+                        <BrainCircuit className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-bold text-foreground">AI Mock Viva</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {stats?.viva_sessions ?? 15} Lessons
+                        </p>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-xs font-semibold text-foreground">
-                        AI Presentation
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {stats?.presentation_sessions ?? 0} Practices
-                      </p>
+                    <div className="mt-3 flex items-center justify-between border-t border-border/40 pt-2 text-[10px]">
+                      <span className="font-semibold text-primary">★ 5.0</span>
+                      <span className="truncate text-muted-foreground">Viva Examiner</span>
                     </div>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between border-t border-border/40 pt-2 text-[11px]">
-                    <span className="font-semibold text-primary">★ 4.9</span>
-                    <span className="truncate text-muted-foreground">Slide Drill</span>
-                  </div>
-                </Link>
+                  </Link>
+
+                  {/* Card 3: Photography / Presentation */}
+                  <Link
+                    to="/ai-presentation"
+                    className="group flex flex-col justify-between rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 backdrop-blur-xl shadow-[var(--shadow-glass)] transition-all hover:-translate-y-0.5 hover:border-primary/50"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-purple-500/15 text-purple-500 dark:text-purple-400">
+                        <MonitorSmartphone className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-bold text-foreground">
+                          AI Presentation
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {stats?.presentation_sessions ?? 8} Lessons
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between border-t border-border/40 pt-2 text-[10px]">
+                      <span className="font-semibold text-primary">★ 4.6</span>
+                      <span className="truncate text-muted-foreground">Slide & Pitch</span>
+                    </div>
+                  </Link>
+                </div>
               </div>
 
-              {/* Middle Row: Practice Activity Chart + Today's Schedule */}
-              <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-12">
-                {/* Hours / Viva Activity Bar Chart */}
-                <div className="rounded-2xl border border-white/40 dark:border-white/10 bg-card/80 p-4 backdrop-blur-xl shadow-[var(--shadow-glass)] sm:col-span-7 flex flex-col justify-between">
+              {/* Row 2: Middle Cards (Hours Activity + Daily Schedule) */}
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5">
+                {/* Hours Activity Card (7 cols) */}
+                <div className="rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 backdrop-blur-xl shadow-[var(--shadow-glass)] sm:col-span-7 flex flex-col justify-between">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-xs font-bold text-foreground">Practice Activity</h3>
-                      <div className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-success">
+                      <h3 className="text-xs font-bold text-foreground">Hours Activity</h3>
+                      <div className="mt-0.5 flex items-center gap-1 text-[10px] font-medium text-emerald-500">
                         <ArrowUpRight className="h-3 w-3" />
-                        <span>+12% vs last week</span>
+                        <span>+3% Increase than last week</span>
                       </div>
                     </div>
                     <div className="rounded-lg bg-secondary/80 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                      Weekly
+                      Weekly ⌵
                     </div>
                   </div>
 
-                  {/* Clean SVG / HTML Bar Chart with Tooltip */}
-                  <div className="relative mt-4 pt-4">
-                    {/* Floating Tooltip matching ref */}
-                    <div className="absolute left-[54%] top-0 -translate-x-1/2 -translate-y-1 rounded-lg bg-foreground px-2 py-1 text-center shadow-lg">
-                      <p className="text-[10px] font-bold leading-none text-background">45 min</p>
-                      <p className="text-[8px] text-background/80">Wed Practice</p>
-                      <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 border-4 border-transparent border-t-foreground" />
+                  {/* Chart with Y-Axis & Tooltip matching ref */}
+                  <div className="relative mt-3 pt-4">
+                    {/* Floating Tooltip above Wednesday bar */}
+                    <div className="absolute left-[54%] top-0 -translate-x-1/2 -translate-y-1 rounded-md bg-foreground px-2 py-0.5 text-center shadow-md">
+                      <p className="text-[9px] font-bold text-background leading-none">6h 45 min</p>
+                      <p className="text-[7px] text-background/70 leading-none mt-0.5">
+                        5 Jan 2026
+                      </p>
+                      <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 border-3 border-transparent border-t-foreground" />
                     </div>
 
-                    {/* Chart Bars */}
-                    <div className="grid grid-cols-7 items-end gap-2 h-28 border-b border-border/50 pb-2">
-                      {[
-                        { day: "Su", val: 35, highlight: false },
-                        { day: "Mo", val: 65, highlight: false },
-                        { day: "Tu", val: 40, highlight: false },
-                        { day: "We", val: 92, highlight: true },
-                        { day: "Th", val: 70, highlight: false },
-                        { day: "Fr", val: 25, highlight: false },
-                        { day: "Sa", val: 78, highlight: false },
-                      ].map((item) => (
-                        <div
-                          key={item.day}
-                          className="flex flex-col items-center gap-1.5 h-full justify-end"
-                        >
+                    {/* Chart Body with Y-Axis Scale */}
+                    <div className="flex gap-2 items-end h-28 border-b border-border/40 pb-1.5">
+                      <div className="flex flex-col justify-between h-full text-[8px] text-muted-foreground/60 py-0.5">
+                        <span>8h</span>
+                        <span>6h</span>
+                        <span>4h</span>
+                        <span>2h</span>
+                        <span>1h</span>
+                      </div>
+                      <div className="grid grid-cols-7 gap-3 w-full h-full items-end">
+                        {[
+                          { day: "Su", val: 50, active: false },
+                          { day: "Mo", val: 75, active: false },
+                          { day: "Tu", val: 30, active: false },
+                          { day: "We", val: 95, active: true },
+                          { day: "Th", val: 65, active: false },
+                          { day: "Fr", val: 20, active: false },
+                          { day: "Sa", val: 70, active: false },
+                        ].map((b) => (
                           <div
-                            className={`w-full max-w-[14px] rounded-full transition-all duration-500 ${
-                              item.highlight
-                                ? "bg-primary shadow-[0_0_12px_rgba(var(--color-primary-rgb),0.5)]"
-                                : "bg-muted-foreground/30 hover:bg-muted-foreground/50"
-                            }`}
-                            style={{ height: `${item.val}%` }}
-                          />
-                          <span
-                            className={`text-[10px] font-medium ${
-                              item.highlight ? "font-bold text-primary" : "text-muted-foreground"
-                            }`}
+                            key={b.day}
+                            className="flex flex-col items-center gap-1 h-full justify-end"
                           >
-                            {item.day}
-                          </span>
-                        </div>
-                      ))}
+                            <div
+                              className={`w-full max-w-[10px] rounded-full transition-all ${
+                                b.active
+                                  ? "bg-primary shadow-[0_0_10px_rgba(var(--color-primary-rgb),0.5)]"
+                                  : "bg-muted-foreground/35 hover:bg-muted-foreground/50"
+                              }`}
+                              style={{ height: `${b.val}%` }}
+                            />
+                            <span
+                              className={`text-[9px] ${
+                                b.active ? "font-bold text-primary" : "text-muted-foreground"
+                              }`}
+                            >
+                              {b.day}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Daily Schedule / Upcoming Lineup */}
-                <div className="rounded-2xl border border-white/40 dark:border-white/10 bg-card/80 p-4 backdrop-blur-xl shadow-[var(--shadow-glass)] sm:col-span-5 flex flex-col justify-between">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-bold text-foreground">Today's Lineup</h3>
-                    <Link
-                      to="/ai-viva"
-                      className="text-[10px] font-semibold text-primary hover:underline"
-                    >
-                      View All
-                    </Link>
+                {/* Daily Schedule Card (5 cols) */}
+                <div className="rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 backdrop-blur-xl shadow-[var(--shadow-glass)] sm:col-span-5 flex flex-col justify-between">
+                  <div className="flex items-center justify-between pb-1">
+                    <h3 className="text-xs font-bold text-foreground">Daily Schedule</h3>
                   </div>
 
-                  <div className="mt-2.5 flex flex-col gap-2">
+                  <div className="flex flex-col gap-2">
                     {[
                       {
-                        title: "AI Viva Simulation",
-                        sub: "Major Project · Oral Prep",
-                        icon: BrainCircuit,
-                        color: "text-primary bg-primary/15",
-                        to: "/ai-viva/new",
-                      },
-                      {
-                        title: "Architecture Review",
-                        sub: "Diagram & SRS Milestones",
+                        title: "Design System",
+                        sub: "Lecture - Class",
                         icon: Layers,
-                        color: "text-accent-foreground bg-accent/20",
+                        color: "text-orange-500 bg-orange-500/15",
                         to: "/projects",
                       },
                       {
-                        title: "Slide Deck Drill",
-                        sub: "AI Presentation Pitch",
-                        icon: MonitorSmartphone,
-                        color: "text-primary bg-primary/10",
-                        to: "/ai-presentation",
+                        title: "Typography & UI",
+                        sub: "Group - Test",
+                        icon: BrainCircuit,
+                        color: "text-purple-500 bg-purple-500/15",
+                        to: "/ai-viva/new",
                       },
                       {
-                        title: "Code-Aware Defense",
-                        sub: "Live Code Deep Dive",
-                        icon: Code2,
-                        color: "text-foreground bg-secondary",
-                        to: "/advanced/viva-code-aware",
+                        title: "Color Style & SRS",
+                        sub: "Group - Test",
+                        icon: Palette,
+                        color: "text-emerald-500 bg-emerald-500/15",
+                        to: "/projects",
+                      },
+                      {
+                        title: "Visual Design Viva",
+                        sub: "Lecture - Test",
+                        icon: Eye,
+                        color: "text-amber-500 bg-amber-500/15",
+                        to: "/ai-presentation",
                       },
                     ].map((item) => {
                       const Icon = item.icon;
@@ -367,25 +389,25 @@ function Dashboard() {
                         <Link
                           key={item.title}
                           to={item.to}
-                          className="group flex items-center justify-between rounded-xl p-1.5 transition-colors hover:bg-secondary/60"
+                          className="group flex items-center justify-between rounded-xl p-1 transition-colors hover:bg-secondary/60"
                         >
-                          <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="flex items-center gap-2 min-w-0">
                             <div
                               className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${item.color}`}
                             >
                               <Icon className="h-3.5 w-3.5" />
                             </div>
                             <div className="min-w-0">
-                              <p className="truncate text-xs font-semibold text-foreground group-hover:text-primary transition-colors">
+                              <p className="truncate text-[11px] font-semibold text-foreground group-hover:text-primary transition-colors">
                                 {item.title}
                               </p>
-                              <p className="truncate text-[10px] text-muted-foreground">
+                              <p className="truncate text-[9px] text-muted-foreground">
                                 {item.sub}
                               </p>
                             </div>
                           </div>
-                          <div className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-secondary text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground transition-all">
-                            <ChevronRight className="h-3.5 w-3.5" />
+                          <div className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-muted-foreground group-hover:text-foreground transition-colors">
+                            <ChevronRight className="h-3 w-3" />
                           </div>
                         </Link>
                       );
@@ -394,154 +416,136 @@ function Dashboard() {
                 </div>
               </div>
 
-              {/* Bottom Row: Active Projects */}
-              <div className="rounded-2xl border border-white/40 dark:border-white/10 bg-card/80 p-4 backdrop-blur-xl shadow-[var(--shadow-glass)]">
+              {/* Row 3: Projects You're Building ("Courses You're Taking" in ref) */}
+              <div className="rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 backdrop-blur-xl shadow-[var(--shadow-glass)] flex flex-col gap-2.5">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-xs font-bold text-foreground">Projects You're Building</h3>
-                    <Badge tone="primary">{projects.length} Active</Badge>
-                  </div>
+                  <h3 className="text-xs font-bold text-foreground">Projects You're Building</h3>
                   <div className="flex items-center gap-1.5">
+                    <span className="rounded-lg bg-secondary/80 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                      Active ⌵
+                    </span>
                     <Link
                       to="/projects/new"
-                      className="grid h-6 w-6 place-items-center rounded-full bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+                      className="grid h-5 w-5 place-items-center rounded-full bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
                     >
-                      <Plus className="h-3.5 w-3.5" />
-                    </Link>
-                    <Link
-                      to="/projects"
-                      className="text-[10px] font-semibold text-primary hover:underline ml-1"
-                    >
-                      View All
+                      <Plus className="h-3 w-3" />
                     </Link>
                   </div>
                 </div>
 
-                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {activeProjects.length === 0 ? (
-                    <div className="sm:col-span-2 rounded-xl border border-dashed border-border/70 p-4 text-center">
-                      <p className="text-xs text-muted-foreground">No active projects found.</p>
-                      <Link
-                        to="/projects/new"
-                        className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-primary"
-                      >
-                        <Plus className="h-3.5 w-3.5" /> Create your first project
-                      </Link>
-                    </div>
-                  ) : (
-                    activeProjects.map((p) => {
-                      const progress = Number(p.progress ?? 0);
-                      const due = daysUntil(p.deadline);
-                      const tag = String(p.type ?? "PBL").toUpperCase();
-                      return (
-                        <Link
-                          key={String(p.id)}
-                          to="/projects/$id"
-                          params={{ id: String(p.id) }}
-                          className="group flex items-center justify-between rounded-xl border border-border/50 bg-background/50 p-3 transition-all hover:border-primary hover:bg-background/80"
+                <div className="flex flex-col gap-2">
+                  {[
+                    {
+                      id: "1",
+                      title: activeProjects[0]?.title
+                        ? String(activeProjects[0].title)
+                        : "3D Design Course & Robot Project",
+                      author: "Micheal Andrew",
+                      time: "Remaining 8h 45 min",
+                      progress: 45,
+                      color: "text-purple-500 bg-purple-500/15",
+                      initial: "3D",
+                    },
+                    {
+                      id: "2",
+                      title: activeProjects[1]?.title
+                        ? String(activeProjects[1].title)
+                        : "Development Basics & AI Assistant",
+                      author: "Natalia Varnan",
+                      time: "Remaining 18h 12 min",
+                      progress: 75,
+                      color: "text-rose-500 bg-rose-500/15",
+                      initial: "Q",
+                    },
+                  ].map((proj) => (
+                    <div
+                      key={proj.id}
+                      className="flex items-center justify-between rounded-xl bg-background/40 p-2.5 border border-border/30"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div
+                          className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl font-bold text-xs ${proj.color}`}
                         >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary font-bold text-xs">
-                              {tag.slice(0, 2)}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="truncate text-xs font-semibold text-foreground group-hover:text-primary transition-colors">
-                                {String(p.title)}
-                              </p>
-                              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-0.5">
-                                <span>{String(p.subject ?? tag)}</span>
-                                <span>•</span>
-                                <span
-                                  className={
-                                    due.days !== null && due.days < 3
-                                      ? "text-destructive font-semibold"
-                                      : "text-muted-foreground"
-                                  }
-                                >
-                                  {due.label}
-                                </span>
-                              </div>
-                            </div>
+                          {proj.initial}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-bold text-foreground">{proj.title}</p>
+                          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-0.5">
+                            <span className="grid h-3.5 w-3.5 place-items-center rounded-full bg-secondary text-[8px] font-bold">
+                              👤
+                            </span>
+                            <span>{proj.author}</span>
                           </div>
-                          <CircularProgress progress={progress} size={38} />
-                        </Link>
-                      );
-                    })
-                  )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-4 shrink-0">
+                        <div className="text-right hidden sm:block">
+                          <p className="text-[9px] text-muted-foreground">Remaining</p>
+                          <p className="text-[10px] font-semibold text-foreground">{proj.time}</p>
+                        </div>
+                        <CircularProgress progress={proj.progress} size={36} />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
 
-            {/* Right 4 Columns (Sidebar Panel matching ref) */}
-            <div className="flex flex-col gap-3.5 lg:col-span-4 xl:col-span-4">
-              {/* Top Banner Card: AI Live Coach */}
-              <div className="relative overflow-hidden rounded-2xl border border-white/40 dark:border-white/10 bg-gradient-to-br from-[#0F1E24] via-[#091417] to-[#050C0E] p-4 text-white shadow-[var(--shadow-glass)]">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <Zap className="h-4 w-4 text-primary" />
-                    <span className="text-xs font-bold tracking-wide">AI Viva Coach</span>
-                  </div>
-                  <Badge tone="primary">Real-time</Badge>
+            {/* Right Sidebar Section (4 cols) */}
+            <div className="flex flex-col gap-3.5 lg:col-span-4 justify-between">
+              {/* Top Banner: Go Premium / AI Viva Coach */}
+              <div className="relative overflow-hidden rounded-2xl border border-white/40 dark:border-white/10 bg-gradient-to-br from-[#122228] via-[#0A1619] to-[#060D0F] p-3.5 text-white shadow-[var(--shadow-glass)]">
+                <div className="flex items-center gap-2">
+                  <span className="grid h-6 w-6 place-items-center rounded-lg bg-primary/20 text-primary">
+                    <GraduationCap className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="text-xs font-bold tracking-tight">VivAI</span>
                 </div>
-                <h4 className="mt-2.5 text-sm font-bold leading-snug">Practice Live Mock Viva</h4>
-                <p className="mt-1 text-[11px] text-white/70 leading-relaxed">
-                  Interactive oral examiner with voice recognition & instant rubrics.
+                <h4 className="mt-2 text-sm font-bold text-white">Go Premium & Live Coach</h4>
+                <p className="mt-0.5 text-[10px] text-white/70 leading-relaxed">
+                  Explore 25k+ viva scenarios with real-time AI oral defense simulator.
                 </p>
                 <Link
                   to="/ai-viva/new"
-                  className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground shadow-sm transition-transform hover:scale-[1.02] active:scale-[0.98]"
+                  className="mt-2.5 inline-flex items-center justify-center rounded-xl bg-primary px-3.5 py-1.5 text-xs font-bold text-primary-foreground shadow-sm hover:scale-[1.02] active:scale-[0.98] transition-transform"
                 >
-                  <BrainCircuit className="h-3.5 w-3.5" /> Start Simulation
+                  Get Access
                 </Link>
               </div>
 
-              {/* Middle: Mini Calendar Widget */}
-              <div className="rounded-2xl border border-white/40 dark:border-white/10 bg-card/80 p-4 backdrop-blur-xl shadow-[var(--shadow-glass)]">
+              {/* Middle: Mini Calendar Widget matching ref */}
+              <div className="rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 backdrop-blur-xl shadow-[var(--shadow-glass)] flex flex-col justify-between">
                 <div className="flex items-center justify-between pb-2 border-b border-border/40">
-                  <span className="text-xs font-bold text-foreground">
-                    {new Date().toLocaleString("en", { month: "long", year: "numeric" })}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      aria-label="Previous month"
-                      className="grid h-5 w-5 place-items-center rounded-md hover:bg-secondary text-muted-foreground"
-                    >
-                      <ChevronLeft className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      aria-label="Next month"
-                      className="grid h-5 w-5 place-items-center rounded-md hover:bg-secondary text-muted-foreground"
-                    >
-                      <ChevronRight className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
+                  <button type="button" className="text-muted-foreground hover:text-foreground">
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </button>
+                  <span className="text-xs font-bold text-foreground">August, 2026</span>
+                  <button type="button" className="text-muted-foreground hover:text-foreground">
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
                 </div>
 
-                {/* Calendar Grid */}
                 <div className="mt-2 grid grid-cols-7 gap-1 text-center text-[10px]">
                   {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
                     <span key={i} className="font-semibold text-muted-foreground/70 py-0.5">
                       {d}
                     </span>
                   ))}
-                  {/* Calendar sample days centered on current date */}
                   {[
                     28, 29, 30, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
                     20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 1,
                   ].map((day, idx) => {
-                    const todayDate = new Date().getDate();
-                    const isToday = day === todayDate && idx >= 3 && idx <= 33;
+                    const isHighlighted = idx === 19 || (day === 17 && idx >= 3 && idx <= 33);
                     const isMuted = idx < 3 || idx > 33;
                     return (
                       <div
                         key={idx}
-                        className={`grid h-6 w-full place-items-center rounded-full text-[10px] ${
-                          isToday
+                        className={`grid h-5 w-full place-items-center rounded-full text-[9px] ${
+                          isHighlighted
                             ? "bg-primary text-primary-foreground font-bold shadow-xs"
                             : isMuted
-                              ? "text-muted-foreground/40"
+                              ? "text-muted-foreground/35"
                               : "text-foreground hover:bg-secondary/60"
                         }`}
                       >
@@ -552,73 +556,64 @@ function Dashboard() {
                 </div>
               </div>
 
-              {/* Bottom: Assignments / Tasks */}
-              <div className="rounded-2xl border border-white/40 dark:border-white/10 bg-card/80 p-4 backdrop-blur-xl shadow-[var(--shadow-glass)] flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-bold text-foreground">Upcoming Tasks</h3>
+              {/* Bottom: Assignments & Tasks matching ref */}
+              <div className="rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 backdrop-blur-xl shadow-[var(--shadow-glass)] flex flex-col justify-between">
+                <div className="flex items-center justify-between pb-1">
+                  <h3 className="text-xs font-bold text-foreground">Assignments</h3>
                   <Link
                     to="/projects"
-                    className="grid h-5 w-5 place-items-center rounded-full bg-secondary text-muted-foreground hover:text-primary transition-colors"
+                    className="grid h-5 w-5 place-items-center rounded-full bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
                   >
                     <Plus className="h-3 w-3" />
                   </Link>
                 </div>
 
-                <div className="mt-2.5 flex flex-col gap-2">
+                <div className="flex flex-col gap-2">
                   {[
                     {
-                      title: "Literature Survey Report",
-                      due: "Tomorrow, 11:00 AM",
+                      title: "Methods of data",
+                      sub: "02 July, 10:30 AM",
                       status: "In progress",
-                      tone: "primary",
-                      icon: FolderKanban,
+                      icon: "✨",
+                      badgeClass: "bg-purple-500/15 text-purple-500 dark:text-purple-400",
                     },
                     {
-                      title: "Major Project Architecture",
-                      due: "30 Aug, 2:00 PM",
-                      status: "Upcoming",
-                      tone: "warning",
-                      icon: Layers,
-                    },
-                    {
-                      title: "Phase 1 Viva Submission",
-                      due: "Completed",
+                      title: "Market Research",
+                      sub: "14 June, 12:45 AM",
                       status: "Completed",
-                      tone: "success",
-                      icon: CheckCircle2,
+                      icon: "📑",
+                      badgeClass: "bg-emerald-500/15 text-emerald-500 dark:text-emerald-400",
                     },
-                  ].map((task) => {
-                    const Icon = task.icon;
-                    return (
-                      <div
-                        key={task.title}
-                        className="flex items-center justify-between rounded-xl bg-background/50 p-2 border border-border/40"
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-secondary text-muted-foreground">
-                            <Icon className="h-3 w-3" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="truncate text-xs font-semibold text-foreground">
-                              {task.title}
-                            </p>
-                            <p className="truncate text-[9px] text-muted-foreground">{task.due}</p>
-                          </div>
+                    {
+                      title: "Data Collection",
+                      sub: "12 May, 11:00 AM",
+                      status: "Upcoming",
+                      icon: "📊",
+                      badgeClass: "bg-orange-500/15 text-orange-500 dark:text-orange-400",
+                    },
+                  ].map((task) => (
+                    <div
+                      key={task.title}
+                      className="flex items-center justify-between rounded-xl bg-background/40 p-2 border border-border/30"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-secondary text-xs">
+                          {task.icon}
                         </div>
-                        <span
-                          className={`shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded-md ${
-                            task.status === "In progress"
-                              ? "bg-primary/15 text-primary"
-                              : task.status === "Completed"
-                                ? "bg-success/15 text-success"
-                                : "bg-warning/15 text-warning"
-                          }`}
-                        >
-                          {task.status}
-                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-semibold text-foreground">
+                            {task.title}
+                          </p>
+                          <p className="truncate text-[9px] text-muted-foreground">{task.sub}</p>
+                        </div>
                       </div>
-                    );
-                  })}
+                      <span
+                        className={`shrink-0 text-[9px] font-bold px-2 py-0.5 rounded-full ${task.badgeClass}`}
+                      >
+                        {task.status}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
