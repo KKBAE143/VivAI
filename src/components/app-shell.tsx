@@ -73,9 +73,12 @@ export function AppShell({
   children,
   /** Full-width workspace: hides the left sidebar so dense tools (e.g. Code-Aware) can breathe. */
   wide = false,
+  /** Full-viewport mode for ultra-compact, zero-scrolling modern dashboard layouts. */
+  viewport = false,
 }: {
   children: ReactNode;
   wide?: boolean;
+  viewport?: boolean;
 }) {
   const { ready, isLoading } = useRequireAuth();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -100,6 +103,27 @@ export function AppShell({
       </div>
     );
   }
+
+  if (viewport) {
+    return (
+      <div className="relative h-screen w-screen max-h-screen overflow-hidden bg-background">
+        {/* Apple-style atmospheric ambient light mesh */}
+        <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+          <div className="absolute -top-40 right-[-10%] h-[550px] w-[550px] rounded-full bg-primary/10 blur-[130px] dark:bg-primary/15" />
+          <div className="absolute top-[35%] -left-32 h-[500px] w-[500px] rounded-full bg-[oklch(0.772_0.024_205/0.12)] blur-[140px] dark:bg-[oklch(0.35_0.035_208/0.4)]" />
+          <div className="absolute -bottom-40 right-[20%] h-[600px] w-[600px] rounded-full bg-primary/8 blur-[150px] dark:bg-primary/10" />
+        </div>
+        <div className="relative z-10 flex h-full w-full gap-3 sm:gap-4 p-3 sm:p-4 overflow-hidden">
+          <IconRailSidebar />
+          <main className="min-w-0 flex-1 h-full flex flex-col overflow-hidden">{children}</main>
+        </div>
+        <MobileNav onOpenMenu={() => setDrawerOpen(true)} />
+        <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+        <ConsentGate />
+      </div>
+    );
+  }
+
   return (
     <div className="relative min-h-screen bg-background overflow-x-hidden">
       {/* Apple-style atmospheric ambient light mesh */}
@@ -121,6 +145,78 @@ export function AppShell({
           feature, and it reads the profile the shell already has. */}
       <ConsentGate />
     </div>
+  );
+}
+
+function IconRailSidebar() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+  const isActive = (to: string) => (to === "/" ? pathname === "/" : pathname.startsWith(to));
+
+  const items = [
+    { to: "/", icon: LayoutDashboard, label: "Dashboard" },
+    { to: "/templates", icon: BookOpen, label: "Templates" },
+    { to: "/projects", icon: FolderKanban, label: "Projects" },
+    { to: "/readiness", icon: Gauge, label: "Readiness & Stats" },
+    { to: "/ai-viva", icon: BrainCircuit, label: "Mock Viva" },
+    { to: "/progress", icon: Bell, label: "Activity" },
+    { to: "/profile", icon: Settings, label: "Settings" },
+  ];
+
+  return (
+    <aside className="hidden h-full w-16 shrink-0 flex-col items-center justify-between rounded-3xl bg-card/75 backdrop-blur-2xl backdrop-saturate-150 border border-white/50 dark:border-white/10 py-4 px-2 shadow-[var(--shadow-glass)] lg:flex">
+      {/* Top Monogram Logo */}
+      <div className="flex flex-col items-center gap-4">
+        <Link
+          to="/"
+          aria-label="VivAI Home"
+          className="grid h-10 w-10 place-items-center rounded-2xl bg-foreground text-background shadow-md hover:scale-105 transition-transform"
+        >
+          <span className="font-extrabold text-base tracking-tighter">N</span>
+        </Link>
+      </div>
+
+      {/* Middle Vertical Icon List */}
+      <nav className="flex flex-col items-center gap-2.5">
+        {items.map((item) => {
+          const Icon = item.icon;
+          const active = isActive(item.to);
+          return (
+            <Link
+              key={item.to}
+              to={item.to}
+              title={item.label}
+              className={`relative grid h-10 w-10 place-items-center rounded-2xl transition-all ${
+                active
+                  ? "bg-foreground text-background shadow-sm"
+                  : "text-muted-foreground hover:bg-secondary/80 hover:text-foreground"
+              }`}
+            >
+              <Icon className="h-[18px] w-[18px]" />
+              {active && (
+                <span className="absolute -left-1 top-1/2 -translate-y-1/2 h-2.5 w-1 rounded-r-full bg-primary" />
+              )}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* Bottom Actions: Theme Toggle & Logout */}
+      <div className="flex flex-col items-center gap-2">
+        <ThemeToggle compact />
+        <button
+          onClick={() => {
+            logout();
+            navigate({ to: "/login" });
+          }}
+          title="Sign out"
+          className="grid h-10 w-10 place-items-center rounded-2xl text-muted-foreground hover:bg-destructive/15 hover:text-destructive transition-colors"
+        >
+          <LogOut className="h-4 w-4" />
+        </button>
+      </div>
+    </aside>
   );
 }
 
@@ -582,14 +678,16 @@ function pageTitle(pathname: string): string {
   return match ? map[match] : "VivAI";
 }
 
-function ThemeToggle() {
+function ThemeToggle({ compact = false }: { compact?: boolean }) {
   const { theme, toggle } = useTheme();
   const Icon = theme === "dark" ? Sun : Moon;
   return (
     <button
       onClick={toggle}
       aria-label="Toggle theme"
-      className="grid h-10 w-10 place-items-center rounded-full bg-secondary/70 backdrop-blur-md border border-white/30 dark:border-white/10 text-foreground hover:bg-secondary/90 transition-all shadow-xs"
+      className={`grid place-items-center rounded-2xl bg-secondary/70 backdrop-blur-md border border-white/30 dark:border-white/10 text-foreground hover:bg-secondary/90 transition-all shadow-xs ${
+        compact ? "h-10 w-10" : "h-10 w-10 rounded-full"
+      }`}
     >
       <Icon className="h-4 w-4" />
     </button>

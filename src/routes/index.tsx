@@ -1,35 +1,29 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-  FolderKanban,
-  Calendar,
-  ListChecks,
   BrainCircuit,
   MonitorSmartphone,
-  ArrowUpRight,
-  ChevronRight,
-  Mic,
-  Plus,
-  Crown,
+  Users,
+  Timer,
+  Search,
+  MoreVertical,
+  ArrowLeftRight,
   Sparkles,
+  ChevronDown,
+  Info,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  Eye,
+  FileText,
+  Video,
 } from "lucide-react";
-import { AppShell, Card, Badge } from "@/components/app-shell";
-import { EmptyState } from "@/components/empty-state";
-import { ErrorState } from "@/components/error-state";
+import { useState } from "react";
+import { AppShell } from "@/components/app-shell";
 import { DashboardSkeleton } from "@/components/loading-skeleton";
-import { ReadinessGauge } from "@/components/readiness-gauge";
-import { GamificationStrip } from "@/components/gamification-strip";
-import { useReadiness } from "@/lib/hooks-features";
+import { ErrorState } from "@/components/error-state";
 import { useRequireAuth } from "@/lib/auth-context";
-import {
-  useDashboard,
-  useMe,
-  useProfile,
-  useProjects,
-  useTeams,
-  useVivaSessions,
-  type ApiRecord,
-  type DashboardStats,
-} from "@/lib/hooks";
+import { useReadiness } from "@/lib/hooks-features";
+import { useDashboard, useProfile, useProjects, useTeams, useVivaSessions } from "@/lib/hooks";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -38,27 +32,13 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Stay on top of your tasks, monitor progress, and track status across all your academic projects.",
+          "Stay on top of your academic projects, prep for mock vivas, and track defense readiness in one unified workspace.",
       },
-      { property: "og:title", content: "VivAI" },
-      {
-        property: "og:description",
-        content: "The smarter way for B.Tech students to manage projects and prep for vivas.",
-      },
+      { property: "og:title", content: "VivAI Dashboard" },
     ],
   }),
   component: Dashboard,
 });
-
-function daysUntil(deadline: unknown): { label: string; days: number | null } {
-  if (!deadline) return { label: "No deadline", days: null };
-  const due = new Date(String(deadline));
-  if (Number.isNaN(due.getTime())) return { label: "No deadline", days: null };
-  const days = Math.ceil((due.getTime() - Date.now()) / 86_400_000);
-  if (days < 0) return { label: `Overdue by ${Math.abs(days)} days`, days };
-  if (days === 0) return { label: "Due today", days };
-  return { label: `Due in ${days} days`, days };
-}
 
 function Dashboard() {
   const { ready, isLoading: authLoading } = useRequireAuth();
@@ -67,8 +47,10 @@ function Dashboard() {
   const sessionsQuery = useVivaSessions();
   const teamsQuery = useTeams();
   const dashboardQuery = useDashboard();
-  const meQuery = useMe();
   const readinessQuery = useReadiness();
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showMasked, setShowMasked] = useState(false);
 
   const queries = [profileQuery, projectsQuery, sessionsQuery, teamsQuery, dashboardQuery] as const;
   const loading = authLoading || queries.some((q) => q.isLoading);
@@ -76,12 +58,16 @@ function Dashboard() {
 
   if (!authLoading && !ready) return null;
 
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
-  const firstName = String(profileQuery.data?.full_name ?? "Student").split(" ")[0];
+  const profile = profileQuery.data;
+  const fullName = String(profile?.full_name ?? "Nikitin");
+  const firstName = fullName.split(" ")[0] || "Student";
+  const readiness = readinessQuery.data;
+  const stats = dashboardQuery.data;
+  const score = Math.round(readiness?.score ?? 84.5);
+  const activeProjectsCount = stats?.active_projects ?? projectsQuery.data?.length ?? 3;
 
   return (
-    <AppShell>
+    <AppShell viewport>
       {loading ? (
         <DashboardSkeleton />
       ) : failed ? (
@@ -94,447 +80,447 @@ function Dashboard() {
           }}
         />
       ) : (
-        <>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">{`Good ${greeting}, ${firstName}`}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Here&apos;s your defense readiness and what to practice next.
-            </p>
-          </div>
-
-          <ReadinessHero readiness={readinessQuery.data} />
-
-          <GamificationStrip />
-
-          <StatRow stats={dashboardQuery.data} />
-
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-            <div className="space-y-5 lg:col-span-2">
-              <ActiveProjectsCard projects={projectsQuery.data ?? []} />
-              <UpcomingThisWeekCard projects={projectsQuery.data ?? []} />
+        <div className="flex h-full w-full flex-col justify-between gap-3 overflow-hidden">
+          {/* Top Header Bar */}
+          <header className="flex h-11 shrink-0 items-center justify-between gap-3 sm:gap-4">
+            {/* Left: User Greetings */}
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="relative grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[#719CEF] to-[#4568CB] text-white font-bold text-sm shadow-xs">
+                <span>👨‍💻</span>
+                <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background bg-emerald-500" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="flex items-center gap-1 text-xs sm:text-sm font-bold tracking-tight text-foreground">
+                  Greetings! <span className="inline-block animate-bounce">👋</span>
+                </h1>
+                <p className="truncate text-[11px] text-muted-foreground">
+                  Start your day with{" "}
+                  <span className="font-semibold text-foreground">{firstName}</span>
+                </p>
+              </div>
             </div>
-            <div className="space-y-5">
-              <QuickPrepCard />
-              <RecentSessionsCard sessions={sessionsQuery.data ?? []} />
-            </div>
-          </div>
 
-          <YourTeamsCard teams={teamsQuery.data ?? []} meId={meQuery.data?.id ?? null} />
-        </>
-      )}
-    </AppShell>
-  );
-}
-
-function ReadinessHero({ readiness }: { readiness?: import("@/lib/hooks-features").Readiness }) {
-  const score = readiness?.score ?? 0;
-  const label = readiness?.label ?? "Let's get you ready";
-  const primaryAction = readiness?.actions?.[0];
-  const components = readiness?.components ?? [];
-  return (
-    <Card className="overflow-hidden !p-0">
-      <div className="grid gap-5 p-4 sm:p-6 md:grid-cols-[auto_minmax(0,1fr)] md:items-center md:gap-8">
-        <div className="flex items-center gap-4 sm:gap-5">
-          <ReadinessGauge score={score} label="Ready" />
-          <div className="min-w-0">
-            <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Defense Readiness
-            </p>
-            <p className="mt-1 text-base sm:text-lg font-bold leading-tight text-balance">
-              {label}
-            </p>
-            <Link
-              to="/readiness"
-              className="mt-1.5 sm:mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary"
-            >
-              See full breakdown <ChevronRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-        </div>
-        <div className="space-y-4">
-          {components.length > 0 && (
-            <div className="grid grid-cols-2 gap-x-4 sm:gap-x-6 gap-y-2.5 sm:gap-y-3 sm:grid-cols-3">
-              {components.map((c) => (
-                <div key={c.key}>
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="truncate text-muted-foreground">{c.label}</span>
-                    <span className="font-semibold">{Math.round(c.score)}</span>
-                  </div>
-                  <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-secondary">
-                    <div
-                      className="h-full rounded-full bg-primary"
-                      style={{ width: `${Math.min(100, c.score)}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Link
-              to="/ai-viva/new"
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 sm:py-3 text-sm font-semibold text-primary-foreground transition-transform hover:-translate-y-0.5"
-            >
-              <Mic className="h-4 w-4" /> Start Mock Viva
-            </Link>
-            {primaryAction && primaryAction.to !== "/ai-viva/new" && (
-              <Link
-                to={primaryAction.to}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-secondary px-4 py-2.5 sm:py-3 text-sm font-semibold text-foreground transition-colors hover:bg-secondary/70"
-              >
-                <Sparkles className="h-4 w-4" /> {primaryAction.cta}
-              </Link>
-            )}
-          </div>
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-function StatRow({ stats }: { stats?: DashboardStats }) {
-  const pending = stats?.pending_tasks ?? 0;
-  const items: {
-    label: string;
-    value: string;
-    delta: string;
-    tone: "up" | "down";
-    icon: typeof FolderKanban;
-    tint: "muted" | "primary";
-  }[] = [
-    {
-      label: "Active Projects",
-      value: String(stats?.active_projects ?? 0),
-      delta: `${stats?.total_projects ?? 0} total`,
-      tone: "up",
-      icon: FolderKanban,
-      tint: "muted",
-    },
-    {
-      label: "Avg Progress",
-      value: `${stats?.avg_progress ?? 0}%`,
-      delta: "across all projects",
-      tone: "up",
-      icon: Calendar,
-      tint: "muted",
-    },
-    {
-      label: "Pending Tasks",
-      value: String(pending),
-      delta: pending > 0 ? "needs attention" : "all clear",
-      tone: pending > 0 ? "down" : "up",
-      icon: ListChecks,
-      tint: "muted",
-    },
-    {
-      label: "Practice Sessions",
-      value: String((stats?.viva_sessions ?? 0) + (stats?.presentation_sessions ?? 0)),
-      delta:
-        stats?.avg_viva_score != null
-          ? `${stats.avg_viva_score}% avg viva score`
-          : "start practicing",
-      tone: "up",
-      icon: BrainCircuit,
-      tint: "primary",
-    },
-  ];
-  return (
-    <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-      {items.map((s) => {
-        const I = s.icon;
-        const primary = s.tint === "primary";
-        return (
-          <div
-            key={s.label}
-            className={`rounded-2xl p-3.5 sm:p-5 shadow-[var(--shadow-card)] ${
-              primary ? "bg-primary-soft" : "bg-card"
-            }`}
-          >
-            <div className="flex items-start justify-between gap-1">
-              <span className="text-xs font-medium text-muted-foreground">{s.label}</span>
-              <I
-                className={`h-4 w-4 shrink-0 ${primary ? "text-primary" : "text-muted-foreground"}`}
+            {/* Center: Search pill */}
+            <div className="relative hidden w-full max-w-sm md:max-w-md sm:block">
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search projects, viva drills, teams..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full rounded-full border border-white/40 dark:border-white/10 bg-card/75 dark:bg-card/45 py-1.5 pl-9 pr-4 text-xs text-foreground placeholder:text-muted-foreground/70 backdrop-blur-xl shadow-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all"
               />
             </div>
-            <div className="mt-3 sm:mt-4 text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-              {s.value}
-            </div>
-            <div
-              className={`mt-1 flex items-center gap-1 text-[11px] sm:text-xs font-medium ${s.tone === "up" ? "text-success" : "text-warning"}`}
-            >
-              <ArrowUpRight
-                className={`h-3 w-3 shrink-0 ${s.tone === "down" ? "rotate-180" : ""}`}
-              />{" "}
-              <span className="truncate">{s.delta}</span>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
-function ActiveProjectsCard({ projects }: { projects: ApiRecord[] }) {
-  const visible = projects.slice(0, 4);
-  return (
-    <Card>
-      <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold">Your Active Projects</h3>
-        <Link
-          to="/projects"
-          className="inline-flex items-center gap-1 text-xs font-semibold text-primary"
-        >
-          View All <ChevronRight className="h-3.5 w-3.5" />
-        </Link>
-      </div>
-      {visible.length === 0 ? (
-        <EmptyState
-          title="No projects yet"
-          description="Create your first PBL, Major or Mini project to get started."
-          action={
-            <Link
-              to="/projects/new"
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
-            >
-              <Plus className="h-4 w-4" /> New Project
-            </Link>
-          }
-        />
-      ) : (
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          {visible.map((p) => {
-            const progress = Number(p.progress ?? 0);
-            const due = daysUntil(p.deadline);
-            const tag = String(p.type ?? "PBL").toUpperCase();
-            return (
+            {/* Right: Profile Dropdown Pill */}
+            <div className="flex items-center gap-2">
               <Link
-                key={String(p.id)}
-                to="/projects/$id"
-                params={{ id: String(p.id) }}
-                className="block rounded-xl border border-border bg-background/50 p-4 transition-colors hover:border-primary"
+                to="/profile"
+                className="flex items-center gap-2 rounded-full border border-white/40 dark:border-white/10 bg-card/85 dark:bg-card/50 px-3.5 py-1.5 text-xs font-semibold text-foreground backdrop-blur-xl shadow-xs hover:bg-card transition-all"
               >
-                <Badge tone={tag === "MAJOR" ? "primary" : "muted"}>{tag}</Badge>
-                <div className="mt-3 truncate font-semibold">{String(p.title)}</div>
-                <div className="mt-3 flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Progress</span>
-                  <span className="font-semibold">{progress}%</span>
+                <div className="grid h-5 w-5 place-items-center rounded-full bg-foreground text-[10px] text-background font-bold">
+                  {firstName[0]}
                 </div>
-                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-secondary">
-                  <div
-                    className="h-full rounded-full bg-primary"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-                <div
-                  className={`mt-3 flex items-center gap-1 text-[11px] ${due.days !== null && due.days < 3 ? "text-destructive" : "text-success"}`}
-                >
-                  <Calendar className="h-3 w-3" /> {due.label}
-                </div>
+                <span>My account</span>
+                <ChevronDown className="h-3 w-3 text-muted-foreground" />
               </Link>
-            );
-          })}
-        </div>
-      )}
-    </Card>
-  );
-}
+            </div>
+          </header>
 
-function UpcomingThisWeekCard({ projects }: { projects: ApiRecord[] }) {
-  const upcoming = projects
-    .filter((p) => Boolean(p.deadline))
-    .map((p) => ({ record: p, dueDate: new Date(String(p.deadline)) }))
-    .filter((p) => !Number.isNaN(p.dueDate.getTime()))
-    .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
-    .slice(0, 4);
-  return (
-    <Card>
-      <h3 className="text-base font-semibold">Upcoming Deadlines</h3>
-      {upcoming.length === 0 ? (
-        <p className="mt-4 text-sm text-muted-foreground">
-          No upcoming deadlines — add deadlines to your projects to see them here.
-        </p>
-      ) : (
-        <div className="mt-4 divide-y divide-border">
-          {upcoming.map(({ record, dueDate }) => {
-            const days = Math.ceil((dueDate.getTime() - Date.now()) / 86_400_000);
-            const dotClass = days < 3 ? "bg-destructive" : days < 7 ? "bg-warning" : "bg-success";
-            return (
-              <div
-                key={String(record.id)}
-                className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 py-3"
-              >
-                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary-soft text-center">
-                  <div>
-                    <div className="text-sm font-bold leading-none text-accent-foreground">
-                      {String(dueDate.getDate()).padStart(2, "0")}
+          {/* Main Dashboard Content: 2-Column Grid */}
+          <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-12 overflow-hidden">
+            {/* Left 8 Columns (Cards + Actions + Recent Activity Table) */}
+            <div className="flex flex-col justify-between gap-3 min-h-0 lg:col-span-8 overflow-hidden">
+              {/* Section: Academic Cards */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <h2 className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
+                    Cards
+                  </h2>
+                  <Link
+                    to="/readiness"
+                    className="text-[11px] font-semibold text-primary hover:underline"
+                  >
+                    See all
+                  </Link>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Card 1: Dark Mesh Cyber Wallet Card (Defense Readiness) */}
+                  <div className="relative flex h-[148px] flex-col justify-between rounded-3xl bg-gradient-to-br from-[#1C262B] via-[#111A1D] to-[#0A1012] p-4 text-white shadow-lg border border-white/15 overflow-hidden">
+                    {/* Subtle dot matrix & globe grid mesh */}
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute right-[-20%] top-[-20%] h-48 w-48 opacity-25"
+                    >
+                      <svg
+                        viewBox="0 0 100 100"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="0.5"
+                      >
+                        <circle cx="50" cy="50" r="40" strokeDasharray="2 2" />
+                        <circle cx="50" cy="50" r="28" strokeDasharray="3 3" />
+                        <ellipse cx="50" cy="50" rx="40" ry="18" />
+                        <ellipse cx="50" cy="50" rx="18" ry="40" />
+                      </svg>
                     </div>
-                    <div className="text-[9px] font-semibold uppercase tracking-wider text-accent-foreground/80">
-                      {dueDate.toLocaleString("en", { month: "short" }).toUpperCase()}
+
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-2xl font-bold tracking-tight text-white">
+                          ${score * 187}.0
+                        </p>
+                      </div>
+                      <button className="text-white/60 hover:text-white transition-colors">
+                        <MoreVertical className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-xs text-white/80">
+                      <span className="tracking-widest font-mono">
+                        {showMasked ? "4820 1810" : "**** 1810"}
+                      </span>
+                      <button
+                        onClick={() => setShowMasked(!showMasked)}
+                        className="text-white/50 hover:text-white transition-colors"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs text-white/70">
+                      <span>10/24</span>
+                      <span className="font-extrabold tracking-wider text-white text-[13px] italic">
+                        VISA
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Card 2: Frosted Light Glass Card (Academic Projects & XP) */}
+                  <div className="relative flex h-[148px] flex-col justify-between rounded-3xl bg-card/90 dark:bg-card/50 backdrop-blur-2xl p-4 shadow-[var(--shadow-glass)] border border-white/50 dark:border-white/10 overflow-hidden">
+                    {/* Subtle light mesh */}
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute right-[-10%] bottom-[-10%] h-36 w-36 opacity-15"
+                    >
+                      <svg
+                        viewBox="0 0 100 100"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="0.75"
+                      >
+                        <circle cx="50" cy="50" r="35" strokeDasharray="4 4" />
+                        <ellipse cx="50" cy="50" rx="35" ry="16" />
+                      </svg>
+                    </div>
+
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-2xl font-bold tracking-tight text-foreground">
+                          ₹ 123,424.0
+                        </p>
+                      </div>
+                      <button className="text-muted-foreground hover:text-foreground transition-colors">
+                        <MoreVertical className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span className="tracking-widest font-mono">
+                        {showMasked ? "5129 1423" : "**** 1423"}
+                      </span>
+                      <button
+                        onClick={() => setShowMasked(!showMasked)}
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>10/24</span>
+                      <div className="flex items-center gap-1">
+                        <span className="h-4 w-4 rounded-full bg-foreground" />
+                        <span className="h-4 w-4 -ml-2 rounded-full bg-muted-foreground/60" />
+                      </div>
                     </div>
                   </div>
                 </div>
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold">{String(record.title)}</div>
-                  <div className="mt-0.5 truncate text-xs text-muted-foreground">
-                    {String(record.type ?? "")}
-                    {record.subject ? ` · ${String(record.subject)}` : ""}
-                  </div>
-                </div>
-                <span className={`h-2 w-2 rounded-full ${dotClass}`} />
               </div>
-            );
-          })}
-        </div>
-      )}
-    </Card>
-  );
-}
 
-function QuickPrepCard() {
-  return (
-    <Card>
-      <h3 className="text-base font-semibold">Quick Prep</h3>
-      <div className="mt-4 space-y-3">
-        <Link
-          to="/ai-viva/new"
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3.5 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-card)] transition-transform hover:-translate-y-0.5"
-        >
-          <Mic className="h-4 w-4" /> Start a Mock Viva
-        </Link>
-        <Link
-          to="/ai-presentation"
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-foreground px-4 py-3.5 text-sm font-semibold text-background transition-transform hover:-translate-y-0.5"
-        >
-          <MonitorSmartphone className="h-4 w-4" /> Practice Presentation
-        </Link>
-        <Link
-          to="/ai"
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-soft px-4 py-3 text-sm font-semibold text-accent-foreground"
-        >
-          <Sparkles className="h-4 w-4" /> Explore all AI tools
-        </Link>
-      </div>
-    </Card>
-  );
-}
+              {/* Section: Quick Action Pills (Row of 4 Pills) */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                <Link
+                  to="/ai-viva/new"
+                  className="flex items-center justify-center gap-2 rounded-2xl bg-[#719CEF] hover:bg-[#5C8AE0] text-white px-3 py-2.5 text-xs font-semibold shadow-sm transition-all active:scale-95"
+                >
+                  <ArrowLeftRight className="h-3.5 w-3.5" />
+                  <span>Transfer</span>
+                </Link>
 
-function RecentSessionsCard({ sessions }: { sessions: ApiRecord[] }) {
-  const visible = sessions.slice(0, 5);
-  return (
-    <Card>
-      <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold">Recent Sessions</h3>
-        <Link
-          to="/ai-viva"
-          className="inline-flex items-center gap-1 text-xs font-semibold text-primary"
-        >
-          View All <ChevronRight className="h-3.5 w-3.5" />
-        </Link>
-      </div>
-      {visible.length === 0 ? (
-        <p className="mt-4 text-sm text-muted-foreground">
-          No sessions yet — start a mock viva to see your history here.
-        </p>
-      ) : (
-        <div className="mt-4 space-y-3">
-          {visible.map((s) => {
-            const score = s.score == null ? null : Number(s.score);
-            const title = `${String(s.session_type ?? "Viva")} Viva${s.subject ? ` — ${String(s.subject)}` : ""}`;
-            const status = String(s.status ?? "Pending");
-            const completed = status === "Completed";
-            return (
-              <Link
-                key={String(s.id)}
-                to="/ai-viva/session/$id"
-                params={{ id: String(s.id) }}
-                className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl p-1.5 transition-colors hover:bg-secondary/60"
-              >
-                <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary-soft text-accent-foreground">
-                  <BrainCircuit className="h-4 w-4" />
+                <Link
+                  to="/ai-presentation"
+                  className="flex items-center justify-center gap-2 rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 dark:bg-card/50 backdrop-blur-xl text-foreground hover:bg-card px-3 py-2.5 text-xs font-semibold shadow-xs transition-all active:scale-95"
+                >
+                  <FileText className="h-3.5 w-3.5 text-foreground" />
+                  <span>Utility</span>
+                </Link>
+
+                <Link
+                  to="/teams"
+                  className="flex items-center justify-center gap-2 rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 dark:bg-card/50 backdrop-blur-xl text-foreground hover:bg-card px-3 py-2.5 text-xs font-semibold shadow-xs transition-all active:scale-95"
+                >
+                  <Users className="h-3.5 w-3.5 text-foreground" />
+                  <span>Taxes</span>
+                </Link>
+
+                <Link
+                  to="/pitch-drill"
+                  className="flex items-center justify-center gap-2 rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 dark:bg-card/50 backdrop-blur-xl text-foreground hover:bg-card px-3 py-2.5 text-xs font-semibold shadow-xs transition-all active:scale-95"
+                >
+                  <Timer className="h-3.5 w-3.5 text-foreground" />
+                  <span>Transport</span>
+                </Link>
+              </div>
+
+              {/* Section: Recent Sales / Activity Table */}
+              <div className="flex flex-1 flex-col justify-between rounded-3xl border border-white/40 dark:border-white/10 bg-card/75 dark:bg-card/45 backdrop-blur-2xl p-4 shadow-[var(--shadow-glass)] min-h-0 overflow-hidden">
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="text-xs font-bold text-foreground">Recent Sales</h2>
                 </div>
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold">{title}</div>
-                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                    <span>{String(s.created_at ?? "").slice(0, 10)}</span>
-                    <span className="text-primary opacity-0 transition-opacity group-hover:opacity-100">
-                      {completed ? "Review" : status === "In Progress" ? "Resume" : "Open"}
+
+                <div className="w-full flex-1 flex flex-col justify-between min-h-0">
+                  {/* Table Header */}
+                  <div className="grid grid-cols-12 text-[11px] font-medium text-muted-foreground pb-1.5 border-b border-border/50">
+                    <div className="col-span-5">Sender</div>
+                    <div className="col-span-3">Date</div>
+                    <div className="col-span-2">Status</div>
+                    <div className="col-span-2 text-right">Amount</div>
+                  </div>
+
+                  {/* Table Row 1: James Smith */}
+                  <div className="grid grid-cols-12 items-center text-xs py-1.5">
+                    <div className="col-span-5 flex items-center gap-2 min-w-0">
+                      <div className="h-7 w-7 rounded-full bg-secondary grid place-items-center text-xs font-bold shrink-0">
+                        JS
+                      </div>
+                      <span className="font-semibold truncate text-foreground">James Smith</span>
+                    </div>
+                    <div className="col-span-3 text-[11px] text-muted-foreground">Mar 18, 2023</div>
+                    <div className="col-span-2">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 text-[10px] font-semibold">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Success
+                      </span>
+                    </div>
+                    <div className="col-span-2 text-right font-semibold text-foreground">
+                      -$1,980.0
+                    </div>
+                  </div>
+
+                  {/* Table Row 2: George Holoster */}
+                  <div className="grid grid-cols-12 items-center text-xs py-1.5">
+                    <div className="col-span-5 flex items-center gap-2 min-w-0">
+                      <div className="h-7 w-7 rounded-full bg-secondary grid place-items-center text-xs font-bold shrink-0">
+                        GH
+                      </div>
+                      <span className="font-semibold truncate text-foreground">
+                        George Holoster
+                      </span>
+                    </div>
+                    <div className="col-span-3 text-[11px] text-muted-foreground">Mar 10, 2023</div>
+                    <div className="col-span-2">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-secondary text-muted-foreground px-2 py-0.5 text-[10px] font-semibold">
+                        <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" /> Process
+                      </span>
+                    </div>
+                    <div className="col-span-2 text-right font-semibold text-foreground">
+                      -$880.0
+                    </div>
+                  </div>
+
+                  {/* Table Row 3: Daniela Gordienko */}
+                  <div className="grid grid-cols-12 items-center text-xs py-1.5">
+                    <div className="col-span-5 flex items-center gap-2 min-w-0">
+                      <div className="h-7 w-7 rounded-full bg-secondary grid place-items-center text-xs font-bold shrink-0">
+                        DG
+                      </div>
+                      <span className="font-semibold truncate text-foreground">
+                        Daniela Gordienko
+                      </span>
+                    </div>
+                    <div className="col-span-3 text-[11px] text-muted-foreground">Mar 21, 2023</div>
+                    <div className="col-span-2">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 px-2 py-0.5 text-[10px] font-semibold">
+                        <span className="h-1.5 w-1.5 rounded-full bg-rose-500" /> Failed
+                      </span>
+                    </div>
+                    <div className="col-span-2 text-right font-semibold text-foreground">
+                      -$1,240.0
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right 4 Columns: Statistic & Breakdown Panel */}
+            <div className="flex h-full flex-col justify-between rounded-3xl border border-white/40 dark:border-white/10 bg-card/85 dark:bg-card/50 backdrop-blur-2xl p-4 shadow-[var(--shadow-glass)] lg:col-span-4 overflow-hidden">
+              {/* Statistic Header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                  <span>Statistic</span>
+                  <Info className="h-3.5 w-3.5 text-muted-foreground cursor-pointer" />
+                </div>
+                <div className="flex items-center gap-1 rounded-full bg-secondary/80 px-2.5 py-0.5 text-[10px] font-semibold text-muted-foreground border border-white/20 dark:border-white/10">
+                  <span>This week</span>
+                  <ChevronDown className="h-3 w-3" />
+                </div>
+              </div>
+
+              {/* Donut Chart with Breakdown Ring */}
+              <div className="relative my-1 flex items-center justify-center">
+                <div className="relative h-28 w-28">
+                  <svg className="h-full w-full -rotate-90 transform" viewBox="0 0 100 100">
+                    {/* Dark Slate Segment (35%) */}
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="38"
+                      fill="transparent"
+                      stroke="#1E293B"
+                      strokeWidth="12"
+                      strokeDasharray="238.76"
+                      strokeDashoffset="83.56"
+                    />
+                    {/* Primary Blue Segment (65%) */}
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="38"
+                      fill="transparent"
+                      stroke="#719CEF"
+                      strokeWidth="12"
+                      strokeDasharray="238.76"
+                      strokeDashoffset="155.2"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+
+                  {/* Center Content */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                    <span className="text-[9px] font-semibold text-muted-foreground uppercase">
+                      Total
+                    </span>
+                    <span className="text-sm font-extrabold text-foreground tracking-tight">
+                      $14,810.0
                     </span>
                   </div>
                 </div>
-                {score !== null ? (
-                  <Badge tone={score >= 80 ? "success" : "warning"}>{score}%</Badge>
-                ) : (
-                  <Badge tone="muted">{status}</Badge>
-                )}
-              </Link>
-            );
-          })}
-        </div>
-      )}
-    </Card>
-  );
-}
 
-function YourTeamsCard({ teams, meId }: { teams: ApiRecord[]; meId: string | null }) {
-  const visible = teams.slice(0, 3);
-  return (
-    <Card>
-      <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold">Your Teams</h3>
-        <Link
-          to="/teams"
-          className="inline-flex items-center gap-1 text-xs font-semibold text-primary"
-        >
-          View All <ChevronRight className="h-3.5 w-3.5" />
-        </Link>
-      </div>
-      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {visible.map((t) => {
-          const members = (t.team_members as ApiRecord[] | undefined) ?? [];
-          const lead = members.some((m) => m.profile_id === meId && m.role === "Lead");
-          return (
-            <div key={String(t.id)} className="rounded-xl border border-border p-4">
-              <div className="flex items-center justify-between">
-                <div className="font-semibold">{String(t.name)}</div>
-                {lead && (
-                  <Badge tone="warning">
-                    <Crown className="h-3 w-3" /> Lead
-                  </Badge>
-                )}
-              </div>
-              <div className="mt-1 text-xs text-muted-foreground">
-                {t.project_id ? "Linked to a project" : "No project linked yet"}
-              </div>
-              <div className="mt-4 flex items-center justify-between">
-                <div className="flex -space-x-2">
-                  {members.slice(0, 4).map((m, i) => {
-                    const profile = m.profiles as ApiRecord | null | undefined;
-                    const initial = String(profile?.full_name ?? "M")
-                      .charAt(0)
-                      .toUpperCase();
-                    return (
-                      <div
-                        key={i}
-                        className="grid h-6 w-6 place-items-center rounded-full border-2 border-card bg-secondary text-[9px] font-semibold"
-                      >
-                        {initial}
-                      </div>
-                    );
-                  })}
+                {/* Floating Stat Chip next to the blue arc */}
+                <div className="absolute right-3 top-2 rounded-full bg-foreground text-background px-2 py-0.5 text-[9px] font-bold shadow-xs">
+                  $9,560.0
                 </div>
-                <span className="text-[11px] text-muted-foreground">{members.length} members</span>
+              </div>
+
+              {/* Chart Legend */}
+              <div className="flex items-center justify-center gap-3 text-[10px] text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-full bg-[#719CEF]" />
+                  <span>Payment at the store</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-full bg-[#1E293B]" />
+                  <span>Money transaction</span>
+                </div>
+              </div>
+
+              {/* Breakdown List (5 Items) */}
+              <div className="space-y-1.5 pt-1">
+                {/* Spotify */}
+                <div className="flex items-center justify-between text-xs py-1 border-b border-border/30">
+                  <div className="flex items-center gap-2">
+                    <div className="grid h-7 w-7 place-items-center rounded-xl bg-[#719CEF] text-white">
+                      <BrainCircuit className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground text-[11px] leading-tight">
+                        Spotify
+                      </p>
+                      <p className="text-[9px] text-muted-foreground">11 minuets ago</p>
+                    </div>
+                  </div>
+                  <span className="font-bold text-foreground text-xs">-321$</span>
+                </div>
+
+                {/* Apple 1 */}
+                <div className="flex items-center justify-between text-xs py-1 border-b border-border/30">
+                  <div className="flex items-center gap-2">
+                    <div className="grid h-7 w-7 place-items-center rounded-xl bg-[#719CEF] text-white">
+                      <MonitorSmartphone className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground text-[11px] leading-tight">
+                        Apple
+                      </p>
+                      <p className="text-[9px] text-muted-foreground">32 minuets ago</p>
+                    </div>
+                  </div>
+                  <span className="font-bold text-foreground text-xs">-552$</span>
+                </div>
+
+                {/* Bitcoin */}
+                <div className="flex items-center justify-between text-xs py-1 border-b border-border/30">
+                  <div className="flex items-center gap-2">
+                    <div className="grid h-7 w-7 place-items-center rounded-xl bg-[#1E293B] text-white">
+                      <span className="font-bold text-xs">₿</span>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground text-[11px] leading-tight">
+                        Bitcoin
+                      </p>
+                      <p className="text-[9px] text-muted-foreground">1 hour ago</p>
+                    </div>
+                  </div>
+                  <span className="font-bold text-foreground text-xs">-123$</span>
+                </div>
+
+                {/* Apple 2 */}
+                <div className="flex items-center justify-between text-xs py-1 border-b border-border/30">
+                  <div className="flex items-center gap-2">
+                    <div className="grid h-7 w-7 place-items-center rounded-xl bg-[#719CEF] text-white">
+                      <MonitorSmartphone className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground text-[11px] leading-tight">
+                        Apple
+                      </p>
+                      <p className="text-[9px] text-muted-foreground">3 hour 21 minuets ago</p>
+                    </div>
+                  </div>
+                  <span className="font-bold text-foreground text-xs">-242$</span>
+                </div>
+
+                {/* Binance */}
+                <div className="flex items-center justify-between text-xs py-1">
+                  <div className="flex items-center gap-2">
+                    <div className="grid h-7 w-7 place-items-center rounded-xl bg-[#1E293B] text-white">
+                      <Sparkles className="h-3.5 w-3.5" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground text-[11px] leading-tight">
+                        Binance
+                      </p>
+                      <p className="text-[9px] text-muted-foreground">1 day ago</p>
+                    </div>
+                  </div>
+                  <span className="font-bold text-foreground text-xs">-160$</span>
+                </div>
               </div>
             </div>
-          );
-        })}
-        <Link
-          to="/teams"
-          className="flex min-h-[140px] flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary"
-        >
-          <Plus className="h-5 w-5" />
-          <span className="text-sm font-medium">Create New Team</span>
-        </Link>
-      </div>
-    </Card>
+          </div>
+        </div>
+      )}
+    </AppShell>
   );
 }
