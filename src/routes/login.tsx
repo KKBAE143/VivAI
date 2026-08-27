@@ -1,9 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { GraduationCap, Eye, Mail, Lock } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { useState, useEffect } from "react";
 
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
+import loginBg from "@/public/loginbg.webp";
+import logoImg from "@/public/logo.jpeg";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -18,9 +20,26 @@ export const Route = createFileRoute("/login")({
   component: Login,
 });
 
+function GreekMeanderFrieze() {
+  return (
+    <div className="w-full flex items-center justify-center overflow-hidden opacity-50 text-[#D4A346] pb-3 border-b border-[#D4A346]/20">
+      <svg
+        className="w-full h-3 max-w-[320px]"
+        viewBox="0 0 320 12"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      >
+        <path d="M0 6h12v-4h-8v8h12v-4h-4M26 6h12v-4h-8v8h12v-4h-4M52 6h12v-4h-8v8h12v-4h-4M78 6h12v-4h-8v8h12v-4h-4M104 6h12v-4h-8v8h12v-4h-4M130 6h12v-4h-8v8h12v-4h-4M156 6h12v-4h-8v8h12v-4h-4M182 6h12v-4h-8v8h12v-4h-4M208 6h12v-4h-8v8h12v-4h-4M234 6h12v-4h-8v8h12v-4h-4M260 6h12v-4h-8v8h12v-4h-4M286 6h12v-4h-8v8h12v-4h-4M312 6h8" />
+      </svg>
+    </div>
+  );
+}
+
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const { login, token } = useAuth();
@@ -43,9 +62,6 @@ function Login() {
         },
       );
       login(res.access_token, res.refresh_token ?? null);
-      // Route first-time users through onboarding, then send each role to the
-      // surface it can actually use. A pending faculty claim carries no
-      // privileges yet, so it lands on the student dashboard like any student.
       try {
         const status = await api<{
           complete: boolean;
@@ -94,148 +110,188 @@ function Login() {
   };
 
   return (
-    <div className="grid min-h-screen bg-background lg:grid-cols-2">
-      <div className="relative hidden overflow-hidden bg-gradient-to-br from-[oklch(0.315_0.032_208)] via-[oklch(0.27_0.028_208)] to-[oklch(0.245_0.024_208)] p-12 text-[oklch(0.958_0.008_85)] lg:flex lg:flex-col lg:justify-between">
-        <div className="flex items-center gap-2 font-semibold">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/20 text-primary">
-            <GraduationCap className="h-5 w-5" />
-          </div>
-          VivAI
-        </div>
-        <div className="relative z-10">
-          <h1 className="text-4xl font-bold leading-tight tracking-tight text-[oklch(0.958_0.008_85)]">
-            Navigate your academics with confidence.
-          </h1>
-          <p className="mt-3 text-base text-[oklch(0.958_0.008_85)]/85">
-            Manage projects, prep for vivas with AI, and collaborate with your team — all in one
-            place.
-          </p>
-        </div>
-        <div className="text-sm text-[oklch(0.958_0.008_85)]/75">
-          Built for B.Tech students, by understanding your journey.
-        </div>
-        <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-primary/20 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-32 -left-32 h-96 w-96 rounded-full bg-primary/15 blur-3xl" />
-      </div>
-      <div className="relative flex items-center justify-center p-6 sm:p-12 overflow-hidden">
-        {/* Ambient background glow */}
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
-          <div className="absolute top-1/4 right-1/4 h-80 w-80 rounded-full bg-primary/10 blur-3xl" />
-          <div className="absolute bottom-1/4 left-1/4 h-80 w-80 rounded-full bg-[oklch(0.772_0.024_205/0.15)] blur-3xl" />
-        </div>
-        <div className="w-full max-w-md space-y-6 rounded-3xl border border-white/40 dark:border-white/10 bg-card/75 backdrop-blur-2xl backdrop-saturate-150 p-6 sm:p-8 shadow-[var(--shadow-glass)]">
-          <div className="lg:hidden">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-              <GraduationCap className="h-5 w-5" />
+    <div
+      className="relative min-h-screen w-full bg-[#070D0E] bg-cover bg-center bg-no-repeat flex items-center justify-center p-4 sm:p-6 lg:p-12 overflow-x-hidden"
+      style={{ backgroundImage: `url(${loginBg})` }}
+    >
+      {/* Dark vignette overlay for depth and contrast */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/75"
+      />
+
+      <div className="relative z-10 w-full max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14 items-center">
+        {/* Left Column: Medallion & Welcome */}
+        <div className="flex flex-col items-center text-center">
+          {/* Circular Gold Medallion Logo */}
+          <div className="relative w-56 h-56 sm:w-72 sm:h-72 md:w-88 md:h-88 rounded-full p-2 bg-gradient-to-b from-[#E8C170] via-[#946A1B] to-[#E8C170] shadow-[0_0_50px_rgba(212,163,70,0.3),0_20px_50px_rgba(0,0,0,0.95)]">
+            <div className="w-full h-full rounded-full overflow-hidden border-2 border-[#FFE082]/70 bg-black/60">
+              <img
+                src={logoImg}
+                alt="VivAI Logo"
+                className="w-full h-full object-cover rounded-full transform scale-102"
+              />
             </div>
           </div>
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight">Welcome back!</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Sign in to your account to continue.
+
+          {/* Classical Welcome Header */}
+          <div className="mt-8 flex items-center justify-center gap-3">
+            <span className="text-[#C69234] text-lg select-none">❧</span>
+            <div className="h-px w-10 bg-gradient-to-r from-transparent via-[#D4A346] to-transparent" />
+            <h2 className="font-serif text-2xl sm:text-3xl font-bold tracking-[0.25em] text-[#E8C170] uppercase drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]">
+              WELCOME
+            </h2>
+            <div className="h-px w-10 bg-gradient-to-r from-transparent via-[#D4A346] to-transparent" />
+            <span className="text-[#C69234] text-lg select-none">☙</span>
+          </div>
+
+          <p className="mt-3 text-sm sm:text-base text-[#D0C7B7] tracking-wide max-w-sm drop-shadow-md">
+            Enter the realm of academic excellence and build something legendary.
+          </p>
+        </div>
+
+        {/* Right Column: Classical Architectural Tablet Card */}
+        <div className="w-full max-w-md mx-auto">
+          <div className="relative rounded-[26px] sm:rounded-[30px] border-2 border-[#C69234]/60 bg-[#0C1618]/90 backdrop-blur-2xl p-6 sm:p-8 shadow-[0_25px_70px_rgba(0,0,0,0.95),0_0_35px_rgba(212,163,70,0.18),inset_0_1px_2px_rgba(255,220,130,0.35)]">
+            {/* Top Greek Key Frieze Motif */}
+            <GreekMeanderFrieze />
+
+            {/* Title */}
+            <div className="text-center pt-3 pb-6">
+              <div className="flex items-center justify-center gap-2.5">
+                <span className="text-[#C69234] text-sm select-none">❧</span>
+                <h1 className="font-serif text-xl sm:text-2xl font-bold tracking-[0.2em] text-[#E8C170] uppercase drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+                  SIGN IN
+                </h1>
+                <span className="text-[#C69234] text-sm select-none">☙</span>
+              </div>
+              {/* Ornate motif line */}
+              <div className="mt-2 flex items-center justify-center gap-2">
+                <div className="h-px w-12 bg-gradient-to-r from-transparent to-[#D4A346]/60" />
+                <span className="text-[#D4A346] text-xs select-none">❖</span>
+                <div className="h-px w-12 bg-gradient-to-l from-transparent to-[#D4A346]/60" />
+              </div>
+            </div>
+
+            <form
+              className="space-y-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void handleSubmit();
+              }}
+            >
+              {/* Email Field */}
+              <div>
+                <label className="text-[11px] font-bold tracking-[0.18em] text-[#E8C170] uppercase flex items-center gap-2 mb-1.5">
+                  <Mail className="h-3.5 w-3.5 text-[#E8C170]" />
+                  E-MAIL
+                </label>
+                <div className="relative">
+                  <input
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full rounded-xl border border-[#C69234]/50 bg-[#060D0F]/90 px-4 py-2.5 text-sm text-[#F4F1EA] placeholder-[#A8BDC3]/40 focus:border-[#F5A623] focus:outline-none focus:ring-1 focus:ring-[#F5A623] focus:shadow-[0_0_15px_rgba(245,166,35,0.3)] transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Password Field */}
+              <div>
+                <label className="text-[11px] font-bold tracking-[0.18em] text-[#E8C170] uppercase flex items-center gap-2 mb-1.5">
+                  <Lock className="h-3.5 w-3.5 text-[#E8C170]" />
+                  PASSWORD
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="w-full rounded-xl border border-[#C69234]/50 bg-[#060D0F]/90 px-4 py-2.5 pr-11 text-sm text-[#F4F1EA] placeholder-[#A8BDC3]/40 focus:border-[#F5A623] focus:outline-none focus:ring-1 focus:ring-[#F5A623] focus:shadow-[0_0_15px_rgba(245,166,35,0.3)] transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#E8C170]/80 hover:text-[#FFE082] transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-xs pt-1">
+                <label className="flex items-center gap-2 text-[#D0C7B7]/80 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="h-3.5 w-3.5 rounded border-[#C69234]/50 bg-[#060D0F] accent-[#F5A623]"
+                  />
+                  Remember me
+                </label>
+                <Link
+                  to="/forgot-password"
+                  className="font-medium text-[#E8C170] hover:text-[#FFE082] hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+
+              {error && (
+                <div className="rounded-xl border border-destructive/40 bg-destructive/15 px-3 py-2 text-xs text-destructive">
+                  {error}
+                </div>
+              )}
+
+              {/* Golden Chiseled Button */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="relative mt-5 block w-full rounded-xl bg-gradient-to-r from-[#C68910] via-[#F5A623] to-[#C68910] hover:from-[#D49618] hover:via-[#FFB834] hover:to-[#D49618] px-4 py-3.5 text-center text-sm font-bold tracking-[0.2em] text-[#16292D] uppercase shadow-[0_6px_25px_rgba(245,166,35,0.45)] border border-[#FFE082]/70 transition-all duration-300 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+              >
+                <span className="flex items-center justify-center gap-2">
+                  <span className="text-xs select-none">❧</span>
+                  <span>{loading ? "SIGNING IN…" : "SIGN IN"}</span>
+                  <span className="text-xs select-none">☙</span>
+                </span>
+              </button>
+            </form>
+
+            {/* Divider OR */}
+            <div className="my-5 flex items-center gap-3">
+              <div className="h-px flex-1 bg-gradient-to-r from-transparent to-[#C69234]/40" />
+              <span className="text-[10px] font-bold tracking-[0.25em] text-[#E8C170]/70 uppercase">
+                OR
+              </span>
+              <div className="h-px flex-1 bg-gradient-to-l from-transparent to-[#C69234]/40" />
+            </div>
+
+            {/* Google Login Button */}
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              disabled={loading}
+              className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-[#C69234]/40 bg-[#060D0F]/80 px-4 py-2.5 text-xs font-semibold tracking-wider text-[#F4F1EA] hover:bg-[#122428] hover:border-[#D4A346]/70 transition-all shadow-sm disabled:opacity-50 cursor-pointer"
+            >
+              <GoogleG /> Continue with Google
+            </button>
+
+            {/* Footer switch */}
+            <p className="mt-6 text-center text-xs text-[#D0C7B7]">
+              Don't have an account?{" "}
+              <Link
+                to="/signup"
+                className="font-semibold text-[#E8C170] underline underline-offset-4 hover:text-[#FFE082] transition-colors ml-1"
+              >
+                Sign up
+              </Link>
             </p>
           </div>
-          <form
-            className="space-y-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void handleSubmit();
-            }}
-          >
-            <Field
-              icon={Mail}
-              label="Email"
-              type="email"
-              placeholder="you@college.edu.in"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            <Field
-              icon={Lock}
-              label="Password"
-              type="password"
-              placeholder="••••••••"
-              trailing={<Eye className="h-4 w-4" />}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center gap-2 text-muted-foreground">
-                <input type="checkbox" className="h-4 w-4 rounded border-border" /> Remember me
-              </label>
-              <Link to="/forgot-password" className="font-medium text-primary hover:underline">
-                Forgot password?
-              </Link>
-            </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="block w-full rounded-xl bg-primary px-4 py-3 text-center text-sm font-semibold text-primary-foreground shadow-sm transition-transform active:scale-95 hover:opacity-95"
-            >
-              {loading ? "Signing in…" : "Sign In"}
-            </button>
-          </form>
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <div className="h-px flex-1 bg-border" /> Or continue with{" "}
-            <div className="h-px flex-1 bg-border" />
-          </div>
-          <button
-            type="button"
-            onClick={handleGoogleLogin}
-            disabled={loading}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/30 dark:border-white/10 bg-secondary/70 backdrop-blur-md px-4 py-3 text-sm font-medium hover:bg-secondary/90 disabled:opacity-50 transition-all shadow-xs"
-          >
-            <GoogleG /> Continue with Google
-          </button>
-          <p className="text-center text-sm text-muted-foreground">
-            Don't have an account?{" "}
-            <Link to="/signup" className="font-semibold text-primary hover:underline">
-              Create one
-            </Link>
-          </p>
         </div>
       </div>
     </div>
-  );
-}
-
-function Field({
-  icon: Icon,
-  label,
-  type,
-  placeholder,
-  trailing,
-  value,
-  onChange,
-}: {
-  icon: typeof Mail;
-  label: string;
-  type: string;
-  placeholder: string;
-  trailing?: React.ReactNode;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-sm font-medium text-foreground">{label}</span>
-      <div className="relative">
-        <Icon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <input
-          type={type}
-          placeholder={placeholder}
-          value={value}
-          onChange={onChange}
-          className="w-full rounded-xl border border-border bg-card py-3 pl-10 pr-10 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-        />
-        {trailing && (
-          <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground">
-            {trailing}
-          </span>
-        )}
-      </div>
-    </label>
   );
 }
 

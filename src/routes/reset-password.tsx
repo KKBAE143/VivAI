@@ -1,8 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { GraduationCap, ArrowLeft, Lock, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Lock, CheckCircle2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { api } from "../lib/api";
+import loginBg from "@/public/loginbg.webp";
+import logoImg from "@/public/logo.jpeg";
 
 export const Route = createFileRoute("/reset-password")({
   head: () => ({ meta: [{ title: "Set a new password — VivAI" }] }),
@@ -20,10 +22,24 @@ function readRecoveryToken(): string {
   return new URLSearchParams(window.location.search).get("access_token") ?? "";
 }
 
+function GreekMeanderFrieze() {
+  return (
+    <div className="w-full flex items-center justify-center overflow-hidden opacity-50 text-[#D4A346] pb-3 border-b border-[#D4A346]/20">
+      <svg
+        className="w-full h-3 max-w-[320px]"
+        viewBox="0 0 320 12"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      >
+        <path d="M0 6h12v-4h-8v8h12v-4h-4M26 6h12v-4h-8v8h12v-4h-4M52 6h12v-4h-8v8h12v-4h-4M78 6h12v-4h-8v8h12v-4h-4M104 6h12v-4h-8v8h12v-4h-4M130 6h12v-4h-8v8h12v-4h-4M156 6h12v-4h-8v8h12v-4h-4M182 6h12v-4h-8v8h12v-4h-4M208 6h12v-4h-8v8h12v-4h-4M234 6h12v-4h-8v8h12v-4h-4M260 6h12v-4h-8v8h12v-4h-4M286 6h12v-4h-8v8h12v-4h-4M312 6h8" />
+      </svg>
+    </div>
+  );
+}
+
 function ResetPassword() {
   const navigate = useNavigate();
-  // Read the recovery token during the first client render (before any other
-  // effect can strip the hash). Falls back to a post-mount read for hydration.
   const [accessToken, setAccessToken] = useState(readRecoveryToken);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -66,74 +82,118 @@ function ResetPassword() {
   };
 
   return (
-    <div className="grid min-h-screen place-items-center bg-background p-6">
-      <div className="w-full max-w-md rounded-2xl bg-card p-8 shadow-[var(--shadow-card)]">
-        <div className="grid h-12 w-12 place-items-center rounded-2xl bg-primary text-primary-foreground">
-          <GraduationCap className="h-6 w-6" />
-        </div>
-        <h1 className="mt-6 text-2xl font-bold tracking-tight">Set a new password</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Choose a strong password you&apos;ll remember.
-        </p>
+    <div
+      className="relative min-h-screen w-full bg-[#070D0E] bg-cover bg-center bg-no-repeat flex items-center justify-center p-4 sm:p-6 lg:p-12 overflow-x-hidden"
+      style={{ backgroundImage: `url(${loginBg})` }}
+    >
+      {/* Dark vignette overlay */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/75"
+      />
 
-        {done ? (
-          <p className="mt-6 flex items-center gap-2 rounded-xl bg-success/10 p-4 text-sm text-success">
-            <CheckCircle2 className="h-4 w-4 shrink-0" />
-            Password updated. Redirecting you to sign in…
-          </p>
-        ) : !accessToken ? (
-          <p className="mt-6 rounded-xl bg-destructive/10 p-4 text-sm text-destructive">
-            This reset link is invalid or has expired. Please request a new one from the{" "}
-            <Link to="/forgot-password" className="font-semibold underline">
-              forgot password
-            </Link>{" "}
-            page.
-          </p>
-        ) : (
-          <form
-            className="mt-6 space-y-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void handleSubmit();
-            }}
-          >
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="password"
-                placeholder="New password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-xl border border-border bg-card py-3 pl-10 pr-4 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-              />
+      <div className="relative z-10 w-full max-w-md mx-auto">
+        <div className="relative rounded-[26px] sm:rounded-[30px] border-2 border-[#C69234]/60 bg-[#0C1618]/90 backdrop-blur-2xl p-6 sm:p-8 shadow-[0_25px_70px_rgba(0,0,0,0.95),0_0_35px_rgba(212,163,70,0.18),inset_0_1px_2px_rgba(255,220,130,0.35)]">
+          {/* Logo medallion chip */}
+          <div className="flex justify-center mb-3">
+            <div className="w-16 h-16 rounded-full p-1 bg-gradient-to-b from-[#E8C170] via-[#946A1B] to-[#E8C170] shadow-[0_0_20px_rgba(212,163,70,0.3)]">
+              <div className="w-full h-full rounded-full overflow-hidden border border-[#FFE082]/70 bg-black/60">
+                <img src={logoImg} alt="VivAI" className="w-full h-full object-cover" />
+              </div>
             </div>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="password"
-                placeholder="Confirm new password"
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                className="w-full rounded-xl border border-border bg-card py-3 pl-10 pr-4 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-              />
+          </div>
+
+          <GreekMeanderFrieze />
+
+          <div className="text-center pt-3 pb-6">
+            <div className="flex items-center justify-center gap-2.5">
+              <span className="text-[#C69234] text-sm select-none">❧</span>
+              <h1 className="font-serif text-xl sm:text-2xl font-bold tracking-[0.2em] text-[#E8C170] uppercase drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+                NEW PASSWORD
+              </h1>
+              <span className="text-[#C69234] text-sm select-none">☙</span>
             </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            <button
-              type="submit"
-              disabled={loading || !password || !confirm}
-              className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+            <p className="mt-2 text-xs text-[#D0C7B7]">
+              Choose a strong password to secure your credentials.
+            </p>
+          </div>
+
+          {done ? (
+            <div className="flex items-center gap-2 rounded-xl border border-success/40 bg-success/15 p-4 text-xs text-success">
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+              Password updated. Redirecting to sign in…
+            </div>
+          ) : !accessToken ? (
+            <div className="rounded-xl border border-destructive/40 bg-destructive/15 p-4 text-xs text-destructive">
+              This reset link is invalid or has expired. Please request a new link from the{" "}
+              <Link to="/forgot-password" className="font-semibold text-[#E8C170] underline">
+                forgot password
+              </Link>{" "}
+              page.
+            </div>
+          ) : (
+            <form
+              className="space-y-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void handleSubmit();
+              }}
             >
-              {loading ? "Updating…" : "Update password"}
-            </button>
-          </form>
-        )}
+              <div>
+                <label className="text-[11px] font-bold tracking-[0.18em] text-[#E8C170] uppercase flex items-center gap-2 mb-1.5">
+                  <Lock className="h-3.5 w-3.5 text-[#E8C170]" />
+                  NEW PASSWORD
+                </label>
+                <input
+                  type="password"
+                  placeholder="New password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full rounded-xl border border-[#C69234]/50 bg-[#060D0F]/90 px-4 py-2.5 text-sm text-[#F4F1EA] placeholder-[#A8BDC3]/40 focus:border-[#F5A623] focus:outline-none focus:ring-1 focus:ring-[#F5A623] transition-all"
+                />
+              </div>
 
-        <Link
-          to="/login"
-          className="mt-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back to login
-        </Link>
+              <div>
+                <label className="text-[11px] font-bold tracking-[0.18em] text-[#E8C170] uppercase flex items-center gap-2 mb-1.5">
+                  <Lock className="h-3.5 w-3.5 text-[#E8C170]" />
+                  CONFIRM PASSWORD
+                </label>
+                <input
+                  type="password"
+                  placeholder="Confirm new password"
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                  required
+                  className="w-full rounded-xl border border-[#C69234]/50 bg-[#060D0F]/90 px-4 py-2.5 text-sm text-[#F4F1EA] placeholder-[#A8BDC3]/40 focus:border-[#F5A623] focus:outline-none focus:ring-1 focus:ring-[#F5A623] transition-all"
+                />
+              </div>
+
+              {error && (
+                <div className="rounded-xl border border-destructive/40 bg-destructive/15 px-3 py-2 text-xs text-destructive">
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading || !password || !confirm}
+                className="relative mt-4 block w-full rounded-xl bg-gradient-to-r from-[#C68910] via-[#F5A623] to-[#C68910] hover:from-[#D49618] hover:via-[#FFB834] hover:to-[#D49618] px-4 py-3.5 text-center text-sm font-bold tracking-[0.2em] text-[#16292D] uppercase shadow-[0_6px_25px_rgba(245,166,35,0.45)] border border-[#FFE082]/70 transition-all duration-300 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+              >
+                {loading ? "UPDATING…" : "UPDATE PASSWORD"}
+              </button>
+            </form>
+          )}
+
+          <div className="mt-6 text-center">
+            <Link
+              to="/login"
+              className="inline-flex items-center gap-2 text-xs font-semibold text-[#E8C170] hover:text-[#FFE082] transition-colors"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" /> Back to sign in
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );

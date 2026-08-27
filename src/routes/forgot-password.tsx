@@ -1,13 +1,31 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { GraduationCap, ArrowLeft } from "lucide-react";
+import { ArrowLeft, Mail } from "lucide-react";
 import { useState } from "react";
 
 import { api } from "../lib/api";
+import loginBg from "@/public/loginbg.webp";
+import logoImg from "@/public/logo.jpeg";
 
 export const Route = createFileRoute("/forgot-password")({
   head: () => ({ meta: [{ title: "Reset password — VivAI" }] }),
   component: ForgotPassword,
 });
+
+function GreekMeanderFrieze() {
+  return (
+    <div className="w-full flex items-center justify-center overflow-hidden opacity-50 text-[#D4A346] pb-3 border-b border-[#D4A346]/20">
+      <svg
+        className="w-full h-3 max-w-[320px]"
+        viewBox="0 0 320 12"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      >
+        <path d="M0 6h12v-4h-8v8h12v-4h-4M26 6h12v-4h-8v8h12v-4h-4M52 6h12v-4h-8v8h12v-4h-4M78 6h12v-4h-8v8h12v-4h-4M104 6h12v-4h-8v8h12v-4h-4M130 6h12v-4h-8v8h12v-4h-4M156 6h12v-4h-8v8h12v-4h-4M182 6h12v-4h-8v8h12v-4h-4M208 6h12v-4h-8v8h12v-4h-4M234 6h12v-4h-8v8h12v-4h-4M260 6h12v-4h-8v8h12v-4h-4M286 6h12v-4h-8v8h12v-4h-4M312 6h8" />
+      </svg>
+    </div>
+  );
+}
 
 function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -29,50 +47,97 @@ function ForgotPassword() {
   };
 
   return (
-    <div className="grid min-h-screen place-items-center bg-background p-6">
-      <div className="w-full max-w-md rounded-2xl bg-card p-8 shadow-[var(--shadow-card)]">
-        <div className="grid h-12 w-12 place-items-center rounded-2xl bg-primary text-primary-foreground">
-          <GraduationCap className="h-6 w-6" />
-        </div>
-        <h1 className="mt-6 text-2xl font-bold tracking-tight">Reset your password</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Enter your email and we'll send you a reset link.
-        </p>
-        {sent ? (
-          <p className="mt-6 rounded-xl bg-success/10 p-4 text-sm text-success">
-            If an account exists for {email}, a reset link is on its way. Check your inbox.
-          </p>
-        ) : (
-          <form
-            className="mt-6 space-y-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void handleSubmit();
-            }}
-          >
-            <input
-              type="email"
-              placeholder="you@college.edu.in"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-            />
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            <button
-              type="submit"
-              disabled={loading || !email}
-              className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground"
+    <div
+      className="relative min-h-screen w-full bg-[#070D0E] bg-cover bg-center bg-no-repeat flex items-center justify-center p-4 sm:p-6 lg:p-12 overflow-x-hidden"
+      style={{ backgroundImage: `url(${loginBg})` }}
+    >
+      {/* Dark vignette overlay */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/75"
+      />
+
+      <div className="relative z-10 w-full max-w-md mx-auto">
+        <div className="relative rounded-[26px] sm:rounded-[30px] border-2 border-[#C69234]/60 bg-[#0C1618]/90 backdrop-blur-2xl p-6 sm:p-8 shadow-[0_25px_70px_rgba(0,0,0,0.95),0_0_35px_rgba(212,163,70,0.18),inset_0_1px_2px_rgba(255,220,130,0.35)]">
+          {/* Logo medallion chip */}
+          <div className="flex justify-center mb-3">
+            <div className="w-16 h-16 rounded-full p-1 bg-gradient-to-b from-[#E8C170] via-[#946A1B] to-[#E8C170] shadow-[0_0_20px_rgba(212,163,70,0.3)]">
+              <div className="w-full h-full rounded-full overflow-hidden border border-[#FFE082]/70 bg-black/60">
+                <img src={logoImg} alt="VivAI" className="w-full h-full object-cover" />
+              </div>
+            </div>
+          </div>
+
+          <GreekMeanderFrieze />
+
+          <div className="text-center pt-3 pb-6">
+            <div className="flex items-center justify-center gap-2.5">
+              <span className="text-[#C69234] text-sm select-none">❧</span>
+              <h1 className="font-serif text-xl sm:text-2xl font-bold tracking-[0.2em] text-[#E8C170] uppercase drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+                RECOVERY
+              </h1>
+              <span className="text-[#C69234] text-sm select-none">☙</span>
+            </div>
+            <p className="mt-2 text-xs text-[#D0C7B7]">
+              Enter your email to receive a secure recovery key.
+            </p>
+          </div>
+
+          {sent ? (
+            <div className="rounded-xl border border-success/40 bg-success/15 p-4 text-center text-xs text-success space-y-2">
+              <p className="font-semibold">Recovery link dispatched.</p>
+              <p className="text-[11px] text-[#D0C7B7]">
+                If an account exists for {email}, instructions are on their way.
+              </p>
+            </div>
+          ) : (
+            <form
+              className="space-y-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void handleSubmit();
+              }}
             >
-              {loading ? "Sending…" : "Send Reset Link"}
-            </button>
-          </form>
-        )}
-        <Link
-          to="/login"
-          className="mt-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back to login
-        </Link>
+              <div>
+                <label className="text-[11px] font-bold tracking-[0.18em] text-[#E8C170] uppercase flex items-center gap-2 mb-1.5">
+                  <Mail className="h-3.5 w-3.5 text-[#E8C170]" />
+                  E-MAIL
+                </label>
+                <input
+                  type="email"
+                  placeholder="you@college.edu.in"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full rounded-xl border border-[#C69234]/50 bg-[#060D0F]/90 px-4 py-2.5 text-sm text-[#F4F1EA] placeholder-[#A8BDC3]/40 focus:border-[#F5A623] focus:outline-none focus:ring-1 focus:ring-[#F5A623] transition-all"
+                />
+              </div>
+
+              {error && (
+                <div className="rounded-xl border border-destructive/40 bg-destructive/15 px-3 py-2 text-xs text-destructive">
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading || !email}
+                className="relative mt-4 block w-full rounded-xl bg-gradient-to-r from-[#C68910] via-[#F5A623] to-[#C68910] hover:from-[#D49618] hover:via-[#FFB834] hover:to-[#D49618] px-4 py-3.5 text-center text-sm font-bold tracking-[0.2em] text-[#16292D] uppercase shadow-[0_6px_25px_rgba(245,166,35,0.45)] border border-[#FFE082]/70 transition-all duration-300 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+              >
+                {loading ? "SENDING…" : "SEND RESET LINK"}
+              </button>
+            </form>
+          )}
+
+          <div className="mt-6 text-center">
+            <Link
+              to="/login"
+              className="inline-flex items-center gap-2 text-xs font-semibold text-[#E8C170] hover:text-[#FFE082] transition-colors"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" /> Back to sign in
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );
