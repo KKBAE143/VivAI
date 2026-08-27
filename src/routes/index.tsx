@@ -14,6 +14,7 @@ import {
   Palette,
   Eye,
   Bell,
+  GraduationCap,
 } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "@/components/app-shell";
@@ -88,7 +89,7 @@ function Dashboard() {
   const sessionsQuery = useVivaSessions();
   const dashboardQuery = useDashboard();
   const readinessQuery = useReadiness();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggle } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
 
   const queries = [profileQuery, projectsQuery, sessionsQuery, dashboardQuery] as const;
@@ -152,7 +153,7 @@ function Dashboard() {
 
               {/* Theme toggle */}
               <button
-                onClick={toggleTheme}
+                onClick={toggle}
                 aria-label="Toggle theme"
                 className="grid h-8 w-8 place-items-center rounded-full border border-white/40 dark:border-white/10 bg-card/85 text-muted-foreground hover:text-foreground backdrop-blur-xl transition-colors shadow-2xs"
               >

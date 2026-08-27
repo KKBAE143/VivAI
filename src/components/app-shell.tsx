@@ -422,10 +422,10 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
 }
 
 function ThemeToggle() {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggle } = useTheme();
   return (
     <button
-      onClick={toggleTheme}
+      onClick={toggle}
       aria-label="Toggle theme"
       className="grid h-8 w-8 place-items-center rounded-full border border-white/30 dark:border-white/10 bg-secondary/70 backdrop-blur-md text-foreground hover:bg-secondary transition-colors"
     >
@@ -454,18 +454,21 @@ function pageTitle(pathname: string): string {
 
 export function PageHeader({
   title,
+  subtitle,
   description,
   action,
 }: {
   title: string;
+  subtitle?: string;
   description?: string;
   action?: ReactNode;
 }) {
+  const desc = subtitle ?? description;
   return (
     <div className="flex flex-wrap items-center justify-between gap-4">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{title}</h1>
-        {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+        {desc && <p className="mt-1 text-sm text-muted-foreground">{desc}</p>}
       </div>
       {action && <div className="flex items-center gap-2">{action}</div>}
     </div>
