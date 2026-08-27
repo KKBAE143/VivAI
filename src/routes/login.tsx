@@ -117,10 +117,15 @@ function Login() {
         <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-primary/20 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-32 -left-32 h-96 w-96 rounded-full bg-primary/15 blur-3xl" />
       </div>
-      <div className="flex items-center justify-center p-6 sm:p-12">
-        <div className="w-full max-w-md space-y-6">
+      <div className="relative flex items-center justify-center p-6 sm:p-12 overflow-hidden">
+        {/* Ambient background glow */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
+          <div className="absolute top-1/4 right-1/4 h-80 w-80 rounded-full bg-primary/10 blur-3xl" />
+          <div className="absolute bottom-1/4 left-1/4 h-80 w-80 rounded-full bg-[oklch(0.772_0.024_205/0.15)] blur-3xl" />
+        </div>
+        <div className="w-full max-w-md space-y-6 rounded-3xl border border-white/40 dark:border-white/10 bg-card/75 backdrop-blur-2xl backdrop-saturate-150 p-6 sm:p-8 shadow-[var(--shadow-glass)]">
           <div className="lg:hidden">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-primary-foreground">
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm">
               <GraduationCap className="h-5 w-5" />
             </div>
           </div>
@@ -166,7 +171,7 @@ function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="block w-full rounded-xl bg-primary px-4 py-3 text-center text-sm font-semibold text-primary-foreground transition-transform active:scale-95"
+              className="block w-full rounded-xl bg-primary px-4 py-3 text-center text-sm font-semibold text-primary-foreground shadow-sm transition-transform active:scale-95 hover:opacity-95"
             >
               {loading ? "Signing in…" : "Sign In"}
             </button>
@@ -179,7 +184,7 @@ function Login() {
             type="button"
             onClick={handleGoogleLogin}
             disabled={loading}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium hover:bg-secondary disabled:opacity-50"
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/30 dark:border-white/10 bg-secondary/70 backdrop-blur-md px-4 py-3 text-sm font-medium hover:bg-secondary/90 disabled:opacity-50 transition-all shadow-xs"
           >
             <GoogleG /> Continue with Google
           </button>

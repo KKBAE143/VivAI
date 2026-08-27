@@ -70,45 +70,54 @@
   --background: oklch(0.958 0.008 85);
   /* Deep Night Teal (#16292D) high-contrast editorial text */
   --foreground: oklch(0.245 0.024 208);
-  /* Pure White (#FFFFFF) elevated card surfaces */
-  --card: oklch(1 0 0);
+  /* Translucent frosted glass card surface */
+  --card: oklch(1 0 0 / 0.75);
   --card-foreground: oklch(0.245 0.024 208);
-  --popover: oklch(1 0 0);
+  --popover: oklch(1 0 0 / 0.88);
   --popover-foreground: oklch(0.245 0.024 208);
   /* Warm Amber (#F5A623) vibrant golden CTA buttons & brand punch */
   --primary: oklch(0.762 0.168 66.5);
   --primary-foreground: oklch(0.2 0.02 208);
-  --primary-soft: oklch(0.94 0.05 66.5);
+  --primary-soft: oklch(0.94 0.05 66.5 / 0.8);
   /* Mineral Linen tinted secondary surfaces */
-  --secondary: oklch(0.9 0.015 205);
+  --secondary: oklch(0.9 0.015 205 / 0.7);
   --secondary-foreground: oklch(0.315 0.032 208);
-  --muted: oklch(0.91 0.01 85);
+  --muted: oklch(0.91 0.01 85 / 0.65);
   /* Mineral Slate dark muted typography */
   --muted-foreground: oklch(0.48 0.025 208);
   /* Warm Amber highlight accent */
-  --accent: oklch(0.92 0.06 66.5);
+  --accent: oklch(0.92 0.06 66.5 / 0.75);
   --accent-foreground: oklch(0.245 0.024 208);
   --destructive: oklch(0.6 0.22 25);
   --destructive-foreground: oklch(0.99 0 0);
   --success: oklch(0.72 0.16 150);
   --warning: oklch(0.762 0.168 66.5);
-  --border: oklch(0.87 0.012 205);
-  --input: oklch(0.87 0.012 205);
+  --border: oklch(0.87 0.012 205 / 0.7);
+  --input: oklch(0.87 0.012 205 / 0.8);
   --ring: oklch(0.762 0.168 66.5);
   --chart-1: oklch(0.762 0.168 66.5);
   --chart-2: oklch(0.315 0.032 208);
   --chart-3: oklch(0.772 0.024 205);
   --chart-4: oklch(0.6 0.12 210);
   --chart-5: oklch(0.62 0.2 25);
-  --sidebar: oklch(1 0 0);
+  --sidebar: oklch(1 0 0 / 0.78);
   --sidebar-foreground: oklch(0.48 0.025 208);
   --sidebar-primary: oklch(0.245 0.024 208);
   --sidebar-primary-foreground: oklch(0.762 0.168 66.5);
-  --sidebar-accent: oklch(0.91 0.015 205);
+  --sidebar-accent: oklch(0.91 0.015 205 / 0.75);
   --sidebar-accent-foreground: oklch(0.245 0.024 208);
-  --sidebar-border: oklch(0.87 0.012 205);
+  --sidebar-border: oklch(0.87 0.012 205 / 0.5);
   --sidebar-ring: oklch(0.762 0.168 66.5);
-  --shadow-card: 0 1px 3px oklch(0.245 0.024 208 / 0.05), 0 8px 24px oklch(0.245 0.024 208 / 0.05);
+  /* Apple specular glass dual-layer shadow with top lip reflection */
+  --shadow-card:
+    0 4px 20px -2px oklch(0.245 0.024 208 / 0.05), 0 1px 3px 0 oklch(0.245 0.024 208 / 0.03),
+    inset 0 1px 1px 0 oklch(1 0 0 / 0.85);
+  --shadow-glass:
+    0 8px 32px -4px oklch(0.245 0.024 208 / 0.08), 0 2px 8px -1px oklch(0.245 0.024 208 / 0.04),
+    inset 0 1px 1.5px 0 oklch(1 0 0 / 0.9);
+  --shadow-glass-hover:
+    0 14px 40px -4px oklch(0.245 0.024 208 / 0.12), 0 4px 12px -2px oklch(0.245 0.024 208 / 0.06),
+    inset 0 1px 2px 0 oklch(1 0 0 / 1);
 }
 
 .dark {
@@ -116,45 +125,54 @@
   --background: oklch(0.245 0.024 208);
   /* Warm Linen (#F4F1EA) luminous high-contrast text */
   --foreground: oklch(0.958 0.008 85);
-  /* Slate Petrol (#1F3A3F) elevated card surfaces */
-  --card: oklch(0.315 0.032 208);
+  /* Slate Petrol (#1F3A3F) frosted glass card surface */
+  --card: oklch(0.315 0.032 208 / 0.7);
   --card-foreground: oklch(0.958 0.008 85);
-  --popover: oklch(0.315 0.032 208);
+  --popover: oklch(0.315 0.032 208 / 0.88);
   --popover-foreground: oklch(0.958 0.008 85);
   /* Warm Amber (#F5A623) radiant golden CTA */
   --primary: oklch(0.762 0.168 66.5);
   --primary-foreground: oklch(0.2 0.02 208);
-  --primary-soft: oklch(0.34 0.06 66.5);
+  --primary-soft: oklch(0.34 0.06 66.5 / 0.7);
   /* Slate Petrol secondary surfaces */
-  --secondary: oklch(0.35 0.035 208);
+  --secondary: oklch(0.35 0.035 208 / 0.65);
   --secondary-foreground: oklch(0.958 0.008 85);
-  --muted: oklch(0.28 0.025 208);
+  --muted: oklch(0.28 0.025 208 / 0.65);
   /* Mineral Slate (#A8BDC3) muted text */
   --muted-foreground: oklch(0.772 0.024 205);
   /* Warm Amber highlight glow */
-  --accent: oklch(0.34 0.06 66.5);
+  --accent: oklch(0.34 0.06 66.5 / 0.7);
   --accent-foreground: oklch(0.762 0.168 66.5);
   --destructive: oklch(0.65 0.22 25);
   --destructive-foreground: oklch(0.99 0 0);
   --success: oklch(0.75 0.16 150);
   --warning: oklch(0.762 0.168 66.5);
   --border: oklch(0.772 0.024 205 / 0.18);
-  --input: oklch(0.772 0.024 205 / 0.2);
+  --input: oklch(0.772 0.024 205 / 0.22);
   --ring: oklch(0.762 0.168 66.5);
   --chart-1: oklch(0.762 0.168 66.5);
   --chart-2: oklch(0.772 0.024 205);
   --chart-3: oklch(0.45 0.05 208);
   --chart-4: oklch(0.65 0.12 195);
   --chart-5: oklch(0.68 0.2 25);
-  --sidebar: oklch(0.22 0.022 208);
+  --sidebar: oklch(0.22 0.022 208 / 0.75);
   --sidebar-foreground: oklch(0.772 0.024 205);
   --sidebar-primary: oklch(0.762 0.168 66.5);
   --sidebar-primary-foreground: oklch(0.2 0.02 208);
-  --sidebar-accent: oklch(0.3 0.03 208);
+  --sidebar-accent: oklch(0.3 0.03 208 / 0.7);
   --sidebar-accent-foreground: oklch(0.958 0.008 85);
   --sidebar-border: oklch(0.772 0.024 205 / 0.14);
   --sidebar-ring: oklch(0.762 0.168 66.5);
-  --shadow-card: 0 1px 3px oklch(0 0 0 / 0.35), 0 8px 24px oklch(0 0 0 / 0.3);
+  /* Apple specular dark glass dual-layer shadow */
+  --shadow-card:
+    0 8px 32px -4px oklch(0 0 0 / 0.4), 0 2px 6px 0 oklch(0 0 0 / 0.2),
+    inset 0 1px 1px 0 oklch(1 0 0 / 0.12);
+  --shadow-glass:
+    0 12px 40px -6px oklch(0 0 0 / 0.55), 0 4px 12px 0 oklch(0 0 0 / 0.3),
+    inset 0 1px 1.5px 0 oklch(1 0 0 / 0.16);
+  --shadow-glass-hover:
+    0 18px 50px -6px oklch(0 0 0 / 0.7), 0 6px 18px 0 oklch(0 0 0 / 0.4),
+    inset 0 1px 2px 0 oklch(0.762 0.168 66.5 / 0.35);
 }
 
 @layer base {
@@ -166,6 +184,36 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
   }
+}
+
+.glass-panel {
+  background-color: var(--card);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-glass);
+}
+
+.glass-card {
+  background-color: var(--card);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-card);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-card:hover {
+  box-shadow: var(--shadow-glass-hover);
+  border-color: color-mix(in oklch, var(--border) 80%, var(--primary) 20%);
+  transform: translateY(-1px);
+}
+
+.glass-pill {
+  background-color: var(--secondary);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid var(--border);
 }
 
 /* Live voice visualizer — an audio equalizer bar animation used on the

@@ -99,8 +99,13 @@ function Signup() {
           12,000+ students from 200+ colleges.
         </div>
       </div>
-      <div className="flex items-center justify-center p-6 sm:p-12">
-        <div className="w-full max-w-md space-y-5">
+      <div className="relative flex items-center justify-center p-6 sm:p-12 overflow-hidden">
+        {/* Ambient background glow */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
+          <div className="absolute top-1/4 right-1/4 h-80 w-80 rounded-full bg-primary/10 blur-3xl" />
+          <div className="absolute bottom-1/4 left-1/4 h-80 w-80 rounded-full bg-[oklch(0.772_0.024_205/0.15)] blur-3xl" />
+        </div>
+        <div className="w-full max-w-md space-y-5 rounded-3xl border border-white/40 dark:border-white/10 bg-card/75 backdrop-blur-2xl backdrop-saturate-150 p-6 sm:p-8 shadow-[var(--shadow-glass)]">
           <div>
             <h2 className="text-3xl font-bold tracking-tight">Create your account</h2>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -163,7 +168,7 @@ function Signup() {
             />
 
             {/* Consent checkboxes */}
-            <div className="space-y-3 rounded-xl border border-border p-4">
+            <div className="space-y-3 rounded-2xl border border-white/30 dark:border-white/10 bg-secondary/50 backdrop-blur-md p-4">
               <label className="flex cursor-pointer items-start gap-3">
                 <input
                   type="checkbox"
@@ -200,7 +205,7 @@ function Signup() {
                 <span className="text-sm text-muted-foreground">I am under 18 years old</span>
               </label>
               {isMinor && (
-                <p className="rounded-lg bg-warning/10 px-3 py-2 text-xs text-warning">
+                <p className="rounded-xl bg-warning/15 border border-warning/20 px-3 py-2 text-xs text-warning">
                   Parental/guardian consent is required. By signing up, you confirm that a parent or
                   guardian has agreed to the Privacy Policy on your behalf.
                 </p>
@@ -212,7 +217,7 @@ function Signup() {
             <button
               type="submit"
               disabled={loading}
-              className="block w-full rounded-xl bg-primary px-4 py-3 text-center text-sm font-semibold text-primary-foreground transition-transform active:scale-95"
+              className="block w-full rounded-xl bg-primary px-4 py-3 text-center text-sm font-semibold text-primary-foreground shadow-sm transition-transform active:scale-95 hover:opacity-95"
             >
               {loading ? "Creating account…" : "Create Account"}
             </button>

@@ -101,8 +101,14 @@ export function AppShell({
     );
   }
   return (
-    <div className="min-h-screen bg-background">
-      <div className="flex w-full gap-6 p-3 sm:p-4 lg:p-6">
+    <div className="relative min-h-screen bg-background overflow-x-hidden">
+      {/* Apple-style atmospheric ambient light mesh */}
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div className="absolute -top-40 right-[-10%] h-[550px] w-[550px] rounded-full bg-primary/10 blur-[130px] dark:bg-primary/15" />
+        <div className="absolute top-[35%] -left-32 h-[500px] w-[500px] rounded-full bg-[oklch(0.772_0.024_205/0.12)] blur-[140px] dark:bg-[oklch(0.35_0.035_208/0.4)]" />
+        <div className="absolute -bottom-40 right-[20%] h-[600px] w-[600px] rounded-full bg-primary/8 blur-[150px] dark:bg-primary/10" />
+      </div>
+      <div className="relative z-10 flex w-full gap-6 p-3 sm:p-4 lg:p-6">
         <Sidebar />
         <main className="min-w-0 flex-1 space-y-6 pb-24 lg:pb-0">
           <TopBar onOpenMenu={() => setDrawerOpen(true)} />
@@ -126,10 +132,10 @@ function Sidebar() {
   const isActive = (to: string) => (to === "/" ? pathname === "/" : pathname.startsWith(to));
   const isAdmin = profile?.role === "admin" || profile?.role === "faculty";
   return (
-    <aside className="sticky top-6 hidden h-[calc(100vh-3rem)] w-[236px] shrink-0 flex-col justify-between overflow-y-auto rounded-3xl bg-card px-3 py-5 shadow-[var(--shadow-card)] lg:flex">
+    <aside className="sticky top-6 hidden h-[calc(100vh-3rem)] w-[236px] shrink-0 flex-col justify-between overflow-y-auto rounded-3xl bg-card/75 backdrop-blur-2xl backdrop-saturate-150 border border-white/50 dark:border-white/10 px-3 py-5 shadow-[var(--shadow-glass)] lg:flex">
       <div>
         <Link to="/" aria-label="Home" className="mb-6 flex items-center gap-2.5 px-2">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
             <GraduationCap className="h-5 w-5" />
           </span>
           <span className="text-lg font-bold tracking-tight">VivAI</span>
@@ -148,10 +154,10 @@ function Sidebar() {
                     <Link
                       key={item.to}
                       to={item.to}
-                      className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+                      className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all ${
                         active
-                          ? "bg-foreground text-background"
-                          : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                          ? "bg-foreground text-background shadow-xs"
+                          : "text-muted-foreground hover:bg-secondary/70 hover:backdrop-blur-md hover:text-foreground"
                       }`}
                     >
                       <Icon className="h-[18px] w-[18px] shrink-0" />
@@ -170,10 +176,10 @@ function Sidebar() {
               <div className="flex flex-col gap-0.5">
                 <Link
                   to="/faculty"
-                  className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all ${
                     isActive("/faculty")
-                      ? "bg-foreground text-background"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      ? "bg-foreground text-background shadow-xs"
+                      : "text-muted-foreground hover:bg-secondary/70 hover:backdrop-blur-md hover:text-foreground"
                   }`}
                 >
                   <ClipboardCheck className="h-[18px] w-[18px] shrink-0" />
@@ -181,10 +187,10 @@ function Sidebar() {
                 </Link>
                 <Link
                   to="/admin"
-                  className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all ${
                     isActive("/admin")
-                      ? "bg-foreground text-background"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      ? "bg-foreground text-background shadow-xs"
+                      : "text-muted-foreground hover:bg-secondary/70 hover:backdrop-blur-md hover:text-foreground"
                   }`}
                 >
                   <Building2 className="h-[18px] w-[18px] shrink-0" />
@@ -200,7 +206,7 @@ function Sidebar() {
           logout();
           navigate({ to: "/login" });
         }}
-        className="mt-4 flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        className="mt-4 flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition-all hover:bg-secondary/70 hover:backdrop-blur-md hover:text-foreground"
       >
         <LogOut className="h-[18px] w-[18px]" />
         Sign out
@@ -213,18 +219,18 @@ function WideTopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const title = pageTitle(pathname);
   return (
-    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2.5 border-b border-border bg-card/95 px-3 backdrop-blur sm:px-4">
+    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2.5 border-b border-border/70 bg-card/75 px-3 backdrop-blur-2xl backdrop-saturate-150 sm:px-4 shadow-[var(--shadow-card)]">
       <button
         onClick={onOpenMenu}
         aria-label="Open menu"
-        className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-secondary text-foreground lg:hidden"
+        className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-secondary/70 backdrop-blur-md border border-white/30 dark:border-white/10 text-foreground lg:hidden"
       >
         <Menu className="h-5 w-5" />
       </button>
       <Link
         to="/"
         aria-label="Home"
-        className="hidden grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground sm:grid"
+        className="hidden grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm sm:grid"
       >
         <GraduationCap className="h-4 w-4" />
       </Link>
@@ -236,13 +242,13 @@ function WideTopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
       </div>
       <Link
         to="/ai"
-        className="hidden rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground sm:inline-flex"
+        className="hidden rounded-xl border border-border/80 bg-secondary/60 backdrop-blur-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground sm:inline-flex"
       >
         AI Tools
       </Link>
       <Link
         to="/"
-        className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+        className="rounded-xl border border-border/80 bg-secondary/60 backdrop-blur-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
       >
         Dashboard
       </Link>
@@ -270,16 +276,16 @@ function TopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
     .join(" · ");
   const title = pageTitle(pathname);
   return (
-    <header className="flex flex-wrap items-center justify-between gap-2.5 rounded-2xl bg-card p-2.5 shadow-[var(--shadow-card)] sm:p-3">
+    <header className="flex flex-wrap items-center justify-between gap-2.5 rounded-2xl bg-card/75 backdrop-blur-2xl backdrop-saturate-150 border border-white/50 dark:border-white/10 p-2.5 shadow-[var(--shadow-glass)] sm:p-3">
       <div className="flex min-w-0 items-center gap-2.5">
         <button
           onClick={onOpenMenu}
           aria-label="Open menu"
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-secondary text-foreground lg:hidden"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-secondary/70 backdrop-blur-md border border-white/30 dark:border-white/10 text-foreground lg:hidden"
         >
           <Menu className="h-5 w-5" />
         </button>
-        <div className="hidden grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground sm:grid lg:hidden">
+        <div className="hidden grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm sm:grid lg:hidden">
           <GraduationCap className="h-5 w-5" />
         </div>
         <div className="min-w-0">
@@ -288,16 +294,16 @@ function TopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
       </div>
       <div className="flex items-center gap-1.5 sm:gap-2">
         <ThemeToggle />
-        <div className="hidden items-center gap-1 rounded-full bg-secondary p-1 min-[420px]:flex">
+        <div className="hidden items-center gap-1 rounded-full bg-secondary/70 backdrop-blur-md border border-white/30 dark:border-white/10 p-1 min-[420px]:flex shadow-xs">
           <button
             aria-label="Search"
-            className="grid h-8 w-8 place-items-center rounded-full hover:bg-card sm:h-9 sm:w-9"
+            className="grid h-8 w-8 place-items-center rounded-full hover:bg-card/90 transition-colors sm:h-9 sm:w-9"
           >
             <Search className="h-4 w-4" />
           </button>
           <button
             aria-label="Notifications"
-            className="relative grid h-8 w-8 place-items-center rounded-full hover:bg-card sm:h-9 sm:w-9"
+            className="relative grid h-8 w-8 place-items-center rounded-full hover:bg-card/90 transition-colors sm:h-9 sm:w-9"
           >
             <Bell className="h-4 w-4" />
             <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />
@@ -306,9 +312,9 @@ function TopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
         <Link
           to="/profile"
           aria-label="Profile"
-          className="flex items-center gap-2.5 rounded-full bg-secondary py-1 pl-1 pr-2.5 hover:bg-secondary/80 sm:pr-4"
+          className="flex items-center gap-2.5 rounded-full bg-secondary/70 backdrop-blur-md border border-white/30 dark:border-white/10 py-1 pl-1 pr-2.5 hover:bg-secondary/90 transition-all shadow-xs sm:pr-4"
         >
-          <div className="grid h-8 w-8 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground sm:h-9 sm:w-9 sm:text-sm">
+          <div className="grid h-8 w-8 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground shadow-xs sm:h-9 sm:w-9 sm:text-sm">
             {initials}
           </div>
           <div className="hidden text-left sm:block">
@@ -335,15 +341,15 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
     <div className="fixed inset-0 z-50 flex lg:hidden">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-background/80 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-black/40 backdrop-blur-md transition-opacity"
         onClick={onClose}
       />
 
       {/* Drawer Container */}
-      <div className="relative flex w-4/5 max-w-xs flex-1 flex-col bg-card px-4 py-5 shadow-2xl">
+      <div className="relative flex w-4/5 max-w-xs flex-1 flex-col bg-card/90 backdrop-blur-2xl border-r border-white/30 dark:border-white/10 px-4 py-5 shadow-2xl">
         <div className="flex items-center justify-between pb-4 border-b border-border">
           <Link to="/" onClick={onClose} aria-label="Home" className="flex items-center gap-2.5">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm">
               <GraduationCap className="h-5 w-5" />
             </span>
             <span className="text-lg font-bold tracking-tight">VivAI</span>
@@ -351,7 +357,7 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
           <button
             onClick={onClose}
             aria-label="Close menu"
-            className="grid h-9 w-9 place-items-center rounded-xl bg-secondary text-muted-foreground hover:text-foreground"
+            className="grid h-9 w-9 place-items-center rounded-xl bg-secondary/70 backdrop-blur-md border border-white/20 dark:border-white/10 text-muted-foreground hover:text-foreground"
           >
             <X className="h-5 w-5" />
           </button>
@@ -372,10 +378,10 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
                       key={item.to}
                       to={item.to}
                       onClick={onClose}
-                      className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+                      className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all ${
                         active
-                          ? "bg-foreground text-background"
-                          : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                          ? "bg-foreground text-background shadow-xs"
+                          : "text-muted-foreground hover:bg-secondary/70 hover:backdrop-blur-md hover:text-foreground"
                       }`}
                     >
                       <Icon className="h-4 w-4 shrink-0" />
@@ -396,10 +402,10 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
                 <Link
                   to="/faculty"
                   onClick={onClose}
-                  className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all ${
                     isActive("/faculty")
-                      ? "bg-foreground text-background"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      ? "bg-foreground text-background shadow-xs"
+                      : "text-muted-foreground hover:bg-secondary/70 hover:backdrop-blur-md hover:text-foreground"
                   }`}
                 >
                   <ClipboardCheck className="h-4 w-4 shrink-0" />
@@ -408,10 +414,10 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
                 <Link
                   to="/admin"
                   onClick={onClose}
-                  className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all ${
                     isActive("/admin")
-                      ? "bg-foreground text-background"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      ? "bg-foreground text-background shadow-xs"
+                      : "text-muted-foreground hover:bg-secondary/70 hover:backdrop-blur-md hover:text-foreground"
                   }`}
                 >
                   <Building2 className="h-4 w-4 shrink-0" />
@@ -450,7 +456,7 @@ function MobileNav({ onOpenMenu }: { onOpenMenu: () => void }) {
     { to: "/projects", icon: FolderKanban, label: "Projects" },
   ];
   return (
-    <nav className="fixed inset-x-3 bottom-3 z-40 flex items-center justify-around rounded-2xl bg-card p-2 shadow-[var(--shadow-card)] lg:hidden">
+    <nav className="fixed inset-x-3 bottom-3 z-40 flex items-center justify-around rounded-3xl bg-card/80 backdrop-blur-2xl backdrop-saturate-150 border border-white/40 dark:border-white/10 p-2 shadow-[var(--shadow-glass)] lg:hidden">
       {items.map((i) => {
         const Icon = i.icon;
         const active = i.to === "/" ? pathname === "/" : pathname.startsWith(i.to);
@@ -471,7 +477,7 @@ function MobileNav({ onOpenMenu }: { onOpenMenu: () => void }) {
             key={i.to}
             to={i.to}
             aria-label={i.label}
-            className={`flex flex-1 flex-col items-center gap-0.5 rounded-xl py-2 text-[10px] ${
+            className={`flex flex-1 flex-col items-center gap-0.5 rounded-xl py-2 text-[10px] transition-all ${
               active ? "text-foreground font-semibold" : "text-muted-foreground"
             }`}
           >
@@ -483,7 +489,7 @@ function MobileNav({ onOpenMenu }: { onOpenMenu: () => void }) {
       <button
         onClick={onOpenMenu}
         aria-label="More options"
-        className="flex flex-1 flex-col items-center gap-0.5 rounded-xl py-2 text-[10px] text-muted-foreground hover:text-foreground"
+        className="flex flex-1 flex-col items-center gap-0.5 rounded-xl py-2 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
       >
         <Menu className="h-5 w-5" />
         More
@@ -494,7 +500,9 @@ function MobileNav({ onOpenMenu }: { onOpenMenu: () => void }) {
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`rounded-2xl bg-card p-4 sm:p-6 shadow-[var(--shadow-card)] ${className}`}>
+    <div
+      className={`rounded-2xl bg-card/75 backdrop-blur-xl backdrop-saturate-150 border border-white/40 dark:border-white/10 p-4 sm:p-6 shadow-[var(--shadow-card)] transition-all duration-300 hover:shadow-[var(--shadow-glass-hover)] ${className}`}
+    >
       {children}
     </div>
   );
@@ -530,15 +538,16 @@ export function Badge({
   tone?: "muted" | "primary" | "success" | "warning" | "destructive";
 }) {
   const tones = {
-    muted: "bg-secondary text-muted-foreground",
-    primary: "bg-primary-soft text-accent-foreground",
-    success: "bg-success/15 text-success",
-    warning: "bg-warning/15 text-warning",
-    destructive: "bg-destructive/10 text-destructive",
+    muted:
+      "bg-secondary/70 backdrop-blur-md border border-white/30 dark:border-white/10 text-muted-foreground",
+    primary: "bg-primary-soft/80 backdrop-blur-md border border-primary/20 text-accent-foreground",
+    success: "bg-success/15 backdrop-blur-md border border-success/20 text-success",
+    warning: "bg-warning/15 backdrop-blur-md border border-warning/20 text-warning",
+    destructive: "bg-destructive/15 backdrop-blur-md border border-destructive/20 text-destructive",
   } as const;
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${tones[tone]}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium shadow-xs ${tones[tone]}`}
     >
       {children}
     </span>
@@ -580,7 +589,7 @@ function ThemeToggle() {
     <button
       onClick={toggle}
       aria-label="Toggle theme"
-      className="grid h-10 w-10 place-items-center rounded-full bg-secondary text-foreground hover:bg-secondary/80"
+      className="grid h-10 w-10 place-items-center rounded-full bg-secondary/70 backdrop-blur-md border border-white/30 dark:border-white/10 text-foreground hover:bg-secondary/90 transition-all shadow-xs"
     >
       <Icon className="h-4 w-4" />
     </button>

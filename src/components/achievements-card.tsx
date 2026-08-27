@@ -35,10 +35,10 @@ export function AchievementsCard() {
           {badges.map((b) => (
             <div
               key={b.id}
-              className={`flex flex-col gap-1 rounded-xl border p-3 ${
+              className={`flex flex-col gap-1 rounded-2xl border p-3 backdrop-blur-md transition-all ${
                 b.earned
-                  ? "border-primary/40 bg-primary-soft"
-                  : "border-border bg-secondary/40 opacity-70"
+                  ? "border-primary/30 bg-primary-soft/80 shadow-xs"
+                  : "border-white/30 dark:border-white/10 bg-secondary/50 opacity-70"
               }`}
             >
               <div className="flex items-center gap-1.5">
