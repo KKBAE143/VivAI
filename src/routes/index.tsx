@@ -115,7 +115,7 @@ function Dashboard() {
     .slice(0, 2);
 
   return (
-    <AppShell hideTopBar={true}>
+    <AppShell hideTopBar={true} fitViewport={true}>
       {loading ? (
         <DashboardSkeleton />
       ) : failed ? (
@@ -128,19 +128,19 @@ function Dashboard() {
           }}
         />
       ) : (
-        <div className="flex flex-col gap-3 max-w-[1550px] mx-auto w-full">
+        <div className="flex flex-col justify-between gap-2 xl:gap-2.5 max-w-[1550px] mx-auto w-full h-full min-h-0 overflow-hidden">
           {/* Top Header Bar matching ref */}
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex shrink-0 items-center justify-between gap-3 pt-0.5">
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+              <h1 className="text-lg sm:text-xl xl:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
                 Welcome back {firstName}{" "}
-                <span className="inline-block select-none text-xl">👋</span>
+                <span className="inline-block select-none text-lg sm:text-xl">👋</span>
               </h1>
             </div>
 
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2">
               {/* Search courses / projects */}
-              <div className="relative w-48 sm:w-64">
+              <div className="relative w-44 sm:w-56 xl:w-64">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                 <input
                   type="text"
@@ -155,7 +155,7 @@ function Dashboard() {
               <button
                 onClick={toggle}
                 aria-label="Toggle theme"
-                className="grid h-8 w-8 place-items-center rounded-full border border-white/40 dark:border-white/10 bg-card/85 text-muted-foreground hover:text-foreground backdrop-blur-xl transition-colors shadow-2xs"
+                className="grid h-7.5 w-7.5 place-items-center rounded-full border border-white/40 dark:border-white/10 bg-card/85 text-muted-foreground hover:text-foreground backdrop-blur-xl transition-colors shadow-2xs cursor-pointer"
               >
                 <Sparkles className="h-3.5 w-3.5" />
               </button>
@@ -163,10 +163,10 @@ function Dashboard() {
               {/* Notification icon */}
               <button
                 aria-label="Notifications"
-                className="relative grid h-8 w-8 place-items-center rounded-full border border-white/40 dark:border-white/10 bg-card/85 text-muted-foreground hover:text-foreground backdrop-blur-xl transition-colors shadow-2xs"
+                className="relative grid h-7.5 w-7.5 place-items-center rounded-full border border-white/40 dark:border-white/10 bg-card/85 text-muted-foreground hover:text-foreground backdrop-blur-xl transition-colors shadow-2xs cursor-pointer"
               >
                 <Bell className="h-3.5 w-3.5" />
-                <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />
+                <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-primary" />
               </button>
 
               {/* Profile Avatar Pill */}
@@ -174,7 +174,7 @@ function Dashboard() {
                 to="/profile"
                 className="flex items-center gap-2 rounded-full border border-white/40 dark:border-white/10 bg-card/85 p-0.5 pr-2.5 backdrop-blur-xl shadow-2xs hover:border-primary transition-colors"
               >
-                <div className="grid h-7 w-7 place-items-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
+                <div className="grid h-6.5 w-6.5 place-items-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
                   {firstName.charAt(0).toUpperCase()}
                 </div>
                 <span className="hidden text-xs font-semibold sm:inline text-foreground">
@@ -184,32 +184,32 @@ function Dashboard() {
             </div>
           </div>
 
-          {/* Main Layout: Left Main Column (8 cols) + Right Sidebar Column (4 cols) */}
-          <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-12 items-stretch">
+          {/* Main Bento Grid Layout: Left Column (8 cols) + Right Sidebar Column (4 cols) */}
+          <div className="flex-1 min-h-0 grid grid-cols-1 gap-2 xl:gap-2.5 lg:grid-cols-12 items-stretch overflow-hidden">
             {/* Left Section (8 cols) */}
-            <div className="flex flex-col gap-3.5 lg:col-span-8">
+            <div className="flex flex-col justify-between gap-2 xl:gap-2.5 lg:col-span-8 h-full min-h-0">
               {/* Row 1: Academic Focus Cards ("New Courses" in ref) */}
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1.5 shrink-0">
                 <div className="flex items-center justify-between px-0.5">
-                  <h2 className="text-xs font-bold text-foreground tracking-tight">
+                  <h2 className="text-[11px] xl:text-xs font-bold text-foreground tracking-tight">
                     New Courses & Focus
                   </h2>
                   <Link
                     to="/readiness"
-                    className="text-[11px] font-semibold text-muted-foreground hover:text-primary hover:underline"
+                    className="text-[10px] xl:text-[11px] font-semibold text-muted-foreground hover:text-primary hover:underline"
                   >
                     View All
                   </Link>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 xl:gap-2.5">
                   {/* Card 1: Content / Defense Readiness */}
                   <Link
                     to="/readiness"
-                    className="group flex flex-col justify-between rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 backdrop-blur-xl shadow-[var(--shadow-glass)] transition-all hover:-translate-y-0.5 hover:border-primary/50"
+                    className="group flex flex-col justify-between rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-2.5 xl:p-3 backdrop-blur-xl shadow-[var(--shadow-glass)] transition-all hover:-translate-y-0.5 hover:border-primary/50"
                   >
-                    <div className="flex items-center gap-2.5">
-                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-orange-500/15 text-orange-500 dark:text-orange-400">
+                    <div className="flex items-center gap-2 xl:gap-2.5">
+                      <div className="grid h-8 w-8 xl:h-8.5 xl:w-8.5 shrink-0 place-items-center rounded-xl bg-orange-500/15 text-orange-500 dark:text-orange-400">
                         <Gauge className="h-4 w-4" />
                       </div>
                       <div className="min-w-0">
@@ -219,7 +219,7 @@ function Dashboard() {
                         <p className="text-[10px] text-muted-foreground">12 Milestones</p>
                       </div>
                     </div>
-                    <div className="mt-3 flex items-center justify-between border-t border-border/40 pt-2 text-[10px]">
+                    <div className="mt-2 xl:mt-2.5 flex items-center justify-between border-t border-border/40 pt-1.5 text-[10px]">
                       <span className="font-semibold text-primary">
                         ★ {readinessScore >= 75 ? "4.8" : "4.5"}
                       </span>
@@ -230,10 +230,10 @@ function Dashboard() {
                   {/* Card 2: Usability / AI Mock Viva */}
                   <Link
                     to="/ai-viva/new"
-                    className="group flex flex-col justify-between rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 backdrop-blur-xl shadow-[var(--shadow-glass)] transition-all hover:-translate-y-0.5 hover:border-primary/50"
+                    className="group flex flex-col justify-between rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-2.5 xl:p-3 backdrop-blur-xl shadow-[var(--shadow-glass)] transition-all hover:-translate-y-0.5 hover:border-primary/50"
                   >
-                    <div className="flex items-center gap-2.5">
-                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-500/15 text-emerald-500 dark:text-emerald-400">
+                    <div className="flex items-center gap-2 xl:gap-2.5">
+                      <div className="grid h-8 w-8 xl:h-8.5 xl:w-8.5 shrink-0 place-items-center rounded-xl bg-emerald-500/15 text-emerald-500 dark:text-emerald-400">
                         <BrainCircuit className="h-4 w-4" />
                       </div>
                       <div className="min-w-0">
@@ -243,7 +243,7 @@ function Dashboard() {
                         </p>
                       </div>
                     </div>
-                    <div className="mt-3 flex items-center justify-between border-t border-border/40 pt-2 text-[10px]">
+                    <div className="mt-2 xl:mt-2.5 flex items-center justify-between border-t border-border/40 pt-1.5 text-[10px]">
                       <span className="font-semibold text-primary">★ 5.0</span>
                       <span className="truncate text-muted-foreground">Viva Examiner</span>
                     </div>
@@ -252,10 +252,10 @@ function Dashboard() {
                   {/* Card 3: Photography / Presentation */}
                   <Link
                     to="/ai-presentation"
-                    className="group flex flex-col justify-between rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 backdrop-blur-xl shadow-[var(--shadow-glass)] transition-all hover:-translate-y-0.5 hover:border-primary/50"
+                    className="group flex flex-col justify-between rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-2.5 xl:p-3 backdrop-blur-xl shadow-[var(--shadow-glass)] transition-all hover:-translate-y-0.5 hover:border-primary/50"
                   >
-                    <div className="flex items-center gap-2.5">
-                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-purple-500/15 text-purple-500 dark:text-purple-400">
+                    <div className="flex items-center gap-2 xl:gap-2.5">
+                      <div className="grid h-8 w-8 xl:h-8.5 xl:w-8.5 shrink-0 place-items-center rounded-xl bg-purple-500/15 text-purple-500 dark:text-purple-400">
                         <MonitorSmartphone className="h-4 w-4" />
                       </div>
                       <div className="min-w-0">
@@ -267,7 +267,7 @@ function Dashboard() {
                         </p>
                       </div>
                     </div>
-                    <div className="mt-3 flex items-center justify-between border-t border-border/40 pt-2 text-[10px]">
+                    <div className="mt-2 xl:mt-2.5 flex items-center justify-between border-t border-border/40 pt-1.5 text-[10px]">
                       <span className="font-semibold text-primary">★ 4.6</span>
                       <span className="truncate text-muted-foreground">Slide & Pitch</span>
                     </div>
@@ -276,9 +276,9 @@ function Dashboard() {
               </div>
 
               {/* Row 2: Middle Cards (Hours Activity + Daily Schedule) */}
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5">
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 xl:gap-2.5 flex-1 min-h-0 items-stretch">
                 {/* Hours Activity Card (7 cols) */}
-                <div className="rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 backdrop-blur-xl shadow-[var(--shadow-glass)] sm:col-span-7 flex flex-col justify-between">
+                <div className="rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-2.5 xl:p-3 backdrop-blur-xl shadow-[var(--shadow-glass)] sm:col-span-7 flex flex-col justify-between">
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-xs font-bold text-foreground">Hours Activity</h3>
@@ -287,16 +287,18 @@ function Dashboard() {
                         <span>+3% Increase than last week</span>
                       </div>
                     </div>
-                    <div className="rounded-lg bg-secondary/80 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                    <div className="rounded-lg bg-secondary/80 px-2 py-0.5 text-[9px] xl:text-[10px] font-semibold text-muted-foreground">
                       Weekly ⌵
                     </div>
                   </div>
 
                   {/* Chart with Y-Axis & Tooltip matching ref */}
-                  <div className="relative mt-3 pt-4">
+                  <div className="relative mt-2 pt-3.5 flex-1 flex flex-col justify-end">
                     {/* Floating Tooltip above Wednesday bar */}
-                    <div className="absolute left-[54%] top-0 -translate-x-1/2 -translate-y-1 rounded-md bg-foreground px-2 py-0.5 text-center shadow-md">
-                      <p className="text-[9px] font-bold text-background leading-none">6h 45 min</p>
+                    <div className="absolute left-[54%] top-0 -translate-x-1/2 -translate-y-0.5 rounded-md bg-foreground px-2 py-0.5 text-center shadow-md z-10">
+                      <p className="text-[8.5px] font-bold text-background leading-none">
+                        6h 45 min
+                      </p>
                       <p className="text-[7px] text-background/70 leading-none mt-0.5">
                         5 Jan 2026
                       </p>
@@ -304,15 +306,15 @@ function Dashboard() {
                     </div>
 
                     {/* Chart Body with Y-Axis Scale */}
-                    <div className="flex gap-2 items-end h-28 border-b border-border/40 pb-1.5">
-                      <div className="flex flex-col justify-between h-full text-[8px] text-muted-foreground/60 py-0.5">
+                    <div className="flex gap-2 items-end h-22 xl:h-26 border-b border-border/40 pb-1">
+                      <div className="flex flex-col justify-between h-full text-[7.5px] xl:text-[8px] text-muted-foreground/60 py-0.5">
                         <span>8h</span>
                         <span>6h</span>
                         <span>4h</span>
                         <span>2h</span>
                         <span>1h</span>
                       </div>
-                      <div className="grid grid-cols-7 gap-3 w-full h-full items-end">
+                      <div className="grid grid-cols-7 gap-2 xl:gap-3 w-full h-full items-end">
                         {[
                           { day: "Su", val: 50, active: false },
                           { day: "Mo", val: 75, active: false },
@@ -327,7 +329,7 @@ function Dashboard() {
                             className="flex flex-col items-center gap-1 h-full justify-end"
                           >
                             <div
-                              className={`w-full max-w-[10px] rounded-full transition-all ${
+                              className={`w-full max-w-[8px] xl:max-w-[10px] rounded-full transition-all ${
                                 b.active
                                   ? "bg-primary shadow-[0_0_10px_rgba(var(--color-primary-rgb),0.5)]"
                                   : "bg-muted-foreground/35 hover:bg-muted-foreground/50"
@@ -335,7 +337,7 @@ function Dashboard() {
                               style={{ height: `${b.val}%` }}
                             />
                             <span
-                              className={`text-[9px] ${
+                              className={`text-[8.5px] xl:text-[9px] ${
                                 b.active ? "font-bold text-primary" : "text-muted-foreground"
                               }`}
                             >
@@ -349,12 +351,12 @@ function Dashboard() {
                 </div>
 
                 {/* Daily Schedule Card (5 cols) */}
-                <div className="rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 backdrop-blur-xl shadow-[var(--shadow-glass)] sm:col-span-5 flex flex-col justify-between">
-                  <div className="flex items-center justify-between pb-1">
+                <div className="rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-2.5 xl:p-3 backdrop-blur-xl shadow-[var(--shadow-glass)] sm:col-span-5 flex flex-col justify-between">
+                  <div className="flex items-center justify-between pb-0.5">
                     <h3 className="text-xs font-bold text-foreground">Daily Schedule</h3>
                   </div>
 
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-1.5">
                     {[
                       {
                         title: "Design System",
@@ -394,20 +396,20 @@ function Dashboard() {
                         >
                           <div className="flex items-center gap-2 min-w-0">
                             <div
-                              className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${item.color}`}
+                              className={`grid h-6.5 w-6.5 xl:h-7 xl:w-7 shrink-0 place-items-center rounded-lg ${item.color}`}
                             >
-                              <Icon className="h-3.5 w-3.5" />
+                              <Icon className="h-3 w-3 xl:h-3.5 xl:w-3.5" />
                             </div>
                             <div className="min-w-0">
-                              <p className="truncate text-[11px] font-semibold text-foreground group-hover:text-primary transition-colors">
+                              <p className="truncate text-[10.5px] xl:text-[11px] font-semibold text-foreground group-hover:text-primary transition-colors">
                                 {item.title}
                               </p>
-                              <p className="truncate text-[9px] text-muted-foreground">
+                              <p className="truncate text-[8.5px] xl:text-[9px] text-muted-foreground">
                                 {item.sub}
                               </p>
                             </div>
                           </div>
-                          <div className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-muted-foreground group-hover:text-foreground transition-colors">
+                          <div className="grid h-4.5 w-4.5 shrink-0 place-items-center rounded-full text-muted-foreground group-hover:text-foreground transition-colors">
                             <ChevronRight className="h-3 w-3" />
                           </div>
                         </Link>
@@ -418,11 +420,11 @@ function Dashboard() {
               </div>
 
               {/* Row 3: Projects You're Building ("Courses You're Taking" in ref) */}
-              <div className="rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 backdrop-blur-xl shadow-[var(--shadow-glass)] flex flex-col gap-2.5">
-                <div className="flex items-center justify-between">
+              <div className="rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-2.5 xl:p-3 backdrop-blur-xl shadow-[var(--shadow-glass)] flex flex-col justify-between shrink-0">
+                <div className="flex items-center justify-between pb-1">
                   <h3 className="text-xs font-bold text-foreground">Projects You're Building</h3>
                   <div className="flex items-center gap-1.5">
-                    <span className="rounded-lg bg-secondary/80 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                    <span className="rounded-lg bg-secondary/80 px-2 py-0.5 text-[9px] xl:text-[10px] font-semibold text-muted-foreground">
                       Active ⌵
                     </span>
                     <Link
@@ -434,7 +436,7 @@ function Dashboard() {
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-1.5">
                   {[
                     {
                       id: "1",
@@ -461,18 +463,20 @@ function Dashboard() {
                   ].map((proj) => (
                     <div
                       key={proj.id}
-                      className="flex items-center justify-between rounded-xl bg-background/40 p-2.5 border border-border/30"
+                      className="flex items-center justify-between rounded-xl bg-background/40 p-2 border border-border/30"
                     >
-                      <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex items-center gap-2.5 min-w-0">
                         <div
-                          className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl font-bold text-xs ${proj.color}`}
+                          className={`grid h-7 w-7 xl:h-7.5 xl:w-7.5 shrink-0 place-items-center rounded-xl font-bold text-xs ${proj.color}`}
                         >
                           {proj.initial}
                         </div>
                         <div className="min-w-0">
-                          <p className="truncate text-xs font-bold text-foreground">{proj.title}</p>
-                          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-0.5">
-                            <span className="grid h-3.5 w-3.5 place-items-center rounded-full bg-secondary text-[8px] font-bold">
+                          <p className="truncate text-[11px] xl:text-xs font-bold text-foreground">
+                            {proj.title}
+                          </p>
+                          <div className="flex items-center gap-1 text-[9px] xl:text-[9.5px] text-muted-foreground mt-0.5">
+                            <span className="grid h-3 w-3 place-items-center rounded-full bg-secondary text-[7px] font-bold">
                               👤
                             </span>
                             <span>{proj.author}</span>
@@ -480,12 +484,12 @@ function Dashboard() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-4 shrink-0">
+                      <div className="flex items-center gap-3 shrink-0">
                         <div className="text-right hidden sm:block">
-                          <p className="text-[9px] text-muted-foreground">Remaining</p>
-                          <p className="text-[10px] font-semibold text-foreground">{proj.time}</p>
+                          <p className="text-[8.5px] text-muted-foreground">Remaining</p>
+                          <p className="text-[9.5px] font-semibold text-foreground">{proj.time}</p>
                         </div>
-                        <CircularProgress progress={proj.progress} size={36} />
+                        <CircularProgress progress={proj.progress} size={32} />
                       </div>
                     </div>
                   ))}
@@ -494,40 +498,44 @@ function Dashboard() {
             </div>
 
             {/* Right Sidebar Section (4 cols) */}
-            <div className="flex flex-col gap-3.5 lg:col-span-4 justify-between">
+            <div className="flex flex-col justify-between gap-2 xl:gap-2.5 lg:col-span-4 h-full min-h-0">
               {/* Top Banner: Go Premium / AI Viva Coach */}
-              <div className="relative overflow-hidden rounded-2xl border border-white/40 dark:border-white/10 bg-gradient-to-br from-[#122228] via-[#0A1619] to-[#060D0F] p-3.5 text-white shadow-[var(--shadow-glass)]">
+              <div className="relative overflow-hidden rounded-2xl border border-white/40 dark:border-white/10 bg-gradient-to-br from-[#122228] via-[#0A1619] to-[#060D0F] p-2.5 xl:p-3 text-white shadow-[var(--shadow-glass)] shrink-0">
                 <div className="flex items-center gap-2">
-                  <span className="grid h-6 w-6 place-items-center rounded-lg bg-primary/20 text-primary">
-                    <GraduationCap className="h-3.5 w-3.5" />
+                  <span className="grid h-5.5 w-5.5 place-items-center rounded-lg bg-primary/20 text-primary">
+                    <GraduationCap className="h-3 w-3" />
                   </span>
-                  <span className="text-xs font-bold tracking-tight">VivAI</span>
+                  <span className="text-[11px] font-bold tracking-tight">VivAI</span>
                 </div>
-                <h4 className="mt-2 text-sm font-bold text-white">Go Premium & Live Coach</h4>
-                <p className="mt-0.5 text-[10px] text-white/70 leading-relaxed">
+                <h4 className="mt-1.5 text-xs xl:text-sm font-bold text-white">
+                  Go Premium & Live Coach
+                </h4>
+                <p className="mt-0.5 text-[9.5px] xl:text-[10px] text-white/70 leading-relaxed">
                   Explore 25k+ viva scenarios with real-time AI oral defense simulator.
                 </p>
                 <Link
                   to="/ai-viva/new"
-                  className="mt-2.5 inline-flex items-center justify-center rounded-xl bg-primary px-3.5 py-1.5 text-xs font-bold text-primary-foreground shadow-sm hover:scale-[1.02] active:scale-[0.98] transition-transform"
+                  className="mt-2 inline-flex items-center justify-center rounded-xl bg-primary px-3 py-1 text-[11px] font-bold text-primary-foreground shadow-sm hover:scale-[1.02] active:scale-[0.98] transition-transform"
                 >
                   Get Access
                 </Link>
               </div>
 
               {/* Middle: Mini Calendar Widget matching ref */}
-              <div className="rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 backdrop-blur-xl shadow-[var(--shadow-glass)] flex flex-col justify-between">
-                <div className="flex items-center justify-between pb-2 border-b border-border/40">
+              <div className="rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-2.5 xl:p-3 backdrop-blur-xl shadow-[var(--shadow-glass)] flex flex-col justify-between flex-1 min-h-0">
+                <div className="flex items-center justify-between pb-1.5 border-b border-border/40">
                   <button type="button" className="text-muted-foreground hover:text-foreground">
                     <ChevronLeft className="h-3.5 w-3.5" />
                   </button>
-                  <span className="text-xs font-bold text-foreground">August, 2026</span>
+                  <span className="text-[11px] xl:text-xs font-bold text-foreground">
+                    August, 2026
+                  </span>
                   <button type="button" className="text-muted-foreground hover:text-foreground">
                     <ChevronRight className="h-3.5 w-3.5" />
                   </button>
                 </div>
 
-                <div className="mt-2 grid grid-cols-7 gap-1 text-center text-[10px]">
+                <div className="mt-1 grid grid-cols-7 gap-0.5 text-center text-[9px] xl:text-[9.5px]">
                   {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
                     <span key={i} className="font-semibold text-muted-foreground/70 py-0.5">
                       {d}
@@ -542,7 +550,7 @@ function Dashboard() {
                     return (
                       <div
                         key={idx}
-                        className={`grid h-5 w-full place-items-center rounded-full text-[9px] ${
+                        className={`grid h-4.5 xl:h-5 w-full place-items-center rounded-full text-[8.5px] xl:text-[9px] ${
                           isHighlighted
                             ? "bg-primary text-primary-foreground font-bold shadow-xs"
                             : isMuted
@@ -558,18 +566,18 @@ function Dashboard() {
               </div>
 
               {/* Bottom: Assignments & Tasks matching ref */}
-              <div className="rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 backdrop-blur-xl shadow-[var(--shadow-glass)] flex flex-col justify-between">
+              <div className="rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-2.5 xl:p-3 backdrop-blur-xl shadow-[var(--shadow-glass)] flex flex-col justify-between shrink-0">
                 <div className="flex items-center justify-between pb-1">
                   <h3 className="text-xs font-bold text-foreground">Assignments</h3>
                   <Link
                     to="/projects"
-                    className="grid h-5 w-5 place-items-center rounded-full bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+                    className="grid h-4.5 w-4.5 place-items-center rounded-full bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
                   >
                     <Plus className="h-3 w-3" />
                   </Link>
                 </div>
 
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-1.5">
                   {[
                     {
                       title: "Methods of data",
@@ -595,21 +603,21 @@ function Dashboard() {
                   ].map((task) => (
                     <div
                       key={task.title}
-                      className="flex items-center justify-between rounded-xl bg-background/40 p-2 border border-border/30"
+                      className="flex items-center justify-between rounded-xl bg-background/40 p-1.5 xl:p-2 border border-border/30"
                     >
                       <div className="flex items-center gap-2 min-w-0">
-                        <div className="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-secondary text-xs">
+                        <div className="grid h-5.5 w-5.5 shrink-0 place-items-center rounded-lg bg-secondary text-[10px]">
                           {task.icon}
                         </div>
                         <div className="min-w-0">
-                          <p className="truncate text-xs font-semibold text-foreground">
+                          <p className="truncate text-[11px] font-semibold text-foreground">
                             {task.title}
                           </p>
-                          <p className="truncate text-[9px] text-muted-foreground">{task.sub}</p>
+                          <p className="truncate text-[8.5px] text-muted-foreground">{task.sub}</p>
                         </div>
                       </div>
                       <span
-                        className={`shrink-0 text-[9px] font-bold px-2 py-0.5 rounded-full ${task.badgeClass}`}
+                        className={`shrink-0 text-[8.5px] xl:text-[9px] font-bold px-1.5 xl:px-2 py-0.5 rounded-full ${task.badgeClass}`}
                       >
                         {task.status}
                       </span>

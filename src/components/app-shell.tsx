@@ -51,10 +51,12 @@ export function AppShell({
   children,
   wide = false,
   hideTopBar = false,
+  fitViewport = false,
 }: {
   children: ReactNode;
   wide?: boolean;
   hideTopBar?: boolean;
+  fitViewport?: boolean;
 }) {
   const { ready, isLoading } = useRequireAuth();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -80,16 +82,30 @@ export function AppShell({
     );
   }
   return (
-    <div className="relative min-h-screen bg-background overflow-x-hidden">
+    <div
+      className={`relative bg-background overflow-x-hidden ${
+        fitViewport ? "min-h-screen lg:h-screen lg:max-h-screen lg:overflow-hidden" : "min-h-screen"
+      }`}
+    >
       {/* Atmospheric ambient light mesh */}
       <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
         <div className="absolute -top-40 right-[-10%] h-[550px] w-[550px] rounded-full bg-primary/10 blur-[130px] dark:bg-primary/15" />
         <div className="absolute top-[35%] -left-32 h-[500px] w-[500px] rounded-full bg-[oklch(0.772_0.024_205/0.12)] blur-[140px] dark:bg-[oklch(0.35_0.035_208/0.4)]" />
         <div className="absolute -bottom-40 right-[20%] h-[600px] w-[600px] rounded-full bg-primary/8 blur-[150px] dark:bg-primary/10" />
       </div>
-      <div className="relative z-10 flex w-full gap-4 sm:gap-5 p-3 sm:p-4 lg:p-5">
-        <Sidebar />
-        <main className="min-w-0 flex-1 space-y-4 pb-20 lg:pb-0">
+      <div
+        className={`relative z-10 flex w-full gap-3 sm:gap-4 lg:gap-4 p-2.5 sm:p-3.5 lg:p-3.5 ${
+          fitViewport ? "lg:h-screen lg:max-h-screen lg:overflow-hidden" : ""
+        }`}
+      >
+        <Sidebar fitViewport={fitViewport} />
+        <main
+          className={`min-w-0 flex-1 pb-20 lg:pb-0 ${
+            fitViewport
+              ? "lg:h-full lg:max-h-full lg:overflow-hidden flex flex-col space-y-0"
+              : "space-y-4"
+          }`}
+        >
           {!hideTopBar && <TopBar onOpenMenu={() => setDrawerOpen(true)} />}
           {children}
         </main>
@@ -101,7 +117,7 @@ export function AppShell({
   );
 }
 
-function Sidebar() {
+function Sidebar({ fitViewport = false }: { fitViewport?: boolean }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { logout } = useAuth();
   const { data: profile } = useProfile();
@@ -110,14 +126,18 @@ function Sidebar() {
   const isAdmin = profile?.role === "admin" || profile?.role === "faculty";
 
   return (
-    <aside className="sticky top-5 hidden h-[calc(100vh-2.5rem)] w-[210px] shrink-0 flex-col justify-between overflow-y-auto rounded-3xl bg-card/85 backdrop-blur-2xl border border-white/40 dark:border-white/10 p-3.5 shadow-[var(--shadow-glass)] lg:flex">
-      <div className="flex flex-col gap-5">
+    <aside
+      className={`hidden w-[205px] xl:w-[215px] shrink-0 flex-col justify-between overflow-y-auto rounded-3xl bg-card/85 backdrop-blur-2xl border border-white/40 dark:border-white/10 p-3 shadow-[var(--shadow-glass)] lg:flex ${
+        fitViewport ? "h-full max-h-full sticky top-0" : "sticky top-5 h-[calc(100vh-2.5rem)]"
+      }`}
+    >
+      <div className="flex flex-col gap-3.5">
         {/* Brand Logo */}
-        <Link to="/" aria-label="Home" className="flex items-center gap-2.5 px-2 pt-1">
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
-            <GraduationCap className="h-5 w-5" />
+        <Link to="/" aria-label="Home" className="flex items-center gap-2.5 px-2 pt-0.5">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
+            <GraduationCap className="h-4.5 w-4.5" />
           </span>
-          <span className="text-lg font-bold tracking-tight text-foreground">VivAI</span>
+          <span className="text-base font-bold tracking-tight text-foreground">VivAI</span>
         </Link>
 
         {/* Clean Flat Navigation Items matching ref */}
@@ -475,13 +495,7 @@ export function PageHeader({
   );
 }
 
-export function Card({
-  children,
-  className = "",
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
+export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
     <div
       className={`rounded-2xl border border-white/40 dark:border-white/10 bg-card/80 p-4 backdrop-blur-xl shadow-[var(--shadow-glass)] ${className}`}
