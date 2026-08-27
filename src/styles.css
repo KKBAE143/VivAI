@@ -66,91 +66,94 @@
 
 :root {
   --radius: 1rem;
-  /* Aqua Haze (#EAF4F4) as the fresh, clean light background */
-  --background: oklch(0.965 0.012 195);
-  /* Deep Cyprus (#012b32 / #014651) for high-contrast crisp text */
-  --foreground: oklch(0.24 0.04 205);
+  /* Alabaster (#F9F7F2) clean, warm, glare-free light background */
+  --background: oklch(0.975 0.006 80);
+  /* Deep Petrol (#0B4650 / #0B3037) for high-contrast crisp text */
+  --foreground: oklch(0.24 0.035 210);
+  /* Pure White (#FFFFFF) elevated card surfaces */
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.24 0.04 205);
+  --card-foreground: oklch(0.24 0.035 210);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.24 0.04 205);
-  /* Malachite (#03D26F) vibrant primary green */
-  --primary: oklch(0.7 0.21 152);
-  --primary-foreground: oklch(0.14 0.04 205);
-  --primary-soft: oklch(0.93 0.04 152);
-  /* Soft Cyprus/Aqua Haze tinted secondary surfaces */
-  --secondary: oklch(0.92 0.02 195);
-  --secondary-foreground: oklch(0.336 0.076 205);
-  --muted: oklch(0.92 0.015 195);
-  --muted-foreground: oklch(0.46 0.04 205);
-  /* Starship (#CEF431) electric lime highlight accent */
-  --accent: oklch(0.91 0.14 120);
-  --accent-foreground: oklch(0.24 0.05 205);
+  --popover-foreground: oklch(0.24 0.035 210);
+  /* Electric Lime (#E6FF2B) high-energy brand punch */
+  --primary: oklch(0.92 0.22 118);
+  --primary-foreground: oklch(0.14 0.03 210);
+  --primary-soft: oklch(0.95 0.06 118);
+  /* Soft Alabaster / Petrol tinted secondary surfaces */
+  --secondary: oklch(0.92 0.01 80);
+  --secondary-foreground: oklch(0.338 0.065 208);
+  --muted: oklch(0.93 0.006 80);
+  /* Slate Grey (#898A8D) muted typography */
+  --muted-foreground: oklch(0.55 0.01 260);
+  /* Electric Lime highlight accent */
+  --accent: oklch(0.94 0.12 118);
+  --accent-foreground: oklch(0.18 0.04 210);
   --destructive: oklch(0.6 0.22 25);
   --destructive-foreground: oklch(0.99 0 0);
-  --success: oklch(0.7 0.21 152);
-  --warning: oklch(0.85 0.18 115);
-  --border: oklch(0.88 0.015 195);
-  --input: oklch(0.88 0.015 195);
-  --ring: oklch(0.7 0.21 152);
-  --chart-1: oklch(0.7 0.21 152);
-  --chart-2: oklch(0.336 0.076 205);
-  --chart-3: oklch(0.88 0.2 120);
-  --chart-4: oklch(0.65 0.15 220);
+  --success: oklch(0.72 0.18 145);
+  --warning: oklch(0.85 0.18 100);
+  --border: oklch(0.89 0.008 80);
+  --input: oklch(0.89 0.008 80);
+  --ring: oklch(0.88 0.2 118);
+  --chart-1: oklch(0.92 0.22 118);
+  --chart-2: oklch(0.338 0.065 208);
+  --chart-3: oklch(0.61 0.005 260);
+  --chart-4: oklch(0.7 0.15 200);
   --chart-5: oklch(0.62 0.2 25);
   --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.46 0.04 205);
-  --sidebar-primary: oklch(0.24 0.04 205);
-  --sidebar-primary-foreground: oklch(0.965 0.012 195);
-  --sidebar-accent: oklch(0.92 0.02 195);
-  --sidebar-accent-foreground: oklch(0.24 0.04 205);
-  --sidebar-border: oklch(0.88 0.015 195);
-  --sidebar-ring: oklch(0.7 0.21 152);
-  --shadow-card: 0 1px 3px oklch(0.2 0.04 205 / 0.05), 0 8px 24px oklch(0.2 0.04 205 / 0.05);
+  --sidebar-foreground: oklch(0.55 0.01 260);
+  --sidebar-primary: oklch(0.18 0.03 210);
+  --sidebar-primary-foreground: oklch(0.92 0.22 118);
+  --sidebar-accent: oklch(0.94 0.01 80);
+  --sidebar-accent-foreground: oklch(0.18 0.03 210);
+  --sidebar-border: oklch(0.89 0.008 80);
+  --sidebar-ring: oklch(0.92 0.22 118);
+  --shadow-card: 0 1px 3px oklch(0.18 0.03 210 / 0.04), 0 8px 24px oklch(0.18 0.03 210 / 0.04);
 }
 
 .dark {
-  /* Cod Gray (#161514) obsidian dark background */
-  --background: oklch(0.142 0.004 60);
-  /* Aqua Haze (#EAF4F4) luminous high-contrast text */
-  --foreground: oklch(0.965 0.012 195);
-  /* Elevated dark charcoal/Cyprus surface */
-  --card: oklch(0.19 0.015 200);
-  --card-foreground: oklch(0.965 0.012 195);
-  --popover: oklch(0.19 0.015 200);
-  --popover-foreground: oklch(0.965 0.012 195);
-  /* Malachite (#03D26F) glowing electric emerald */
-  --primary: oklch(0.742 0.218 152.4);
-  --primary-foreground: oklch(0.142 0.004 60);
-  --primary-soft: oklch(0.25 0.06 155);
-  /* Deep Cyprus (#014651) tinted dark secondary surfaces */
-  --secondary: oklch(0.24 0.035 205);
-  --secondary-foreground: oklch(0.965 0.012 195);
-  --muted: oklch(0.21 0.015 200);
-  --muted-foreground: oklch(0.7 0.025 195);
-  /* Starship (#CEF431) electric chartreuse glow */
-  --accent: oklch(0.26 0.05 130);
-  --accent-foreground: oklch(0.898 0.222 119.5);
+  /* Pitch Charcoal (#0E1013) deep dark background */
+  --background: oklch(0.13 0.008 240);
+  /* Alabaster (#F9F7F2) luminous, crisp, glare-free text */
+  --foreground: oklch(0.975 0.006 80);
+  /* Elevated Deep Petrol / Charcoal (#141A1E) surfaces */
+  --card: oklch(0.18 0.015 215);
+  --card-foreground: oklch(0.975 0.006 80);
+  --popover: oklch(0.18 0.015 215);
+  --popover-foreground: oklch(0.975 0.006 80);
+  /* Electric Lime (#E6FF2B) neon glow primary */
+  --primary: oklch(0.94 0.22 118);
+  --primary-foreground: oklch(0.12 0.02 210);
+  --primary-soft: oklch(0.24 0.06 120);
+  /* Deep Petrol (#0B4650) tinted dark secondary surfaces */
+  --secondary: oklch(0.25 0.04 208);
+  --secondary-foreground: oklch(0.975 0.006 80);
+  --muted: oklch(0.2 0.01 220);
+  /* Slate Grey (#898A8D) */
+  --muted-foreground: oklch(0.68 0.01 260);
+  /* Electric Lime highlight glow */
+  --accent: oklch(0.24 0.05 120);
+  --accent-foreground: oklch(0.94 0.22 118);
   --destructive: oklch(0.65 0.22 25);
   --destructive-foreground: oklch(0.99 0 0);
-  --success: oklch(0.742 0.218 152.4);
-  --warning: oklch(0.898 0.222 119.5);
-  --border: oklch(0.965 0.012 195 / 0.12);
-  --input: oklch(0.965 0.012 195 / 0.14);
-  --ring: oklch(0.742 0.218 152.4);
-  --chart-1: oklch(0.742 0.218 152.4);
-  --chart-2: oklch(0.898 0.222 119.5);
-  --chart-3: oklch(0.55 0.12 205);
+  --success: oklch(0.85 0.2 140);
+  --warning: oklch(0.94 0.22 118);
+  --border: oklch(0.975 0.006 80 / 0.12);
+  --input: oklch(0.975 0.006 80 / 0.14);
+  --ring: oklch(0.94 0.22 118);
+  --chart-1: oklch(0.94 0.22 118);
+  --chart-2: oklch(0.55 0.12 208);
+  --chart-3: oklch(0.68 0.01 260);
   --chart-4: oklch(0.75 0.15 180);
   --chart-5: oklch(0.68 0.2 25);
-  --sidebar: oklch(0.17 0.01 200);
-  --sidebar-foreground: oklch(0.7 0.025 195);
-  --sidebar-primary: oklch(0.742 0.218 152.4);
-  --sidebar-primary-foreground: oklch(0.142 0.004 60);
-  --sidebar-accent: oklch(0.24 0.025 205);
-  --sidebar-accent-foreground: oklch(0.965 0.012 195);
-  --sidebar-border: oklch(0.965 0.012 195 / 0.1);
-  --sidebar-ring: oklch(0.742 0.218 152.4);
+  --sidebar: oklch(0.15 0.01 220);
+  --sidebar-foreground: oklch(0.68 0.01 260);
+  --sidebar-primary: oklch(0.94 0.22 118);
+  --sidebar-primary-foreground: oklch(0.12 0.02 210);
+  --sidebar-accent: oklch(0.22 0.02 210);
+  --sidebar-accent-foreground: oklch(0.975 0.006 80);
+  --sidebar-border: oklch(0.975 0.006 80 / 0.1);
+  --sidebar-ring: oklch(0.94 0.22 118);
   --shadow-card: 0 1px 3px oklch(0 0 0 / 0.4), 0 8px 24px oklch(0 0 0 / 0.35);
 }
 
