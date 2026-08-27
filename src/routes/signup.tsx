@@ -77,25 +77,25 @@ function Signup() {
 
   return (
     <div className="grid min-h-screen bg-background lg:grid-cols-2">
-      <div className="relative hidden overflow-hidden bg-gradient-to-br from-primary to-[oklch(0.6_0.18_30)] p-12 text-primary-foreground lg:flex lg:flex-col lg:justify-between">
+      <div className="relative hidden overflow-hidden bg-gradient-to-br from-primary via-[oklch(0.50_0.15_175)] to-[oklch(0.336_0.076_205.1)] p-12 text-[oklch(0.965_0.012_195)] lg:flex lg:flex-col lg:justify-between">
         <div className="flex items-center gap-2 font-semibold">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary-foreground/15">
+          <div className="grid h-10 w-10 place-items-center rounded-xl bg-white/15 text-white">
             <GraduationCap className="h-5 w-5" />
           </div>
           VivAI
         </div>
         <div className="relative z-10 space-y-4">
-          <h1 className="text-4xl font-bold leading-tight">Built for your B.Tech journey.</h1>
-          <ul className="space-y-2 text-primary-foreground/90">
+          <h1 className="text-4xl font-bold leading-tight text-white">
+            Built for your B.Tech journey.
+          </h1>
+          <ul className="space-y-2 text-white/90">
             <li>✓ Manage PBL, Major & Mini projects</li>
             <li>✓ AI mock vivas in English, Hindi, Hinglish</li>
             <li>✓ Real-time AI presentation feedback</li>
             <li>✓ Team collaboration that works</li>
           </ul>
         </div>
-        <div className="text-sm text-primary-foreground/80">
-          12,000+ students from 200+ colleges.
-        </div>
+        <div className="text-sm text-white/80">12,000+ students from 200+ colleges.</div>
       </div>
       <div className="flex items-center justify-center p-6 sm:p-12">
         <div className="w-full max-w-md space-y-5">

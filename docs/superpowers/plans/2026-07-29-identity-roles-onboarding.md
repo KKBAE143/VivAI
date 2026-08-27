@@ -24,6 +24,7 @@
 ## File Structure
 
 **Create:**
+
 - `backend/migrations/007_faculty_approval.sql` — adds `requested_role` + `approved_at` to `institution_members`.
 - `backend/services/onboarding_service.py` — pure decision logic: which onboarding flow a profile needs, which step it is on, and whether a faculty claim may be approved. No DB, no FastAPI.
 - `backend/tests/test_onboarding_service.py` — unit tests for the pure module.
@@ -32,6 +33,7 @@
 - `src/lib/__tests__/onboarding-flow.test.ts` — bun tests.
 
 **Modify:**
+
 - `backend/models/schemas.py:43-46` — extend `OnboardingComplete`; add `InstitutionCreate`, `FacultyApproval`.
 - `backend/api/auth.py:176-190` — `complete_onboarding` and `onboarding_status` become role-aware.
 - `backend/api/institution.py` — add faculty approval endpoints (pending list + approve/reject).
@@ -42,9 +44,11 @@
 ## Task 1: Faculty-approval migration
 
 **Files:**
+
 - Create: `backend/migrations/007_faculty_approval.sql`
 
 **Interfaces:**
+
 - Consumes: `institution_members` and `institutions` from `backend/migrations/006_institutional.sql`.
 - Produces: columns `institution_members.requested_role TEXT`, `institution_members.approved_at TIMESTAMPTZ`, and `institutions.verified_at TIMESTAMPTZ`, all nullable.
 
@@ -99,6 +103,7 @@ ALTER TABLE institutions
 - [ ] **Step 2: Verify it is valid SQL and idempotent**
 
 There is no local Postgres in this repo, so verification is by inspection against `backend/migrations/006_institutional.sql`:
+
 - Every `ADD COLUMN` uses `IF NOT EXISTS`, every constraint is dropped before being added, and the index uses `IF NOT EXISTS`. Re-running the file is therefore safe.
 - `requested_role` values are a subset of the `profiles_role_check` values from 006.
 
@@ -116,10 +121,12 @@ git commit -m "feat: add faculty approval columns to institution_members"
 ## Task 2: Pure onboarding decision module
 
 **Files:**
+
 - Create: `backend/services/onboarding_service.py`
 - Test: `backend/tests/test_onboarding_service.py`
 
 **Interfaces:**
+
 - Consumes: nothing (pure).
 - Produces, all importable from `services.onboarding_service`:
   - `ROLE_STEPS: dict[str, tuple[str, ...]]`
@@ -341,9 +348,11 @@ git commit -m "feat: add pure onboarding role/approval decision logic"
 ## Task 3: Role-aware onboarding schemas
 
 **Files:**
+
 - Modify: `backend/models/schemas.py:43-46`
 
 **Interfaces:**
+
 - Consumes: `services.onboarding_service.VALID_ROLES` (import not required; values duplicated as literals in validation is NOT acceptable — import it).
 - Produces:
   - `OnboardingComplete` gains `role: str | None`, `institution_code: str | None`, `subjects: list[str]`, `department: str | None`.
@@ -431,10 +440,12 @@ git commit -m "feat: add role and institution fields to onboarding payloads"
 ## Task 4: Role-aware onboarding endpoints
 
 **Files:**
+
 - Modify: `backend/api/auth.py:176-190`
 - Test: `backend/tests/test_onboarding_api.py`
 
 **Interfaces:**
+
 - Consumes: `services.onboarding_service.{resolve_role, onboarding_state, GATED_ROLES}`; `models.schemas.OnboardingComplete`.
 - Produces: `POST /api/onboarding/complete` writes role/institution links; `GET /api/onboarding/status` returns the `onboarding_state` dict.
 
@@ -639,10 +650,12 @@ git commit -m "feat: make onboarding role-aware with a faculty approval gate"
 ## Task 5: Admin approval endpoints
 
 **Files:**
+
 - Modify: `backend/api/institution.py`
 - Test: `backend/tests/test_onboarding_api.py`
 
 **Interfaces:**
+
 - Consumes: `services.onboarding_service.can_approve`; `models.schemas.FacultyApproval`; existing `require_admin` from `core.deps`.
 - Produces: `GET /api/institution/pending-faculty` → `{"pending": [...]}`; `POST /api/institution/approve-faculty` → `{"ok": True, "role": "<granted role>"}`.
 
@@ -807,10 +820,12 @@ git commit -m "feat: add admin approval endpoints for faculty role requests"
 ## Task 6: Frontend onboarding step machine (pure)
 
 **Files:**
+
 - Create: `src/lib/onboarding-flow.ts`
 - Test: `src/lib/__tests__/onboarding-flow.test.ts`
 
 **Interfaces:**
+
 - Consumes: nothing (pure). Mirrors `ROLE_STEPS` from Task 2 — the two must stay in step.
 - Produces: `export type OnboardingRole = "student" | "faculty" | "admin"`; `export const ROLE_STEPS: Record<OnboardingRole, string[]>`; `export function stepsFor(role: string): string[]`; `export function totalSteps(role: string): number`; `export function nextStep(role: string, index: number): number`; `export function prevStep(index: number): number`; `export function isLastStep(role: string, index: number): boolean`.
 
@@ -930,9 +945,11 @@ git commit -m "feat: add role-branched onboarding step machine"
 ## Task 7: Role selection in the onboarding route
 
 **Files:**
+
 - Modify: `src/routes/onboarding.tsx`
 
 **Interfaces:**
+
 - Consumes: `stepsFor`, `nextStep`, `prevStep`, `isLastStep`, `totalSteps` from `src/lib/onboarding-flow.ts` (Task 6); `POST /api/onboarding/complete` accepting `role`, `institution_code`, `department`, `subjects` (Task 4).
 - Produces: no new exports. The route renders a role picker, then that role's steps.
 
@@ -1036,9 +1053,11 @@ git commit -m "feat: branch onboarding by role with an approval-pending state"
 ## Task 8: Route users to their role's landing surface
 
 **Files:**
+
 - Modify: `src/routes/__root.tsx` (or wherever the post-login redirect is decided — confirm by reading it first)
 
 **Interfaces:**
+
 - Consumes: `GET /api/onboarding/status` returning `{complete, role, steps, pending_approval}` (Task 4).
 - Produces: no new exports.
 
@@ -1052,6 +1071,7 @@ place that already owns it.
 - [ ] **Step 2: Branch the destination on role**
 
 Rules, in order:
+
 1. `complete === false` → `/onboarding` (unchanged behavior).
 2. `pending_approval === true` → the approval-pending screen.
 3. `role === "admin"` → the institution/admin dashboard.
@@ -1084,10 +1104,12 @@ git commit -m "feat: route each role to its own landing surface after login"
 ## Task 9: Self-serve institution creation, safely
 
 **Files:**
+
 - Modify: `backend/api/institution.py`
 - Test: `backend/tests/test_onboarding_api.py`
 
 **Interfaces:**
+
 - Consumes: `models.schemas.InstitutionCreate` (Task 3); `institutions.verified_at` (Task 1); `core.deps.get_current_user`.
 - Produces: `POST /api/institution` → `{"id": str, "invite_code": str, "verified": False}`. Grants the creator `role="admin"` and links them.
 
@@ -1095,7 +1117,7 @@ Why this is safe to leave open: a new institution is **empty**, and every
 `institution.py` query filters by `institution_id`, so creating one exposes
 nothing. The abuse to prevent is name-squatting (register a real college's name,
 share the code, harvest the students who join), which Task 10 handles by gating
-bulk data on verification. The guard that belongs *here* is rule 1 below.
+bulk data on verification. The guard that belongs _here_ is rule 1 below.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1242,10 +1264,12 @@ git commit -m "feat: allow self-serve pilot institutions with a squatting guard"
 ## Task 10: Gate bulk student data on verification
 
 **Files:**
+
 - Modify: `backend/api/institution.py:143` (`list_students`), `:240` (`readiness_report`), `:391` (`export_csv`)
 - Test: `backend/tests/test_onboarding_api.py`
 
 **Interfaces:**
+
 - Consumes: `institutions.verified_at` (Task 1); existing `require_admin`, `_get_institution`, `_get_institution_id`.
 - Produces: `require_verified_institution(user) -> dict` in `backend/api/institution.py`, raising 403 with `error: "institution_unverified"`.
 
@@ -1355,6 +1379,7 @@ git commit -m "feat: require institution verification for bulk student data"
 ## Self-Review
 
 **Spec coverage (Part 1 of the design doc):**
+
 - Role model (student/faculty/admin on `profiles.role`) → Tasks 2, 4.
 - Invite-primary linking → Task 5 (approval) + existing `institution.py:374` `invite_students`, unchanged.
 - Institution code fallback, student-only → Tasks 4, 7.
@@ -1380,7 +1405,7 @@ instead:
 4. Unverified pilots get `SELF_SERVE_SEAT_LIMIT = 25` seats, bounding the blast
    radius of a successful squat.
 
-Verification is a human step performed at sale time, which makes it a *sales*
+Verification is a human step performed at sale time, which makes it a _sales_
 gate rather than a signup blocker.
 
 **Not built, deliberately:** email-domain binding (requiring `@college.edu` to

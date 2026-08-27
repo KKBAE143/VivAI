@@ -20,6 +20,7 @@ The current dashboard reads as clumsy, generic, and unaligned:
 The dashboard is redesigned around a **Command Hero**: a single dominant visual unit at the top that fuses readiness state + primary next action + ambient glances (next deadline, streak, recent session count). Everything below is demoted into a clear secondary structure.
 
 Rejected alternatives:
+
 - **Statement hero (A):** Most beautiful, but pushes deadlines and sessions below the fold — betrays the command-center job.
 - **Bento cluster (C):** Equal-weight competing tiles — the current disease in fancier packaging.
 
@@ -54,6 +55,7 @@ Students. The page must serve three jobs in priority order:
 ```
 
 Key changes vs. current:
+
 - **StatRow deleted.** Its four numbers (active projects, avg progress, pending tasks, sessions) are redundant: project count/progress is visible in the projects section; session count moves into the hero glance; pending tasks moves into the deadlines card header as a count badge.
 - **GamificationStrip deleted as a standalone row.** Streak + level fold into the hero's glance column. (The strip component mini-bars duplicated the readiness component bars.)
 - **QuickPrep card deleted.** Its three buttons duplicated the hero CTAs and AI tools entry; the hero owns "start practice" now.
@@ -66,7 +68,7 @@ Key changes vs. current:
 Three-zone layout, one card, asymmetric internal columns:
 
 - **Zone 1 — Gauge (left):** `ReadinessGauge` at increased size (~160px), band-colored. Under it: the readiness `label` as the page's headline statement (e.g., "You’re almost viva-ready"), and a "Full breakdown →" link to `/readiness`.
-- **Zone 2 — Next action (center, widest):** The readiness `actions[0]` rendered as the hero's *headline answer*: action `text` as a strong sentence, action `cta` as the dominant primary button (large, full orange). If `actions[1]` exists, a secondary outline button beside it. If no actions, default to "Start Mock Viva" primary + "Practice Presentation" secondary.
+- **Zone 2 — Next action (center, widest):** The readiness `actions[0]` rendered as the hero's _headline answer_: action `text` as a strong sentence, action `cta` as the dominant primary button (large, full orange). If `actions[1]` exists, a secondary outline button beside it. If no actions, default to "Start Mock Viva" primary + "Practice Presentation" secondary.
 - **Zone 3 — Glances (right, narrow, stacked rows, separated by hairlines):**
   - Next deadline: date chip + project title + "in N days" (from projects with nearest future deadline)
   - Streak: flame icon + "N day streak" (from `useGamification`)
@@ -75,7 +77,7 @@ Three-zone layout, one card, asymmetric internal columns:
 
 **Responsiveness:** desktop = 3 zones in one row; tablet = gauge+action row, glances row below; mobile = stacked single column, glances become a 2×2 mini-grid.
 
-**Visual identity:** The hero card diverges from the generic white card — subtle warm gradient (primary-soft → card) background, no border, generous padding (p-8), the only place orange is used as ambient fill rather than accent. Everything below stays on clean white cards so the hero reads as *the* focal surface.
+**Visual identity:** The hero card diverges from the generic white card — subtle warm gradient (primary-soft → card) background, no border, generous padding (p-8), the only place orange is used as ambient fill rather than accent. Everything below stays on clean white cards so the hero reads as _the_ focal surface.
 
 ### 5.2 Secondary sections (refactor of existing components)
 
@@ -97,6 +99,7 @@ Hero gradient uses token-based colors (`primary-soft`→`card`), so dark mode in
 ## 6. Data Flow
 
 No new endpoints. Existing hooks, unchanged:
+
 - `useReadiness()` → hero zones 1–2 (+ weak count if needed)
 - `useProjects()` → hero glance (next deadline) + ActiveProjects + Deadlines
 - `useGamification()` → hero glance (streak, level/XP)

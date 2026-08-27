@@ -23,7 +23,7 @@ Established by reading the code, not assumed:
 - `backend/main.py:98` registers `team_live.router` — the feature is wired end
   to end, not a stub. `tests/test_team_room_reconnect.py` passes.
 - **Students cannot hear each other.** `route_client_audio` →
-  `_enqueue_audio` → pump to Gemini only. `broadcast_bytes` is called *only*
+  `_enqueue_audio` → pump to Gemini only. `broadcast_bytes` is called _only_
   for AI speech. There is no human-to-human audio path in the room at all.
 - **Faculty cannot join a room.** `team_live.py:135` closes the socket for
   anyone failing `_membership(team_id, user_id)`. Faculty are not team members.
@@ -36,12 +36,12 @@ Established by reading the code, not assumed:
 - `backend/migrations/006_institutional.sql` already defines the whole identity
   layer: `profiles.role` (CHECK `student|faculty|admin`),
   `profiles.institution_id`, `institutions` (with `invite_code`, `status
-  pilot|active|expired`, seat caps), and `institution_members` (`status
-  active|invited`). `require_admin` (`backend/core/deps.py:103-121`) already
+pilot|active|expired`, seat caps), and `institution_members` (`status
+active|invited`). `require_admin` (`backend/core/deps.py:103-121`) already
   gates on role + `institution_id`. **Nothing populates any of it** — no
   registration path sets a role. So identity is a wiring gap, not a schema gap.
 - `teams` has no `institution_id` (columns: `id, name, project_id, invite_code,
-  created_at, created_by`), so a team cannot be resolved to an institution
+created_at, created_by`), so a team cannot be resolved to an institution
   directly. This is why faculty authority is recorded on the session instead.
 - `src/routes/onboarding.tsx` is a fixed 3-step student-only flow (project
   seeding). No role selection, no faculty or admin path.
@@ -60,7 +60,7 @@ Established by reading the code, not assumed:
 
 ### Problem
 
-There is login but no notion of *what kind of user* signed up. Every
+There is login but no notion of _what kind of user_ signed up. Every
 institutional feature (faculty dashboard, admin panel, assessed sessions) is
 gated on `role` + `institution_id`, and nothing ever populates them.
 
@@ -68,11 +68,11 @@ gated on `role` + `institution_id`, and nothing ever populates them.
 
 Three roles on the existing profiles `role` field:
 
-| Role | Gets | Institution link |
-|---|---|---|
-| `student` | practice + assessed sessions, own reports | optional |
-| `faculty` | creates assessed sessions, faculty dashboard, live takeover | required |
-| `admin` | institution-wide dashboards, faculty/student management | required |
+| Role      | Gets                                                        | Institution link |
+| --------- | ----------------------------------------------------------- | ---------------- |
+| `student` | practice + assessed sessions, own reports                   | optional         |
+| `faculty` | creates assessed sessions, faculty dashboard, live takeover | required         |
+| `admin`   | institution-wide dashboards, faculty/student management     | required         |
 
 `role` defaults to `student` so every existing account keeps working untouched.
 
@@ -155,7 +155,7 @@ existing Gemini pump:
 
 1. Accept audio from any client cleared to speak — the AI-granted floor holder,
    or faculty when they hold the floor.
-2. **Broadcast** that audio to every *other* connected participant (skip the
+2. **Broadcast** that audio to every _other_ connected participant (skip the
    sender, who hears themselves acoustically).
 3. **Forward to Gemini** only what the AI should hear: the floor holder's
    answers, and faculty speech while faculty holds the floor (so the transcript
@@ -177,7 +177,7 @@ source of "it sounds broken" bugs.
 
 Students can talk over each other, and transcript attribution gets murkier when
 they do. Accepted deliberately: it makes the room a real group viva. Floor
-control still means only one student is *asked* at a time, so grading stays
+control still means only one student is _asked_ at a time, so grading stays
 attributable even when side conversation happens.
 
 ---
@@ -198,7 +198,7 @@ Controls, in build order:
 1. **Observe** — join silently, hear AI + all participants, see live scoring and
    floor state. Mostly reuses existing lobby/floor broadcasts.
 2. **Pause / resume AI** — new room-level `paused` state. The AI stops taking
-   turns; the Gemini connection is *not* torn down (tearing it down would lose
+   turns; the Gemini connection is _not_ torn down (tearing it down would lose
    the conversation and re-trigger the greeting path). While paused, audio relay
    between humans continues.
 3. **Manual floor grant** — faculty picks a student, overriding the model's
@@ -241,7 +241,7 @@ nothing verifying it covered everyone.
 - **Admin/HOD:** aggregates across teams, hung on the existing
   `institution.py` dashboard/readiness scaffolding.
 
-Because an unattended assessed session means the report *is* the product, it
+Because an unattended assessed session means the report _is_ the product, it
 must be defensible standalone — hence coverage tracking above.
 
 ## Part 7 — In-app feature explainers
@@ -291,7 +291,7 @@ Each blocker from "Verified current state" with its chosen solution.
 **Identity schema already exists.** `backend/migrations/006_institutional.sql`
 adds `profiles.role` (CHECK `student|faculty|admin`), `profiles.institution_id`,
 an `institutions` table with `invite_code`, and `institution_members` with
-`status active|invited`. Part 1 is therefore *wiring*, not schema work. The only
+`status active|invited`. Part 1 is therefore _wiring_, not schema work. The only
 new migration needed is `requested_role` + `approved_at` on
 `institution_members`, to hold a self-selected faculty claim that an admin has
 not yet approved.

@@ -1,1471 +1,1863 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VivAI — Platform Guide</title>
-  <meta name="description" content="End-to-end guide to VivAI: how the product works, every feature, architecture, tech stack, and business model." />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
-  <style>
-    :root {
-      --bg: #f4f1eb;
-      --bg-page: #f7f4ee;
-      --paper: #fffcf7;
-      --paper-2: #faf7f1;
-      --ink: #1a1814;
-      --ink-2: #3d3830;
-      --muted: #6b645a;
-      --faint: #9a9286;
-      --line: #e4ddd2;
-      --line-strong: #d4cbc0;
-      --accent: #1f4b3a;
-      --accent-hover: #16382b;
-      --accent-soft: #e6f0eb;
-      --accent-mid: #2d6a52;
-      --warm: #a65d2e;
-      --warm-soft: #f7ebe1;
-      --blue-soft: #e8eef5;
-      --shadow: 0 1px 2px rgba(26, 24, 20, 0.04), 0 12px 32px rgba(26, 24, 20, 0.06);
-      --radius: 12px;
-      --max: 1180px;
-      --sidebar: 220px;
-      --serif: "Instrument Serif", Georgia, "Times New Roman", serif;
-      --sans: "DM Sans", system-ui, -apple-system, sans-serif;
-      --mono: "SF Mono", ui-monospace, Consolas, monospace;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VivAI — Platform Guide</title>
+    <meta
+      name="description"
+      content="End-to-end guide to VivAI: how the product works, every feature, architecture, tech stack, and business model."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #f4f1eb;
+        --bg-page: #f7f4ee;
+        --paper: #fffcf7;
+        --paper-2: #faf7f1;
+        --ink: #1a1814;
+        --ink-2: #3d3830;
+        --muted: #6b645a;
+        --faint: #9a9286;
+        --line: #e4ddd2;
+        --line-strong: #d4cbc0;
+        --accent: #1f4b3a;
+        --accent-hover: #16382b;
+        --accent-soft: #e6f0eb;
+        --accent-mid: #2d6a52;
+        --warm: #a65d2e;
+        --warm-soft: #f7ebe1;
+        --blue-soft: #e8eef5;
+        --shadow: 0 1px 2px rgba(26, 24, 20, 0.04), 0 12px 32px rgba(26, 24, 20, 0.06);
+        --radius: 12px;
+        --max: 1180px;
+        --sidebar: 220px;
+        --serif: "Instrument Serif", Georgia, "Times New Roman", serif;
+        --sans: "DM Sans", system-ui, -apple-system, sans-serif;
+        --mono: "SF Mono", ui-monospace, Consolas, monospace;
+      }
 
-    * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body {
-      margin: 0;
-      font-family: var(--sans);
-      background: var(--bg-page);
-      color: var(--ink);
-      font-size: 15.5px;
-      line-height: 1.65;
-      -webkit-font-smoothing: antialiased;
-    }
-    a { color: var(--accent-mid); text-decoration-thickness: 1px; text-underline-offset: 3px; }
-    a:hover { color: var(--accent); }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        font-family: var(--sans);
+        background: var(--bg-page);
+        color: var(--ink);
+        font-size: 15.5px;
+        line-height: 1.65;
+        -webkit-font-smoothing: antialiased;
+      }
+      a {
+        color: var(--accent-mid);
+        text-decoration-thickness: 1px;
+        text-underline-offset: 3px;
+      }
+      a:hover {
+        color: var(--accent);
+      }
 
-    /* ——— Layout shell ——— */
-    .shell {
-      display: grid;
-      grid-template-columns: var(--sidebar) 1fr;
-      min-height: 100vh;
-    }
-    @media (max-width: 960px) {
-      .shell { grid-template-columns: 1fr; }
-      .side { display: none; }
-    }
+      /* ——— Layout shell ——— */
+      .shell {
+        display: grid;
+        grid-template-columns: var(--sidebar) 1fr;
+        min-height: 100vh;
+      }
+      @media (max-width: 960px) {
+        .shell {
+          grid-template-columns: 1fr;
+        }
+        .side {
+          display: none;
+        }
+      }
 
-    .side {
-      position: sticky;
-      top: 0;
-      height: 100vh;
-      padding: 1.75rem 1.15rem 2rem;
-      border-right: 1px solid var(--line);
-      background: var(--paper);
-      overflow-y: auto;
-    }
-    .side-brand {
-      display: flex;
-      align-items: center;
-      gap: 0.65rem;
-      margin-bottom: 1.75rem;
-      padding: 0 0.35rem;
-      text-decoration: none;
-      color: var(--ink);
-    }
-    .logo {
-      width: 34px;
-      height: 34px;
-      border-radius: 9px;
-      background: var(--accent);
-      color: #f7f4ee;
-      display: grid;
-      place-items: center;
-      font-family: var(--serif);
-      font-size: 1.15rem;
-      font-weight: 400;
-      letter-spacing: -0.02em;
-    }
-    .side-brand strong {
-      display: block;
-      font-size: 0.95rem;
-      font-weight: 650;
-      letter-spacing: -0.02em;
-    }
-    .side-brand span {
-      display: block;
-      font-size: 0.7rem;
-      color: var(--faint);
-      font-weight: 500;
-      margin-top: 1px;
-    }
-    .side nav { display: flex; flex-direction: column; gap: 0.15rem; }
-    .side nav a {
-      display: block;
-      padding: 0.42rem 0.55rem;
-      border-radius: 8px;
-      color: var(--muted);
-      text-decoration: none;
-      font-size: 0.82rem;
-      font-weight: 500;
-      transition: background 0.12s, color 0.12s;
-    }
-    .side nav a:hover { background: var(--bg); color: var(--ink); }
-    .side nav a .n {
-      display: inline-block;
-      width: 1.4rem;
-      color: var(--faint);
-      font-variant-numeric: tabular-nums;
-      font-size: 0.75rem;
-    }
-    .side-foot {
-      margin-top: 2rem;
-      padding: 0.85rem 0.55rem 0;
-      border-top: 1px solid var(--line);
-      font-size: 0.72rem;
-      color: var(--faint);
-      line-height: 1.5;
-    }
+      .side {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        padding: 1.75rem 1.15rem 2rem;
+        border-right: 1px solid var(--line);
+        background: var(--paper);
+        overflow-y: auto;
+      }
+      .side-brand {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        margin-bottom: 1.75rem;
+        padding: 0 0.35rem;
+        text-decoration: none;
+        color: var(--ink);
+      }
+      .logo {
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+        background: var(--accent);
+        color: #f7f4ee;
+        display: grid;
+        place-items: center;
+        font-family: var(--serif);
+        font-size: 1.15rem;
+        font-weight: 400;
+        letter-spacing: -0.02em;
+      }
+      .side-brand strong {
+        display: block;
+        font-size: 0.95rem;
+        font-weight: 650;
+        letter-spacing: -0.02em;
+      }
+      .side-brand span {
+        display: block;
+        font-size: 0.7rem;
+        color: var(--faint);
+        font-weight: 500;
+        margin-top: 1px;
+      }
+      .side nav {
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+      }
+      .side nav a {
+        display: block;
+        padding: 0.42rem 0.55rem;
+        border-radius: 8px;
+        color: var(--muted);
+        text-decoration: none;
+        font-size: 0.82rem;
+        font-weight: 500;
+        transition:
+          background 0.12s,
+          color 0.12s;
+      }
+      .side nav a:hover {
+        background: var(--bg);
+        color: var(--ink);
+      }
+      .side nav a .n {
+        display: inline-block;
+        width: 1.4rem;
+        color: var(--faint);
+        font-variant-numeric: tabular-nums;
+        font-size: 0.75rem;
+      }
+      .side-foot {
+        margin-top: 2rem;
+        padding: 0.85rem 0.55rem 0;
+        border-top: 1px solid var(--line);
+        font-size: 0.72rem;
+        color: var(--faint);
+        line-height: 1.5;
+      }
 
-    .main { min-width: 0; }
-    .content {
-      max-width: 820px;
-      margin: 0 auto;
-      padding: 2.5rem 1.5rem 5rem;
-    }
-    @media (min-width: 1100px) {
-      .content { max-width: 860px; padding-left: 2.5rem; padding-right: 2.5rem; }
-    }
+      .main {
+        min-width: 0;
+      }
+      .content {
+        max-width: 820px;
+        margin: 0 auto;
+        padding: 2.5rem 1.5rem 5rem;
+      }
+      @media (min-width: 1100px) {
+        .content {
+          max-width: 860px;
+          padding-left: 2.5rem;
+          padding-right: 2.5rem;
+        }
+      }
 
-    /* ——— Type ——— */
-    .display {
-      font-family: var(--serif);
-      font-weight: 400;
-      letter-spacing: -0.025em;
-      line-height: 1.12;
-      color: var(--ink);
-    }
-    h1.display { font-size: clamp(2.6rem, 5vw, 3.6rem); margin: 0 0 1rem; }
-    h2.display {
-      font-size: clamp(1.75rem, 3vw, 2.25rem);
-      margin: 0 0 0.65rem;
-    }
-    h3 {
-      font-size: 1.05rem;
-      font-weight: 650;
-      letter-spacing: -0.02em;
-      margin: 0 0 0.5rem;
-      color: var(--ink);
-    }
-    h4 {
-      font-size: 0.78rem;
-      font-weight: 650;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: var(--faint);
-      margin: 1.35rem 0 0.5rem;
-    }
-    p { margin: 0 0 1rem; color: var(--ink-2); }
-    p.lead {
-      font-size: 1.12rem;
-      line-height: 1.6;
-      color: var(--ink-2);
-      max-width: 38em;
-    }
-    p.muted, .muted { color: var(--muted); }
-    strong { color: var(--ink); font-weight: 600; }
-    .kicker {
-      font-size: 0.72rem;
-      font-weight: 650;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--accent-mid);
-      margin-bottom: 0.65rem;
-    }
+      /* ——— Type ——— */
+      .display {
+        font-family: var(--serif);
+        font-weight: 400;
+        letter-spacing: -0.025em;
+        line-height: 1.12;
+        color: var(--ink);
+      }
+      h1.display {
+        font-size: clamp(2.6rem, 5vw, 3.6rem);
+        margin: 0 0 1rem;
+      }
+      h2.display {
+        font-size: clamp(1.75rem, 3vw, 2.25rem);
+        margin: 0 0 0.65rem;
+      }
+      h3 {
+        font-size: 1.05rem;
+        font-weight: 650;
+        letter-spacing: -0.02em;
+        margin: 0 0 0.5rem;
+        color: var(--ink);
+      }
+      h4 {
+        font-size: 0.78rem;
+        font-weight: 650;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--faint);
+        margin: 1.35rem 0 0.5rem;
+      }
+      p {
+        margin: 0 0 1rem;
+        color: var(--ink-2);
+      }
+      p.lead {
+        font-size: 1.12rem;
+        line-height: 1.6;
+        color: var(--ink-2);
+        max-width: 38em;
+      }
+      p.muted,
+      .muted {
+        color: var(--muted);
+      }
+      strong {
+        color: var(--ink);
+        font-weight: 600;
+      }
+      .kicker {
+        font-size: 0.72rem;
+        font-weight: 650;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--accent-mid);
+        margin-bottom: 0.65rem;
+      }
 
-    section.block {
-      padding: 2.75rem 0;
-      border-top: 1px solid var(--line);
-    }
-    section.block:first-of-type { border-top: 0; padding-top: 0.5rem; }
+      section.block {
+        padding: 2.75rem 0;
+        border-top: 1px solid var(--line);
+      }
+      section.block:first-of-type {
+        border-top: 0;
+        padding-top: 0.5rem;
+      }
 
-    /* ——— Components ——— */
-    .hero {
-      padding: 1rem 0 2.5rem;
-    }
-    .hero-meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem 1.25rem;
-      margin: 1.5rem 0 0;
-      padding-top: 1.25rem;
-      border-top: 1px solid var(--line);
-      font-size: 0.82rem;
-      color: var(--muted);
-    }
-    .hero-meta b { color: var(--ink); font-weight: 600; }
+      /* ——— Components ——— */
+      .hero {
+        padding: 1rem 0 2.5rem;
+      }
+      .hero-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1.25rem;
+        margin: 1.5rem 0 0;
+        padding-top: 1.25rem;
+        border-top: 1px solid var(--line);
+        font-size: 0.82rem;
+        color: var(--muted);
+      }
+      .hero-meta b {
+        color: var(--ink);
+        font-weight: 600;
+      }
 
-    .pull {
-      margin: 1.75rem 0;
-      padding: 1.25rem 1.35rem;
-      border-left: 3px solid var(--accent);
-      background: var(--paper);
-      box-shadow: var(--shadow);
-      border-radius: 0 var(--radius) var(--radius) 0;
-    }
-    .pull p { margin: 0; color: var(--ink); font-size: 1.05rem; line-height: 1.55; }
-    .pull cite {
-      display: block;
-      margin-top: 0.65rem;
-      font-style: normal;
-      font-size: 0.78rem;
-      color: var(--faint);
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      font-weight: 600;
-    }
+      .pull {
+        margin: 1.75rem 0;
+        padding: 1.25rem 1.35rem;
+        border-left: 3px solid var(--accent);
+        background: var(--paper);
+        box-shadow: var(--shadow);
+        border-radius: 0 var(--radius) var(--radius) 0;
+      }
+      .pull p {
+        margin: 0;
+        color: var(--ink);
+        font-size: 1.05rem;
+        line-height: 1.55;
+      }
+      .pull cite {
+        display: block;
+        margin-top: 0.65rem;
+        font-style: normal;
+        font-size: 0.78rem;
+        color: var(--faint);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        font-weight: 600;
+      }
 
-    .grid-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1rem;
-    }
-    .grid-3 {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 0.85rem;
-    }
-    @media (max-width: 720px) {
-      .grid-2, .grid-3 { grid-template-columns: 1fr; }
-    }
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      .grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.85rem;
+      }
+      @media (max-width: 720px) {
+        .grid-2,
+        .grid-3 {
+          grid-template-columns: 1fr;
+        }
+      }
 
-    .panel {
-      background: var(--paper);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      padding: 1.15rem 1.2rem;
-      box-shadow: var(--shadow);
-    }
-    .panel.flat {
-      box-shadow: none;
-      background: var(--paper-2);
-    }
-    .panel p:last-child { margin-bottom: 0; }
+      .panel {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 1.15rem 1.2rem;
+        box-shadow: var(--shadow);
+      }
+      .panel.flat {
+        box-shadow: none;
+        background: var(--paper-2);
+      }
+      .panel p:last-child {
+        margin-bottom: 0;
+      }
 
-    .stat-row {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 0.75rem;
-      margin: 1.5rem 0;
-    }
-    @media (max-width: 640px) { .stat-row { grid-template-columns: 1fr 1fr; } }
-    .stat {
-      background: var(--paper);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      padding: 1rem 1.05rem;
-    }
-    .stat .v {
-      font-family: var(--serif);
-      font-size: 1.85rem;
-      line-height: 1;
-      color: var(--ink);
-      letter-spacing: -0.02em;
-    }
-    .stat .l {
-      margin-top: 0.4rem;
-      font-size: 0.78rem;
-      color: var(--muted);
-      font-weight: 500;
-    }
+      .stat-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.75rem;
+        margin: 1.5rem 0;
+      }
+      @media (max-width: 640px) {
+        .stat-row {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      .stat {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 1rem 1.05rem;
+      }
+      .stat .v {
+        font-family: var(--serif);
+        font-size: 1.85rem;
+        line-height: 1;
+        color: var(--ink);
+        letter-spacing: -0.02em;
+      }
+      .stat .l {
+        margin-top: 0.4rem;
+        font-size: 0.78rem;
+        color: var(--muted);
+        font-weight: 500;
+      }
 
-    ol.steps {
-      list-style: none;
-      margin: 1.25rem 0 0;
-      padding: 0;
-      counter-reset: step;
-    }
-    ol.steps > li {
-      position: relative;
-      padding: 1.1rem 0 1.1rem 3.1rem;
-      border-bottom: 1px solid var(--line);
-      counter-increment: step;
-    }
-    ol.steps > li:last-child { border-bottom: 0; }
-    ol.steps > li::before {
-      content: counter(step, decimal-leading-zero);
-      position: absolute;
-      left: 0;
-      top: 1.15rem;
-      font-family: var(--serif);
-      font-size: 1.15rem;
-      color: var(--accent-mid);
-      width: 2.4rem;
-    }
-    ol.steps h3 { margin-bottom: 0.3rem; }
-    ol.steps p { margin: 0; font-size: 0.94rem; }
-    ol.steps .detail {
-      margin-top: 0.55rem;
-      font-size: 0.86rem;
-      color: var(--muted);
-      padding: 0.65rem 0.75rem;
-      background: var(--paper-2);
-      border-radius: 8px;
-      border: 1px solid var(--line);
-    }
-    ol.steps code, p code, li code, td code {
-      font-family: var(--mono);
-      font-size: 0.84em;
-      background: var(--bg);
-      border: 1px solid var(--line);
-      padding: 0.08em 0.35em;
-      border-radius: 4px;
-      color: var(--ink-2);
-    }
+      ol.steps {
+        list-style: none;
+        margin: 1.25rem 0 0;
+        padding: 0;
+        counter-reset: step;
+      }
+      ol.steps > li {
+        position: relative;
+        padding: 1.1rem 0 1.1rem 3.1rem;
+        border-bottom: 1px solid var(--line);
+        counter-increment: step;
+      }
+      ol.steps > li:last-child {
+        border-bottom: 0;
+      }
+      ol.steps > li::before {
+        content: counter(step, decimal-leading-zero);
+        position: absolute;
+        left: 0;
+        top: 1.15rem;
+        font-family: var(--serif);
+        font-size: 1.15rem;
+        color: var(--accent-mid);
+        width: 2.4rem;
+      }
+      ol.steps h3 {
+        margin-bottom: 0.3rem;
+      }
+      ol.steps p {
+        margin: 0;
+        font-size: 0.94rem;
+      }
+      ol.steps .detail {
+        margin-top: 0.55rem;
+        font-size: 0.86rem;
+        color: var(--muted);
+        padding: 0.65rem 0.75rem;
+        background: var(--paper-2);
+        border-radius: 8px;
+        border: 1px solid var(--line);
+      }
+      ol.steps code,
+      p code,
+      li code,
+      td code {
+        font-family: var(--mono);
+        font-size: 0.84em;
+        background: var(--bg);
+        border: 1px solid var(--line);
+        padding: 0.08em 0.35em;
+        border-radius: 4px;
+        color: var(--ink-2);
+      }
 
-    table.data {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.88rem;
-      margin: 0.75rem 0 1.25rem;
-    }
-    table.data th {
-      text-align: left;
-      font-size: 0.7rem;
-      font-weight: 650;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: var(--faint);
-      padding: 0.55rem 0.7rem;
-      border-bottom: 1px solid var(--line-strong);
-      background: var(--paper-2);
-    }
-    table.data td {
-      padding: 0.7rem;
-      border-bottom: 1px solid var(--line);
-      color: var(--ink-2);
-      vertical-align: top;
-    }
-    table.data tr:last-child td { border-bottom: 0; }
-    table.data td:first-child { font-weight: 600; color: var(--ink); }
-    .table-frame {
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      overflow: hidden;
-      background: var(--paper);
-      box-shadow: var(--shadow);
-    }
+      table.data {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.88rem;
+        margin: 0.75rem 0 1.25rem;
+      }
+      table.data th {
+        text-align: left;
+        font-size: 0.7rem;
+        font-weight: 650;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--faint);
+        padding: 0.55rem 0.7rem;
+        border-bottom: 1px solid var(--line-strong);
+        background: var(--paper-2);
+      }
+      table.data td {
+        padding: 0.7rem;
+        border-bottom: 1px solid var(--line);
+        color: var(--ink-2);
+        vertical-align: top;
+      }
+      table.data tr:last-child td {
+        border-bottom: 0;
+      }
+      table.data td:first-child {
+        font-weight: 600;
+        color: var(--ink);
+      }
+      .table-frame {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        overflow: hidden;
+        background: var(--paper);
+        box-shadow: var(--shadow);
+      }
 
-    .feature {
-      margin-bottom: 1rem;
-    }
-    .feature header {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 1rem;
-      margin-bottom: 0.45rem;
-    }
-    .feature header h3 { margin: 0; }
-    .tag {
-      font-size: 0.68rem;
-      font-weight: 650;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      color: var(--accent-mid);
-      background: var(--accent-soft);
-      padding: 0.22rem 0.5rem;
-      border-radius: 999px;
-      white-space: nowrap;
-    }
-    .tag.warm { color: var(--warm); background: var(--warm-soft); }
-    .tag.neutral { color: var(--muted); background: var(--bg); }
+      .feature {
+        margin-bottom: 1rem;
+      }
+      .feature header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 0.45rem;
+      }
+      .feature header h3 {
+        margin: 0;
+      }
+      .tag {
+        font-size: 0.68rem;
+        font-weight: 650;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--accent-mid);
+        background: var(--accent-soft);
+        padding: 0.22rem 0.5rem;
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+      .tag.warm {
+        color: var(--warm);
+        background: var(--warm-soft);
+      }
+      .tag.neutral {
+        color: var(--muted);
+        background: var(--bg);
+      }
 
-    ul.tight {
-      margin: 0.4rem 0 0.75rem;
-      padding-left: 1.15rem;
-      color: var(--ink-2);
-    }
-    ul.tight li { margin-bottom: 0.3rem; }
-    ul.tight li::marker { color: var(--faint); }
+      ul.tight {
+        margin: 0.4rem 0 0.75rem;
+        padding-left: 1.15rem;
+        color: var(--ink-2);
+      }
+      ul.tight li {
+        margin-bottom: 0.3rem;
+      }
+      ul.tight li::marker {
+        color: var(--faint);
+      }
 
-    .split-label {
-      display: grid;
-      grid-template-columns: 7.5rem 1fr;
-      gap: 0.75rem;
-      padding: 0.55rem 0;
-      border-bottom: 1px solid var(--line);
-      font-size: 0.9rem;
-    }
-    .split-label:last-child { border-bottom: 0; }
-    .split-label dt {
-      margin: 0;
-      font-weight: 650;
-      color: var(--ink);
-      font-size: 0.82rem;
-    }
-    .split-label dd { margin: 0; color: var(--muted); }
+      .split-label {
+        display: grid;
+        grid-template-columns: 7.5rem 1fr;
+        gap: 0.75rem;
+        padding: 0.55rem 0;
+        border-bottom: 1px solid var(--line);
+        font-size: 0.9rem;
+      }
+      .split-label:last-child {
+        border-bottom: 0;
+      }
+      .split-label dt {
+        margin: 0;
+        font-weight: 650;
+        color: var(--ink);
+        font-size: 0.82rem;
+      }
+      .split-label dd {
+        margin: 0;
+        color: var(--muted);
+      }
 
-    pre.diagram {
-      margin: 1rem 0;
-      padding: 1.15rem 1.2rem;
-      background: var(--ink);
-      color: #d9d2c5;
-      border-radius: var(--radius);
-      font-family: var(--mono);
-      font-size: 0.72rem;
-      line-height: 1.5;
-      overflow-x: auto;
-      white-space: pre;
-    }
-    pre.diagram .g { color: #8fbfa8; }
-    pre.diagram .w { color: #f4f1eb; }
-    pre.diagram .y { color: #e0b88a; }
+      pre.diagram {
+        margin: 1rem 0;
+        padding: 1.15rem 1.2rem;
+        background: var(--ink);
+        color: #d9d2c5;
+        border-radius: var(--radius);
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        line-height: 1.5;
+        overflow-x: auto;
+        white-space: pre;
+      }
+      pre.diagram .g {
+        color: #8fbfa8;
+      }
+      pre.diagram .w {
+        color: #f4f1eb;
+      }
+      pre.diagram .y {
+        color: #e0b88a;
+      }
 
-    .loop {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 0.5rem;
-      margin: 1.25rem 0;
-    }
-    @media (max-width: 720px) { .loop { grid-template-columns: 1fr 1fr; } }
-    .loop-item {
-      text-align: center;
-      padding: 1rem 0.65rem;
-      background: var(--paper);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      position: relative;
-    }
-    .loop-item .num {
-      font-family: var(--serif);
-      font-size: 1.4rem;
-      color: var(--accent-mid);
-      line-height: 1;
-    }
-    .loop-item .t {
-      margin-top: 0.4rem;
-      font-size: 0.82rem;
-      font-weight: 650;
-      color: var(--ink);
-    }
-    .loop-item .s {
-      margin-top: 0.2rem;
-      font-size: 0.72rem;
-      color: var(--muted);
-    }
+      .loop {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.5rem;
+        margin: 1.25rem 0;
+      }
+      @media (max-width: 720px) {
+        .loop {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      .loop-item {
+        text-align: center;
+        padding: 1rem 0.65rem;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        position: relative;
+      }
+      .loop-item .num {
+        font-family: var(--serif);
+        font-size: 1.4rem;
+        color: var(--accent-mid);
+        line-height: 1;
+      }
+      .loop-item .t {
+        margin-top: 0.4rem;
+        font-size: 0.82rem;
+        font-weight: 650;
+        color: var(--ink);
+      }
+      .loop-item .s {
+        margin-top: 0.2rem;
+        font-size: 0.72rem;
+        color: var(--muted);
+      }
 
-    details.acc {
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      background: var(--paper);
-      margin-bottom: 0.55rem;
-      overflow: hidden;
-    }
-    details.acc summary {
-      cursor: pointer;
-      list-style: none;
-      padding: 0.95rem 1.1rem;
-      font-weight: 600;
-      font-size: 0.95rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 1rem;
-    }
-    details.acc summary::-webkit-details-marker { display: none; }
-    details.acc summary::after {
-      content: "↓";
-      color: var(--faint);
-      font-size: 0.8rem;
-      font-weight: 400;
-    }
-    details.acc[open] summary {
-      border-bottom: 1px solid var(--line);
-    }
-    details.acc[open] summary::after { content: "↑"; }
-    details.acc .body {
-      padding: 1rem 1.1rem 1.15rem;
-      font-size: 0.92rem;
-    }
-    details.acc .body p { font-size: 0.92rem; }
-    details.acc .body h4:first-child { margin-top: 0.25rem; }
+      details.acc {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--paper);
+        margin-bottom: 0.55rem;
+        overflow: hidden;
+      }
+      details.acc summary {
+        cursor: pointer;
+        list-style: none;
+        padding: 0.95rem 1.1rem;
+        font-weight: 600;
+        font-size: 0.95rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+      }
+      details.acc summary::-webkit-details-marker {
+        display: none;
+      }
+      details.acc summary::after {
+        content: "↓";
+        color: var(--faint);
+        font-size: 0.8rem;
+        font-weight: 400;
+      }
+      details.acc[open] summary {
+        border-bottom: 1px solid var(--line);
+      }
+      details.acc[open] summary::after {
+        content: "↑";
+      }
+      details.acc .body {
+        padding: 1rem 1.1rem 1.15rem;
+        font-size: 0.92rem;
+      }
+      details.acc .body p {
+        font-size: 0.92rem;
+      }
+      details.acc .body h4:first-child {
+        margin-top: 0.25rem;
+      }
 
-    .price-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 0.85rem;
-      margin-top: 1rem;
-    }
-    @media (max-width: 800px) { .price-grid { grid-template-columns: 1fr; } }
-    .price {
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      padding: 1.25rem;
-      background: var(--paper);
-    }
-    .price.featured {
-      border-color: var(--accent);
-      background: linear-gradient(180deg, var(--accent-soft) 0%, var(--paper) 45%);
-    }
-    .price .name { font-weight: 650; font-size: 0.95rem; }
-    .price .amt {
-      font-family: var(--serif);
-      font-size: 2rem;
-      margin: 0.5rem 0 0.25rem;
-      letter-spacing: -0.02em;
-    }
-    .price .amt small {
-      font-family: var(--sans);
-      font-size: 0.8rem;
-      color: var(--muted);
-      font-weight: 500;
-    }
-    .price .blurb { font-size: 0.85rem; color: var(--muted); margin-bottom: 0.85rem; }
+      .price-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.85rem;
+        margin-top: 1rem;
+      }
+      @media (max-width: 800px) {
+        .price-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .price {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 1.25rem;
+        background: var(--paper);
+      }
+      .price.featured {
+        border-color: var(--accent);
+        background: linear-gradient(180deg, var(--accent-soft) 0%, var(--paper) 45%);
+      }
+      .price .name {
+        font-weight: 650;
+        font-size: 0.95rem;
+      }
+      .price .amt {
+        font-family: var(--serif);
+        font-size: 2rem;
+        margin: 0.5rem 0 0.25rem;
+        letter-spacing: -0.02em;
+      }
+      .price .amt small {
+        font-family: var(--sans);
+        font-size: 0.8rem;
+        color: var(--muted);
+        font-weight: 500;
+      }
+      .price .blurb {
+        font-size: 0.85rem;
+        color: var(--muted);
+        margin-bottom: 0.85rem;
+      }
 
-    footer.doc-foot {
-      max-width: 820px;
-      margin: 0 auto;
-      padding: 0 1.5rem 3rem;
-      font-size: 0.8rem;
-      color: var(--faint);
-      border-top: 1px solid var(--line);
-      padding-top: 1.5rem;
-    }
-    @media (min-width: 1100px) {
-      footer.doc-foot { max-width: 860px; padding-left: 2.5rem; padding-right: 2.5rem; }
-    }
+      footer.doc-foot {
+        max-width: 820px;
+        margin: 0 auto;
+        padding: 0 1.5rem 3rem;
+        font-size: 0.8rem;
+        color: var(--faint);
+        border-top: 1px solid var(--line);
+        padding-top: 1.5rem;
+      }
+      @media (min-width: 1100px) {
+        footer.doc-foot {
+          max-width: 860px;
+          padding-left: 2.5rem;
+          padding-right: 2.5rem;
+        }
+      }
 
-    .toc-mobile {
-      display: none;
-      margin: 0 0 1.5rem;
-      padding: 0.85rem 1rem;
-      background: var(--paper);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      font-size: 0.85rem;
-    }
-    @media (max-width: 960px) { .toc-mobile { display: block; } }
-    .toc-mobile a { margin-right: 0.75rem; white-space: nowrap; }
+      .toc-mobile {
+        display: none;
+        margin: 0 0 1.5rem;
+        padding: 0.85rem 1rem;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        font-size: 0.85rem;
+      }
+      @media (max-width: 960px) {
+        .toc-mobile {
+          display: block;
+        }
+      }
+      .toc-mobile a {
+        margin-right: 0.75rem;
+        white-space: nowrap;
+      }
 
-    .callout-warn {
-      background: var(--warm-soft);
-      border: 1px solid #e8d0bc;
-      border-radius: var(--radius);
-      padding: 0.95rem 1.05rem;
-      font-size: 0.9rem;
-      color: var(--ink-2);
-      margin: 1rem 0;
-    }
-  </style>
-</head>
-<body>
-  <div class="shell">
-    <aside class="side" aria-label="Document navigation">
-      <a class="side-brand" href="#top">
-        <div class="logo">V</div>
-        <div>
-          <strong>VivAI</strong>
-          <span>Platform guide</span>
+      .callout-warn {
+        background: var(--warm-soft);
+        border: 1px solid #e8d0bc;
+        border-radius: var(--radius);
+        padding: 0.95rem 1.05rem;
+        font-size: 0.9rem;
+        color: var(--ink-2);
+        margin: 1rem 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="side" aria-label="Document navigation">
+        <a class="side-brand" href="#top">
+          <div class="logo">V</div>
+          <div>
+            <strong>VivAI</strong>
+            <span>Platform guide</span>
+          </div>
+        </a>
+        <nav>
+          <a href="#top"><span class="n">00</span> Overview</a>
+          <a href="#why"><span class="n">01</span> Why VivAI exists</a>
+          <a href="#what"><span class="n">02</span> What VivAI is</a>
+          <a href="#usp"><span class="n">03</span> Differentiation</a>
+          <a href="#loop"><span class="n">04</span> Core product loop</a>
+          <a href="#journey"><span class="n">05</span> End-to-end journey</a>
+          <a href="#workspace"><span class="n">06</span> Workspace</a>
+          <a href="#practice"><span class="n">07</span> Practice engines</a>
+          <a href="#advanced"><span class="n">08</span> Advanced AI</a>
+          <a href="#insights"><span class="n">09</span> Insights &amp; habits</a>
+          <a href="#report"><span class="n">10</span> Scoring &amp; reports</a>
+          <a href="#arch"><span class="n">11</span> Architecture</a>
+          <a href="#stack"><span class="n">12</span> Tech stack</a>
+          <a href="#data"><span class="n">13</span> Data &amp; APIs</a>
+          <a href="#business"><span class="n">14</span> Business model</a>
+          <a href="#run"><span class="n">15</span> Run locally</a>
+        </nav>
+        <div class="side-foot">
+          Internal product bible for VivAI.<br />
+          Sourced from the live product surface — not a marketing one-pager.
         </div>
-      </a>
-      <nav>
-        <a href="#top"><span class="n">00</span> Overview</a>
-        <a href="#why"><span class="n">01</span> Why VivAI exists</a>
-        <a href="#what"><span class="n">02</span> What VivAI is</a>
-        <a href="#usp"><span class="n">03</span> Differentiation</a>
-        <a href="#loop"><span class="n">04</span> Core product loop</a>
-        <a href="#journey"><span class="n">05</span> End-to-end journey</a>
-        <a href="#workspace"><span class="n">06</span> Workspace</a>
-        <a href="#practice"><span class="n">07</span> Practice engines</a>
-        <a href="#advanced"><span class="n">08</span> Advanced AI</a>
-        <a href="#insights"><span class="n">09</span> Insights &amp; habits</a>
-        <a href="#report"><span class="n">10</span> Scoring &amp; reports</a>
-        <a href="#arch"><span class="n">11</span> Architecture</a>
-        <a href="#stack"><span class="n">12</span> Tech stack</a>
-        <a href="#data"><span class="n">13</span> Data &amp; APIs</a>
-        <a href="#business"><span class="n">14</span> Business model</a>
-        <a href="#run"><span class="n">15</span> Run locally</a>
-      </nav>
-      <div class="side-foot">
-        Internal product bible for VivAI.<br />
-        Sourced from the live product surface — not a marketing one-pager.
-      </div>
-    </aside>
+      </aside>
 
-    <div class="main">
-      <div class="content" id="top">
-        <div class="toc-mobile">
-          <strong style="color:var(--ink)">Jump:</strong>
-          <a href="#why">Why</a>
-          <a href="#journey">Journey</a>
-          <a href="#practice">Practice</a>
-          <a href="#advanced">Advanced</a>
-          <a href="#arch">Architecture</a>
-          <a href="#business">Business</a>
-        </div>
-
-        <!-- 00 HERO -->
-        <header class="hero">
-          <div class="kicker">Product bible · End-to-end</div>
-          <h1 class="display">VivAI</h1>
-          <p class="lead">
-            An AI companion for engineering students who must <em>build</em> a project and
-            <em>defend</em> it — viva, presentation, team review, and placement rounds —
-            without treating those as separate apps.
-          </p>
-          <p>
-            VivAI is the student-facing product name of this platform. Students sign up,
-            ground their work in a project workspace, practice oral defense with a live AI examiner,
-            and get evidence-backed reports that tell them exactly what to fix next.
-            The entire product is built around one idea:
-            <strong>your project content should train the AI that trains you.</strong>
-          </p>
-          <div class="stat-row">
-            <div class="stat"><div class="v">20+</div><div class="l">Live practice scenarios</div></div>
-            <div class="stat"><div class="v">5</div><div class="l">Examiner personas</div></div>
-            <div class="stat"><div class="v">13</div><div class="l">Spoken languages</div></div>
-            <div class="stat"><div class="v">7</div><div class="l">Advanced AI modes</div></div>
+      <div class="main">
+        <div class="content" id="top">
+          <div class="toc-mobile">
+            <strong style="color: var(--ink)">Jump:</strong>
+            <a href="#why">Why</a>
+            <a href="#journey">Journey</a>
+            <a href="#practice">Practice</a>
+            <a href="#advanced">Advanced</a>
+            <a href="#arch">Architecture</a>
+            <a href="#business">Business</a>
           </div>
-          <div class="hero-meta">
-            <span><b>Primary users</b> B.Tech / BE students (India-first)</span>
-            <span><b>Job to be done</b> Walk into defense &amp; interviews ready</span>
-            <span><b>AI backbone</b> Google Gemini (text, VLM, Live voice)</span>
-            <span><b>Shape</b> Full-stack SaaS · React + FastAPI + Supabase</span>
-          </div>
-        </header>
 
-        <!-- 01 WHY -->
-        <section class="block" id="why">
-          <div class="kicker">01 · Problem</div>
-          <h2 class="display">Why VivAI exists</h2>
-          <p>
-            In Indian engineering colleges, evaluation is not “did you push code?” — it is
-            <strong>can you stand in front of a panel and own the work?</strong>
-            Final-year major projects, mini projects, PBL reviews, subject vivas, seminars,
-            and placement project discussions all share the same failure mode: students prepare
-            alone, late, with generic material that has never seen their repository.
-          </p>
+          <!-- 00 HERO -->
+          <header class="hero">
+            <div class="kicker">Product bible · End-to-end</div>
+            <h1 class="display">VivAI</h1>
+            <p class="lead">
+              An AI companion for engineering students who must <em>build</em> a project and
+              <em>defend</em> it — viva, presentation, team review, and placement rounds — without
+              treating those as separate apps.
+            </p>
+            <p>
+              VivAI is the student-facing product name of this platform. Students sign up, ground
+              their work in a project workspace, practice oral defense with a live AI examiner, and
+              get evidence-backed reports that tell them exactly what to fix next. The entire
+              product is built around one idea:
+              <strong>your project content should train the AI that trains you.</strong>
+            </p>
+            <div class="stat-row">
+              <div class="stat">
+                <div class="v">20+</div>
+                <div class="l">Live practice scenarios</div>
+              </div>
+              <div class="stat">
+                <div class="v">5</div>
+                <div class="l">Examiner personas</div>
+              </div>
+              <div class="stat">
+                <div class="v">13</div>
+                <div class="l">Spoken languages</div>
+              </div>
+              <div class="stat">
+                <div class="v">7</div>
+                <div class="l">Advanced AI modes</div>
+              </div>
+            </div>
+            <div class="hero-meta">
+              <span><b>Primary users</b> B.Tech / BE students (India-first)</span>
+              <span><b>Job to be done</b> Walk into defense &amp; interviews ready</span>
+              <span><b>AI backbone</b> Google Gemini (text, VLM, Live voice)</span>
+              <span><b>Shape</b> Full-stack SaaS · React + FastAPI + Supabase</span>
+            </div>
+          </header>
 
-          <div class="grid-2" style="margin:1.25rem 0">
-            <div class="panel">
-              <h3>What students actually face</h3>
-              <ul class="tight">
-                <li>Faculty open the report / code and grill design choices — practice tools ask textbook DSA.</li>
-                <li>First real pressure often is the exam itself; anxiety tanks delivery even when knowledge exists.</li>
-                <li>Group vivas expose free-riders too late; teams never practiced being cross-questioned together.</li>
-                <li>Presentation rehearsal is “read slides in the hostel”; nobody scores coverage gaps.</li>
-                <li>Students think in Hinglish / regional languages; most tools force formal English-only drills.</li>
-                <li>Tasks live in WhatsApp, docs in Drive, mock interviews on another site — no single readiness number.</li>
-              </ul>
+          <!-- 01 WHY -->
+          <section class="block" id="why">
+            <div class="kicker">01 · Problem</div>
+            <h2 class="display">Why VivAI exists</h2>
+            <p>
+              In Indian engineering colleges, evaluation is not “did you push code?” — it is
+              <strong>can you stand in front of a panel and own the work?</strong>
+              Final-year major projects, mini projects, PBL reviews, subject vivas, seminars, and
+              placement project discussions all share the same failure mode: students prepare alone,
+              late, with generic material that has never seen their repository.
+            </p>
+
+            <div class="grid-2" style="margin: 1.25rem 0">
+              <div class="panel">
+                <h3>What students actually face</h3>
+                <ul class="tight">
+                  <li>
+                    Faculty open the report / code and grill design choices — practice tools ask
+                    textbook DSA.
+                  </li>
+                  <li>
+                    First real pressure often is the exam itself; anxiety tanks delivery even when
+                    knowledge exists.
+                  </li>
+                  <li>
+                    Group vivas expose free-riders too late; teams never practiced being
+                    cross-questioned together.
+                  </li>
+                  <li>
+                    Presentation rehearsal is “read slides in the hostel”; nobody scores coverage
+                    gaps.
+                  </li>
+                  <li>
+                    Students think in Hinglish / regional languages; most tools force formal
+                    English-only drills.
+                  </li>
+                  <li>
+                    Tasks live in WhatsApp, docs in Drive, mock interviews on another site — no
+                    single readiness number.
+                  </li>
+                </ul>
+              </div>
+              <div class="panel flat">
+                <h3>What the market fails at</h3>
+                <ul class="tight">
+                  <li>
+                    <strong>Generic interview bots</strong> — no project graph, no code context, no
+                    college viva format.
+                  </li>
+                  <li>
+                    <strong>Project tools (Notion/Jira clones)</strong> — manage work, never train
+                    oral defense.
+                  </li>
+                  <li>
+                    <strong>Slide-only coaches</strong> — ignore the viva that follows every
+                    seminar.
+                  </li>
+                  <li>
+                    <strong>Faculty bandwidth</strong> — 1:1 mock vivas do not scale to an entire
+                    batch.
+                  </li>
+                </ul>
+                <div class="pull" style="margin: 1rem 0 0; box-shadow: none">
+                  <p>
+                    The gap is not “more AI chat.” The gap is a
+                    <strong>project-native oral practice system</strong> that closes the loop from
+                    build → present → defend → improve.
+                  </p>
+                  <cite>Product thesis</cite>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 02 WHAT -->
+          <section class="block" id="what">
+            <div class="kicker">02 · Solution</div>
+            <h2 class="display">What VivAI is</h2>
+            <p>
+              VivAI is a <strong>defense-readiness platform</strong> for college engineers. It
+              combines a lightweight academic workspace with a high-quality live practice engine and
+              longitudinal analytics — so every mock session is fed by real student work and feeds
+              the next practice recommendation.
+            </p>
+
+            <div class="grid-3" style="margin-top: 1.25rem">
+              <div class="panel">
+                <h3>1 · Workspace</h3>
+                <p class="muted" style="margin: 0; font-size: 0.9rem">
+                  Projects (PBL / Mini / Major), Kanban, files, teams, templates, study bank — the
+                  academic source of truth the AI can read.
+                </p>
+              </div>
+              <div class="panel">
+                <h3>2 · Practice</h3>
+                <p class="muted" style="margin: 0; font-size: 0.9rem">
+                  Mock Viva, Presentation Mock, Pitch Drill, Communication Coach — text Q&amp;A or
+                  full live voice with camera, scenarios, and personas.
+                </p>
+              </div>
+              <div class="panel">
+                <h3>3 · Insight</h3>
+                <p class="muted" style="margin: 0; font-size: 0.9rem">
+                  Evidence reports, delivery metrics, weakness heatmap, readiness score, college
+                  predictor, XP / streaks — so progress is measurable.
+                </p>
+              </div>
+            </div>
+
+            <h4>Positioning statement</h4>
+            <div class="pull">
+              <p>
+                VivAI is for B.Tech students who need to defend real project work under oral
+                pressure. Unlike generic AI interview apps, VivAI uses the student’s project, code,
+                and slides as context, runs realistic live examiners, and returns scores only when
+                claims are backed by transcript evidence.
+              </p>
+              <cite>How we talk about VivAI in one breath</cite>
+            </div>
+
+            <h4>Who it is for (ICP)</h4>
+            <div class="table-frame">
+              <table class="data">
+                <thead>
+                  <tr>
+                    <th>Segment</th>
+                    <th>When they show up</th>
+                    <th>What they need from VivAI</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>3rd / 4th year engineers</td>
+                    <td>Mini / major project season, subject orals</td>
+                    <td>Project viva, presentation, team viva, readiness</td>
+                  </tr>
+                  <tr>
+                    <td>Placement-bound students</td>
+                    <td>Intern / full-time drives</td>
+                    <td>HR / tech / managerial scenarios, pitch, self-intro</td>
+                  </tr>
+                  <tr>
+                    <td>Project teams (2–5)</td>
+                    <td>Before group reviews</td>
+                    <td>Shared board + team viva scoring fairness</td>
+                  </tr>
+                  <tr>
+                    <td>Colleges / T&amp;P (B2B)</td>
+                    <td>Batch-level prep programs</td>
+                    <td>Scale mock practice; predictor-style cohort signals</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- 03 USP -->
+          <section class="block" id="usp">
+            <div class="kicker">03 · Differentiation</div>
+            <h2 class="display">What only VivAI connects</h2>
+            <p>
+              Most tools optimize a single slice. VivAI’s advantage is
+              <strong>connected context</strong>: project artifacts feed viva; weak presentations
+              spawn gap vivas; sessions accumulate into heatmaps and a campus predictor; live scores
+              refuse to invent praise without evidence.
+            </p>
+
+            <div class="table-frame">
+              <table class="data">
+                <thead>
+                  <tr>
+                    <th>Capability</th>
+                    <th>Typical alternative</th>
+                    <th>VivAI</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Question grounding</td>
+                    <td>Generic CS / HR banks</td>
+                    <td>Project fields + code snapshots + slide uploads</td>
+                  </tr>
+                  <tr>
+                    <td>Code-aware viva</td>
+                    <td>Almost never</td>
+                    <td>ZIP / GitHub → implementation-specific probes</td>
+                  </tr>
+                  <tr>
+                    <td>Presentation ↔ viva</td>
+                    <td>Separate products</td>
+                    <td>Bridge: weak topics → auto-generated focused viva</td>
+                  </tr>
+                  <tr>
+                    <td>Group viva</td>
+                    <td>Solo practice only</td>
+                    <td>Realtime multi-member race + collab scores</td>
+                  </tr>
+                  <tr>
+                    <td>Examiner model</td>
+                    <td>One “interviewer” tone string</td>
+                    <td>20 scenarios × 5 behavioral personas (7-axis matrix)</td>
+                  </tr>
+                  <tr>
+                    <td>Faculty personalization</td>
+                    <td>N/A</td>
+                    <td>Crowd-sourced professor profiles simulated by AI</td>
+                  </tr>
+                  <tr>
+                    <td>Campus intelligence</td>
+                    <td>N/A</td>
+                    <td>College Viva Predictor from anonymized session history</td>
+                  </tr>
+                  <tr>
+                    <td>Scoring integrity</td>
+                    <td>LLM free-text “great job”</td>
+                    <td>Observe live → score offline → drop uncited claims</td>
+                  </tr>
+                  <tr>
+                    <td>Language reality</td>
+                    <td>English-only audio</td>
+                    <td>13 labels incl. Hinglish, Tanglish, Tenglish + regional TTS mapping</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4>USP lines (use these, not generic superlatives)</h4>
+            <ul class="tight">
+              <li><strong>“Faculty who read your code.”</strong> — Code-Aware Viva.</li>
+              <li>
+                <strong>“Your slides fail → your next viva is born.”</strong> — Presentation Bridge.
+              </li>
+              <li>
+                <strong>“Scores you can audit.”</strong> — every finding needs resolvable
+                <code>evidence_refs</code>.
+              </li>
+              <li>
+                <strong>“Practice the real room.”</strong> — live voice, camera coaching,
+                tough-panel persona.
+              </li>
+              <li>
+                <strong>“Gets smarter as your campus practices.”</strong> — College Predictor
+                network effect.
+              </li>
+            </ul>
+          </section>
+
+          <!-- 04 LOOP -->
+          <section class="block" id="loop">
+            <div class="kicker">04 · Core loop</div>
+            <h2 class="display">The product loop students live in</h2>
+            <p>
+              Everything in VivAI either feeds this loop or reports on it. If a feature does not
+              improve build quality, practice quality, measurement quality, or next-action clarity —
+              it does not belong in the core narrative.
+            </p>
+            <div class="loop">
+              <div class="loop-item">
+                <div class="num">01</div>
+                <div class="t">Ground</div>
+                <div class="s">Project, code, files, team</div>
+              </div>
+              <div class="loop-item">
+                <div class="num">02</div>
+                <div class="t">Practice</div>
+                <div class="s">Viva / present / pitch / coach</div>
+              </div>
+              <div class="loop-item">
+                <div class="num">03</div>
+                <div class="t">Measure</div>
+                <div class="s">Report, metrics, heatmap</div>
+              </div>
+              <div class="loop-item">
+                <div class="num">04</div>
+                <div class="t">Redirect</div>
+                <div class="s">Bridge, readiness, study</div>
+              </div>
             </div>
             <div class="panel flat">
-              <h3>What the market fails at</h3>
+              <p style="margin: 0; font-size: 0.92rem">
+                <strong>Example:</strong> Student uploads major-project ZIP → Code-Aware Viva
+                (Strict) → report flags weak DB indexing answers → Study Bank cards on indexing →
+                Presentation Mock on architecture slides → Bridge launches a 10-minute gap viva →
+                Readiness score rises → Team Viva with partners two days before panel.
+              </p>
+            </div>
+          </section>
+
+          <!-- 05 JOURNEY -->
+          <section class="block" id="journey">
+            <div class="kicker">05 · End-to-end journey</div>
+            <h2 class="display">How a student actually uses VivAI</h2>
+            <p>
+              This is the full lifecycle — from empty account to defense week — mapped to real
+              screens and backend behavior.
+            </p>
+
+            <ol class="steps">
+              <li>
+                <h3>Account &amp; identity</h3>
+                <p>
+                  Signup / login via email (Supabase Auth) or Google OAuth. Session token is stored
+                  client-side as <code>cpn_token</code> and sent as
+                  <code>Authorization: Bearer …</code> on every API call.
+                </p>
+                <div class="detail">
+                  Routes: <code>/signup</code>, <code>/login</code>, <code>/forgot-password</code>,
+                  <code>/reset-password</code>. API: <code>/api/auth/*</code>. Profile fields: full
+                  name, college, year, branch, roll number, goals.
+                </div>
+              </li>
+              <li>
+                <h3>Onboarding (3 steps)</h3>
+                <p>
+                  Branch (CSE, IT, ECE, EEE, Mechanical, Civil, AI/ML, Data Science…), year, project
+                  type (PBL / Major / Mini / Research), and goals (“Ace my viva”, “Ship a demo”,
+                  “Land an internship”…). Completing onboarding seeds a first project best-effort
+                  and marks
+                  <code>onboarding_complete</code>.
+                </p>
+                <div class="detail">
+                  Route: <code>/onboarding</code> · API: <code>POST /api/onboarding/complete</code>
+                </div>
+              </li>
+              <li>
+                <h3>Dashboard as home base</h3>
+                <p>
+                  Greeting by first name, <strong>Defense Readiness</strong> gauge, gamification
+                  strip (XP / level / streak), stats row, active projects, upcoming deadlines, quick
+                  prep CTAs, recent viva sessions, and teams. The dashboard is optimized for “what
+                  should I practice next?” not a vanity feed.
+                </p>
+                <div class="detail">
+                  Route: <code>/</code> · Data: readiness + dashboard analytics + projects + viva
+                  sessions + teams
+                </div>
+              </li>
+              <li>
+                <h3>Build the project workspace</h3>
+                <p>
+                  Create PBL / Mini / Major projects with title, subject, tech stack, problem
+                  statement, description, deadline, semester. Upload files (PDF, PPTX, DOCX, images,
+                  ZIP). Drive a 4-column Kanban:
+                  <strong>To Do → In Progress → Review → Done</strong> with drag-and-drop order
+                  persisted as sparse <code>sort_order</code> integers.
+                </p>
+                <div class="detail">
+                  Routes: <code>/projects</code>, <code>/projects/new</code>,
+                  <code>/projects/$id</code>, <code>/files</code>. Reorder API:
+                  <code>PUT /api/projects/{id}/tasks/reorder</code>.
+                </div>
+              </li>
+              <li>
+                <h3>Form a team</h3>
+                <p>
+                  Create team with atomic lead membership (Postgres RPC
+                  <code>create_team_with_lead</code>
+                  + compensating fallback). Invite via code, set Lead / Member roles, request
+                  project↔team linking, browse activity. Historical orphan teams self-heal on list.
+                </p>
+                <div class="detail">
+                  Routes: <code>/teams</code>, <code>/teams/$id</code>, project Team tab
+                </div>
+              </li>
+              <li>
+                <h3>Prep materials (optional but powerful)</h3>
+                <p>
+                  Templates &amp; checklists for project formats and viva structure. Study Bank
+                  turns material into question banks + spaced-repetition flashcards; any bank can
+                  convert into a focused viva session (<code>to-viva</code>).
+                </p>
+                <div class="detail">
+                  Routes: <code>/templates</code>, <code>/study</code>, <code>/study/review</code>
+                </div>
+              </li>
+              <li>
+                <h3>Configure a practice session</h3>
+                <p>
+                  From Mock Viva setup: session type (Subject / Project / General), duration (5 / 10
+                  / 20 / 30 min), difficulty (incl. Adaptive), persona from server catalog, language
+                  (13 options), subject chips or linked project. Presentation / Pitch / Coach flows
+                  pick scenario_id from the server-owned catalog (UI only sees safe public fields —
+                  rubrics and prompt text never leave the backend).
+                </p>
+                <div class="detail">
+                  Catalog: <code>GET /api/catalog/scenarios</code>, <code>/personas</code>. Create:
+                  <code>POST /api/viva/sessions</code> or presentation equivalent.
+                </div>
+              </li>
+              <li>
+                <h3>Run the session</h3>
+                <p>
+                  <strong>Classic path:</strong> REST start → answer / skip / hint → end.
+                  <strong>Live path:</strong> WebSocket <code>/ws/live/{mode}/{session_id}</code>
+                  streams mic audio to Gemini Live and plays examiner speech back. Mic gate opens
+                  only after greeting playback finishes (prevents echo double-greeting). Model logs
+                  evidence-backed observations via tools; deterministic delivery metrics track
+                  fillers, WPM, talk ratio, latency.
+                </p>
+                <div class="detail">
+                  Modes on the shared live engine: viva, presentation, pitch, coach. Separate
+                  sockets exist for team viva and sentiment frame streams under
+                  <code>/api/advanced</code>.
+                </div>
+              </li>
+              <li>
+                <h3>Receive a structured report</h3>
+                <p>
+                  On finalize, VivAI builds a versioned <code>SessionReport</code>: executive
+                  summary, weighted dimension scores, findings (strength / issue / note) with
+                  evidence refs, timeline, practice plan, recommendations, industry expectations,
+                  resources. Validator drops findings without valid evidence; body language is
+                  forced <code>not_observed</code> if camera was off; overall score is recomputed as
+                  rubric-weighted mean (not three identical vibes).
+                </p>
+              </li>
+              <li>
+                <h3>Close the loops</h3>
+                <p>
+                  Weakness Heatmap updates across sessions. Presentation Bridge launches gap vivas.
+                  Readiness recomputes. XP awards (e.g. +50 viva, +50 presentation, +30 pitch).
+                  College Predictor improves as peers practice. Student returns to dashboard with a
+                  clearer next action.
+                </p>
+              </li>
+            </ol>
+
+            <h4>Defense-week playbook (concrete)</h4>
+            <div class="panel">
+              <dl>
+                <div class="split-label">
+                  <dt>Day −10</dt>
+                  <dd>
+                    Upload final report + code ZIP; complete project fields (stack, problem
+                    statement).
+                  </dd>
+                </div>
+                <div class="split-label">
+                  <dt>Day −8</dt>
+                  <dd>Code-Aware Viva, Balanced persona → Strict on day −7.</dd>
+                </div>
+                <div class="split-label">
+                  <dt>Day −6</dt>
+                  <dd>Presentation Mock with camera; review delivery metrics (pace, fillers).</dd>
+                </div>
+                <div class="split-label">
+                  <dt>Day −5</dt>
+                  <dd>
+                    Bridge → focused viva on weak architecture topics; flashcards for red heatmap
+                    cells.
+                  </dd>
+                </div>
+                <div class="split-label">
+                  <dt>Day −3</dt>
+                  <dd>Team Viva with project mates; fix who freezes on whose module.</dd>
+                </div>
+                <div class="split-label">
+                  <dt>Day −1</dt>
+                  <dd>Tough Panel persona + 90s Pitch Drill; check Readiness ≥ target.</dd>
+                </div>
+              </dl>
+            </div>
+          </section>
+
+          <!-- 06 WORKSPACE -->
+          <section class="block" id="workspace">
+            <div class="kicker">06 · Workspace features</div>
+            <h2 class="display">Where academic work lives</h2>
+            <p>
+              Workspace is not “Jira for students.” It exists so oral AI has something real to
+              examine — and so teams stop coordinating exclusively in WhatsApp the week before
+              review.
+            </p>
+
+            <div class="feature panel">
+              <header>
+                <h3>Projects</h3>
+                <span class="tag">Source of truth</span>
+              </header>
+              <p>
+                Students create and manage projects typed for Indian curricula:
+                <strong>PBL</strong>, <strong>Mini</strong>, <strong>Major</strong>. Key fields —
+                problem statement, subject, tech stack, description, progress %, status (In Progress
+                / Under Review / Completed), deadline — are not decorative. Project-linked vivas
+                pull this context into questioning.
+              </p>
               <ul class="tight">
-                <li><strong>Generic interview bots</strong> — no project graph, no code context, no college viva format.</li>
-                <li><strong>Project tools (Notion/Jira clones)</strong> — manage work, never train oral defense.</li>
-                <li><strong>Slide-only coaches</strong> — ignore the viva that follows every seminar.</li>
-                <li><strong>Faculty bandwidth</strong> — 1:1 mock vivas do not scale to an entire batch.</li>
+                <li>
+                  <strong>Use case:</strong> Final-year CSE team documents “Smart Traffic using YOLO
+                  + MQTT” once; every viva reuses it.
+                </li>
+                <li>
+                  <strong>Benefit:</strong> No re-explaining the project to the AI every session;
+                  continuity across weeks.
+                </li>
+                <li>
+                  <strong>Routes:</strong> <code>/projects</code>, <code>/projects/new</code>,
+                  <code>/projects/$id</code>
+                </li>
               </ul>
-              <div class="pull" style="margin:1rem 0 0;box-shadow:none">
-                <p>The gap is not “more AI chat.” The gap is a <strong>project-native oral practice system</strong> that closes the loop from build → present → defend → improve.</p>
-                <cite>Product thesis</cite>
+            </div>
+
+            <div class="feature panel">
+              <header>
+                <h3>Kanban board</h3>
+                <span class="tag">Execution</span>
+              </header>
+              <p>
+                Four statuses including a deliberate <strong>Review</strong> column (mirrors faculty
+                checkpoint language). Drag-and-drop via <code>@dnd-kit</code>; order stored as
+                sparse integers (×1000 gaps) with batch reorder API and optimistic TanStack Query
+                updates so the board feels native.
+              </p>
+              <ul class="tight">
+                <li>
+                  <strong>Use case:</strong> Split “dataset cleaning / model training / report /
+                  slides” across teammates with due dates and priority.
+                </li>
+                <li>
+                  <strong>Benefit:</strong> Defense prep becomes visible work, not last-night panic.
+                </li>
+              </ul>
+            </div>
+
+            <div class="feature panel">
+              <header>
+                <h3>Teams &amp; project linking</h3>
+                <span class="tag">Collaboration</span>
+              </header>
+              <p>
+                Teams are first-class: create, invite, join by code, change roles, remove members,
+                activity feed. Project–team linking uses a request / accept flow so ownership stays
+                clean when one student owns the project row but the team defends together. Create
+                path cannot return a team the creator cannot see (atomic membership insert + list
+                self-heal).
+              </p>
+              <ul class="tight">
+                <li>
+                  <strong>Use case:</strong> Four-member major project; Lead invites via code; Team
+                  Viva uses the same membership graph.
+                </li>
+                <li>
+                  <strong>Benefit:</strong> Collaboration graph is real data, not a static “team
+                  name” field.
+                </li>
+              </ul>
+            </div>
+
+            <div class="feature panel">
+              <header>
+                <h3>Files &amp; templates</h3>
+                <span class="tag">Artifacts</span>
+              </header>
+              <p>
+                Uploads go to Supabase Storage (bucket configurable, default <code>uploads</code>)
+                with metadata rows for listing/download. Templates hub serves structured guides +
+                checklists (PBL, major, mini, viva) so students know expected academic shape before
+                AI practice even starts.
+              </p>
+            </div>
+          </section>
+
+          <!-- 07 PRACTICE -->
+          <section class="block" id="practice">
+            <div class="kicker">07 · Practice engines</div>
+            <h2 class="display">Signature oral practice</h2>
+            <p>
+              These are the product’s center of gravity. Everything else either supplies context to
+              them or analyzes their outputs.
+            </p>
+
+            <details class="acc" open>
+              <summary>AI Mock Viva — signature feature</summary>
+              <div class="body">
+                <p>
+                  Simulates faculty oral examination. Three session types:
+                  <strong>Project</strong> (must link a project), <strong>Subject</strong> (topic
+                  chips like DBMS, OS, CN, ML…), <strong>General</strong> (broad technical).
+                  Students pick duration, difficulty (including Adaptive), persona, and language.
+                </p>
+                <h4>Two interaction modes</h4>
+                <ul class="tight">
+                  <li>
+                    <strong>REST Q&amp;A:</strong> start → answer → skip → hint → end; questions
+                    persisted in <code>viva_questions</code>.
+                  </li>
+                  <li>
+                    <strong>Live voice:</strong> shared live engine; spoken examiner with
+                    interruption policies from persona.
+                  </li>
+                </ul>
+                <h4>Use cases</h4>
+                <ul class="tight">
+                  <li>Night-before major project defense.</li>
+                  <li>Subject viva prep mid-semester (DBMS normalization grilling).</li>
+                  <li>Building speaking confidence for first-gen engineers.</li>
+                </ul>
+                <h4>Benefits</h4>
+                <ul class="tight">
+                  <li>Unlimited safe failure before the real panel.</li>
+                  <li>
+                    Hints without fully spoiling; adaptive depth when answers are strong/weak.
+                  </li>
+                  <li>Transcript + delivery metrics + score history for deliberate practice.</li>
+                </ul>
+                <h4>Low-level</h4>
+                <p>
+                  API prefix <code>/api/viva</code>. Live path
+                  <code>WS /ws/live/viva/{session_id}</code>. Rubric emphasis (viva defense):
+                  technical depth, clarity, responsiveness. Stats endpoint aggregates
+                  strengths/weaknesses across sessions.
+                </p>
+              </div>
+            </details>
+
+            <details class="acc">
+              <summary>AI Presentation Mock</summary>
+              <div class="body">
+                <p>
+                  Practice presenting project work to an AI panel. Supports slide image upload with
+                  Gemini VLM feedback, follow-up questions mid-presentation, and full live spoken
+                  delivery with <code>scenario_id</code>
+                  (project presentation, seminar, etc.).
+                </p>
+                <h4>Use cases</h4>
+                <ul class="tight">
+                  <li>Seminar / review dry-run with actual deck screenshots.</li>
+                  <li>Finding coverage holes (what you never said out loud).</li>
+                  <li>Placement “explain your project” with slides.</li>
+                </ul>
+                <h4>Benefits</h4>
+                <ul class="tight">
+                  <li>Multimodal: content of slides + spoken narrative.</li>
+                  <li>Feeds Presentation → Viva Bridge automatically.</li>
+                  <li>Delivery metrics for pace and monologue length.</li>
+                </ul>
+                <h4>Low-level</h4>
+                <p>
+                  API <code>/api/presentation/*</code>. Rubric: structure, clarity, delivery. Pitch
+                  sessions can share presentation session storage with
+                  <code>session_type: "Pitch"</code>.
+                </p>
+              </div>
+            </details>
+
+            <details class="acc">
+              <summary>90-Second Pitch Drill</summary>
+              <div class="body">
+                <p>
+                  Short-form persuasion practice examiners and recruiters open with: problem →
+                  solution → why now / why you. Timed drill with AI scoring; also available as a
+                  live pitch scenario (elevator pitch) under the shared engine.
+                </p>
+                <ul class="tight">
+                  <li>
+                    <strong>Use case:</strong> First 90 seconds of any review or angel-style
+                    Q&amp;A.
+                  </li>
+                  <li><strong>Rubric:</strong> problem framing, value proposition, delivery.</li>
+                  <li><strong>XP:</strong> +30 on completion (gamification table).</li>
+                  <li><strong>Route:</strong> <code>/pitch-drill</code></li>
+                </ul>
+              </div>
+            </details>
+
+            <details class="acc">
+              <summary>Live session engine (shared infrastructure)</summary>
+              <div class="body">
+                <p>
+                  One WebSocket protocol powers Viva, Presentation, Pitch, and Communication Coach.
+                  That is intentional: latency-sensitive conversation stays thin; analytics stay fat
+                  and offline.
+                </p>
+                <h4>High-level flow</h4>
+                <ol class="tight" style="padding-left: 1.15rem; color: var(--ink-2)">
+                  <li>Client creates session row via REST (authz + config).</li>
+                  <li>Opens <code>WS /ws/live/{mode}/{session_id}</code>.</li>
+                  <li>
+                    Server composes system instruction from mode + scenario block + persona block.
+                  </li>
+                  <li>Audio frames stream to Gemini Live; model audio returns for playback.</li>
+                  <li>
+                    Tools: <code>log_observation</code> (and legacy <code>flag_moment</code>) write
+                    evidence to <code>session_events</code>.
+                  </li>
+                  <li>On complete: delivery metrics + report generation + persistence.</li>
+                </ol>
+                <h4>Quality controls (non-negotiable product behavior)</h4>
+                <ul class="tight">
+                  <li>
+                    <strong>Mic gate:</strong> open only after greeting audio drains (+ latency
+                    pad); barge-in opens immediately.
+                  </li>
+                  <li>
+                    <strong>Server safety gate:</strong> drops early audio until first model
+                    <code>turn_complete</code> (20s release so it cannot deadlock).
+                  </li>
+                  <li>
+                    <strong>Language TTS:</strong> BCP-47
+                    <code>speech_config.language_code</code> for non-English; fallback strip if
+                    model rejects.
+                  </li>
+                  <li>
+                    <strong>Observation dedupe:</strong> same (dimension, kind) within ~20s is not
+                    double-logged.
+                  </li>
+                  <li>
+                    <strong>Evidence-log pattern:</strong> live model must not be the scorer;
+                    scoring is post-session only.
+                  </li>
+                </ul>
+                <h4>Scenario catalog (server-owned)</h4>
+                <p>
+                  20+ scenarios across <strong>academic</strong>, <strong>placement</strong>,
+                  <strong>corporate</strong>, <strong>public</strong>
+                  — e.g. Project Viva Defense, Subject Viva, HR Interview, Technical Interview,
+                  Campus GD, Client Meeting, Daily Stand-up, Elevator Pitch, Panel Q&amp;A. Each
+                  carries role, objectives, dialogue style, interaction policy, coaching focus,
+                  weighted rubric, opening move.
+                </p>
+                <h4>Personas (behavioral matrix, not adjectives)</h4>
+                <div class="table-frame" style="margin-top: 0.5rem">
+                  <table class="data">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Intent</th>
+                        <th>Pressure style</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>friendly</td>
+                        <td>Early practice</td>
+                        <td>Warm, generous hints, lenient scoring</td>
+                      </tr>
+                      <tr>
+                        <td>calm</td>
+                        <td>Low-pressure precision</td>
+                        <td>Unhurried, measured feedback</td>
+                      </tr>
+                      <tr>
+                        <td>balanced</td>
+                        <td>Default realistic examiner</td>
+                        <td>Fair follow-ups, standard difficulty</td>
+                      </tr>
+                      <tr>
+                        <td>strict</td>
+                        <td>Defensible answers only</td>
+                        <td>Drills vague claims, scarce praise</td>
+                      </tr>
+                      <tr>
+                        <td>hostile</td>
+                        <td>Tough panel simulation</td>
+                        <td>Skeptical, frequent probes — always formal register, never slang</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p style="margin-top: 0.75rem">
+                  Axes include tone, patience, interruption policy, follow-up depth, hint policy,
+                  encouragement, difficulty ramp, scoring stance, and vocabulary register (formal
+                  even when hostile).
+                </p>
+              </div>
+            </details>
+
+            <details class="acc">
+              <summary>Languages</summary>
+              <div class="body">
+                <p>
+                  Supported live-session labels (UI + DB CHECK aligned): English, Hindi, Hinglish,
+                  Telugu, Tenglish, Tamil, Tanglish, Kannada, Malayalam, Marathi, Bengali, Gujarati,
+                  Punjabi. Server normalizes unknown values to English so sessions never 500 on a
+                  bad language string.
+                </p>
+              </div>
+            </details>
+          </section>
+
+          <!-- 08 ADVANCED -->
+          <section class="block" id="advanced">
+            <div class="kicker">08 · Advanced AI modes</div>
+            <h2 class="display">Seven differentiators under /advanced</h2>
+            <p>
+              These modes extend the core loop in ways generic chat products cannot copy overnight.
+              Each has dedicated routes under <code>/advanced/*</code> and APIs under
+              <code>/api/advanced/*</code>.
+            </p>
+
+            <div class="feature panel">
+              <header>
+                <h3>A · Code-Aware Viva</h3>
+                <span class="tag warm">Killer feature</span>
+              </header>
+              <p>
+                Student uploads a project ZIP or links GitHub. VivAI extracts readable sources,
+                stores a
+                <code>code_snapshots</code> row, analyzes structure, then asks implementation-level
+                questions (“why this concurrency model?”, “what breaks if this layer is removed?”).
+                End report includes how much of the codebase the questioning covered.
+              </p>
+              <ul class="tight">
+                <li>
+                  <strong>Use case:</strong> Student who “used a tutorial stack” but must defend
+                  every choice.
+                </li>
+                <li>
+                  <strong>Benefit:</strong> Simulates faculty who actually open the repo — the real
+                  exam behavior.
+                </li>
+                <li><strong>Route:</strong> <code>/advanced/viva-code-aware</code></li>
+              </ul>
+            </div>
+
+            <div class="feature panel">
+              <header>
+                <h3>B · Presentation → Viva Bridge</h3>
+                <span class="tag">Closed loop</span>
+              </header>
+              <p>
+                After a presentation session, VivAI identifies weak topics (clarity / confidence /
+                coverage gaps), generates targeted viva questions, and can launch a focused viva in
+                one action. Presentation practice stops being a dead-end “nice dry-run.”
+              </p>
+              <ul class="tight">
+                <li>
+                  <strong>Use case:</strong> Seminar went okay but architecture explanation scored
+                  low → 8 gap questions overnight.
+                </li>
+                <li><strong>APIs:</strong> gaps, generate-questions, launch-viva, history.</li>
+              </ul>
+            </div>
+
+            <div class="feature panel">
+              <header>
+                <h3>C · Team Viva Mode</h3>
+                <span class="tag">Realtime</span>
+              </header>
+              <p>
+                Multi-member viva over WebSocket. Question broadcasts to the team; members race to
+                answer; others can add corrections; scoring produces individual results plus a
+                collaboration score. Mirrors how real group vivas put teammates on the spot.
+              </p>
+              <ul class="tight">
+                <li>
+                  <strong>Use case:</strong> Catch “only one member understands the backend” two
+                  weeks early.
+                </li>
+                <li>
+                  <strong>Socket:</strong>
+                  <code>/api/advanced/ws/team-viva/{session_id}/{profile_id}</code>
+                </li>
+              </ul>
+            </div>
+
+            <div class="feature panel">
+              <header>
+                <h3>D · Faculty Simulation</h3>
+                <span class="tag">Personalization</span>
+              </header>
+              <p>
+                Crowd-sourced professor profiles: subjects, style tags, tough topics, interruption
+                habits, expected depth. Mock viva system prompt adopts that examiner’s pattern.
+                Students can rate simulation accuracy after — improving the campus library over
+                time.
+              </p>
+              <ul class="tight">
+                <li>
+                  <strong>Use case:</strong> “Prof. Sharma always starts with normalization and cuts
+                  vague answers.”
+                </li>
+                <li>
+                  <strong>Benefit:</strong> Hyper-local prep no national interview app can offer.
+                </li>
+              </ul>
+            </div>
+
+            <div class="feature panel">
+              <header>
+                <h3>E · Weakness Heatmap</h3>
+                <span class="tag">Longitudinal</span>
+              </header>
+              <p>
+                Aggregates scored viva answers across all sessions into topic-level weakness maps
+                (per project and overall). Not a single-session grade — a running diagnosis: what
+                you keep missing, how many times you practiced it, trend direction.
+              </p>
+              <ul class="tight">
+                <li>
+                  <strong>Use case:</strong> Three vivas in; indexing and thread-safety still red →
+                  prioritize those flashcards + gap viva.
+                </li>
+              </ul>
+            </div>
+
+            <div class="feature panel">
+              <header>
+                <h3>F · College Viva Predictor</h3>
+                <span class="tag warm">Network effect</span>
+              </header>
+              <p>
+                Anonymized aggregation of what’s being asked across the college/batch for a subject
+                — probability rankings, weekly trends, frequent recent questions, and personal risk
+                (likely topics ∩ your weak topics). Improves only as more peers practice — a real
+                moat.
+              </p>
+            </div>
+
+            <div class="feature panel">
+              <header>
+                <h3>G · AI Communication Coach</h3>
+                <span class="tag">Multimodal</span>
+              </header>
+              <p>
+                Live role-play across the scenario catalog (HR, GD, client meeting, public
+                speaking…) with camera-aware coaching where required. Real-time delivery signals and
+                an evidence report after. Surface:
+                <code>/advanced/sentiment-analysis</code> (product label: Communication Coach).
+              </p>
+            </div>
+          </section>
+
+          <!-- 09 INSIGHTS -->
+          <section class="block" id="insights">
+            <div class="kicker">09 · Insights &amp; habits</div>
+            <h2 class="display">Making practice stick</h2>
+
+            <div class="grid-2">
+              <div class="panel">
+                <h3>Defense Readiness score</h3>
+                <p>Composite 0–100 the dashboard leads with. Weighted components (sum = 1.0):</p>
+                <ul class="tight">
+                  <li><strong>Viva 35%</strong> — average completed viva scores</li>
+                  <li><strong>Presentation 20%</strong> — average presentation scores</li>
+                  <li><strong>Coverage 20%</strong> — topic mastery breadth across questions</li>
+                  <li><strong>Consistency 15%</strong> — sessions + active days in last 14 days</li>
+                  <li><strong>Project 10%</strong> — average project progress %</li>
+                </ul>
+                <p class="muted" style="margin: 0; font-size: 0.88rem">
+                  Also surfaces weakest topics so the score is actionable, not decorative. API:
+                  <code>/api/readiness</code>
+                </p>
+              </div>
+              <div class="panel">
+                <h3>Gamification</h3>
+                <p>XP, levels (250 XP per level), daily streaks, badges.</p>
+                <ul class="tight">
+                  <li>Viva / presentation completed: <strong>+50 XP</strong></li>
+                  <li>Pitch completed: <strong>+30</strong></li>
+                  <li>Flashcards reviewed: <strong>+15</strong></li>
+                  <li>Question bank created: <strong>+20</strong></li>
+                  <li>
+                    Task completed: <strong>+10</strong> · Project created: <strong>+15</strong>
+                  </li>
+                </ul>
+                <p class="muted" style="margin: 0; font-size: 0.88rem">
+                  Badges include First Viva, Getting Sharp (5), Viva Veteran (20), streaks 3/7, High
+                  Scorer (85%+), Presenter, Scholar (50 cards), Rising Star (level 5).
+                </p>
               </div>
             </div>
-          </div>
-        </section>
 
-        <!-- 02 WHAT -->
-        <section class="block" id="what">
-          <div class="kicker">02 · Solution</div>
-          <h2 class="display">What VivAI is</h2>
-          <p>
-            VivAI is a <strong>defense-readiness platform</strong> for college engineers.
-            It combines a lightweight academic workspace with a high-quality live practice engine
-            and longitudinal analytics — so every mock session is fed by real student work and
-            feeds the next practice recommendation.
-          </p>
-
-          <div class="grid-3" style="margin-top:1.25rem">
-            <div class="panel">
-              <h3>1 · Workspace</h3>
-              <p class="muted" style="margin:0;font-size:0.9rem">
-                Projects (PBL / Mini / Major), Kanban, files, teams, templates, study bank —
-                the academic source of truth the AI can read.
-              </p>
-            </div>
-            <div class="panel">
-              <h3>2 · Practice</h3>
-              <p class="muted" style="margin:0;font-size:0.9rem">
-                Mock Viva, Presentation Mock, Pitch Drill, Communication Coach —
-                text Q&amp;A or full live voice with camera, scenarios, and personas.
-              </p>
-            </div>
-            <div class="panel">
-              <h3>3 · Insight</h3>
-              <p class="muted" style="margin:0;font-size:0.9rem">
-                Evidence reports, delivery metrics, weakness heatmap, readiness score,
-                college predictor, XP / streaks — so progress is measurable.
-              </p>
-            </div>
-          </div>
-
-          <h4>Positioning statement</h4>
-          <div class="pull">
-            <p>
-              VivAI is for B.Tech students who need to defend real project work under oral pressure.
-              Unlike generic AI interview apps, VivAI uses the student’s project, code, and slides
-              as context, runs realistic live examiners, and returns scores only when claims are
-              backed by transcript evidence.
-            </p>
-            <cite>How we talk about VivAI in one breath</cite>
-          </div>
-
-          <h4>Who it is for (ICP)</h4>
-          <div class="table-frame">
-            <table class="data">
-              <thead>
-                <tr><th>Segment</th><th>When they show up</th><th>What they need from VivAI</th></tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>3rd / 4th year engineers</td>
-                  <td>Mini / major project season, subject orals</td>
-                  <td>Project viva, presentation, team viva, readiness</td>
-                </tr>
-                <tr>
-                  <td>Placement-bound students</td>
-                  <td>Intern / full-time drives</td>
-                  <td>HR / tech / managerial scenarios, pitch, self-intro</td>
-                </tr>
-                <tr>
-                  <td>Project teams (2–5)</td>
-                  <td>Before group reviews</td>
-                  <td>Shared board + team viva scoring fairness</td>
-                </tr>
-                <tr>
-                  <td>Colleges / T&amp;P (B2B)</td>
-                  <td>Batch-level prep programs</td>
-                  <td>Scale mock practice; predictor-style cohort signals</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <!-- 03 USP -->
-        <section class="block" id="usp">
-          <div class="kicker">03 · Differentiation</div>
-          <h2 class="display">What only VivAI connects</h2>
-          <p>
-            Most tools optimize a single slice. VivAI’s advantage is <strong>connected context</strong>:
-            project artifacts feed viva; weak presentations spawn gap vivas; sessions accumulate into
-            heatmaps and a campus predictor; live scores refuse to invent praise without evidence.
-          </p>
-
-          <div class="table-frame">
-            <table class="data">
-              <thead>
-                <tr><th>Capability</th><th>Typical alternative</th><th>VivAI</th></tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Question grounding</td>
-                  <td>Generic CS / HR banks</td>
-                  <td>Project fields + code snapshots + slide uploads</td>
-                </tr>
-                <tr>
-                  <td>Code-aware viva</td>
-                  <td>Almost never</td>
-                  <td>ZIP / GitHub → implementation-specific probes</td>
-                </tr>
-                <tr>
-                  <td>Presentation ↔ viva</td>
-                  <td>Separate products</td>
-                  <td>Bridge: weak topics → auto-generated focused viva</td>
-                </tr>
-                <tr>
-                  <td>Group viva</td>
-                  <td>Solo practice only</td>
-                  <td>Realtime multi-member race + collab scores</td>
-                </tr>
-                <tr>
-                  <td>Examiner model</td>
-                  <td>One “interviewer” tone string</td>
-                  <td>20 scenarios × 5 behavioral personas (7-axis matrix)</td>
-                </tr>
-                <tr>
-                  <td>Faculty personalization</td>
-                  <td>N/A</td>
-                  <td>Crowd-sourced professor profiles simulated by AI</td>
-                </tr>
-                <tr>
-                  <td>Campus intelligence</td>
-                  <td>N/A</td>
-                  <td>College Viva Predictor from anonymized session history</td>
-                </tr>
-                <tr>
-                  <td>Scoring integrity</td>
-                  <td>LLM free-text “great job”</td>
-                  <td>Observe live → score offline → drop uncited claims</td>
-                </tr>
-                <tr>
-                  <td>Language reality</td>
-                  <td>English-only audio</td>
-                  <td>13 labels incl. Hinglish, Tanglish, Tenglish + regional TTS mapping</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <h4>USP lines (use these, not generic superlatives)</h4>
-          <ul class="tight">
-            <li><strong>“Faculty who read your code.”</strong> — Code-Aware Viva.</li>
-            <li><strong>“Your slides fail → your next viva is born.”</strong> — Presentation Bridge.</li>
-            <li><strong>“Scores you can audit.”</strong> — every finding needs resolvable <code>evidence_refs</code>.</li>
-            <li><strong>“Practice the real room.”</strong> — live voice, camera coaching, tough-panel persona.</li>
-            <li><strong>“Gets smarter as your campus practices.”</strong> — College Predictor network effect.</li>
-          </ul>
-        </section>
-
-        <!-- 04 LOOP -->
-        <section class="block" id="loop">
-          <div class="kicker">04 · Core loop</div>
-          <h2 class="display">The product loop students live in</h2>
-          <p>
-            Everything in VivAI either feeds this loop or reports on it. If a feature does not
-            improve build quality, practice quality, measurement quality, or next-action clarity —
-            it does not belong in the core narrative.
-          </p>
-          <div class="loop">
-            <div class="loop-item">
-              <div class="num">01</div>
-              <div class="t">Ground</div>
-              <div class="s">Project, code, files, team</div>
-            </div>
-            <div class="loop-item">
-              <div class="num">02</div>
-              <div class="t">Practice</div>
-              <div class="s">Viva / present / pitch / coach</div>
-            </div>
-            <div class="loop-item">
-              <div class="num">03</div>
-              <div class="t">Measure</div>
-              <div class="s">Report, metrics, heatmap</div>
-            </div>
-            <div class="loop-item">
-              <div class="num">04</div>
-              <div class="t">Redirect</div>
-              <div class="s">Bridge, readiness, study</div>
-            </div>
-          </div>
-          <div class="panel flat">
-            <p style="margin:0;font-size:0.92rem">
-              <strong>Example:</strong> Student uploads major-project ZIP → Code-Aware Viva (Strict) →
-              report flags weak DB indexing answers → Study Bank cards on indexing → Presentation Mock
-              on architecture slides → Bridge launches a 10-minute gap viva → Readiness score rises →
-              Team Viva with partners two days before panel.
-            </p>
-          </div>
-        </section>
-
-        <!-- 05 JOURNEY -->
-        <section class="block" id="journey">
-          <div class="kicker">05 · End-to-end journey</div>
-          <h2 class="display">How a student actually uses VivAI</h2>
-          <p>
-            This is the full lifecycle — from empty account to defense week —
-            mapped to real screens and backend behavior.
-          </p>
-
-          <ol class="steps">
-            <li>
-              <h3>Account &amp; identity</h3>
-              <p>
-                Signup / login via email (Supabase Auth) or Google OAuth.
-                Session token is stored client-side as <code>cpn_token</code> and sent as
-                <code>Authorization: Bearer …</code> on every API call.
-              </p>
-              <div class="detail">
-                Routes: <code>/signup</code>, <code>/login</code>, <code>/forgot-password</code>, <code>/reset-password</code>.
-                API: <code>/api/auth/*</code>. Profile fields: full name, college, year, branch, roll number, goals.
+            <div class="grid-2" style="margin-top: 0.85rem">
+              <div class="panel flat">
+                <h3>Study Bank</h3>
+                <p class="muted" style="margin: 0; font-size: 0.9rem">
+                  Question banks + spaced flashcards; due queue; convert bank → viva. Turns passive
+                  notes into oral reps. Route <code>/study</code>.
+                </p>
               </div>
-            </li>
-            <li>
-              <h3>Onboarding (3 steps)</h3>
-              <p>
-                Branch (CSE, IT, ECE, EEE, Mechanical, Civil, AI/ML, Data Science…), year,
-                project type (PBL / Major / Mini / Research), and goals
-                (“Ace my viva”, “Ship a demo”, “Land an internship”…).
-                Completing onboarding seeds a first project best-effort and marks
-                <code>onboarding_complete</code>.
-              </p>
-              <div class="detail">Route: <code>/onboarding</code> · API: <code>POST /api/onboarding/complete</code></div>
-            </li>
-            <li>
-              <h3>Dashboard as home base</h3>
-              <p>
-                Greeting by first name, <strong>Defense Readiness</strong> gauge, gamification strip
-                (XP / level / streak), stats row, active projects, upcoming deadlines, quick prep CTAs,
-                recent viva sessions, and teams. The dashboard is optimized for “what should I practice next?”
-                not a vanity feed.
-              </p>
-              <div class="detail">Route: <code>/</code> · Data: readiness + dashboard analytics + projects + viva sessions + teams</div>
-            </li>
-            <li>
-              <h3>Build the project workspace</h3>
-              <p>
-                Create PBL / Mini / Major projects with title, subject, tech stack, problem statement,
-                description, deadline, semester. Upload files (PDF, PPTX, DOCX, images, ZIP).
-                Drive a 4-column Kanban: <strong>To Do → In Progress → Review → Done</strong>
-                with drag-and-drop order persisted as sparse <code>sort_order</code> integers.
-              </p>
-              <div class="detail">
-                Routes: <code>/projects</code>, <code>/projects/new</code>, <code>/projects/$id</code>, <code>/files</code>.
-                Reorder API: <code>PUT /api/projects/{id}/tasks/reorder</code>.
+              <div class="panel flat">
+                <h3>Progress &amp; leaderboard</h3>
+                <p class="muted" style="margin: 0; font-size: 0.9rem">
+                  Unified progress view; analytics for dashboard stats, activity feed, trends;
+                  college/branch leaderboard for light social pressure. Routes
+                  <code>/progress</code>, <code>/leaderboard</code>.
+                </p>
               </div>
-            </li>
-            <li>
-              <h3>Form a team</h3>
-              <p>
-                Create team with atomic lead membership (Postgres RPC <code>create_team_with_lead</code>
-                + compensating fallback). Invite via code, set Lead / Member roles,
-                request project↔team linking, browse activity. Historical orphan teams self-heal on list.
-              </p>
-              <div class="detail">Routes: <code>/teams</code>, <code>/teams/$id</code>, project Team tab</div>
-            </li>
-            <li>
-              <h3>Prep materials (optional but powerful)</h3>
-              <p>
-                Templates &amp; checklists for project formats and viva structure.
-                Study Bank turns material into question banks + spaced-repetition flashcards;
-                any bank can convert into a focused viva session (<code>to-viva</code>).
-              </p>
-              <div class="detail">Routes: <code>/templates</code>, <code>/study</code>, <code>/study/review</code></div>
-            </li>
-            <li>
-              <h3>Configure a practice session</h3>
-              <p>
-                From Mock Viva setup: session type (Subject / Project / General), duration
-                (5 / 10 / 20 / 30 min), difficulty (incl. Adaptive), persona from server catalog,
-                language (13 options), subject chips or linked project.
-                Presentation / Pitch / Coach flows pick scenario_id from the server-owned catalog
-                (UI only sees safe public fields — rubrics and prompt text never leave the backend).
-              </p>
-              <div class="detail">
-                Catalog: <code>GET /api/catalog/scenarios</code>, <code>/personas</code>.
-                Create: <code>POST /api/viva/sessions</code> or presentation equivalent.
+            </div>
+          </section>
+
+          <!-- 10 REPORT -->
+          <section class="block" id="report">
+            <div class="kicker">10 · Scoring philosophy</div>
+            <h2 class="display">Why VivAI reports are trustworthy</h2>
+            <p>
+              Students ignore feedback they cannot believe. VivAI separates
+              <strong>conversation</strong> from <strong>judgment</strong> on purpose.
+            </p>
+            <div class="grid-2">
+              <div class="panel">
+                <h3>During the session</h3>
+                <ul class="tight">
+                  <li>Model role-plays examiner / coach only.</li>
+                  <li>Logs observations with evidence (quote or concrete detail).</li>
+                  <li>
+                    Deterministic delivery metrics computed from timestamps — no LLM required.
+                  </li>
+                </ul>
               </div>
-            </li>
-            <li>
-              <h3>Run the session</h3>
-              <p>
-                <strong>Classic path:</strong> REST start → answer / skip / hint → end.
-                <strong>Live path:</strong> WebSocket <code>/ws/live/{mode}/{session_id}</code>
-                streams mic audio to Gemini Live and plays examiner speech back.
-                Mic gate opens only after greeting playback finishes (prevents echo double-greeting).
-                Model logs evidence-backed observations via tools; deterministic delivery metrics
-                track fillers, WPM, talk ratio, latency.
-              </p>
-              <div class="detail">
-                Modes on the shared live engine: viva, presentation, pitch, coach.
-                Separate sockets exist for team viva and sentiment frame streams under <code>/api/advanced</code>.
+              <div class="panel">
+                <h3>After the session</h3>
+                <ul class="tight">
+                  <li>One structured JSON report generation pass with hard citation rules.</li>
+                  <li><code>_validate_report</code> drops uncited findings.</li>
+                  <li>Recomputes overall as weighted mean of rubric dimensions.</li>
+                  <li>Camera off → body language section marked not observed.</li>
+                </ul>
               </div>
-            </li>
-            <li>
-              <h3>Receive a structured report</h3>
-              <p>
-                On finalize, VivAI builds a versioned <code>SessionReport</code>: executive summary,
-                weighted dimension scores, findings (strength / issue / note) with evidence refs,
-                timeline, practice plan, recommendations, industry expectations, resources.
-                Validator drops findings without valid evidence; body language is forced
-                <code>not_observed</code> if camera was off; overall score is recomputed as
-                rubric-weighted mean (not three identical vibes).
-              </p>
-            </li>
-            <li>
-              <h3>Close the loops</h3>
-              <p>
-                Weakness Heatmap updates across sessions. Presentation Bridge launches gap vivas.
-                Readiness recomputes. XP awards (e.g. +50 viva, +50 presentation, +30 pitch).
-                College Predictor improves as peers practice. Student returns to dashboard with a clearer next action.
-              </p>
-            </li>
-          </ol>
-
-          <h4>Defense-week playbook (concrete)</h4>
-          <div class="panel">
-            <dl>
-              <div class="split-label"><dt>Day −10</dt><dd>Upload final report + code ZIP; complete project fields (stack, problem statement).</dd></div>
-              <div class="split-label"><dt>Day −8</dt><dd>Code-Aware Viva, Balanced persona → Strict on day −7.</dd></div>
-              <div class="split-label"><dt>Day −6</dt><dd>Presentation Mock with camera; review delivery metrics (pace, fillers).</dd></div>
-              <div class="split-label"><dt>Day −5</dt><dd>Bridge → focused viva on weak architecture topics; flashcards for red heatmap cells.</dd></div>
-              <div class="split-label"><dt>Day −3</dt><dd>Team Viva with project mates; fix who freezes on whose module.</dd></div>
-              <div class="split-label"><dt>Day −1</dt><dd>Tough Panel persona + 90s Pitch Drill; check Readiness ≥ target.</dd></div>
-            </dl>
-          </div>
-        </section>
-
-        <!-- 06 WORKSPACE -->
-        <section class="block" id="workspace">
-          <div class="kicker">06 · Workspace features</div>
-          <h2 class="display">Where academic work lives</h2>
-          <p>
-            Workspace is not “Jira for students.” It exists so oral AI has something real to examine —
-            and so teams stop coordinating exclusively in WhatsApp the week before review.
-          </p>
-
-          <div class="feature panel">
-            <header>
-              <h3>Projects</h3>
-              <span class="tag">Source of truth</span>
-            </header>
-            <p>
-              Students create and manage projects typed for Indian curricula: <strong>PBL</strong>,
-              <strong>Mini</strong>, <strong>Major</strong>. Key fields — problem statement, subject,
-              tech stack, description, progress %, status (In Progress / Under Review / Completed),
-              deadline — are not decorative. Project-linked vivas pull this context into questioning.
-            </p>
-            <ul class="tight">
-              <li><strong>Use case:</strong> Final-year CSE team documents “Smart Traffic using YOLO + MQTT” once; every viva reuses it.</li>
-              <li><strong>Benefit:</strong> No re-explaining the project to the AI every session; continuity across weeks.</li>
-              <li><strong>Routes:</strong> <code>/projects</code>, <code>/projects/new</code>, <code>/projects/$id</code></li>
-            </ul>
-          </div>
-
-          <div class="feature panel">
-            <header>
-              <h3>Kanban board</h3>
-              <span class="tag">Execution</span>
-            </header>
-            <p>
-              Four statuses including a deliberate <strong>Review</strong> column (mirrors faculty checkpoint language).
-              Drag-and-drop via <code>@dnd-kit</code>; order stored as sparse integers (×1000 gaps) with batch reorder API
-              and optimistic TanStack Query updates so the board feels native.
-            </p>
-            <ul class="tight">
-              <li><strong>Use case:</strong> Split “dataset cleaning / model training / report / slides” across teammates with due dates and priority.</li>
-              <li><strong>Benefit:</strong> Defense prep becomes visible work, not last-night panic.</li>
-            </ul>
-          </div>
-
-          <div class="feature panel">
-            <header>
-              <h3>Teams &amp; project linking</h3>
-              <span class="tag">Collaboration</span>
-            </header>
-            <p>
-              Teams are first-class: create, invite, join by code, change roles, remove members, activity feed.
-              Project–team linking uses a request / accept flow so ownership stays clean when one student owns the project row
-              but the team defends together. Create path cannot return a team the creator cannot see
-              (atomic membership insert + list self-heal).
-            </p>
-            <ul class="tight">
-              <li><strong>Use case:</strong> Four-member major project; Lead invites via code; Team Viva uses the same membership graph.</li>
-              <li><strong>Benefit:</strong> Collaboration graph is real data, not a static “team name” field.</li>
-            </ul>
-          </div>
-
-          <div class="feature panel">
-            <header>
-              <h3>Files &amp; templates</h3>
-              <span class="tag">Artifacts</span>
-            </header>
-            <p>
-              Uploads go to Supabase Storage (bucket configurable, default <code>uploads</code>) with metadata rows for listing/download.
-              Templates hub serves structured guides + checklists (PBL, major, mini, viva) so students know expected academic shape
-              before AI practice even starts.
-            </p>
-          </div>
-        </section>
-
-        <!-- 07 PRACTICE -->
-        <section class="block" id="practice">
-          <div class="kicker">07 · Practice engines</div>
-          <h2 class="display">Signature oral practice</h2>
-          <p>
-            These are the product’s center of gravity. Everything else either supplies context to them
-            or analyzes their outputs.
-          </p>
-
-          <details class="acc" open>
-            <summary>AI Mock Viva — signature feature</summary>
-            <div class="body">
-              <p>
-                Simulates faculty oral examination. Three session types: <strong>Project</strong> (must link a project),
-                <strong>Subject</strong> (topic chips like DBMS, OS, CN, ML…), <strong>General</strong> (broad technical).
-                Students pick duration, difficulty (including Adaptive), persona, and language.
-              </p>
-              <h4>Two interaction modes</h4>
-              <ul class="tight">
-                <li><strong>REST Q&amp;A:</strong> start → answer → skip → hint → end; questions persisted in <code>viva_questions</code>.</li>
-                <li><strong>Live voice:</strong> shared live engine; spoken examiner with interruption policies from persona.</li>
-              </ul>
-              <h4>Use cases</h4>
-              <ul class="tight">
-                <li>Night-before major project defense.</li>
-                <li>Subject viva prep mid-semester (DBMS normalization grilling).</li>
-                <li>Building speaking confidence for first-gen engineers.</li>
-              </ul>
-              <h4>Benefits</h4>
-              <ul class="tight">
-                <li>Unlimited safe failure before the real panel.</li>
-                <li>Hints without fully spoiling; adaptive depth when answers are strong/weak.</li>
-                <li>Transcript + delivery metrics + score history for deliberate practice.</li>
-              </ul>
-              <h4>Low-level</h4>
-              <p>
-                API prefix <code>/api/viva</code>. Live path <code>WS /ws/live/viva/{session_id}</code>.
-                Rubric emphasis (viva defense): technical depth, clarity, responsiveness.
-                Stats endpoint aggregates strengths/weaknesses across sessions.
-              </p>
             </div>
-          </details>
-
-          <details class="acc">
-            <summary>AI Presentation Mock</summary>
-            <div class="body">
-              <p>
-                Practice presenting project work to an AI panel. Supports slide image upload with Gemini VLM feedback,
-                follow-up questions mid-presentation, and full live spoken delivery with <code>scenario_id</code>
-                (project presentation, seminar, etc.).
-              </p>
-              <h4>Use cases</h4>
-              <ul class="tight">
-                <li>Seminar / review dry-run with actual deck screenshots.</li>
-                <li>Finding coverage holes (what you never said out loud).</li>
-                <li>Placement “explain your project” with slides.</li>
-              </ul>
-              <h4>Benefits</h4>
-              <ul class="tight">
-                <li>Multimodal: content of slides + spoken narrative.</li>
-                <li>Feeds Presentation → Viva Bridge automatically.</li>
-                <li>Delivery metrics for pace and monologue length.</li>
-              </ul>
-              <h4>Low-level</h4>
-              <p>API <code>/api/presentation/*</code>. Rubric: structure, clarity, delivery. Pitch sessions can share presentation session storage with <code>session_type: "Pitch"</code>.</p>
-            </div>
-          </details>
-
-          <details class="acc">
-            <summary>90-Second Pitch Drill</summary>
-            <div class="body">
-              <p>
-                Short-form persuasion practice examiners and recruiters open with:
-                problem → solution → why now / why you. Timed drill with AI scoring;
-                also available as a live pitch scenario (elevator pitch) under the shared engine.
-              </p>
-              <ul class="tight">
-                <li><strong>Use case:</strong> First 90 seconds of any review or angel-style Q&amp;A.</li>
-                <li><strong>Rubric:</strong> problem framing, value proposition, delivery.</li>
-                <li><strong>XP:</strong> +30 on completion (gamification table).</li>
-                <li><strong>Route:</strong> <code>/pitch-drill</code></li>
-              </ul>
-            </div>
-          </details>
-
-          <details class="acc">
-            <summary>Live session engine (shared infrastructure)</summary>
-            <div class="body">
-              <p>
-                One WebSocket protocol powers Viva, Presentation, Pitch, and Communication Coach.
-                That is intentional: latency-sensitive conversation stays thin; analytics stay fat and offline.
-              </p>
-              <h4>High-level flow</h4>
-              <ol class="tight" style="padding-left:1.15rem;color:var(--ink-2)">
-                <li>Client creates session row via REST (authz + config).</li>
-                <li>Opens <code>WS /ws/live/{mode}/{session_id}</code>.</li>
-                <li>Server composes system instruction from mode + scenario block + persona block.</li>
-                <li>Audio frames stream to Gemini Live; model audio returns for playback.</li>
-                <li>Tools: <code>log_observation</code> (and legacy <code>flag_moment</code>) write evidence to <code>session_events</code>.</li>
-                <li>On complete: delivery metrics + report generation + persistence.</li>
-              </ol>
-              <h4>Quality controls (non-negotiable product behavior)</h4>
-              <ul class="tight">
-                <li><strong>Mic gate:</strong> open only after greeting audio drains (+ latency pad); barge-in opens immediately.</li>
-                <li><strong>Server safety gate:</strong> drops early audio until first model <code>turn_complete</code> (20s release so it cannot deadlock).</li>
-                <li><strong>Language TTS:</strong> BCP-47 <code>speech_config.language_code</code> for non-English; fallback strip if model rejects.</li>
-                <li><strong>Observation dedupe:</strong> same (dimension, kind) within ~20s is not double-logged.</li>
-                <li><strong>Evidence-log pattern:</strong> live model must not be the scorer; scoring is post-session only.</li>
-              </ul>
-              <h4>Scenario catalog (server-owned)</h4>
-              <p>
-                20+ scenarios across <strong>academic</strong>, <strong>placement</strong>, <strong>corporate</strong>, <strong>public</strong>
-                — e.g. Project Viva Defense, Subject Viva, HR Interview, Technical Interview, Campus GD,
-                Client Meeting, Daily Stand-up, Elevator Pitch, Panel Q&amp;A.
-                Each carries role, objectives, dialogue style, interaction policy, coaching focus, weighted rubric, opening move.
-              </p>
-              <h4>Personas (behavioral matrix, not adjectives)</h4>
-              <div class="table-frame" style="margin-top:0.5rem">
-                <table class="data">
-                  <thead><tr><th>ID</th><th>Intent</th><th>Pressure style</th></tr></thead>
-                  <tbody>
-                    <tr><td>friendly</td><td>Early practice</td><td>Warm, generous hints, lenient scoring</td></tr>
-                    <tr><td>calm</td><td>Low-pressure precision</td><td>Unhurried, measured feedback</td></tr>
-                    <tr><td>balanced</td><td>Default realistic examiner</td><td>Fair follow-ups, standard difficulty</td></tr>
-                    <tr><td>strict</td><td>Defensible answers only</td><td>Drills vague claims, scarce praise</td></tr>
-                    <tr><td>hostile</td><td>Tough panel simulation</td><td>Skeptical, frequent probes — always formal register, never slang</td></tr>
-                  </tbody>
-                </table>
-              </div>
-              <p style="margin-top:0.75rem">
-                Axes include tone, patience, interruption policy, follow-up depth, hint policy, encouragement,
-                difficulty ramp, scoring stance, and vocabulary register (formal even when hostile).
-              </p>
-            </div>
-          </details>
-
-          <details class="acc">
-            <summary>Languages</summary>
-            <div class="body">
-              <p>
-                Supported live-session labels (UI + DB CHECK aligned):
-                English, Hindi, Hinglish, Telugu, Tenglish, Tamil, Tanglish, Kannada, Malayalam, Marathi, Bengali, Gujarati, Punjabi.
-                Server normalizes unknown values to English so sessions never 500 on a bad language string.
-              </p>
-            </div>
-          </details>
-        </section>
-
-        <!-- 08 ADVANCED -->
-        <section class="block" id="advanced">
-          <div class="kicker">08 · Advanced AI modes</div>
-          <h2 class="display">Seven differentiators under /advanced</h2>
-          <p>
-            These modes extend the core loop in ways generic chat products cannot copy overnight.
-            Each has dedicated routes under <code>/advanced/*</code> and APIs under <code>/api/advanced/*</code>.
-          </p>
-
-          <div class="feature panel">
-            <header>
-              <h3>A · Code-Aware Viva</h3>
-              <span class="tag warm">Killer feature</span>
-            </header>
-            <p>
-              Student uploads a project ZIP or links GitHub. VivAI extracts readable sources, stores a
-              <code>code_snapshots</code> row, analyzes structure, then asks implementation-level questions
-              (“why this concurrency model?”, “what breaks if this layer is removed?”). End report includes
-              how much of the codebase the questioning covered.
+            <h4>What a SessionReport contains</h4>
+            <p class="muted" style="font-size: 0.92rem">
+              version, framework id, scenario/persona, availability (audio/camera/screen), executive
+              summary, scores (overall + dimensions with weights, explanations, evidence_refs),
+              sections with findings (strength / issue / note + confidence), timeline, optional
+              per-question breakdown, strengths, weaknesses, recommendations, practice_plan,
+              industry_expectations, resources, metrics.
             </p>
-            <ul class="tight">
-              <li><strong>Use case:</strong> Student who “used a tutorial stack” but must defend every choice.</li>
-              <li><strong>Benefit:</strong> Simulates faculty who actually open the repo — the real exam behavior.</li>
-              <li><strong>Route:</strong> <code>/advanced/viva-code-aware</code></li>
-            </ul>
-          </div>
-
-          <div class="feature panel">
-            <header>
-              <h3>B · Presentation → Viva Bridge</h3>
-              <span class="tag">Closed loop</span>
-            </header>
-            <p>
-              After a presentation session, VivAI identifies weak topics (clarity / confidence / coverage gaps),
-              generates targeted viva questions, and can launch a focused viva in one action.
-              Presentation practice stops being a dead-end “nice dry-run.”
-            </p>
-            <ul class="tight">
-              <li><strong>Use case:</strong> Seminar went okay but architecture explanation scored low → 8 gap questions overnight.</li>
-              <li><strong>APIs:</strong> gaps, generate-questions, launch-viva, history.</li>
-            </ul>
-          </div>
-
-          <div class="feature panel">
-            <header>
-              <h3>C · Team Viva Mode</h3>
-              <span class="tag">Realtime</span>
-            </header>
-            <p>
-              Multi-member viva over WebSocket. Question broadcasts to the team; members race to answer;
-              others can add corrections; scoring produces individual results plus a collaboration score.
-              Mirrors how real group vivas put teammates on the spot.
-            </p>
-            <ul class="tight">
-              <li><strong>Use case:</strong> Catch “only one member understands the backend” two weeks early.</li>
-              <li><strong>Socket:</strong> <code>/api/advanced/ws/team-viva/{session_id}/{profile_id}</code></li>
-            </ul>
-          </div>
-
-          <div class="feature panel">
-            <header>
-              <h3>D · Faculty Simulation</h3>
-              <span class="tag">Personalization</span>
-            </header>
-            <p>
-              Crowd-sourced professor profiles: subjects, style tags, tough topics, interruption habits,
-              expected depth. Mock viva system prompt adopts that examiner’s pattern.
-              Students can rate simulation accuracy after — improving the campus library over time.
-            </p>
-            <ul class="tight">
-              <li><strong>Use case:</strong> “Prof. Sharma always starts with normalization and cuts vague answers.”</li>
-              <li><strong>Benefit:</strong> Hyper-local prep no national interview app can offer.</li>
-            </ul>
-          </div>
-
-          <div class="feature panel">
-            <header>
-              <h3>E · Weakness Heatmap</h3>
-              <span class="tag">Longitudinal</span>
-            </header>
-            <p>
-              Aggregates scored viva answers across all sessions into topic-level weakness maps
-              (per project and overall). Not a single-session grade — a running diagnosis:
-              what you keep missing, how many times you practiced it, trend direction.
-            </p>
-            <ul class="tight">
-              <li><strong>Use case:</strong> Three vivas in; indexing and thread-safety still red → prioritize those flashcards + gap viva.</li>
-            </ul>
-          </div>
-
-          <div class="feature panel">
-            <header>
-              <h3>F · College Viva Predictor</h3>
-              <span class="tag warm">Network effect</span>
-            </header>
-            <p>
-              Anonymized aggregation of what’s being asked across the college/batch for a subject —
-              probability rankings, weekly trends, frequent recent questions, and personal risk
-              (likely topics ∩ your weak topics). Improves only as more peers practice — a real moat.
-            </p>
-          </div>
-
-          <div class="feature panel">
-            <header>
-              <h3>G · AI Communication Coach</h3>
-              <span class="tag">Multimodal</span>
-            </header>
-            <p>
-              Live role-play across the scenario catalog (HR, GD, client meeting, public speaking…)
-              with camera-aware coaching where required. Real-time delivery signals and an evidence report
-              after. Surface: <code>/advanced/sentiment-analysis</code> (product label: Communication Coach).
-            </p>
-          </div>
-        </section>
-
-        <!-- 09 INSIGHTS -->
-        <section class="block" id="insights">
-          <div class="kicker">09 · Insights &amp; habits</div>
-          <h2 class="display">Making practice stick</h2>
-
-          <div class="grid-2">
-            <div class="panel">
-              <h3>Defense Readiness score</h3>
-              <p>
-                Composite 0–100 the dashboard leads with. Weighted components (sum = 1.0):
-              </p>
-              <ul class="tight">
-                <li><strong>Viva 35%</strong> — average completed viva scores</li>
-                <li><strong>Presentation 20%</strong> — average presentation scores</li>
-                <li><strong>Coverage 20%</strong> — topic mastery breadth across questions</li>
-                <li><strong>Consistency 15%</strong> — sessions + active days in last 14 days</li>
-                <li><strong>Project 10%</strong> — average project progress %</li>
-              </ul>
-              <p class="muted" style="margin:0;font-size:0.88rem">
-                Also surfaces weakest topics so the score is actionable, not decorative.
-                API: <code>/api/readiness</code>
-              </p>
+            <h4>Report frameworks by scenario family</h4>
+            <div class="table-frame">
+              <table class="data">
+                <thead>
+                  <tr>
+                    <th>Framework</th>
+                    <th>Section focus</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>viva_defense</td>
+                    <td>communication · content · voice_delivery</td>
+                  </tr>
+                  <tr>
+                    <td>presentation_delivery</td>
+                    <td>communication · voice_delivery · body_language</td>
+                  </tr>
+                  <tr>
+                    <td>interview_star</td>
+                    <td>communication · voice_delivery · body_language</td>
+                  </tr>
+                  <tr>
+                    <td>pitch_persuasion</td>
+                    <td>communication · content · voice_delivery</td>
+                  </tr>
+                  <tr>
+                    <td>gd_facilitation</td>
+                    <td>communication · engagement · voice_delivery</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-            <div class="panel">
-              <h3>Gamification</h3>
-              <p>XP, levels (250 XP per level), daily streaks, badges.</p>
-              <ul class="tight">
-                <li>Viva / presentation completed: <strong>+50 XP</strong></li>
-                <li>Pitch completed: <strong>+30</strong></li>
-                <li>Flashcards reviewed: <strong>+15</strong></li>
-                <li>Question bank created: <strong>+20</strong></li>
-                <li>Task completed: <strong>+10</strong> · Project created: <strong>+15</strong></li>
-              </ul>
-              <p class="muted" style="margin:0;font-size:0.88rem">
-                Badges include First Viva, Getting Sharp (5), Viva Veteran (20), streaks 3/7,
-                High Scorer (85%+), Presenter, Scholar (50 cards), Rising Star (level 5).
-              </p>
-            </div>
-          </div>
+          </section>
 
-          <div class="grid-2" style="margin-top:0.85rem">
-            <div class="panel flat">
-              <h3>Study Bank</h3>
-              <p class="muted" style="margin:0;font-size:0.9rem">
-                Question banks + spaced flashcards; due queue; convert bank → viva.
-                Turns passive notes into oral reps. Route <code>/study</code>.
-              </p>
-            </div>
-            <div class="panel flat">
-              <h3>Progress &amp; leaderboard</h3>
-              <p class="muted" style="margin:0;font-size:0.9rem">
-                Unified progress view; analytics for dashboard stats, activity feed, trends;
-                college/branch leaderboard for light social pressure. Routes <code>/progress</code>, <code>/leaderboard</code>.
-              </p>
-            </div>
-          </div>
-        </section>
+          <!-- 11 ARCH -->
+          <section class="block" id="arch">
+            <div class="kicker">11 · Architecture</div>
+            <h2 class="display">How the system is built</h2>
+            <p>
+              VivAI is a split full-stack system: a TanStack Start frontend talks to a Python
+              FastAPI backend; Supabase holds data/auth/storage; Google Gemini provides language,
+              vision, and live audio.
+            </p>
 
-        <!-- 10 REPORT -->
-        <section class="block" id="report">
-          <div class="kicker">10 · Scoring philosophy</div>
-          <h2 class="display">Why VivAI reports are trustworthy</h2>
-          <p>
-            Students ignore feedback they cannot believe. VivAI separates <strong>conversation</strong>
-            from <strong>judgment</strong> on purpose.
-          </p>
-          <div class="grid-2">
-            <div class="panel">
-              <h3>During the session</h3>
-              <ul class="tight">
-                <li>Model role-plays examiner / coach only.</li>
-                <li>Logs observations with evidence (quote or concrete detail).</li>
-                <li>Deterministic delivery metrics computed from timestamps — no LLM required.</li>
-              </ul>
-            </div>
-            <div class="panel">
-              <h3>After the session</h3>
-              <ul class="tight">
-                <li>One structured JSON report generation pass with hard citation rules.</li>
-                <li><code>_validate_report</code> drops uncited findings.</li>
-                <li>Recomputes overall as weighted mean of rubric dimensions.</li>
-                <li>Camera off → body language section marked not observed.</li>
-              </ul>
-            </div>
-          </div>
-          <h4>What a SessionReport contains</h4>
-          <p class="muted" style="font-size:0.92rem">
-            version, framework id, scenario/persona, availability (audio/camera/screen), executive summary,
-            scores (overall + dimensions with weights, explanations, evidence_refs), sections with findings
-            (strength / issue / note + confidence), timeline, optional per-question breakdown,
-            strengths, weaknesses, recommendations, practice_plan, industry_expectations, resources, metrics.
-          </p>
-          <h4>Report frameworks by scenario family</h4>
-          <div class="table-frame">
-            <table class="data">
-              <thead><tr><th>Framework</th><th>Section focus</th></tr></thead>
-              <tbody>
-                <tr><td>viva_defense</td><td>communication · content · voice_delivery</td></tr>
-                <tr><td>presentation_delivery</td><td>communication · voice_delivery · body_language</td></tr>
-                <tr><td>interview_star</td><td>communication · voice_delivery · body_language</td></tr>
-                <tr><td>pitch_persuasion</td><td>communication · content · voice_delivery</td></tr>
-                <tr><td>gd_facilitation</td><td>communication · engagement · voice_delivery</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <!-- 11 ARCH -->
-        <section class="block" id="arch">
-          <div class="kicker">11 · Architecture</div>
-          <h2 class="display">How the system is built</h2>
-          <p>
-            VivAI is a split full-stack system: a TanStack Start frontend talks to a Python FastAPI
-            backend; Supabase holds data/auth/storage; Google Gemini provides language, vision, and live audio.
-          </p>
-
-          <h4>High-level</h4>
-<pre class="diagram"><span class="w">Browser (VivAI UI)</span>
+            <h4>High-level</h4>
+            <pre class="diagram"><span class="w">Browser (VivAI UI)</span>
   TanStack Start · React 19 · Router · Query · Tailwind · Web Audio
            │ HTTPS + Bearer token              │ WebSocket audio/events
            ▼                                   ▼
@@ -1477,288 +1869,435 @@
    profiles, projects,        text / VLM /       code ZIPs, slides,
    sessions, events…          Live voice         documents</pre>
 
-          <div class="grid-2">
-            <div class="panel">
-              <h3>High-level explanation</h3>
-              <p style="font-size:0.92rem">
-                The browser never holds Gemini keys or private rubrics. It renders routes, manages
-                media devices, and calls APIs. FastAPI is the trust boundary: validates JWT,
-                enforces project ownership and team membership, composes prompts, proxies Live audio,
-                and writes reports. Supabase is system of record; Gemini is a pure capability provider.
-              </p>
-              <p style="font-size:0.92rem;margin:0">
-                Deploy split: frontend to Cloudflare Pages/Workers (Nitro <code>cloudflare-module</code>);
-                backend on any long-running Python host (Fly, Railway, Render, VM).
-              </p>
+            <div class="grid-2">
+              <div class="panel">
+                <h3>High-level explanation</h3>
+                <p style="font-size: 0.92rem">
+                  The browser never holds Gemini keys or private rubrics. It renders routes, manages
+                  media devices, and calls APIs. FastAPI is the trust boundary: validates JWT,
+                  enforces project ownership and team membership, composes prompts, proxies Live
+                  audio, and writes reports. Supabase is system of record; Gemini is a pure
+                  capability provider.
+                </p>
+                <p style="font-size: 0.92rem; margin: 0">
+                  Deploy split: frontend to Cloudflare Pages/Workers (Nitro
+                  <code>cloudflare-module</code>); backend on any long-running Python host (Fly,
+                  Railway, Render, VM).
+                </p>
+              </div>
+              <div class="panel">
+                <h3>Low-level design choices</h3>
+                <ul class="tight">
+                  <li>
+                    <strong>Server-owned catalog</strong> in <code>backend/ai/registry.py</code> —
+                    scenarios/personas as dataclasses; public DTO strips prompts.
+                  </li>
+                  <li>
+                    <strong>Thin live / fat analysis</strong> — observe on WS; score after finalize.
+                  </li>
+                  <li>
+                    <strong>App-level authZ</strong> — service role Supabase client; no RLS
+                    dependency (ownership bugs are high severity).
+                  </li>
+                  <li>
+                    <strong>Error middleware order</strong> — catch-all inside CORS so 500s remain
+                    readable to browsers.
+                  </li>
+                  <li>
+                    <strong>Language normalization</strong> — never let a bad language string become
+                    a silent CORS failure.
+                  </li>
+                  <li>
+                    <strong>Atomic team create</strong> — RPC + compensating transaction; list
+                    self-heal for legacy orphans.
+                  </li>
+                </ul>
+              </div>
             </div>
-            <div class="panel">
-              <h3>Low-level design choices</h3>
-              <ul class="tight">
-                <li><strong>Server-owned catalog</strong> in <code>backend/ai/registry.py</code> — scenarios/personas as dataclasses; public DTO strips prompts.</li>
-                <li><strong>Thin live / fat analysis</strong> — observe on WS; score after finalize.</li>
-                <li><strong>App-level authZ</strong> — service role Supabase client; no RLS dependency (ownership bugs are high severity).</li>
-                <li><strong>Error middleware order</strong> — catch-all inside CORS so 500s remain readable to browsers.</li>
-                <li><strong>Language normalization</strong> — never let a bad language string become a silent CORS failure.</li>
-                <li><strong>Atomic team create</strong> — RPC + compensating transaction; list self-heal for legacy orphans.</li>
-              </ul>
+
+            <h4>Live path sequence (simplified)</h4>
+            <div class="panel flat">
+              <ol style="margin: 0; padding-left: 1.2rem; color: var(--ink-2); font-size: 0.9rem">
+                <li>
+                  Authenticated REST creates session with mode, persona, scenario, language,
+                  project_id…
+                </li>
+                <li>Client loads preflight (mic/camera permissions, language, devices).</li>
+                <li>
+                  WS connects; server builds instruction = base mode rules + scenario block +
+                  persona block.
+                </li>
+                <li>
+                  Model greets; client schedules audio; mic remains gated until playback drains.
+                </li>
+                <li>
+                  Turns continue; tool calls persist observations; transcript turns get timestamps.
+                </li>
+                <li>
+                  Client ends / model completes → delivery metrics from transcript → report_service
+                  → validate → store.
+                </li>
+                <li>
+                  UI renders Session Report; gamification + readiness consumers read updated rows.
+                </li>
+              </ol>
             </div>
-          </div>
+          </section>
 
-          <h4>Live path sequence (simplified)</h4>
-          <div class="panel flat">
-            <ol style="margin:0;padding-left:1.2rem;color:var(--ink-2);font-size:0.9rem">
-              <li>Authenticated REST creates session with mode, persona, scenario, language, project_id…</li>
-              <li>Client loads preflight (mic/camera permissions, language, devices).</li>
-              <li>WS connects; server builds instruction = base mode rules + scenario block + persona block.</li>
-              <li>Model greets; client schedules audio; mic remains gated until playback drains.</li>
-              <li>Turns continue; tool calls persist observations; transcript turns get timestamps.</li>
-              <li>Client ends / model completes → delivery metrics from transcript → report_service → validate → store.</li>
-              <li>UI renders Session Report; gamification + readiness consumers read updated rows.</li>
-            </ol>
-          </div>
-        </section>
-
-        <!-- 12 STACK -->
-        <section class="block" id="stack">
-          <div class="kicker">12 · Tech stack</div>
-          <h2 class="display">Concrete technology choices</h2>
-          <div class="grid-3">
-            <div class="panel">
-              <h3>Frontend</h3>
-              <ul class="tight">
-                <li>TanStack Start (Vite + Nitro)</li>
-                <li>React 19</li>
-                <li>TanStack Router (file routes in <code>src/routes</code>)</li>
-                <li>TanStack Query</li>
-                <li>Tailwind CSS v4</li>
-                <li>Radix / shadcn-style UI</li>
-                <li>react-hook-form + zod</li>
-                <li>@dnd-kit (Kanban)</li>
-                <li>Bun package manager</li>
-              </ul>
+          <!-- 12 STACK -->
+          <section class="block" id="stack">
+            <div class="kicker">12 · Tech stack</div>
+            <h2 class="display">Concrete technology choices</h2>
+            <div class="grid-3">
+              <div class="panel">
+                <h3>Frontend</h3>
+                <ul class="tight">
+                  <li>TanStack Start (Vite + Nitro)</li>
+                  <li>React 19</li>
+                  <li>TanStack Router (file routes in <code>src/routes</code>)</li>
+                  <li>TanStack Query</li>
+                  <li>Tailwind CSS v4</li>
+                  <li>Radix / shadcn-style UI</li>
+                  <li>react-hook-form + zod</li>
+                  <li>@dnd-kit (Kanban)</li>
+                  <li>Bun package manager</li>
+                </ul>
+              </div>
+              <div class="panel">
+                <h3>Backend</h3>
+                <ul class="tight">
+                  <li>Python 3.10+ · FastAPI</li>
+                  <li>Uvicorn</li>
+                  <li>Pydantic v2 / settings</li>
+                  <li>WebSockets</li>
+                  <li>google-genai SDK</li>
+                  <li>httpx · python-multipart</li>
+                  <li>pytest suite under <code>backend/tests</code></li>
+                </ul>
+              </div>
+              <div class="panel">
+                <h3>Platform services</h3>
+                <ul class="tight">
+                  <li>Supabase Postgres</li>
+                  <li>Supabase Auth</li>
+                  <li>Supabase Storage</li>
+                  <li>Google Gemini (Flash-class text, VLM, Live)</li>
+                  <li>Cloudflare deploy target (frontend)</li>
+                </ul>
+              </div>
             </div>
-            <div class="panel">
-              <h3>Backend</h3>
-              <ul class="tight">
-                <li>Python 3.10+ · FastAPI</li>
-                <li>Uvicorn</li>
-                <li>Pydantic v2 / settings</li>
-                <li>WebSockets</li>
-                <li>google-genai SDK</li>
-                <li>httpx · python-multipart</li>
-                <li>pytest suite under <code>backend/tests</code></li>
-              </ul>
+            <h4>Repository map (mental model)</h4>
+            <div class="table-frame">
+              <table class="data">
+                <thead>
+                  <tr>
+                    <th>Path</th>
+                    <th>Owns</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>src/routes/</code></td>
+                    <td>Every screen (file-based routing)</td>
+                  </tr>
+                  <tr>
+                    <td><code>src/lib/</code></td>
+                    <td>API client, auth context, hooks, live session hook, types</td>
+                  </tr>
+                  <tr>
+                    <td><code>src/components/</code></td>
+                    <td>App shell, live runner, reports, Kanban, UI primitives</td>
+                  </tr>
+                  <tr>
+                    <td><code>backend/api/</code></td>
+                    <td>HTTP/WS routers</td>
+                  </tr>
+                  <tr>
+                    <td><code>backend/ai/</code></td>
+                    <td>Gemini, registry, reports, feature engines</td>
+                  </tr>
+                  <tr>
+                    <td><code>backend/services/</code></td>
+                    <td>Readiness, gamification, activity, team-project</td>
+                  </tr>
+                  <tr>
+                    <td><code>backend/core/</code></td>
+                    <td>Config, DB, deps, errors, languages, logging</td>
+                  </tr>
+                  <tr>
+                    <td><code>backend/migrations/</code></td>
+                    <td>Additive SQL after base schema</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-            <div class="panel">
-              <h3>Platform services</h3>
-              <ul class="tight">
-                <li>Supabase Postgres</li>
-                <li>Supabase Auth</li>
-                <li>Supabase Storage</li>
-                <li>Google Gemini (Flash-class text, VLM, Live)</li>
-                <li>Cloudflare deploy target (frontend)</li>
-              </ul>
+          </section>
+
+          <!-- 13 DATA -->
+          <section class="block" id="data">
+            <div class="kicker">13 · Data &amp; API surface</div>
+            <h2 class="display">System of record and endpoints</h2>
+
+            <h4>Core entities</h4>
+            <div class="table-frame">
+              <table class="data">
+                <thead>
+                  <tr>
+                    <th>Entity</th>
+                    <th>Why it exists</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>profiles</td>
+                    <td>Student identity, college/year/branch, onboarding, XP fields</td>
+                  </tr>
+                  <tr>
+                    <td>projects / tasks / files</td>
+                    <td>Workspace + AI context + board</td>
+                  </tr>
+                  <tr>
+                    <td>teams / team_members</td>
+                    <td>Collaboration + team viva membership</td>
+                  </tr>
+                  <tr>
+                    <td>viva_sessions / viva_questions</td>
+                    <td>Oral history, scoring inputs for heatmap/readiness</td>
+                  </tr>
+                  <tr>
+                    <td>presentation_sessions</td>
+                    <td>Presentation + pitch records</td>
+                  </tr>
+                  <tr>
+                    <td>session_events</td>
+                    <td>Live transcript turns + observations</td>
+                  </tr>
+                  <tr>
+                    <td>code_snapshots</td>
+                    <td>Code-aware viva artifacts</td>
+                  </tr>
+                  <tr>
+                    <td>study banks / flashcards</td>
+                    <td>Spaced practice</td>
+                  </tr>
+                  <tr>
+                    <td>faculty profiles</td>
+                    <td>Faculty simulation library</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-          </div>
-          <h4>Repository map (mental model)</h4>
-          <div class="table-frame">
-            <table class="data">
-              <thead><tr><th>Path</th><th>Owns</th></tr></thead>
-              <tbody>
-                <tr><td><code>src/routes/</code></td><td>Every screen (file-based routing)</td></tr>
-                <tr><td><code>src/lib/</code></td><td>API client, auth context, hooks, live session hook, types</td></tr>
-                <tr><td><code>src/components/</code></td><td>App shell, live runner, reports, Kanban, UI primitives</td></tr>
-                <tr><td><code>backend/api/</code></td><td>HTTP/WS routers</td></tr>
-                <tr><td><code>backend/ai/</code></td><td>Gemini, registry, reports, feature engines</td></tr>
-                <tr><td><code>backend/services/</code></td><td>Readiness, gamification, activity, team-project</td></tr>
-                <tr><td><code>backend/core/</code></td><td>Config, DB, deps, errors, languages, logging</td></tr>
-                <tr><td><code>backend/migrations/</code></td><td>Additive SQL after base schema</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
 
-        <!-- 13 DATA -->
-        <section class="block" id="data">
-          <div class="kicker">13 · Data &amp; API surface</div>
-          <h2 class="display">System of record and endpoints</h2>
-
-          <h4>Core entities</h4>
-          <div class="table-frame">
-            <table class="data">
-              <thead><tr><th>Entity</th><th>Why it exists</th></tr></thead>
-              <tbody>
-                <tr><td>profiles</td><td>Student identity, college/year/branch, onboarding, XP fields</td></tr>
-                <tr><td>projects / tasks / files</td><td>Workspace + AI context + board</td></tr>
-                <tr><td>teams / team_members</td><td>Collaboration + team viva membership</td></tr>
-                <tr><td>viva_sessions / viva_questions</td><td>Oral history, scoring inputs for heatmap/readiness</td></tr>
-                <tr><td>presentation_sessions</td><td>Presentation + pitch records</td></tr>
-                <tr><td>session_events</td><td>Live transcript turns + observations</td></tr>
-                <tr><td>code_snapshots</td><td>Code-aware viva artifacts</td></tr>
-                <tr><td>study banks / flashcards</td><td>Spaced practice</td></tr>
-                <tr><td>faculty profiles</td><td>Faculty simulation library</td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          <h4>API map</h4>
-          <div class="table-frame">
-            <table class="data">
-              <thead><tr><th>Surface</th><th>Responsibility</th></tr></thead>
-              <tbody>
-                <tr><td><code>/api/auth/*</code>, <code>/api/onboarding/*</code></td><td>Identity &amp; setup</td></tr>
-                <tr><td><code>/api/projects/*</code>, <code>/api/tasks/*</code>, <code>/api/files/*</code></td><td>Workspace</td></tr>
-                <tr><td><code>/api/teams/*</code> + project-team routes</td><td>Collaboration</td></tr>
-                <tr><td><code>/api/viva/*</code>, <code>/api/presentation/*</code></td><td>Core practice lifecycle</td></tr>
-                <tr><td><code>/api/catalog/*</code></td><td>Public scenarios &amp; personas</td></tr>
-                <tr><td><code>WS /ws/live/{mode}/{id}</code></td><td>Shared live voice engine</td></tr>
-                <tr><td><code>/api/advanced/*</code></td><td>Seven differentiator modes + extra WS</td></tr>
-                <tr><td><code>/api/study/*</code>, <code>/api/readiness/*</code>, <code>/api/gamification/*</code>, <code>/api/analytics/*</code></td><td>Learning loops &amp; engagement</td></tr>
-                <tr><td><code>/api/templates/*</code></td><td>Guides &amp; checklists</td></tr>
-                <tr><td><code>/health</code></td><td>Liveness</td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div class="callout-warn">
-            <strong>Security note:</strong> authorization is enforced in FastAPI dependencies
-            (<code>get_current_user</code>, project owner checks, membership checks).
-            The backend uses the Supabase service-role key. A missed check is not saved by RLS —
-            treat ownership tests as load-bearing.
-          </div>
-        </section>
-
-        <!-- 14 BUSINESS -->
-        <section class="block" id="business">
-          <div class="kicker">14 · Business model</div>
-          <h2 class="display">How VivAI can earn</h2>
-          <p>
-            The codebase is product-complete as a SaaS companion; billing is not hard-coded.
-            Below is a commercial model that matches usage cost (Gemini Live minutes) and
-            seasonal willingness to pay (project reviews + placements).
-          </p>
-
-          <div class="price-grid">
-            <div class="price">
-              <div class="name">Free</div>
-              <div class="amt">₹0 <small>/ student</small></div>
-              <div class="blurb">Acquire during project season; prove the loop.</div>
-              <ul class="tight">
-                <li>Limited live sessions / month</li>
-                <li>1–2 projects · basic board</li>
-                <li>Friendly / balanced personas</li>
-                <li>Short report history</li>
-              </ul>
+            <h4>API map</h4>
+            <div class="table-frame">
+              <table class="data">
+                <thead>
+                  <tr>
+                    <th>Surface</th>
+                    <th>Responsibility</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>/api/auth/*</code>, <code>/api/onboarding/*</code></td>
+                    <td>Identity &amp; setup</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <code>/api/projects/*</code>, <code>/api/tasks/*</code>,
+                      <code>/api/files/*</code>
+                    </td>
+                    <td>Workspace</td>
+                  </tr>
+                  <tr>
+                    <td><code>/api/teams/*</code> + project-team routes</td>
+                    <td>Collaboration</td>
+                  </tr>
+                  <tr>
+                    <td><code>/api/viva/*</code>, <code>/api/presentation/*</code></td>
+                    <td>Core practice lifecycle</td>
+                  </tr>
+                  <tr>
+                    <td><code>/api/catalog/*</code></td>
+                    <td>Public scenarios &amp; personas</td>
+                  </tr>
+                  <tr>
+                    <td><code>WS /ws/live/{mode}/{id}</code></td>
+                    <td>Shared live voice engine</td>
+                  </tr>
+                  <tr>
+                    <td><code>/api/advanced/*</code></td>
+                    <td>Seven differentiator modes + extra WS</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <code>/api/study/*</code>, <code>/api/readiness/*</code>,
+                      <code>/api/gamification/*</code>, <code>/api/analytics/*</code>
+                    </td>
+                    <td>Learning loops &amp; engagement</td>
+                  </tr>
+                  <tr>
+                    <td><code>/api/templates/*</code></td>
+                    <td>Guides &amp; checklists</td>
+                  </tr>
+                  <tr>
+                    <td><code>/health</code></td>
+                    <td>Liveness</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-            <div class="price featured">
-              <div class="name">VivAI Pro</div>
-              <div class="amt">₹199–499 <small>/ month</small></div>
-              <div class="blurb">Core revenue. Peak around reviews &amp; placements.</div>
-              <ul class="tight">
-                <li>Fair-use unlimited viva &amp; presentation</li>
-                <li>Code-aware · bridge · heatmap</li>
-                <li>All personas &amp; scenarios</li>
-                <li>Full reports · readiness · study bank</li>
-              </ul>
+
+            <div class="callout-warn">
+              <strong>Security note:</strong> authorization is enforced in FastAPI dependencies
+              (<code>get_current_user</code>, project owner checks, membership checks). The backend
+              uses the Supabase service-role key. A missed check is not saved by RLS — treat
+              ownership tests as load-bearing.
             </div>
-            <div class="price">
-              <div class="name">Campus</div>
-              <div class="amt">₹ seats <small>/ year</small></div>
-              <div class="blurb">B2B2C via departments &amp; T&amp;P cells.</div>
-              <ul class="tight">
-                <li>Domain signup / cohort admin</li>
-                <li>Predictor dashboards (privacy-safe)</li>
-                <li>Shared faculty-sim library</li>
-                <li>Exam-week capacity priority</li>
-              </ul>
+          </section>
+
+          <!-- 14 BUSINESS -->
+          <section class="block" id="business">
+            <div class="kicker">14 · Business model</div>
+            <h2 class="display">How VivAI can earn</h2>
+            <p>
+              The codebase is product-complete as a SaaS companion; billing is not hard-coded. Below
+              is a commercial model that matches usage cost (Gemini Live minutes) and seasonal
+              willingness to pay (project reviews + placements).
+            </p>
+
+            <div class="price-grid">
+              <div class="price">
+                <div class="name">Free</div>
+                <div class="amt">₹0 <small>/ student</small></div>
+                <div class="blurb">Acquire during project season; prove the loop.</div>
+                <ul class="tight">
+                  <li>Limited live sessions / month</li>
+                  <li>1–2 projects · basic board</li>
+                  <li>Friendly / balanced personas</li>
+                  <li>Short report history</li>
+                </ul>
+              </div>
+              <div class="price featured">
+                <div class="name">VivAI Pro</div>
+                <div class="amt">₹199–499 <small>/ month</small></div>
+                <div class="blurb">Core revenue. Peak around reviews &amp; placements.</div>
+                <ul class="tight">
+                  <li>Fair-use unlimited viva &amp; presentation</li>
+                  <li>Code-aware · bridge · heatmap</li>
+                  <li>All personas &amp; scenarios</li>
+                  <li>Full reports · readiness · study bank</li>
+                </ul>
+              </div>
+              <div class="price">
+                <div class="name">Campus</div>
+                <div class="amt">₹ seats <small>/ year</small></div>
+                <div class="blurb">B2B2C via departments &amp; T&amp;P cells.</div>
+                <ul class="tight">
+                  <li>Domain signup / cohort admin</li>
+                  <li>Predictor dashboards (privacy-safe)</li>
+                  <li>Shared faculty-sim library</li>
+                  <li>Exam-week capacity priority</li>
+                </ul>
+              </div>
             </div>
-          </div>
 
-          <h4>Unit economics (how to think about it)</h4>
-          <p>
-            Primary COGS = Gemini Live / Flash tokens per practice minute + Supabase storage/egress.
-            Free tier must hard-cap live minutes. Pro pricing should clear contribution margin under
-            peak exam-month usage. Campus deals amortize capacity and fund cold-start of the predictor.
-            Short “exam packs” (14-day Pro) convert students who will not buy annual subscriptions.
-          </p>
+            <h4>Unit economics (how to think about it)</h4>
+            <p>
+              Primary COGS = Gemini Live / Flash tokens per practice minute + Supabase
+              storage/egress. Free tier must hard-cap live minutes. Pro pricing should clear
+              contribution margin under peak exam-month usage. Campus deals amortize capacity and
+              fund cold-start of the predictor. Short “exam packs” (14-day Pro) convert students who
+              will not buy annual subscriptions.
+            </p>
 
-          <h4>Go-to-market</h4>
-          <ul class="tight">
-            <li>Campus ambassadors in 3rd/4th year CSE/IT/ECE during project registration week.</li>
-            <li>Demo hook: run Code-Aware Viva on a public sample repo in 3 minutes.</li>
-            <li>Team invites as viral loop; predictor quality as retention for dense campuses.</li>
-            <li>Seasonal campaigns: Project Review Week · Placement Season SKUs.</li>
-            <li>Partnerships with project labs and training &amp; placement cells for Campus tier.</li>
-          </ul>
-        </section>
+            <h4>Go-to-market</h4>
+            <ul class="tight">
+              <li>
+                Campus ambassadors in 3rd/4th year CSE/IT/ECE during project registration week.
+              </li>
+              <li>Demo hook: run Code-Aware Viva on a public sample repo in 3 minutes.</li>
+              <li>
+                Team invites as viral loop; predictor quality as retention for dense campuses.
+              </li>
+              <li>Seasonal campaigns: Project Review Week · Placement Season SKUs.</li>
+              <li>
+                Partnerships with project labs and training &amp; placement cells for Campus tier.
+              </li>
+            </ul>
+          </section>
 
-        <!-- 15 RUN -->
-        <section class="block" id="run">
-          <div class="kicker">15 · Local development</div>
-          <h2 class="display">Run VivAI on your machine</h2>
-          <div class="grid-2">
-            <div class="panel">
-              <h3>Frontend</h3>
-<pre class="diagram" style="margin:0.5rem 0 0;font-size:0.7rem">bun install
+          <!-- 15 RUN -->
+          <section class="block" id="run">
+            <div class="kicker">15 · Local development</div>
+            <h2 class="display">Run VivAI on your machine</h2>
+            <div class="grid-2">
+              <div class="panel">
+                <h3>Frontend</h3>
+                <pre class="diagram" style="margin: 0.5rem 0 0; font-size: 0.7rem">
+bun install
 bun run dev
-# http://localhost:3000</pre>
-            </div>
-            <div class="panel">
-              <h3>Backend</h3>
-<pre class="diagram" style="margin:0.5rem 0 0;font-size:0.7rem">cd backend
+# http://localhost:3000</pre
+                >
+              </div>
+              <div class="panel">
+                <h3>Backend</h3>
+                <pre class="diagram" style="margin: 0.5rem 0 0; font-size: 0.7rem">
+cd backend
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
 # copy .env.example → .env, fill keys
 uvicorn main:app --reload --port 8000
-# http://localhost:8000/docs</pre>
+# http://localhost:8000/docs</pre
+                >
+              </div>
+            </div>
+            <div class="panel flat" style="margin-top: 0.85rem">
+              <h3>Environment</h3>
+              <p style="font-size: 0.9rem; margin-bottom: 0.5rem">
+                Backend: <code>SUPABASE_URL</code>, <code>SUPABASE_SERVICE_ROLE_KEY</code>,
+                <code>SUPABASE_ANON_KEY</code>, <code>GEMINI_API_KEY</code>,
+                <code>CORS_ORIGINS</code>, <code>STORAGE_BUCKET</code>. Frontend:
+                <code>VITE_API_URL</code> (default <code>http://localhost:8000</code>).
+              </p>
+              <p style="font-size: 0.9rem; margin: 0">
+                Apply SQL in order: <code>backend/supabase_schema.sql</code> →
+                <code>001_platform_enhancement.sql</code> → <code>002_quality_upgrade.sql</code> →
+                <code>003_team_project_linking.sql</code>.
+              </p>
+            </div>
+          </section>
+
+          <!-- CLOSE -->
+          <section class="block">
+            <div class="kicker">Close</div>
+            <h2 class="display">One sentence</h2>
+            <div class="pull">
+              <p>
+                VivAI turns a student’s real project work into a continuous oral-defense training
+                system — live examiners, evidence-backed scores, and closed loops from presentation
+                gaps to the next viva — so the first time they face a panel is not the first time
+                they have been asked hard questions about their own work.
+              </p>
+              <cite>VivAI · product definition</cite>
+            </div>
+          </section>
+        </div>
+
+        <footer class="doc-foot">
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem">
+            <div>
+              <strong style="color: var(--muted)">VivAI</strong> — platform guide<br />
+              Open in any browser · no build step · file: <code>docs/platform-overview.html</code>
+            </div>
+            <div style="text-align: right">
+              Brand name: VivAI<br />
+              Document purpose: end-to-end understanding for team, investors, and new engineers
             </div>
           </div>
-          <div class="panel flat" style="margin-top:0.85rem">
-            <h3>Environment</h3>
-            <p style="font-size:0.9rem;margin-bottom:0.5rem">
-              Backend: <code>SUPABASE_URL</code>, <code>SUPABASE_SERVICE_ROLE_KEY</code>,
-              <code>SUPABASE_ANON_KEY</code>, <code>GEMINI_API_KEY</code>,
-              <code>CORS_ORIGINS</code>, <code>STORAGE_BUCKET</code>.
-              Frontend: <code>VITE_API_URL</code> (default <code>http://localhost:8000</code>).
-            </p>
-            <p style="font-size:0.9rem;margin:0">
-              Apply SQL in order: <code>backend/supabase_schema.sql</code> →
-              <code>001_platform_enhancement.sql</code> →
-              <code>002_quality_upgrade.sql</code> →
-              <code>003_team_project_linking.sql</code>.
-            </p>
-          </div>
-        </section>
-
-        <!-- CLOSE -->
-        <section class="block">
-          <div class="kicker">Close</div>
-          <h2 class="display">One sentence</h2>
-          <div class="pull">
-            <p>
-              VivAI turns a student’s real project work into a continuous oral-defense training system —
-              live examiners, evidence-backed scores, and closed loops from presentation gaps to the next viva —
-              so the first time they face a panel is not the first time they have been asked hard questions about their own work.
-            </p>
-            <cite>VivAI · product definition</cite>
-          </div>
-        </section>
+        </footer>
       </div>
-
-      <footer class="doc-foot">
-        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:1rem">
-          <div>
-            <strong style="color:var(--muted)">VivAI</strong> — platform guide<br />
-            Open in any browser · no build step · file: <code>docs/platform-overview.html</code>
-          </div>
-          <div style="text-align:right">
-            Brand name: VivAI<br />
-            Document purpose: end-to-end understanding for team, investors, and new engineers
-          </div>
-        </div>
-      </footer>
     </div>
-  </div>
-</body>
+  </body>
 </html>
