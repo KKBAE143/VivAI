@@ -95,7 +95,7 @@ function Login() {
 
   return (
     <div className="grid min-h-screen bg-background lg:grid-cols-2">
-      <div className="relative hidden overflow-hidden bg-gradient-to-br from-[oklch(0.355_0.062_208.5)] via-[oklch(0.265_0.012_208)] to-[oklch(0.222_0.004_200)] p-12 text-[oklch(0.962_0_0)] lg:flex lg:flex-col lg:justify-between">
+      <div className="relative hidden overflow-hidden bg-gradient-to-br from-[oklch(0.315_0.032_208)] via-[oklch(0.27_0.028_208)] to-[oklch(0.245_0.024_208)] p-12 text-[oklch(0.958_0.008_85)] lg:flex lg:flex-col lg:justify-between">
         <div className="flex items-center gap-2 font-semibold">
           <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/20 text-primary">
             <GraduationCap className="h-5 w-5" />
@@ -103,19 +103,19 @@ function Login() {
           VivAI
         </div>
         <div className="relative z-10">
-          <h1 className="text-4xl font-bold leading-tight tracking-tight text-[oklch(0.962_0_0)]">
+          <h1 className="text-4xl font-bold leading-tight tracking-tight text-[oklch(0.958_0.008_85)]">
             Navigate your academics with confidence.
           </h1>
-          <p className="mt-3 text-base text-[oklch(0.962_0_0)]/85">
+          <p className="mt-3 text-base text-[oklch(0.958_0.008_85)]/85">
             Manage projects, prep for vivas with AI, and collaborate with your team — all in one
             place.
           </p>
         </div>
-        <div className="text-sm text-[oklch(0.962_0_0)]/75">
+        <div className="text-sm text-[oklch(0.958_0.008_85)]/75">
           Built for B.Tech students, by understanding your journey.
         </div>
-        <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-primary/15 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-32 -left-32 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
+        <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-primary/20 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-32 -left-32 h-96 w-96 rounded-full bg-primary/15 blur-3xl" />
       </div>
       <div className="flex items-center justify-center p-6 sm:p-12">
         <div className="w-full max-w-md space-y-6">

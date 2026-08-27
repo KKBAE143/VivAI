@@ -77,7 +77,7 @@ function Signup() {
 
   return (
     <div className="grid min-h-screen bg-background lg:grid-cols-2">
-      <div className="relative hidden overflow-hidden bg-gradient-to-br from-[oklch(0.355_0.062_208.5)] via-[oklch(0.265_0.012_208)] to-[oklch(0.222_0.004_200)] p-12 text-[oklch(0.962_0_0)] lg:flex lg:flex-col lg:justify-between">
+      <div className="relative hidden overflow-hidden bg-gradient-to-br from-[oklch(0.315_0.032_208)] via-[oklch(0.27_0.028_208)] to-[oklch(0.245_0.024_208)] p-12 text-[oklch(0.958_0.008_85)] lg:flex lg:flex-col lg:justify-between">
         <div className="flex items-center gap-2 font-semibold">
           <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/20 text-primary">
             <GraduationCap className="h-5 w-5" />
@@ -85,17 +85,17 @@ function Signup() {
           VivAI
         </div>
         <div className="relative z-10 space-y-4">
-          <h1 className="text-4xl font-bold leading-tight text-[oklch(0.962_0_0)]">
+          <h1 className="text-4xl font-bold leading-tight text-[oklch(0.958_0.008_85)]">
             Built for your B.Tech journey.
           </h1>
-          <ul className="space-y-2 text-[oklch(0.962_0_0)]/85">
+          <ul className="space-y-2 text-[oklch(0.958_0.008_85)]/85">
             <li>✓ Manage PBL, Major & Mini projects</li>
             <li>✓ AI mock vivas in English, Hindi, Hinglish</li>
             <li>✓ Real-time AI presentation feedback</li>
             <li>✓ Team collaboration that works</li>
           </ul>
         </div>
-        <div className="text-sm text-[oklch(0.962_0_0)]/75">
+        <div className="text-sm text-[oklch(0.958_0.008_85)]/75">
           12,000+ students from 200+ colleges.
         </div>
       </div>
