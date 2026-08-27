@@ -15,6 +15,6 @@ services:
       - key: GEMINI_API_KEY
         sync: false
       - key: CORS_ORIGINS
-        value: https://your-vercel-app.vercel.app
+        value: https://vivai-psi.vercel.app,https://viv-ai-one.vercel.app
       - key: STORAGE_BUCKET
         value: uploads
