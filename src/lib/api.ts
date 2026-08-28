@@ -187,7 +187,9 @@ export async function api<T = unknown>(path: string, options: ApiOptions = {}): 
   breadcrumb("http", `${method} ${path} -> ${res.status} (${Date.now() - startedAt}ms)`);
 
   if (!res.ok) {
-    let message = `Request failed (${res.status})`;
+    let message = res.status === 404
+      ? `API endpoint not found (404). Verify the backend is running at ${API_URL}.`
+      : `Request failed (${res.status})`;
     let code: string | undefined;
     // The backend stamps every response with the id of the failure behind it;
     // carrying it here is what lets a browser event be joined to its backend
@@ -213,7 +215,10 @@ export async function api<T = unknown>(path: string, options: ApiOptions = {}): 
         requestId = (data as { request_id?: string }).request_id ?? requestId;
       }
     } catch {
-      // Non-JSON error body; keep the generic message.
+      // Non-JSON error body (e.g. hosting provider 404/502 HTML)
+      if (res.status === 404) {
+        message = `Cannot reach backend API (404). Ensure the backend is running and VITE_API_URL is configured.`;
+      }
     }
     // A 401 that survived the refresh attempt means the session is truly dead.
     if (res.status === 401) clearSession();
