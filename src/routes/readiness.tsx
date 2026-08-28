@@ -23,184 +23,148 @@ function ReadinessPage() {
   const bm = benchmarks.data;
 
   return (
-    <AppShell>
-      <PageHeader
-        title="Defense Readiness"
-        subtitle="A weighted view of how prepared you are to defend your project, and exactly what to do next."
-      />
-
-      {q.error ? (
-        <ErrorState message="Could not compute your readiness" onRetry={() => void q.refetch()} />
-      ) : (
-        <>
-          <Card className="overflow-hidden !p-0">
-            <div className="grid gap-4 p-4 sm:p-6 md:grid-cols-[auto_minmax(0,1fr)] md:items-center md:gap-8">
-              <div className="flex items-center gap-3 sm:gap-5">
-                <ReadinessGauge score={data?.score ?? 0} size={110} />
-                <div className="min-w-0">
-                  <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Overall
-                  </p>
-                  <p className="mt-0.5 sm:mt-1 text-lg sm:text-xl font-bold text-balance">
-                    {data?.label ?? "Getting started"}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {data?.viva_sessions ?? 0} vivas · {data?.presentation_sessions ?? 0}{" "}
-                    presentations
-                  </p>
-                  {data?.model && (
-                    <div className="mt-2 flex items-center gap-1.5">
-                      <Badge tone="primary">{data.model === "v2" ? "DRS v2" : "Classic v1"}</Badge>
-                      <Link
-                        to="/profile"
-                        className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary"
-                      >
-                        <Settings className="h-3 w-3" /> Change model
-                      </Link>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {(data?.components ?? []).map((c) => (
-                  <div key={c.key} className="rounded-xl border border-border p-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium">{c.label}</span>
-                      <span className="font-bold">{Math.round(c.score)}</span>
-                    </div>
-                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-secondary">
-                      <div
-                        className="h-full rounded-full bg-primary"
-                        style={{ width: `${Math.min(100, c.score)}%` }}
-                      />
-                    </div>
-                    <p className="mt-1.5 text-[11px] text-muted-foreground">
-                      Weight {Math.round(c.weight * 100)}%
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </Card>
-
-          {/* Peer Benchmarks */}
-          {bm?.available && (
-            <Card>
-              <div className="flex items-center gap-3">
-                <TrendingUp className="h-5 w-5 text-primary" />
-                <div>
-                  <h3 className="text-base font-semibold">Peer Benchmarks</h3>
-                  <p className="text-xs text-muted-foreground">
-                    How you compare to students at your college
-                  </p>
-                </div>
-              </div>
-              <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-xl border border-border p-4 text-center">
-                  <p className="text-2xl font-bold text-primary">{bm.percentile ?? 0}%</p>
-                  <p className="text-xs text-muted-foreground">Percentile</p>
-                  <p className="mt-1 text-xs font-medium">{bm.peer_label ?? ""}</p>
-                </div>
-                <div className="rounded-xl border border-border p-4 text-center">
-                  <p className="text-2xl font-bold">{bm.user_avg ?? 0}</p>
-                  <p className="text-xs text-muted-foreground">Your Avg Score</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {bm.user_sessions ?? 0} sessions
-                  </p>
-                </div>
-                <div className="rounded-xl border border-border p-4 text-center">
-                  <p className="text-2xl font-bold">{bm.college?.avg ?? 0}</p>
-                  <p className="text-xs text-muted-foreground">College Avg</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {bm.college?.students ?? 0} students
-                  </p>
-                </div>
-              </div>
-              {bm.peer_description && (
-                <p className="mt-3 text-center text-sm text-muted-foreground">
-                  You are in the{" "}
-                  <span className="font-semibold text-primary">{bm.peer_description}</span>
-                </p>
-              )}
-              {(bm.branch || bm.year) && (
-                <div className="mt-3 flex flex-wrap justify-center gap-3 text-xs text-muted-foreground">
-                  {bm.branch && (
-                    <span>
-                      Branch avg: {bm.branch.avg} ({bm.branch.count} sessions)
-                    </span>
-                  )}
-                  {bm.year && (
-                    <span>
-                      Year avg: {bm.year.avg} ({bm.year.count} sessions)
-                    </span>
-                  )}
-                </div>
-              )}
-            </Card>
-          )}
-
-          <div className="grid gap-5 lg:grid-cols-2">
-            <Card>
-              <h3 className="text-base font-semibold">Do this next</h3>
-              <div className="mt-4 space-y-3">
-                {(data?.actions ?? []).length === 0 && (
-                  <p className="text-sm text-muted-foreground">
-                    You&apos;re in great shape. Keep practicing to stay sharp.
-                  </p>
-                )}
-                {(data?.actions ?? []).map((a, i) => (
-                  <Link
-                    key={i}
-                    to={a.to}
-                    className="flex items-center justify-between gap-3 rounded-xl border border-border p-4 transition-colors hover:border-primary"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary-soft text-accent-foreground">
-                        <Sparkles className="h-4 w-4" />
-                      </span>
-                      <span className="text-sm font-medium">{a.text}</span>
-                    </div>
-                    <span className="flex shrink-0 items-center gap-1 text-xs font-semibold text-primary">
-                      {a.cta} <ArrowRight className="h-3.5 w-3.5" />
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            </Card>
-
-            <Card>
-              <h3 className="text-base font-semibold">Weak topics to review</h3>
-              <div className="mt-4 space-y-2">
-                {(data?.weak_topics ?? []).length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No weak topics detected yet — complete a few vivas to surface them.
-                  </p>
-                ) : (
-                  (data?.weak_topics ?? []).map((t, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between rounded-xl bg-secondary/50 px-4 py-3"
-                    >
-                      <span className="flex items-center gap-2 text-sm font-medium">
-                        <AlertTriangle className="h-4 w-4 text-warning" /> {t.topic}
-                      </span>
-                      <Badge tone={t.avg_score < 50 ? "destructive" : "warning"}>
-                        {Math.round(t.avg_score)}%
-                      </Badge>
-                    </div>
-                  ))
-                )}
-              </div>
-              <Link
-                to="/ai-viva/new"
-                className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-primary"
-              >
-                Practice weak topics in a mock viva <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </Card>
+    <AppShell fitViewport hideTopBar>
+      <div className="flex flex-col gap-3 lg:gap-3.5 h-full">
+        {/* Integrated Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+              Defense Readiness
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              A weighted view of how prepared you are to defend your project, and exactly what to do
+              next.
+            </p>
           </div>
-        </>
-      )}
+        </div>
+
+        {q.error ? (
+          <ErrorState message="Could not compute your readiness" onRetry={() => void q.refetch()} />
+        ) : (
+          <div className="flex-1 flex flex-col gap-3 min-h-0">
+            {/* Top Score Card */}
+            <Card className="p-3.5 sm:p-4">
+              <div className="grid gap-3 md:grid-cols-[auto_minmax(0,1fr)] md:items-center md:gap-6">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <ReadinessGauge score={data?.score ?? 0} size={90} />
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Overall Score
+                    </p>
+                    <p className="text-base sm:text-lg font-bold text-foreground">
+                      {data?.label ?? "Getting started"}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {data?.viva_sessions ?? 0} vivas · {data?.presentation_sessions ?? 0}{" "}
+                      presentations
+                    </p>
+                    {data?.model && (
+                      <div className="mt-1.5 flex items-center gap-1.5">
+                        <Badge tone="primary">
+                          {data.model === "v2" ? "DRS v2" : "Classic v1"}
+                        </Badge>
+                        <Link
+                          to="/profile"
+                          className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary"
+                        >
+                          <Settings className="h-3 w-3" /> Change model
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {(data?.components ?? []).map((c) => (
+                    <div
+                      key={c.key}
+                      className="rounded-lg border border-border p-2 bg-secondary/20"
+                    >
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-medium">{c.label}</span>
+                        <span className="font-bold">{Math.round(c.score)}</span>
+                      </div>
+                      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-secondary">
+                        <div
+                          className="h-full rounded-full bg-primary"
+                          style={{ width: `${Math.min(100, c.score)}%` }}
+                        />
+                      </div>
+                      <p className="mt-1 text-[10px] text-muted-foreground">
+                        Weight {Math.round(c.weight * 100)}%
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </Card>
+
+            {/* Bottom 2 Cards Grid */}
+            <div className="grid gap-3 lg:grid-cols-2 flex-1 min-h-0">
+              <Card className="p-3.5 sm:p-4 flex flex-col justify-between overflow-y-auto">
+                <div>
+                  <h3 className="text-xs sm:text-sm font-semibold">Do this next</h3>
+                  <div className="mt-2.5 space-y-2">
+                    {(data?.actions ?? []).length === 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        You&apos;re in great shape. Keep practicing to stay sharp.
+                      </p>
+                    )}
+                    {(data?.actions ?? []).slice(0, 3).map((a, i) => (
+                      <Link
+                        key={i}
+                        to={a.to}
+                        className="flex items-center justify-between gap-2.5 rounded-lg border border-border p-2.5 transition-colors hover:border-primary bg-card/60"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+                            <Sparkles className="h-3.5 w-3.5" />
+                          </span>
+                          <span className="text-xs font-medium truncate">{a.text}</span>
+                        </div>
+                        <span className="flex shrink-0 items-center gap-1 text-[11px] font-semibold text-primary">
+                          {a.cta} <ArrowRight className="h-3 w-3" />
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-3.5 sm:p-4 flex flex-col justify-between overflow-y-auto">
+                <div>
+                  <h3 className="text-xs sm:text-sm font-semibold">Weak topics to review</h3>
+                  <div className="mt-2.5 space-y-1.5">
+                    {(data?.weak_topics ?? []).length === 0 ? (
+                      <p className="text-xs text-muted-foreground">
+                        No weak topics detected yet — complete a few vivas to surface them.
+                      </p>
+                    ) : (
+                      (data?.weak_topics ?? []).slice(0, 3).map((t, i) => (
+                        <div
+                          key={i}
+                          className="flex items-center justify-between rounded-lg border border-border p-2.5 text-xs bg-card/60"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />
+                            <span className="font-medium truncate">{t.topic}</span>
+                          </div>
+                          <Badge tone="warning">{t.accuracy}% acc</Badge>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+                <Link
+                  to="/ai-viva/new"
+                  className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary"
+                >
+                  Practice weak topics in a mock viva <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </Card>
+            </div>
+          </div>
+        )}
+      </div>
     </AppShell>
   );
 }

@@ -15,7 +15,7 @@ export const Route = createFileRoute("/leaderboard")({
   component: LeaderboardPage,
 });
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 6;
 
 function LeaderboardPage() {
   const { ready, isLoading: authLoading } = useRequireAuth();
@@ -32,87 +32,106 @@ function LeaderboardPage() {
   const visibleRows = allRows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   return (
-    <AppShell>
-      <PageHeader
-        title="Leaderboard"
-        subtitle="Earn XP by practicing — vivas, presentations and pitches all count."
-      />
-
-      {game.data && (
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-4">
-          <StatTile icon={Star} label="Your XP" value={String(game.data.xp)} tint />
-          <StatTile icon={Award} label="Level" value={String(game.data.level)} />
-          <StatTile icon={Flame} label="Current Streak" value={`${game.data.current_streak}d`} />
-          <StatTile
-            icon={Trophy}
-            label="Badges"
-            value={`${game.data.badges_earned}/${game.data.badges_total}`}
-          />
+    <AppShell fitViewport hideTopBar>
+      <div className="flex flex-col gap-3 lg:gap-3.5 h-full">
+        {/* Integrated Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+              Leaderboard
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              Earn XP by practicing — vivas, presentations and pitches all count.
+            </p>
+          </div>
         </div>
-      )}
 
-      {board.error ? (
-        <ErrorState message="Could not load the leaderboard" onRetry={() => void board.refetch()} />
-      ) : (
-        <Card>
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-semibold">Top Students</h3>
-            {allRows.length > 0 && <Badge tone="muted">{allRows.length} ranked</Badge>}
+        {game.data && (
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 sm:grid-cols-4">
+            <StatTile icon={Star} label="Your XP" value={String(game.data.xp)} tint />
+            <StatTile icon={Award} label="Level" value={String(game.data.level)} />
+            <StatTile icon={Flame} label="Current Streak" value={`${game.data.current_streak}d`} />
+            <StatTile
+              icon={Trophy}
+              label="Badges"
+              value={`${game.data.badges_earned}/${game.data.badges_total}`}
+            />
           </div>
-          <div className="mt-4 space-y-1">
-            {allRows.length === 0 && (
-              <p className="py-6 text-center text-sm text-muted-foreground">
-                No ranked students yet — be the first to practice.
-              </p>
-            )}
-            {visibleRows.map((row: ApiRecord, i: number) => {
-              const isMe = row.id === me.data?.id;
-              const rank = (safePage - 1) * PAGE_SIZE + i + 1;
-              return (
-                <div
-                  key={String(row.id)}
-                  className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 sm:gap-3 rounded-xl px-2.5 sm:px-3 py-2 sm:py-2.5 ${
-                    isMe ? "bg-primary-soft" : "hover:bg-secondary/60"
-                  }`}
-                >
-                  <span
-                    className={`grid h-7 w-7 sm:h-8 sm:w-8 place-items-center rounded-full text-xs sm:text-sm font-bold ${rankTone(rank)}`}
-                  >
-                    {rank}
-                  </span>
-                  <div className="min-w-0">
-                    <div className="truncate text-xs sm:text-sm font-semibold">
-                      {String(row.full_name ?? "Student")}{" "}
-                      {isMe && <span className="text-primary">(You)</span>}
-                    </div>
-                    <div className="truncate text-[10px] sm:text-[11px] text-muted-foreground">
-                      {[row.branch, row.year ? `${String(row.year)} Yr` : null]
-                        .filter(Boolean)
-                        .join(" · ") || "—"}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5 sm:gap-3">
-                    {Number(row.current_streak ?? 0) > 0 && (
-                      <span className="flex items-center gap-1 text-[10px] sm:text-[11px] text-warning">
-                        <Flame className="h-3 w-3" /> {String(row.current_streak)}
-                      </span>
-                    )}
-                    <Badge tone={rank <= 3 ? "primary" : "muted"}>{String(row.xp ?? 0)} XP</Badge>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <DataPagination
-            page={safePage}
-            totalPages={totalPages}
-            totalItems={allRows.length}
-            pageSize={PAGE_SIZE}
-            onPageChange={setPage}
-            itemName="students"
+        )}
+
+        {board.error ? (
+          <ErrorState
+            message="Could not load the leaderboard"
+            onRetry={() => void board.refetch()}
           />
-        </Card>
-      )}
+        ) : (
+          <Card className="p-4 sm:p-5 flex-1 flex flex-col justify-between min-h-0">
+            <div>
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold">Top Students</h3>
+                {allRows.length > 0 && <Badge tone="muted">{allRows.length} ranked</Badge>}
+              </div>
+              <div className="mt-2.5 space-y-1">
+                {allRows.length === 0 && (
+                  <p className="py-6 text-center text-xs text-muted-foreground">
+                    No ranked students yet — be the first to practice.
+                  </p>
+                )}
+                {visibleRows.map((row: ApiRecord, i: number) => {
+                  const isMe = row.id === me.data?.id;
+                  const rank = (safePage - 1) * PAGE_SIZE + i + 1;
+                  return (
+                    <div
+                      key={String(row.id)}
+                      className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 sm:gap-3 rounded-lg px-2.5 py-1.5 ${
+                        isMe ? "bg-primary/10" : "hover:bg-secondary/60"
+                      }`}
+                    >
+                      <span
+                        className={`grid h-6 w-6 sm:h-7 sm:w-7 place-items-center rounded-full text-xs font-bold ${rankTone(rank)}`}
+                      >
+                        {rank}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="truncate text-xs sm:text-sm font-semibold">
+                          {String(row.full_name ?? "Student")}{" "}
+                          {isMe && <span className="text-primary">(You)</span>}
+                        </div>
+                        <div className="truncate text-[10px] text-muted-foreground">
+                          {[row.branch, row.year ? `${String(row.year)} Yr` : null]
+                            .filter(Boolean)
+                            .join(" · ") || "—"}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        {Number(row.current_streak ?? 0) > 0 && (
+                          <span className="flex items-center gap-1 text-[10px] text-warning font-medium">
+                            <Flame className="h-3 w-3" /> {String(row.current_streak)}
+                          </span>
+                        )}
+                        <Badge tone={rank <= 3 ? "primary" : "muted"}>
+                          {String(row.xp ?? 0)} XP
+                        </Badge>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            {allRows.length > 0 && (
+              <DataPagination
+                page={safePage}
+                totalPages={totalPages}
+                totalItems={allRows.length}
+                pageSize={PAGE_SIZE}
+                onPageChange={setPage}
+                itemName="students"
+                className="mt-2 pt-2"
+              />
+            )}
+          </Card>
+        )}
+      </div>
     </AppShell>
   );
 }

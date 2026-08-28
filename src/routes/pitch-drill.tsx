@@ -166,226 +166,240 @@ function PitchDrillPage() {
   const ringPct = Math.min(100, (elapsed / TARGET) * 100);
 
   return (
-    <AppShell>
-      <PageHeader
-        title="90-Second Pitch Drill"
-        subtitle="Examiners judge your first 90 seconds. Practice a crisp pitch: problem, approach, tech, impact."
-      />
-
-      <div className="mb-5 inline-flex rounded-xl bg-secondary p-1 text-sm font-medium">
-        <button
-          onClick={() => setMode("live")}
-          className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 transition-colors ${
-            mode === "live"
-              ? "bg-background text-foreground shadow-[var(--shadow-card)]"
-              : "text-muted-foreground"
-          }`}
-        >
-          <Radio className="h-4 w-4" /> Live AI Coach
-        </button>
-        <button
-          onClick={() => setMode("classic")}
-          className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 transition-colors ${
-            mode === "classic"
-              ? "bg-background text-foreground shadow-[var(--shadow-card)]"
-              : "text-muted-foreground"
-          }`}
-        >
-          <Clock className="h-4 w-4" /> Timed Drill
-        </button>
-      </div>
-
-      {mode === "live" && (
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <Card className="flex flex-col items-center justify-center gap-5 py-12 text-center">
-            <div className="grid h-20 w-20 place-items-center rounded-2xl bg-primary/10 text-primary">
-              <Radio className="h-9 w-9" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold">Real-time pitch coaching</h2>
-              <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-                Speak your pitch naturally. Your AI coach listens live, reacts as you go, and asks
-                follow-up questions — just like a real panel. You&apos;ll get a full breakdown at
-                the end.
-              </p>
-            </div>
+    <AppShell fitViewport hideTopBar>
+      <div className="flex flex-col gap-3 lg:gap-3.5 h-full">
+        {/* Integrated Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+              90-Second Pitch Drill
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              Examiners judge your first 90 seconds. Practice a crisp pitch: problem, approach,
+              tech, impact.
+            </p>
+          </div>
+          <div className="inline-flex rounded-xl bg-secondary p-1 text-xs font-medium">
             <button
-              onClick={() => void startLivePitch()}
-              disabled={livePhase === "starting"}
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+              onClick={() => setMode("live")}
+              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition-colors ${
+                mode === "live"
+                  ? "bg-background text-foreground shadow-[var(--shadow-card)]"
+                  : "text-muted-foreground"
+              }`}
             >
-              {livePhase === "starting" ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Play className="h-4 w-4" />
-              )}
-              {livePhase === "starting" ? "Starting…" : "Start live pitch"}
+              <Radio className="h-3.5 w-3.5" /> Live AI Coach
             </button>
-            {liveStartError && <p className="text-sm text-destructive">{liveStartError}</p>}
-          </Card>
-          <div className="space-y-5">
-            <Card>
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Project (optional)
-              </label>
-              <select
-                value={projectId}
-                onChange={(e) => setProjectId(e.target.value)}
-                className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm"
-              >
-                <option value="">General pitch</option>
-                {(projects.data ?? []).map((p) => (
-                  <option key={String(p.id)} value={String(p.id)}>
-                    {String(p.title)}
-                  </option>
-                ))}
-              </select>
-              <label className="mt-4 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                What are you pitching? (optional)
-              </label>
-              <textarea
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-                rows={2}
-                placeholder="e.g. An AI study-planner app for engineering students preparing for placements."
-                className="mt-2 w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm leading-relaxed focus:border-primary focus:outline-none"
-              />
-              <p className="mt-3 text-xs text-muted-foreground">
-                Aim to cover:{" "}
-                <span className="font-medium text-foreground">problem, approach, tech, impact</span>
-                .
-              </p>
-            </Card>
+            <button
+              onClick={() => setMode("classic")}
+              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition-colors ${
+                mode === "classic"
+                  ? "bg-background text-foreground shadow-[var(--shadow-card)]"
+                  : "text-muted-foreground"
+              }`}
+            >
+              <Clock className="h-3.5 w-3.5" /> Timed Drill
+            </button>
           </div>
         </div>
-      )}
 
-      {mode === "classic" && (
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <Card className="flex flex-col items-center justify-center gap-6 py-10">
-            <div className="relative grid h-48 w-48 place-items-center">
-              <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90">
-                <circle
-                  cx="60"
-                  cy="60"
-                  r="52"
-                  className="fill-none stroke-secondary"
-                  strokeWidth="10"
-                />
-                <circle
-                  cx="60"
-                  cy="60"
-                  r="52"
-                  className={`fill-none ${overtime ? "stroke-destructive" : "stroke-primary"} transition-all`}
-                  strokeWidth="10"
-                  strokeLinecap="round"
-                  strokeDasharray={`${2 * Math.PI * 52}`}
-                  strokeDashoffset={`${2 * Math.PI * 52 * (1 - ringPct / 100)}`}
-                />
-              </svg>
-              <div className="absolute text-center">
-                <div
-                  className={`text-4xl font-bold tabular-nums ${overtime ? "text-destructive" : "text-foreground"}`}
-                >
-                  {formatTime(elapsed)}
-                </div>
-                <div className="text-xs text-muted-foreground">of {formatTime(TARGET)}</div>
+        {mode === "live" && (
+          <div className="grid flex-1 min-h-0 gap-3 lg:grid-cols-[minmax(0,1fr)_340px]">
+            <Card className="flex flex-col items-center justify-center gap-3 p-6 text-center">
+              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary">
+                <Radio className="h-7 w-7" />
               </div>
-            </div>
-
-            {!speech.supported && (
-              <p className="max-w-sm text-center text-xs text-warning">
-                Speech recognition isn&apos;t supported in this browser. Try Chrome for mic capture.
-              </p>
-            )}
-
-            <div className="flex items-center gap-3">
-              {phase === "idle" && (
-                <button
-                  onClick={start}
-                  disabled={!speech.supported}
-                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
-                >
-                  <Play className="h-4 w-4" /> Start Pitch
-                </button>
-              )}
-              {phase === "recording" && (
-                <button
-                  onClick={submit}
-                  className="inline-flex items-center gap-2 rounded-xl bg-destructive px-6 py-3 text-sm font-semibold text-destructive-foreground"
-                >
-                  <MicOff className="h-4 w-4" /> Stop &amp; Score
-                </button>
-              )}
-              {phase === "done" && !result && (
-                <button
-                  onClick={submit}
-                  disabled={evaluate.isPending || !transcript}
-                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
-                >
-                  {evaluate.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Check className="h-4 w-4" />
-                  )}{" "}
-                  Score my pitch
-                </button>
-              )}
-              {phase !== "idle" && (
-                <button
-                  onClick={reset}
-                  className="inline-flex items-center gap-2 rounded-xl bg-secondary px-4 py-3 text-sm font-semibold"
-                >
-                  <RotateCcw className="h-4 w-4" /> Reset
-                </button>
-              )}
-            </div>
-
-            {phase === "recording" && (
-              <div className="flex items-center gap-2 text-xs font-medium text-primary">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-destructive" /> Listening…
+              <div>
+                <h2 className="text-base font-semibold">Real-time pitch coaching</h2>
+                <p className="mx-auto mt-1 max-w-md text-xs text-muted-foreground leading-relaxed">
+                  Speak your pitch naturally. Your AI coach listens live, reacts as you go, and asks
+                  follow-up questions — just like a real panel. You&apos;ll get a full breakdown at
+                  the end.
+                </p>
               </div>
-            )}
-          </Card>
-
-          <div className="space-y-5">
-            <Card>
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Project (optional)
-              </label>
-              <select
-                value={projectId}
-                onChange={(e) => setProjectId(e.target.value)}
-                disabled={phase !== "idle"}
-                className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm"
+              <button
+                onClick={() => void startLivePitch()}
+                disabled={livePhase === "starting"}
+                className="mt-1 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-xs sm:text-sm font-semibold text-primary-foreground disabled:opacity-50 hover:opacity-95"
               >
-                <option value="">General pitch</option>
-                {(projects.data ?? []).map((p) => (
-                  <option key={String(p.id)} value={String(p.id)}>
-                    {String(p.title)}
-                  </option>
-                ))}
-              </select>
-              <p className="mt-3 text-xs text-muted-foreground">
-                Aim to cover:{" "}
-                <span className="font-medium text-foreground">problem, approach, tech, impact</span>{" "}
-                — all within 90 seconds.
-              </p>
+                {livePhase === "starting" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Play className="h-4 w-4" />
+                )}
+                {livePhase === "starting" ? "Starting…" : "Start live pitch"}
+              </button>
+              {liveStartError && <p className="text-xs text-destructive">{liveStartError}</p>}
             </Card>
-
-            {transcript && (
-              <Card>
-                <h3 className="text-sm font-semibold">Transcript</h3>
-                <p className="mt-2 max-h-40 overflow-y-auto text-sm leading-relaxed text-muted-foreground">
-                  {transcript}
+            <div className="space-y-3 flex flex-col">
+              <Card className="p-4 flex-1">
+                <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Project (optional)
+                </label>
+                <select
+                  value={projectId}
+                  onChange={(e) => setProjectId(e.target.value)}
+                  className="mt-1.5 w-full rounded-lg border border-border bg-background px-2.5 py-2 text-xs"
+                >
+                  <option value="">General pitch</option>
+                  {(projects.data ?? []).map((p) => (
+                    <option key={String(p.id)} value={String(p.id)}>
+                      {String(p.title)}
+                    </option>
+                  ))}
+                </select>
+                <label className="mt-3 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  What are you pitching? (optional)
+                </label>
+                <textarea
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  rows={3}
+                  placeholder="e.g. An AI study-planner app for engineering students preparing for placements."
+                  className="mt-1.5 w-full resize-none rounded-lg border border-border bg-background px-2.5 py-2 text-xs leading-relaxed focus:border-primary focus:outline-none"
+                />
+                <p className="mt-2 text-[10px] text-muted-foreground">
+                  Aim to cover:{" "}
+                  <span className="font-medium text-foreground">
+                    problem, approach, tech, impact
+                  </span>
+                  .
                 </p>
               </Card>
-            )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {mode === "classic" && result && <PitchReport result={result} />}
+        {mode === "classic" && (
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
+            <Card className="flex flex-col items-center justify-center gap-6 py-10">
+              <div className="relative grid h-48 w-48 place-items-center">
+                <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90">
+                  <circle
+                    cx="60"
+                    cy="60"
+                    r="52"
+                    className="fill-none stroke-secondary"
+                    strokeWidth="10"
+                  />
+                  <circle
+                    cx="60"
+                    cy="60"
+                    r="52"
+                    className={`fill-none ${overtime ? "stroke-destructive" : "stroke-primary"} transition-all`}
+                    strokeWidth="10"
+                    strokeLinecap="round"
+                    strokeDasharray={`${2 * Math.PI * 52}`}
+                    strokeDashoffset={`${2 * Math.PI * 52 * (1 - ringPct / 100)}`}
+                  />
+                </svg>
+                <div className="absolute text-center">
+                  <div
+                    className={`text-4xl font-bold tabular-nums ${overtime ? "text-destructive" : "text-foreground"}`}
+                  >
+                    {formatTime(elapsed)}
+                  </div>
+                  <div className="text-xs text-muted-foreground">of {formatTime(TARGET)}</div>
+                </div>
+              </div>
+
+              {!speech.supported && (
+                <p className="max-w-sm text-center text-xs text-warning">
+                  Speech recognition isn&apos;t supported in this browser. Try Chrome for mic
+                  capture.
+                </p>
+              )}
+
+              <div className="flex items-center gap-3">
+                {phase === "idle" && (
+                  <button
+                    onClick={start}
+                    disabled={!speech.supported}
+                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                  >
+                    <Play className="h-4 w-4" /> Start Pitch
+                  </button>
+                )}
+                {phase === "recording" && (
+                  <button
+                    onClick={submit}
+                    className="inline-flex items-center gap-2 rounded-xl bg-destructive px-6 py-3 text-sm font-semibold text-destructive-foreground"
+                  >
+                    <MicOff className="h-4 w-4" /> Stop &amp; Score
+                  </button>
+                )}
+                {phase === "done" && !result && (
+                  <button
+                    onClick={submit}
+                    disabled={evaluate.isPending || !transcript}
+                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                  >
+                    {evaluate.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Check className="h-4 w-4" />
+                    )}{" "}
+                    Score my pitch
+                  </button>
+                )}
+                {phase !== "idle" && (
+                  <button
+                    onClick={reset}
+                    className="inline-flex items-center gap-2 rounded-xl bg-secondary px-4 py-3 text-sm font-semibold"
+                  >
+                    <RotateCcw className="h-4 w-4" /> Reset
+                  </button>
+                )}
+              </div>
+
+              {phase === "recording" && (
+                <div className="flex items-center gap-2 text-xs font-medium text-primary">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-destructive" /> Listening…
+                </div>
+              )}
+            </Card>
+
+            <div className="space-y-5">
+              <Card>
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Project (optional)
+                </label>
+                <select
+                  value={projectId}
+                  onChange={(e) => setProjectId(e.target.value)}
+                  disabled={phase !== "idle"}
+                  className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm"
+                >
+                  <option value="">General pitch</option>
+                  {(projects.data ?? []).map((p) => (
+                    <option key={String(p.id)} value={String(p.id)}>
+                      {String(p.title)}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Aim to cover:{" "}
+                  <span className="font-medium text-foreground">
+                    problem, approach, tech, impact
+                  </span>{" "}
+                  — all within 90 seconds.
+                </p>
+              </Card>
+
+              {transcript && (
+                <Card>
+                  <h3 className="text-sm font-semibold">Transcript</h3>
+                  <p className="mt-2 max-h-40 overflow-y-auto text-sm leading-relaxed text-muted-foreground">
+                    {transcript}
+                  </p>
+                </Card>
+              )}
+            </div>
+          </div>
+        )}
+
+        {mode === "classic" && result && <PitchReport result={result} />}
+      </div>
     </AppShell>
   );
 }

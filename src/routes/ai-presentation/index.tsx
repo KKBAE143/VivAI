@@ -23,7 +23,7 @@ export const Route = createFileRoute("/ai-presentation/")({
 
 const SESSION_TYPES = ["Mid Review", "Final Demo", "Internal"] as const;
 const DURATIONS = [5, 10, 15, 20] as const;
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 3;
 
 function AIPresentation() {
   useRequireAuth();
@@ -59,168 +59,184 @@ function AIPresentation() {
   };
 
   return (
-    <AppShell>
-      <PageHeader
-        title="AI Presentation Mock"
-        subtitle="Present to AI faculty, share your screen, get instant feedback."
-      />
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
-        <Card className="lg:col-span-7 bg-primary text-primary-foreground">
-          <Badge tone="muted">
-            <span className="text-primary">Live Screen Review</span>
-          </Badge>
-          <h2 className="mt-5 text-2xl font-bold tracking-tight">
-            Defend like it's the real review
-          </h2>
-          <p className="mt-2 max-w-md text-sm text-primary-foreground/85">
-            Share your screen, present your slides, and AI faculty asks follow-ups, scores clarity,
-            and flags missing topics.
-          </p>
-          <div className="mt-6 flex flex-wrap gap-2">
+    <AppShell fitViewport hideTopBar>
+      <div className="flex flex-col gap-3 lg:gap-3.5 h-full">
+        {/* Integrated Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+              AI Presentation Mock
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              Present to AI faculty, share your screen, and get instant real-time feedback.
+            </p>
+          </div>
+        </div>
+
+        {/* Top Section */}
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-12">
+          <Card className="lg:col-span-6 bg-primary text-primary-foreground p-4 sm:p-5 flex flex-col justify-between">
+            <div>
+              <Badge tone="muted">
+                <span className="text-primary text-[11px] font-semibold">Live Screen Review</span>
+              </Badge>
+              <h2 className="mt-3 text-xl sm:text-2xl font-bold tracking-tight">
+                Defend like it's the real review
+              </h2>
+              <p className="mt-1 max-w-md text-xs sm:text-sm text-primary-foreground/90 leading-relaxed">
+                Share your screen, present your slides, and AI faculty asks follow-ups, scores
+                clarity, and flags missing topics.
+              </p>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                disabled={createSession.isPending}
+                onClick={() => void begin()}
+                className="flex items-center gap-1.5 rounded-xl bg-primary-foreground px-4 py-2 text-xs sm:text-sm font-semibold text-primary shadow-sm hover:opacity-95"
+              >
+                <Play className="h-3.5 w-3.5" />{" "}
+                {createSession.isPending ? "Starting…" : "Start Session"}
+              </button>
+            </div>
+          </Card>
+
+          <Card className="lg:col-span-6 p-4 sm:p-5 flex flex-col justify-between">
+            <div>
+              <h3 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                Session Setup
+              </h3>
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div className="rounded-lg bg-secondary p-2">
+                  <span className="block text-[10px] text-muted-foreground">Project</span>
+                  <select
+                    value={projectId}
+                    onChange={(e) => setProjectId(e.target.value)}
+                    className="mt-0.5 w-full rounded bg-card px-1.5 py-1 text-xs font-semibold focus:outline-none truncate"
+                  >
+                    <option value="">No project</option>
+                    {(projects ?? []).map((p) => (
+                      <option key={String(p.id)} value={String(p.id)}>
+                        {String(p.title)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="rounded-lg bg-secondary p-2">
+                  <span className="block text-[10px] text-muted-foreground">Type</span>
+                  <select
+                    value={type}
+                    onChange={(e) => setType(e.target.value)}
+                    className="mt-0.5 w-full rounded bg-card px-1.5 py-1 text-xs font-semibold focus:outline-none"
+                  >
+                    {SESSION_TYPES.map((t) => (
+                      <option key={t}>{t}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="rounded-lg bg-secondary p-2">
+                  <span className="block text-[10px] text-muted-foreground">Duration</span>
+                  <select
+                    value={duration}
+                    onChange={(e) => setDuration(Number(e.target.value))}
+                    className="mt-0.5 w-full rounded bg-card px-1.5 py-1 text-xs font-semibold focus:outline-none"
+                  >
+                    {DURATIONS.map((d) => (
+                      <option key={d} value={d}>
+                        {d} mins
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="mt-2 rounded-lg bg-secondary p-2">
+                <label className="block text-[10px] text-muted-foreground">
+                  Topic / focus (optional)
+                </label>
+                <input
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  placeholder="e.g. IoT smart irrigation — sensor architecture and cloud pipeline"
+                  className="mt-1 w-full rounded bg-card px-2.5 py-1 text-xs focus:outline-none"
+                />
+              </div>
+            </div>
+            {error && <p className="mt-1.5 text-xs text-destructive">{error}</p>}
             <button
               disabled={createSession.isPending}
               onClick={() => void begin()}
-              className="flex items-center gap-2 rounded-xl bg-primary-foreground px-5 py-3 text-sm font-semibold text-primary"
+              className="mt-3 w-full rounded-xl bg-foreground py-2 text-xs sm:text-sm font-semibold text-background hover:opacity-90"
             >
-              <Play className="h-4 w-4" /> {createSession.isPending ? "Starting…" : "Start Session"}
+              {createSession.isPending ? "Starting…" : "Begin Presentation"}
             </button>
-          </div>
-        </Card>
-        <Card className="lg:col-span-5">
-          <h3 className="text-base font-semibold">Setup</h3>
-          <div className="mt-4 space-y-3">
-            <div className="flex items-center justify-between gap-3 rounded-xl bg-secondary px-4 py-3">
-              <span className="text-xs text-muted-foreground">Project</span>
-              <select
-                value={projectId}
-                onChange={(e) => setProjectId(e.target.value)}
-                className="max-w-[180px] rounded-lg bg-card px-2 py-1 text-sm font-semibold focus:outline-none"
-              >
-                <option value="">No project</option>
-                {(projects ?? []).map((p) => (
-                  <option key={String(p.id)} value={String(p.id)}>
-                    {String(p.title)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-center justify-between gap-3 rounded-xl bg-secondary px-4 py-3">
-              <span className="text-xs text-muted-foreground">Type</span>
-              <select
-                value={type}
-                onChange={(e) => setType(e.target.value)}
-                className="rounded-lg bg-card px-2 py-1 text-sm font-semibold focus:outline-none"
-              >
-                {SESSION_TYPES.map((t) => (
-                  <option key={t}>{t}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-center justify-between gap-3 rounded-xl bg-secondary px-4 py-3">
-              <span className="text-xs text-muted-foreground">Duration</span>
-              <select
-                value={duration}
-                onChange={(e) => setDuration(Number(e.target.value))}
-                className="rounded-lg bg-card px-2 py-1 text-sm font-semibold focus:outline-none"
-              >
-                {DURATIONS.map((d) => (
-                  <option key={d} value={d}>
-                    {d} minutes
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-center justify-between rounded-xl bg-secondary px-4 py-3">
-              <span className="text-xs text-muted-foreground">Recording</span>
-              <span className="text-sm font-semibold">Enabled</span>
-            </div>
-            <div className="rounded-xl bg-secondary px-4 py-3">
-              <label className="text-xs text-muted-foreground">Topic / focus (optional)</label>
-              <textarea
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-                rows={2}
-                placeholder="e.g. IoT-based smart irrigation — focus on the sensor architecture and cloud pipeline."
-                className="mt-2 w-full resize-none rounded-lg bg-card px-3 py-2 text-sm leading-relaxed focus:outline-none"
-              />
-              <p className="mt-1.5 text-[11px] text-muted-foreground">
-                Tell the panel what you&apos;re presenting so their questions stay on point.
-              </p>
-            </div>
-          </div>
-          {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
-          <button
-            disabled={createSession.isPending}
-            onClick={() => void begin()}
-            className="mt-6 w-full rounded-xl bg-foreground px-4 py-3 text-sm font-semibold text-background"
-          >
-            {createSession.isPending ? "Starting…" : "Begin Presentation"}
-          </button>
-        </Card>
-      </div>
-
-      <Card>
-        <div className="flex items-center justify-between">
-          <h3 className="text-base font-semibold">Past Sessions</h3>
-          {allSessions.length > 0 && <Badge tone="muted">{allSessions.length} total</Badge>}
+          </Card>
         </div>
-        {sessionsQuery.isLoading ? (
-          <p className="mt-4 text-sm text-muted-foreground">Loading sessions…</p>
-        ) : sessionsQuery.error ? (
-          <ErrorState
-            message={
-              sessionsQuery.error instanceof Error
-                ? sessionsQuery.error.message
-                : "Could not load sessions"
-            }
-            onRetry={() => void sessionsQuery.refetch()}
-          />
-        ) : allSessions.length === 0 ? (
-          <EmptyState
-            title="No sessions yet"
-            description="Start your first AI presentation practice above."
-          />
-        ) : (
-          <>
-            <div className="mt-4 grid gap-3 md:grid-cols-3">
-              {visibleSessions.map((s) => {
-                const score = s.overall_score == null ? null : Number(s.overall_score);
-                const status = String(s.status ?? "Pending");
-                const completed = status === "Completed";
-                return (
-                  <Link
-                    key={String(s.id)}
-                    to="/ai-presentation/session/$id"
-                    params={{ id: String(s.id) }}
-                    className="group block rounded-xl border border-border p-4 transition-colors hover:border-primary"
-                  >
-                    <div className="flex items-center justify-between">
-                      <MonitorSmartphone className="h-5 w-5 text-muted-foreground" />
-                      <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
-                    </div>
-                    <div className="mt-3 font-semibold truncate">
-                      {String(s.session_type ?? "Presentation")}
-                    </div>
-                    <div className="mt-1 text-xs text-muted-foreground">
-                      {String(s.created_at ?? "").slice(0, 10)}
-                    </div>
-                    <div className="mt-3 flex items-center justify-between">
-                      {score !== null ? (
-                        <Badge tone={score >= 80 ? "success" : "warning"}>{score}%</Badge>
-                      ) : (
-                        <Badge tone="muted">{status}</Badge>
-                      )}
-                      <span className="text-xs font-medium text-primary">
-                        {completed ? "Review" : status === "In Progress" ? "Resume" : "Open"}
-                      </span>
-                    </div>
-                    <div className="mt-1 text-[11px] text-muted-foreground">
-                      {String(s.duration_minutes ?? "—")} min
-                    </div>
-                  </Link>
-                );
-              })}
+
+        {/* Past Sessions */}
+        <Card className="p-4 sm:p-5 flex-1 flex flex-col justify-between min-h-0">
+          <div>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Past Sessions</h3>
+              {allSessions.length > 0 && <Badge tone="muted">{allSessions.length} total</Badge>}
             </div>
+            {sessionsQuery.isLoading ? (
+              <p className="mt-3 text-xs text-muted-foreground">Loading sessions…</p>
+            ) : sessionsQuery.error ? (
+              <ErrorState
+                message={
+                  sessionsQuery.error instanceof Error
+                    ? sessionsQuery.error.message
+                    : "Could not load sessions"
+                }
+                onRetry={() => void sessionsQuery.refetch()}
+              />
+            ) : allSessions.length === 0 ? (
+              <EmptyState
+                title="No sessions yet"
+                description="Start your first AI presentation practice above."
+              />
+            ) : (
+              <div className="mt-3 grid gap-2.5 sm:grid-cols-3">
+                {visibleSessions.map((s) => {
+                  const score = s.overall_score == null ? null : Number(s.overall_score);
+                  const status = String(s.status ?? "Pending");
+                  const completed = status === "Completed";
+                  return (
+                    <Link
+                      key={String(s.id)}
+                      to="/ai-presentation/session/$id"
+                      params={{ id: String(s.id) }}
+                      className="group block rounded-xl border border-border p-3 transition-colors hover:border-primary bg-card/60"
+                    >
+                      <div className="flex items-center justify-between">
+                        <MonitorSmartphone className="h-4 w-4 text-muted-foreground" />
+                        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                      </div>
+                      <div className="mt-2 font-semibold text-xs sm:text-sm truncate">
+                        {String(s.session_type ?? "Presentation")}
+                      </div>
+                      <div className="mt-0.5 text-[10px] text-muted-foreground">
+                        {String(s.created_at ?? "").slice(0, 10)}
+                      </div>
+                      <div className="mt-2 flex items-center justify-between">
+                        {score !== null ? (
+                          <Badge tone={score >= 80 ? "success" : "warning"}>{score}%</Badge>
+                        ) : (
+                          <Badge tone="muted">{status}</Badge>
+                        )}
+                        <span className="text-[11px] font-medium text-primary">
+                          {completed ? "Review" : status === "In Progress" ? "Resume" : "Open"}
+                        </span>
+                      </div>
+                      <div className="mt-0.5 text-[10px] text-muted-foreground">
+                        {String(s.duration_minutes ?? "—")} min
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          {allSessions.length > 0 && (
             <DataPagination
               page={safePage}
               totalPages={totalPages}
@@ -228,10 +244,11 @@ function AIPresentation() {
               pageSize={PAGE_SIZE}
               onPageChange={setPage}
               itemName="sessions"
+              className="mt-2 pt-2"
             />
-          </>
-        )}
-      </Card>
+          )}
+        </Card>
+      </div>
     </AppShell>
   );
 }

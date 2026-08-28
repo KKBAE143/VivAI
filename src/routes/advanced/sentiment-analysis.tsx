@@ -143,85 +143,102 @@ function CommunicationCoach() {
 
   // ---------- Scenario picker ----------
   return (
-    <AppShell>
-      <PageHeader
-        title="AI Communication Coach"
-        subtitle="Pick a scenario and practice live. The AI role-plays, watches you on camera, and coaches your delivery in real time — then gives you a full report."
-      />
-
-      <Card>
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-          1. Choose a scenario
-        </h3>
-        {scenariosQuery.isLoading ? (
-          <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Loading practice scenarios…
+    <AppShell fitViewport hideTopBar>
+      <div className="flex flex-col gap-3 lg:gap-3.5 h-full">
+        {/* Integrated Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+              AI Communication Coach
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              Pick a scenario and practice live with real-time camera and audio feedback.
+            </p>
           </div>
-        ) : (
-          <div className="mt-3 space-y-5">
-            {Object.entries(scenarioGroups).map(([category, items]) => (
-              <section key={category}>
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  {category}
-                </h4>
-                <div className="mt-2 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {items.map((item) => {
-                    const active = scenario?.id === item.id;
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => setScenarioId(item.id)}
-                        className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-colors ${active ? "border-primary bg-primary/10" : "border-border bg-secondary hover:border-primary/50"}`}
-                      >
-                        <span
-                          className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg ${active ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`}
-                        >
-                          <ScenarioIcon scenario={item} />
-                        </span>
-                        <span>
-                          <span className="block text-sm font-semibold">{item.label}</span>
-                          <span className="mt-0.5 block text-xs text-muted-foreground">
-                            {item.description}
-                          </span>
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
-            ))}
-          </div>
-        )}
-
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          <label className="rounded-xl bg-secondary px-4 py-3">
-            <span className="text-xs text-muted-foreground">Language</span>
-            <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              className="mt-1 w-full rounded-lg bg-card px-2 py-2 text-sm font-semibold focus:outline-none"
-            >
-              {LIVE_LANGUAGES.map((l) => (
-                <option key={l}>{l}</option>
-              ))}
-            </select>
-          </label>
+          <button
+            onClick={() => void startSession()}
+            disabled={starting || !scenario}
+            className="flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs sm:text-sm font-semibold text-primary-foreground disabled:opacity-50 shadow-sm hover:opacity-95"
+          >
+            {starting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" />}
+            {starting ? "Starting…" : `Start ${scenario?.label ?? "practice"}`}
+          </button>
         </div>
 
-        {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
+        <Card className="p-4 sm:p-5 flex-1 flex flex-col justify-between min-h-0">
+          <div className="overflow-y-auto pr-1 flex-1">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                Choose a scenario
+              </h3>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Language:</span>
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  className="rounded-lg bg-secondary px-2.5 py-1 text-xs font-semibold focus:outline-none"
+                >
+                  {LIVE_LANGUAGES.map((l) => (
+                    <option key={l}>{l}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
-        <button
-          onClick={() => void startSession()}
-          disabled={starting || !scenario}
-          className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50 sm:w-auto"
-        >
-          {starting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" />}
-          {starting ? "Starting…" : `Start ${scenario?.label ?? "practice"}`}
-        </button>
-        <p className="mt-3 text-xs text-muted-foreground">
-          Next you&apos;ll do a quick camera + mic check, then go live with your coach.
-        </p>
-      </Card>
+            {scenariosQuery.isLoading ? (
+              <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Loading practice scenarios…
+              </div>
+            ) : (
+              <div className="mt-3 space-y-4">
+                {Object.entries(scenarioGroups).map(([category, items]) => (
+                  <section key={category}>
+                    <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      {category}
+                    </h4>
+                    <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                      {items.map((item) => {
+                        const active = scenario?.id === item.id;
+                        return (
+                          <button
+                            key={item.id}
+                            onClick={() => setScenarioId(item.id)}
+                            className={`flex items-start gap-2.5 rounded-xl border p-2.5 text-left transition-colors ${
+                              active
+                                ? "border-primary bg-primary/10"
+                                : "border-border bg-secondary/50 hover:border-primary/50"
+                            }`}
+                          >
+                            <span
+                              className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${
+                                active
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-card text-muted-foreground"
+                              }`}
+                            >
+                              <ScenarioIcon scenario={item} />
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block text-xs sm:text-sm font-semibold truncate">
+                                {item.label}
+                              </span>
+                              <span className="mt-0.5 block text-[11px] text-muted-foreground line-clamp-1">
+                                {item.description}
+                              </span>
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
+        </Card>
+      </div>
     </AppShell>
   );
 }
