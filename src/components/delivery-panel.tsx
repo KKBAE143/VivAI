@@ -1,4 +1,4 @@
-import { Gauge, MessageSquareWarning, Timer, Sparkles } from "lucide-react";
+import { Gauge, MessageSquareWarning, Timer, Sparkles, Bot } from "lucide-react";
 
 import { useVivaDelivery } from "@/lib/hooks-features";
 
@@ -45,6 +45,10 @@ export function DeliveryPanel({ sessionId }: { sessionId: string }) {
       <div className="flex items-center gap-2">
         <Gauge className="h-4 w-4 text-primary" />
         <h3 className="text-base font-semibold">Delivery Scorecard</h3>
+      </div>
+      <div className="mt-2 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+        <Bot className="h-3 w-3" />
+        <span>AI-generated metrics from transcript analysis</span>
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">

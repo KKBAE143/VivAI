@@ -12,6 +12,7 @@ import {
   Radio,
   Clock,
   ArrowLeft,
+  Bot,
 } from "lucide-react";
 
 import { AppShell, Card, PageHeader, Badge } from "@/components/app-shell";
@@ -472,6 +473,10 @@ function PitchReport({ result }: { result: PitchResult }) {
         >
           {result.overall_score}% overall
         </Badge>
+      </div>
+      <div className="mt-1 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+        <Bot className="h-3 w-3" />
+        <span>AI-generated score and feedback</span>
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">

@@ -31,6 +31,7 @@ from api import (
     tasks,
     team_live,
     teams,
+    terms,
     templates,
     viva,
 )
@@ -99,6 +100,7 @@ for router in (
     live.router,
     team_live.router,
     privacy.router,
+    terms.router,
     proctor.router,
     institution.router,
     faculty.router,

@@ -1,5 +1,13 @@
 import { Radar, RadarChart, PolarAngleAxis, PolarGrid, ResponsiveContainer } from "recharts";
-import { CheckCircle2, AlertTriangle, Lightbulb, Target, BookOpen, TrendingUp } from "lucide-react";
+import {
+  CheckCircle2,
+  AlertTriangle,
+  Lightbulb,
+  Target,
+  BookOpen,
+  TrendingUp,
+  Bot,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import type { SessionReport } from "@/lib/types";
 
@@ -53,6 +61,22 @@ export function SessionReport({ report }: { report: SessionReport }) {
 
   return (
     <div className="space-y-5">
+      {/*
+        IT Rules 2026 amendment (10 Feb 2026): permitted synthetically generated
+        information (SGI) must be prominently labelled with metadata or provenance
+        markers. This banner satisfies that requirement for session reports.
+      */}
+      <div className="flex items-center gap-2 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-2.5">
+        <Bot className="h-4 w-4 shrink-0 text-primary" />
+        <p className="text-xs text-muted-foreground">
+          <span className="font-semibold text-foreground">AI-generated content</span> — this report
+          was produced by an AI model. Scores and feedback are algorithmically generated and should
+          be used as practice guidance, not as academic assessment.
+          {report.generated_by && <> Model: {report.generated_by}</>}
+          {report.generated_at && <> · {new Date(report.generated_at).toLocaleDateString()}</>}
+        </p>
+      </div>
+
       <section className="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>

@@ -237,6 +237,13 @@ class SentimentSessionCreate(BaseModel):
 class ConsentSubmit(BaseModel):
     consent_type: str = "tos"  # tos | privacy | parental
     is_minor: bool = False
+    parent_email: str | None = None  # Required when is_minor=True for Rule 10 verification
+
+
+class ParentalVerifyRequest(BaseModel):
+    """Parent/guardian clicking the verification link provides this."""
+    token: str
+    parent_name: str | None = None  # Optional: parent's name for the audit trail
 
 
 class ProctorEvent(BaseModel):

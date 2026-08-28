@@ -43,6 +43,7 @@ function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [agreedToConsent, setAgreedToConsent] = useState(false);
   const [isMinor, setIsMinor] = useState(false);
+  const [parentEmail, setParentEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
@@ -55,7 +56,11 @@ function Signup() {
       return;
     }
     if (!agreedToConsent) {
-      setError("You must agree to the Terms of Service and Privacy Policy.");
+      setError("You must agree to the Terms and Privacy Policy.");
+      return;
+    }
+    if (isMinor && !parentEmail) {
+      setError("A parent or guardian email is required for verification under Indian law.");
       return;
     }
     setLoading(true);
@@ -70,8 +75,13 @@ function Signup() {
       if (res.access_token) {
         login(res.access_token, res.refresh_token ?? null);
         try {
+          // Submit T&C and privacy consent as separate actions — the checkbox
+          // covers both, but each is a distinct consent under the DPDP Act.
           await api("/api/privacy/consent", {
-            body: { consent_type: "tos", is_minor: isMinor },
+            body: { consent_type: "tos", is_minor: isMinor, parent_email: isMinor ? parentEmail : undefined },
+          });
+          await api("/api/privacy/consent", {
+            body: { consent_type: "privacy", is_minor: isMinor },
           });
           if (isMinor) {
             await api("/api/privacy/consent", {
@@ -290,7 +300,7 @@ function Signup() {
                   <span className="text-[11px] text-[#D0C7B7]/90 leading-tight">
                     I agree to the{" "}
                     <Link
-                      to="/privacy"
+                      to="/terms"
                       className="font-semibold text-[#E8C170] underline hover:text-[#FFE082]"
                       target="_blank"
                     >
@@ -316,9 +326,25 @@ function Signup() {
                   <span className="text-[11px] text-[#D0C7B7]/80">I am under 18 years old</span>
                 </label>
                 {isMinor && (
-                  <p className="rounded-lg bg-warning/15 border border-warning/20 px-2.5 py-1.5 text-[10px] text-warning">
-                    Parental/guardian consent is required.
-                  </p>
+                  <div className="space-y-2">
+                    <p className="rounded-lg bg-warning/15 border border-warning/20 px-2.5 py-1.5 text-[10px] text-warning">
+                      Under Indian law (DPDP Act), a parent or guardian must verify their consent by clicking a link sent to their email.
+                    </p>
+                    <div>
+                      <label className="text-[10px] font-bold tracking-[0.15em] text-[#E8C170] uppercase flex items-center gap-1.5 mb-1">
+                        <Mail className="h-3 w-3 text-[#E8C170]" />
+                        PARENT / GUARDIAN EMAIL
+                      </label>
+                      <input
+                        type="email"
+                        placeholder="parent@example.com"
+                        value={parentEmail}
+                        onChange={(e) => setParentEmail(e.target.value)}
+                        required={isMinor}
+                        className="w-full rounded-xl border border-[#C69234]/40 bg-[#060D0F]/90 px-3 py-2 text-xs text-[#F4F1EA] placeholder-[#A8BDC3]/40 focus:border-[#F5A623] focus:outline-none transition-all"
+                      />
+                    </div>
+                  </div>
                 )}
               </div>
 

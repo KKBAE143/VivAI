@@ -22,6 +22,9 @@ interface ConsentStatus {
   current_version: string;
   is_minor: boolean;
   parental_consent: boolean;
+  parent_email?: string | null;
+  parental_verified_at?: string | null;
+  verification_pending?: boolean;
 }
 
 /**
@@ -187,10 +190,24 @@ export function ConsentGate() {
         </li>
       </ul>
       {status.is_minor && !status.parental_consent && (
-        <p className="rounded-lg bg-warning/10 p-3 text-sm text-foreground">
-          You told us you are under 18. The DPDP Act requires your parent or guardian to give this
-          consent with you, and we do not run behavioural analytics or advertising on your account.
-        </p>
+        <div className="rounded-lg bg-warning/10 p-3 text-sm text-foreground space-y-2">
+          <p>
+            You told us you are under 18. Under the DPDP Act, a parent or guardian must
+            verify their consent before practice sessions can run.
+          </p>
+          {status.verification_pending && status.parent_email && (
+            <p className="text-xs text-muted-foreground">
+              A verification link has been sent to <strong>{status.parent_email}</strong>.
+              Practice sessions will be enabled once your parent clicks that link.
+              The link expires after 48 hours.
+            </p>
+          )}
+          {!status.parental_consent && (
+            <p className="text-xs text-muted-foreground">
+              We do not run behavioural analytics or advertising on your account.
+            </p>
+          )}
+        </div>
       )}
       <p className="text-xs text-muted-foreground">
         Given under the Digital Personal Data Protection Act 2023 and the DPDP Rules 2025. Notice

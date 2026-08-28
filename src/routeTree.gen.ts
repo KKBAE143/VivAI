@@ -15,6 +15,8 @@ import { Route as ReadinessRouteImport } from './routes/readiness'
 import { Route as ProgressRouteImport } from './routes/progress'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as VerifyParentalRouteImport } from './routes/verify-parental'
 import { Route as PitchDrillRouteImport } from './routes/pitch-drill'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LoginRouteImport } from './routes/login'
@@ -73,6 +75,16 @@ const ProfileRoute = ProfileRouteImport.update({
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerifyParentalRoute = VerifyParentalRouteImport.update({
+  id: '/verify-parental',
+  path: '/verify-parental',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PitchDrillRoute = PitchDrillRouteImport.update({
@@ -234,6 +246,8 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/pitch-drill': typeof PitchDrillRoute
   '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
+  '/verify-parental': typeof VerifyParentalRoute
   '/profile': typeof ProfileRoute
   '/progress': typeof ProgressRoute
   '/readiness': typeof ReadinessRoute
@@ -271,6 +285,8 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/pitch-drill': typeof PitchDrillRoute
   '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
+  '/verify-parental': typeof VerifyParentalRoute
   '/profile': typeof ProfileRoute
   '/progress': typeof ProgressRoute
   '/readiness': typeof ReadinessRoute
@@ -309,6 +325,8 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/pitch-drill': typeof PitchDrillRoute
   '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
+  '/verify-parental': typeof VerifyParentalRoute
   '/profile': typeof ProfileRoute
   '/progress': typeof ProgressRoute
   '/readiness': typeof ReadinessRoute
@@ -348,6 +366,8 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/pitch-drill'
     | '/privacy'
+    | '/terms'
+    | '/verify-parental'
     | '/profile'
     | '/progress'
     | '/readiness'
@@ -385,6 +405,8 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/pitch-drill'
     | '/privacy'
+    | '/terms'
+    | '/verify-parental'
     | '/profile'
     | '/progress'
     | '/readiness'
@@ -422,6 +444,8 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/pitch-drill'
     | '/privacy'
+    | '/terms'
+    | '/verify-parental'
     | '/profile'
     | '/progress'
     | '/readiness'
@@ -460,6 +484,8 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   PitchDrillRoute: typeof PitchDrillRoute
   PrivacyRoute: typeof PrivacyRoute
+  TermsRoute: typeof TermsRoute
+  VerifyParentalRoute: typeof VerifyParentalRoute
   ProfileRoute: typeof ProfileRoute
   ProgressRoute: typeof ProgressRoute
   ReadinessRoute: typeof ReadinessRoute
@@ -530,6 +556,20 @@ declare module '@tanstack/react-router' {
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verify-parental': {
+      id: '/verify-parental'
+      path: '/verify-parental'
+      fullPath: '/verify-parental'
+      preLoaderRoute: typeof VerifyParentalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pitch-drill': {
@@ -748,6 +788,8 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   PitchDrillRoute: PitchDrillRoute,
   PrivacyRoute: PrivacyRoute,
+  TermsRoute: TermsRoute,
+  VerifyParentalRoute: VerifyParentalRoute,
   ProfileRoute: ProfileRoute,
   ProgressRoute: ProgressRoute,
   ReadinessRoute: ReadinessRoute,

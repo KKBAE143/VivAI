@@ -97,7 +97,8 @@ pytest
 - `WS /ws/live/{mode}/{session_id}` — real-time voice engine shared by Viva, Presentation, Pitch and Coach (`backend/api/live.py`); persists timestamped transcripts + evidence-backed observations to `session_events` and writes a structured `report` JSON on session completion
 - `/api/college-predictor`, `/api/weakness-heatmap`
 - `/api/advanced/*` — advanced features (bridge, etc.)
-- `/api/privacy/*` — DPDP consent (log, status), data deletion (request, status), policy, grievance
+- `/api/privacy/*` — DPDP consent (log, status), data deletion (request, status), policy, grievance, parental verification (request, verify, status, withdraw)
+- `/api/terms/policy` — Terms & Conditions (public, versioned, API-sourced)
 - `/api/institution/*` — admin dashboard, students, readiness-report, weak-topics, invite, export (requires faculty/admin role)
 - `/api/readiness/model` — PUT to switch DRS model (v1/v2); `/api/readiness/benchmarks` — peer percentile comparison
 

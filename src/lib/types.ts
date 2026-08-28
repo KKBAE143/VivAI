@@ -97,6 +97,9 @@ export interface ReportSection {
 export interface SessionReport {
   version: number;
   framework: string;
+  /** IT Rules 2026 amendment — provenance for synthetically generated content. */
+  generated_by?: string;
+  generated_at?: string;
   scenario_id?: string;
   persona?: string;
   availability: { audio: boolean; camera: boolean; screen: boolean; transcript_quality?: string };

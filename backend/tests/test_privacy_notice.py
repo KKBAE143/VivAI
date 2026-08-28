@@ -87,7 +87,12 @@ def test_the_third_party_processors_are_named():
 
 def test_the_unbacked_seven_day_deletion_claim_is_gone():
     """No job deletes code_snapshots. Grep the repo before restoring this."""
-    assert "7 days" not in _all_text()
+    text = _all_text()
+    # The old false claim was that uploaded code is automatically deleted within 7 days.
+    # A truthful mention of '7 days' for cookie expiry is fine — check the specific
+    # false claim rather than a blanket string match.
+    assert "deleted within 7 days" not in text
+    assert "deleted after 7 days" not in text
 
 
 def test_no_unverifiable_hosting_or_encryption_claims():
