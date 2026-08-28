@@ -13,11 +13,13 @@ import {
   Clock,
   ArrowLeft,
   Bot,
+  Languages,
 } from "lucide-react";
 
 import { AppShell, Card, PageHeader, Badge } from "@/components/app-shell";
 import { useRequireAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
+import { LIVE_LANGUAGES } from "@/lib/languages";
 import { useProjects, usePresentationSession } from "@/lib/hooks";
 import { useEvaluatePitch, type PitchResult } from "@/lib/hooks-features";
 import { useSpeechToText } from "@/lib/speech";
@@ -31,12 +33,14 @@ export const Route = createFileRoute("/pitch-drill")({
 });
 
 const TARGET = 90;
+const POPULAR_LANGUAGES = ["English", "Hindi", "Hinglish", "Telugu", "Tamil", "Kannada", "Bengali"];
 
 function PitchDrillPage() {
   const { ready, isLoading: authLoading } = useRequireAuth();
   const projects = useProjects();
   const evaluate = useEvaluatePitch();
-  const speech = useSpeechToText("English");
+  const [language, setLanguage] = useState<string>("English");
+  const speech = useSpeechToText(language);
 
   const [projectId, setProjectId] = useState<string>("");
   const [topic, setTopic] = useState<string>("");
@@ -143,7 +147,7 @@ function PitchDrillPage() {
         subject={topic.trim() || null}
         title="Live Pitch Coach"
         subtitle="Deliver your 90-second pitch — your coach reacts and coaches you in real time."
-        defaultLanguage="English"
+        defaultLanguage={language}
         sources={["none"]}
         onEnded={() => setLivePhase("report")}
       />
@@ -208,7 +212,7 @@ function PitchDrillPage() {
         </div>
 
         {mode === "live" && (
-          <div className="grid flex-1 min-h-0 gap-3 lg:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="grid flex-1 min-h-0 gap-3 lg:grid-cols-[minmax(0,1fr)_360px]">
             <div className="flex flex-col items-center justify-center gap-3 p-6 text-center rounded-2xl border border-white/10 bg-card/85 backdrop-blur-2xl shadow-[var(--shadow-glass)]">
               <div className="grid h-16 w-16 place-items-center rounded-2xl bg-[#AFDDFF]/15 text-[#AFDDFF] shadow-[0_0_20px_rgba(175,221,255,0.2)]">
                 <Radio className="h-8 w-8 animate-pulse" />
@@ -218,7 +222,7 @@ function PitchDrillPage() {
                   Real-Time Pitch Coaching
                 </h2>
                 <p className="mx-auto mt-1.5 max-w-md text-xs text-white/60 leading-relaxed">
-                  Speak your pitch naturally. Your AI coach listens live, reacts as you go, and asks follow-up questions — just like a real panel. You&apos;ll get an evidence-backed breakdown at the end.
+                  Speak your pitch naturally in <strong className="text-[#AFDDFF]">{language}</strong>. Your AI coach listens live, reacts as you go, and asks follow-up questions — just like a real panel.
                 </p>
               </div>
               <button
@@ -235,34 +239,60 @@ function PitchDrillPage() {
               </button>
               {liveStartError && <p className="text-xs font-mono text-rose-400">{liveStartError}</p>}
             </div>
+
             <div className="space-y-3 flex flex-col">
-              <div className="p-4 rounded-2xl border border-white/10 bg-card/85 backdrop-blur-2xl shadow-[var(--shadow-glass)] flex-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-white/50 font-mono">
-                  [ PROJECT_GROUNDING ]
-                </label>
-                <select
-                  value={projectId}
-                  onChange={(e) => setProjectId(e.target.value)}
-                  className="mt-1.5 w-full min-h-[38px] rounded-lg border border-white/10 bg-black/60 px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-[#AFDDFF]"
-                >
-                  <option value="" className="bg-[#0A0E16] text-white">General pitch</option>
-                  {(projects.data ?? []).map((p) => (
-                    <option key={String(p.id)} value={String(p.id)} className="bg-[#0A0E16] text-white">
-                      {String(p.title)}
-                    </option>
-                  ))}
-                </select>
-                <label className="mt-3 block text-[10px] font-bold uppercase tracking-wider text-white/50 font-mono">
-                  [ PITCH_TOPIC ]
-                </label>
-                <textarea
-                  value={topic}
-                  onChange={(e) => setTopic(e.target.value)}
-                  rows={3}
-                  placeholder="e.g. An AI study-planner app for engineering students preparing for placements."
-                  className="mt-1.5 w-full resize-none rounded-lg border border-white/10 bg-black/60 px-3 py-2 text-xs text-white leading-relaxed placeholder:text-white/40 focus:border-[#AFDDFF] focus:outline-none"
-                />
-                <p className="mt-2 text-[10px] text-white/40 font-mono">
+              <div className="p-4 rounded-2xl border border-white/10 bg-card/85 backdrop-blur-2xl shadow-[var(--shadow-glass)] flex-1 flex flex-col justify-between">
+                <div>
+                  {/* Language Selector Section */}
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-white/50 font-mono mb-1.5">
+                    [ SPOKEN_LANGUAGE ]
+                  </label>
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {POPULAR_LANGUAGES.map((l) => (
+                      <button
+                        key={l}
+                        type="button"
+                        onClick={() => setLanguage(l)}
+                        className={`min-h-[28px] px-2.5 py-0.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer active:scale-95 ${
+                          language === l
+                            ? "bg-[#AFDDFF] text-black shadow-[0_0_10px_rgba(175,221,255,0.3)]"
+                            : "border border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+                        }`}
+                      >
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-white/50 font-mono">
+                    [ PROJECT_GROUNDING ]
+                  </label>
+                  <select
+                    value={projectId}
+                    onChange={(e) => setProjectId(e.target.value)}
+                    className="mt-1.5 w-full min-h-[38px] rounded-lg border border-white/10 bg-black/60 px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-[#AFDDFF]"
+                  >
+                    <option value="" className="bg-[#0A0E16] text-white">General pitch</option>
+                    {(projects.data ?? []).map((p) => (
+                      <option key={String(p.id)} value={String(p.id)} className="bg-[#0A0E16] text-white">
+                        {String(p.title)}
+                      </option>
+                    ))}
+                  </select>
+
+                  <label className="mt-3 block text-[10px] font-bold uppercase tracking-wider text-white/50 font-mono">
+                    [ PITCH_TOPIC ]
+                  </label>
+                  <textarea
+                    value={topic}
+                    onChange={(e) => setTopic(e.target.value)}
+                    rows={3}
+                    placeholder="e.g. An AI study-planner app for engineering students preparing for placements."
+                    className="mt-1.5 w-full resize-none rounded-lg border border-white/10 bg-black/60 px-3 py-2 text-xs text-white leading-relaxed placeholder:text-white/40 focus:border-[#AFDDFF] focus:outline-none"
+                  />
+                </div>
+
+                <p className="mt-3 text-[10px] text-white/40 font-mono">
                   Aim to cover: <span className="font-bold text-white">problem, approach, tech, impact</span>.
                 </p>
               </div>

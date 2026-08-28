@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VivAI — Investor Pitch Deck</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #08090d;
+    --surface: #0f1117;
+    --surface-2: #161822;
+    --border: #1e2030;
+    --border-light: #2a2d40;
+    --text: #e8eaf0;
+    --text-dim: #8b8fa4;
+    --text-muted: #5a5e74;
+    --accent: #AFDDFF;
+    --accent-dim: rgba(175,221,255,0.15);
+    --accent-glow: rgba(175,221,255,0.25);
+    --green: #4ade80;
+    --green-dim: rgba(74,222,128,0.15);
+    --amber: #fbbf24;
+    --amber-dim: rgba(251,191,36,0.15);
+    --red: #f87171;
+    --red-dim: rgba(248,113,113,0.15);
+    --purple: #c084fc;
+    --purple-dim: rgba(192,132,252,0.15);
+    --orange: #fb923c;
+    --slide-w: 100vw;
+    --slide-h: 100vh;
+  }
+
+  html { font-size: 16px; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ─── Slide Container ─── */
+  .deck { position: relative; width: 100vw; height: 100vh; }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    justify-content: center;
+    padding: 5vh 8vw;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(30px);
+    transition: opacity 0.6s cubic-bezier(.4,0,.2,1), transform 0.6s cubic-bezier(.4,0,.2,1), visibility 0s 0.6s;
+    overflow-y: auto;
+  }
+  .slide.active {
+    opacity: 1; visibility: visible; transform: translateY(0);
+    transition: opacity 0.6s cubic-bezier(.4,0,.2,1), transform 0.6s cubic-bezier(.4,0,.2,1), visibility 0s 0s;
+  }
+
+  /* ─── Typography ─── */
+  .slide-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem; font-weight: 500;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1rem;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .slide-tag::before { content: ''; display: inline-block; width: 18px; height: 1px; background: var(--accent); }
+
+  h1 { font-size: clamp(2.2rem, 4.5vw, 4rem); font-weight: 800; line-height: 1.08; letter-spacing: -0.03em; color: var(--text); }
+  h2 { font-size: clamp(1.6rem, 3vw, 2.6rem); font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; color: var(--text); }
+  h3 { font-size: clamp(1rem, 1.6vw, 1.35rem); font-weight: 600; line-height: 1.3; letter-spacing: -0.01em; }
+  .subtitle { font-size: clamp(0.95rem, 1.5vw, 1.25rem); color: var(--text-dim); line-height: 1.6; margin-top: 0.75rem; max-width: 680px; }
+  .label { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); }
+
+  /* ─── Cards & Layouts ─── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 2rem; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.25rem; margin-top: 2rem; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-top: 2rem; }
+  .grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-top: 2rem; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .card:hover::before { opacity: 1; }
+
+  .card-accent { border-color: rgba(175,221,255,0.2); }
+  .card-accent::before { opacity: 1; }
+
+  .stat-card { text-align: center; padding: 1.5rem 1rem; }
+  .stat-card .big-num {
+    font-size: clamp(1.8rem, 3vw, 2.8rem);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+  .stat-card .stat-label { margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-dim); line-height: 1.4; }
+
+  .accent-text { color: var(--accent); }
+  .green-text { color: var(--green); }
+  .amber-text { color: var(--amber); }
+  .red-text { color: var(--red); }
+  .purple-text { color: var(--purple); }
+
+  /* ─── Tables ─── */
+  .data-table { width: 100%; border-collapse: collapse; margin-top: 1.25rem; font-size: 0.85rem; }
+  .data-table th {
+    text-align: left; padding: 0.6rem 0.8rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem; font-weight: 500;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-light);
+  }
+  .data-table td {
+    padding: 0.55rem 0.8rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-dim);
+    vertical-align: top;
+  }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table .row-accent td { color: var(--text); font-weight: 500; }
+
+  /* ─── Progress Bars ─── */
+  .bar-track { width: 100%; height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; margin-top: 6px; }
+  .bar-fill { height: 100%; border-radius: 3px; transition: width 1s cubic-bezier(.4,0,.2,1); }
+  .bar-fill.accent { background: linear-gradient(90deg, var(--accent), #7ec8f0); }
+  .bar-fill.green { background: linear-gradient(90deg, #22c55e, var(--green)); }
+  .bar-fill.amber { background: linear-gradient(90deg, #f59e0b, var(--amber)); }
+
+  /* ─── Navigation ─── */
+  .nav-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.75rem 2rem;
+    background: rgba(8,9,13,0.85);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    z-index: 100;
+  }
+  .nav-bar .page-indicator {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem; color: var(--text-muted);
+    letter-spacing: 0.1em;
+  }
+  .nav-bar .dots { display: flex; gap: 6px; }
+  .nav-bar .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--border-light);
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .nav-bar .dot.active { background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+  .nav-bar .dot:hover { background: var(--accent); opacity: 0.7; }
+
+  .nav-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem; letter-spacing: 0.1em;
+    color: var(--text-dim);
+    background: transparent;
+    border: 1px solid var(--border);
+    padding: 0.4rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ─── Special Elements ─── */
+  .divider { width: 48px; height: 2px; background: var(--accent); margin: 1rem 0; opacity: 0.6; }
+  .glow-line { height: 1px; background: linear-gradient(90deg, var(--accent), transparent); margin: 1rem 0; }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem; font-weight: 500;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 4px;
+  }
+  .badge-accent { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(175,221,255,0.2); }
+  .badge-green { background: var(--green-dim); color: var(--green); border: 1px solid rgba(74,222,128,0.2); }
+  .badge-amber { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(251,191,36,0.2); }
+  .badge-red { background: var(--red-dim); color: var(--red); border: 1px solid rgba(248,113,113,0.2); }
+  .badge-purple { background: var(--purple-dim); color: var(--purple); border: 1px solid rgba(192,132,252,0.2); }
+
+  .feature-icon {
+    width: 40px; height: 40px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 10px;
+    font-size: 1.2rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .quote-block {
+    border-left: 3px solid var(--accent);
+    padding-left: 1.25rem;
+    margin: 1.5rem 0;
+    font-style: italic;
+    color: var(--text-dim);
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+
+  .metric-row {
+    display: flex; align-items: center; gap: 1rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .metric-row:last-child { border-bottom: none; }
+
+  .timeline-item {
+    display: flex; gap: 1rem; align-items: flex-start;
+    padding: 0.5rem 0;
+  }
+  .timeline-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    margin-top: 5px; flex-shrink: 0;
+  }
+
+  /* ─── Animations ─── */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .slide.active .anim { animation: fadeInUp 0.5s ease-out both; }
+  .slide.active .anim-d1 { animation-delay: 0.1s; }
+  .slide.active .anim-d2 { animation-delay: 0.2s; }
+  .slide.active .anim-d3 { animation-delay: 0.3s; }
+  .slide.active .anim-d4 { animation-delay: 0.4s; }
+  .slide.active .anim-d5 { animation-delay: 0.5s; }
+  .slide.active .anim-d6 { animation-delay: 0.6s; }
+  .slide.active .anim-d7 { animation-delay: 0.7s; }
+
+  /* ─── Chart ─── */
+  .chart-container { position: relative; margin-top: 1.5rem; }
+  .bar-chart { display: flex; align-items: flex-end; gap: 0.5rem; height: 180px; padding-top: 10px; }
+  .bar-col { display: flex; flex-direction: column; align-items: center; flex: 1; gap: 6px; }
+  .bar-col .bar {
+    width: 100%; border-radius: 4px 4px 0 0;
+    transition: height 1.2s cubic-bezier(.4,0,.2,1);
+    position: relative;
+    min-width: 30px;
+  }
+  .bar-col .bar-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem; font-weight: 600;
+    color: var(--text);
+  }
+  .bar-col .bar-label {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    text-align: center;
+  }
+
+  /* ─── Responsive ─── */
+  @media (max-width: 768px) {
+    .slide { padding: 4vh 5vw; }
+    .grid-2, .grid-3, .grid-4, .grid-5 { grid-template-columns: 1fr; }
+    .data-table { font-size: 0.75rem; }
+  }
+
+  /* ─── Scrollbar ─── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div class="deck" id="deck">
+
+<!-- ════════════════════════════════════════════════════════════
+     SLIDE 1 — TITLE / COVER
+     ════════════════════════════════════════════════════════════ -->
+<div class="slide active" data-slide="1">
+  <div style="display:flex; flex-direction:column; justify-content:center; height:100%; position:relative;">
+    <div style="position:absolute; top:-10vh; right:-8vw; width:500px; height:500px; background:radial-gradient(circle, rgba(175,221,255,0.06) 0%, transparent 70%); pointer-events:none;"></div>
+
+    <div class="slide-tag anim">SERIES A — INVESTOR DECK</div>
+    <h1 class="anim anim-d1" style="max-width:800px;">
+      Viv<span style="color:var(--accent)">AI</span>
+    </h1>
+    <p class="subtitle anim anim-d2" style="font-size:clamp(1.1rem,2vw,1.6rem); max-width:700px; margin-top:1rem;">
+      The first <strong style="color:var(--text);">Defense Readiness Platform</strong> for India's 2.5M engineering students.
+    </p>
+    <div class="divider anim anim-d3" style="margin-top:2rem;"></div>
+    <p class="anim anim-d4" style="font-size:0.85rem; color:var(--text-muted); margin-top:0.5rem; max-width:500px; line-height:1.6;">
+      AI-powered live viva simulations, code-aware examination, presentation intelligence, and personalized readiness analytics — in 13 languages.
+    </p>
+    <div style="display:flex; gap:0.75rem; margin-top:2rem;" class="anim anim-d5">
+      <span class="badge badge-accent">AI AGENT</span>
+      <span class="badge badge-green">B2B + B2C</span>
+      <span class="badge badge-purple">INDIA EDTECH</span>
+      <span class="badge badge-amber">$3.6B MARKET</span>
+    </div>
+    <p class="anim anim-d6" style="margin-top:2rem; font-family:'JetBrains Mono',monospace; font-size:0.65rem; color:var(--text-muted); letter-spacing:0.1em;">
+      CONFIDENTIAL — AUGUST 2026
+    </p>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     SLIDE 2 — THE PROBLEM
+     ════════════════════════════════════════════════════════════ -->
+<div class="slide" data-slide="2">
+  <div class="slide-tag anim">THE PROBLEM</div>
+  <h2 class="anim anim-d1">Students spend 4 years building.<br/>They get <span class="accent-text">0 hours</span> learning to defend.</h2>
+  <p class="subtitle anim anim-d2">
+    India produces ~2.5M final-year engineering projects annually. Less than 5% of students practice oral defense beforehand — yet 60% report viva anxiety as a key failure mode.
+  </p>
+
+  <div class="grid-3 anim anim-d3" style="margin-top:2.5rem;">
+    <div class="card" style="border-left:3px solid var(--red);">
+      <h3 style="color:var(--red); margin-bottom:0.5rem;">😰 "I knew it but froze"</h3>
+      <p style="font-size:0.8rem; color:var(--text-dim); line-height:1.5;">Zero pressure practice before a high-stakes oral examination. Students are unprepared for real-time questioning.</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--amber);">
+      <h3 style="color:var(--amber); margin-bottom:0.5rem;">💻 "They asked about my code"</h3>
+      <p style="font-size:0.8rem; color:var(--text-dim); line-height:1.5;">Faculty examines the project, not textbooks. Generic Q&A tools can't see the student's actual codebase or architecture decisions.</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--purple);">
+      <h3 style="color:var(--purple); margin-bottom:0.5rem;">👥 "The team viva exposed us"</h3>
+      <p style="font-size:0.8rem; color:var(--text-dim); line-height:1.5;">Free-riders discovered too late. No tool simulates group viva pressure where each member must answer individually.</p>
+    </div>
+  </div>
+
+  <div class="grid-4 anim anim-d4" style="margin-top:2rem;">
+    <div class="stat-card card">
+      <div class="big-num accent-text">2.5M+</div>
+      <div class="stat-label">Projects completed annually in India</div>
+    </div>
+    <div class="stat-card card">
+      <div class="big-num red-text">&lt;5%</div>
+      <div class="stat-label">Students who practice defense</div>
+    </div>
+    <div class="stat-card card">
+      <div class="big-num amber-text">~60%</div>
+      <div class="stat-label">Report viva anxiety</div>
+    </div>
+    <div class="stat-card card">
+      <div class="big-num purple-text">&lt;2%</div>
+      <div class="stat-label">Colleges with mock viva programs</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     SLIDE 3 — OUR SOLUTION
+     ════════════════════════════════════════════════════════════ -->
+<div class="slide" data-slide="3">
+  <div class="slide-tag anim">OUR SOLUTION</div>
+  <h2 class="anim anim-d1">VivAI = Project Workspace +<br/>Live AI Examiner + Readiness Analytics</h2>
+  <p class="subtitle anim anim-d2">Three integrated layers that no other platform connects.</p>
+
+  <div style="display:grid; grid-template-columns:1fr 1.4fr; gap:2rem; margin-top:2rem;" class="anim anim-d3">
+    <!-- Left: Architecture -->
+    <div style="display:flex; flex-direction:column; gap:1rem;">
+      <div class="card card-accent" style="padding:1rem 1.25rem;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+          <span class="badge badge-accent">03</span>
+          <h3 style="font-size:0.9rem;">INSIGHT</h3>
+        </div>
+        <p style="font-size:0.78rem; color:var(--text-dim);">Defense Readiness Score™ · Weakness Heatmap · College Predictor · Peer Benchmarks</p>
+      </div>
+      <div class="card card-accent" style="padding:1rem 1.25rem;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+          <span class="badge badge-green">02</span>
+          <h3 style="font-size:0.9rem;">PRACTICE</h3>
+        </div>
+        <p style="font-size:0.78rem; color:var(--text-dim);">Live Voice Mock Viva · Presentation Mock · Pitch Drill · Communication Coach · Team Viva · <strong style="color:var(--text);">13 languages</strong></p>
+      </div>
+      <div class="card card-accent" style="padding:1rem 1.25rem;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+          <span class="badge badge-amber">01</span>
+          <h3 style="font-size:0.9rem;">WORKSPACE</h3>
+        </div>
+        <p style="font-size:0.78rem; color:var(--text-dim);">Projects · Kanban Board · Files · Teams · <strong style="color:var(--text);">The AI reads what students build</strong></p>
+      </div>
+    </div>
+
+    <!-- Right: Key Differentiator -->
+    <div style="display:flex; flex-direction:column; gap:1rem;">
+      <div class="card" style="background: linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%); padding:1.5rem;">
+        <h3 style="margin-bottom:1rem;">🔑 Why VivAI is Different</h3>
+        <div style="display:flex; flex-direction:column; gap:0.8rem;">
+          <div class="metric-row">
+            <span style="font-size:1.2rem;">🧠</span>
+            <div>
+              <div style="font-size:0.82rem; font-weight:600;">Code-Aware Intelligence</div>
+              <div style="font-size:0.72rem; color:var(--text-dim);">Reads student project ZIP/GitHub — asks implementation-level questions like a real examiner</div>
+            </div>
+          </div>
+          <div class="metric-row">
+            <span style="font-size:1.2rem;">🗣️</span>
+            <div>
+              <div style="font-size:0.82rem; font-weight:600;">Live Voice AI Examiner</div>
+              <div style="font-size:0.72rem; color:var(--text-dim);">Real-time voice conversation with sub-second latency in 13 languages incl. Hinglish & Tanglish</div>
+            </div>
+          </div>
+          <div class="metric-row">
+            <span style="font-size:1.2rem;">📊</span>
+            <div>
+              <div style="font-size:0.82rem; font-weight:600;">Defense Readiness Score™</div>
+              <div style="font-size:0.72rem; color:var(--text-dim);">5-dimension composite score with evidence-backed scoring and weakness tracking</div>
+            </div>
+          </div>
+          <div class="metric-row">
+            <span style="font-size:1.2rem;">🎯</span>
+            <div>
+              <div style="font-size:0.82rem; font-weight:600;">Network Effects</div>
+              <div style="font-size:0.72rem; color:var(--text-dim);">College predictor improves with every student — anonymized cross-user analytics</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     SLIDE 4 — PRODUCT DEEP DIVE
+     ════════════════════════════════════════════════════════════ -->
+<div class="slide" data-slide="4">
+  <div class="slide-tag anim">PRODUCT DEEP DIVE</div>
+  <h2 class="anim anim-d1">7 AI-Powered Modes. <span class="accent-text">Live.</span></h2>
+  <p class="subtitle anim anim-d2">Built and shipped. Every feature described here is live in production.</p>
+
+  <div class="grid-3 anim anim-d3" style="margin-top:2rem;">
+    <div class="card">
+      <div class="feature-icon" style="background:var(--accent-dim);">🎤</div>
+      <h3 style="font-size:0.88rem;">AI Mock Viva</h3>
+      <p style="font-size:0.75rem; color:var(--text-dim); margin-top:0.4rem;">Live voice conversation with 5 examiner personas. Adaptive difficulty, project-specific questions, evidence-backed scoring.</p>
+    </div>
+    <div class="card">
+      <div class="feature-icon" style="background:var(--green-dim);">🔍</div>
+      <h3 style="font-size:0.88rem;">Code-Aware Viva</h3>
+      <p style="font-size:0.75rem; color:var(--text-dim); margin-top:0.4rem;">Upload project ZIP → AI analyzes codebase architecture → asks "why this framework?" "what breaks if this layer is removed?"</p>
+    </div>
+    <div class="card">
+      <div class="feature-icon" style="background:var(--purple-dim);">🎞️</div>
+      <h3 style="font-size:0.88rem;">Presentation Mock</h3>
+      <p style="font-size:0.75rem; color:var(--text-dim); margin-top:0.4rem;">Present live with camera → AI scores clarity, structure, delivery. Weak areas auto-become focused viva questions (the Bridge).</p>
+    </div>
+    <div class="card">
+      <div class="feature-icon" style="background:var(--amber-dim);">👥</div>
+      <h3 style="font-size:0.88rem;">Team Viva Mode</h3>
+      <p style="font-size:0.75rem; color:var(--text-dim); margin-top:0.4rem;">2-5 members, real-time WebSocket, race-to-answer. Individual + collaboration scores expose free-riders before the real exam.</p>
+    </div>
+    <div class="card">
+      <div class="feature-icon" style="background:var(--red-dim);">🎯</div>
+      <h3 style="font-size:0.88rem;">Communication Coach</h3>
+      <p style="font-size:0.75rem; color:var(--text-dim); margin-top:0.4rem;">20 scenarios across academic/placement/corporate. Live camera coaching with evidence-based reports on confidence & delivery.</p>
+    </div>
+    <div class="card">
+      <div class="feature-icon" style="background:var(--accent-dim);">⏱️</div>
+      <h3 style="font-size:0.88rem;">90s Pitch Drill</h3>
+      <p style="font-size:0.75rem; color:var(--text-dim); margin-top:0.4rem;">Timed elevator pitch practice with structured feedback on framing, value prop, and delivery metrics.</p>
+    </div>
+    <div class="card" style="grid-column: span 3;">
+      <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:1.5rem;">
+        <div>
+          <h3 style="font-size:0.82rem; color:var(--accent);">🗺️ Weakness Heatmap</h3>
+          <p style="font-size:0.72rem; color:var(--text-dim); margin-top:0.3rem;">Aggregates scores across all sessions into per-topic weakness maps with trend directions.</p>
+        </div>
+        <div>
+          <h3 style="font-size:0.82rem; color:var(--green);">🔮 College Predictor</h3>
+          <p style="font-size:0.72rem; color:var(--text-dim); margin-top:0.3rem;">Cross-student analytics predict which topics are most likely to appear. Gets better with every user.</p>
+        </div>
+        <div>
+          <h3 style="font-size:0.82rem; color:var(--purple);">👨‍🏫 Faculty Simulation</h3>
+          <p style="font-size:0.72rem; color:var(--text-dim); margin-top:0.3rem;">Crowd-sourced faculty profiles simulate specific professors' questioning style and personality.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     SLIDE 5 — MARKET OPPORTUNITY
+     ════════════════════════════════════════════════════════════ -->
+<div class="slide" data-slide="5">
+  <div class="slide-tag anim">MARKET OPPORTUNITY</div>
+  <h2 class="anim anim-d1">A $3.6B Indian EdTech market<br/>with a <span class="accent-text">massive gap</span> in oral defense</h2>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:2rem; margin-top:2rem;">
+    <!-- TAM/SAM/SOM -->
+    <div class="anim anim-d2">
+      <div class="card" style="padding:1.5rem;">
+        <h3 style="margin-bottom:1.25rem;">Market Sizing</h3>
+        <div style="display:flex; flex-direction:column; gap:1rem;">
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:baseline;">
+              <span class="label">TAM</span>
+              <span style="font-family:'JetBrains Mono',monospace; font-size:0.9rem; font-weight:700; color:var(--accent);">$214B</span>
+            </div>
+            <p style="font-size:0.72rem; color:var(--text-muted); margin-top:2px;">Global EdTech Market (2026)</p>
+            <div class="bar-track"><div class="bar-fill accent" style="width:100%;"></div></div>
+          </div>
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:baseline;">
+              <span class="label">SAM</span>
+              <span style="font-family:'JetBrains Mono',monospace; font-size:0.9rem; font-weight:700; color:var(--green);">$3.6B</span>
+            </div>
+            <p style="font-size:0.72rem; color:var(--text-muted); margin-top:2px;">India EdTech Market (2025, 27.9% CAGR)</p>
+            <div class="bar-track"><div class="bar-fill green" style="width:42%;"></div></div>
+          </div>
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:baseline;">
+              <span class="label">SOM (Year 3)</span>
+              <span style="font-family:'JetBrains Mono',monospace; font-size:0.9rem; font-weight:700; color:var(--amber);">$42M</span>
+            </div>
+            <p style="font-size:0.72rem; color:var(--text-muted); margin-top:2px;">Academic defense readiness — Tier 2/3 colleges</p>
+            <div class="bar-track"><div class="bar-fill amber" style="width:18%;"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Key Market Stats -->
+    <div class="anim anim-d3">
+      <div class="grid-2" style="margin-top:0;">
+        <div class="stat-card card">
+          <div class="big-num accent-text">3,500+</div>
+          <div class="stat-label">Engineering colleges in India (AICTE)</div>
+        </div>
+        <div class="stat-card card">
+          <div class="big-num green-text">1.5M+</div>
+          <div class="stat-label">B.Tech students enrolled annually</div>
+        </div>
+        <div class="stat-card card">
+          <div class="big-num purple-text">49.6%</div>
+          <div class="stat-label">AI Agents market CAGR (2026–33)</div>
+        </div>
+        <div class="stat-card card">
+          <div class="big-num amber-text">38%</div>
+          <div class="stat-label">AI-in-EdTech CAGR (to $98B by 2034)</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:1rem; padding:1rem 1.25rem;">
+        <h3 style="font-size:0.82rem; margin-bottom:0.6rem;">🎯 Our Beachhead</h3>
+        <p style="font-size:0.78rem; color:var(--text-dim); line-height:1.5;">
+          <strong style="color:var(--text);">200,000+ Tier-2/3 engineering colleges</strong> desperate to improve placement rates and NBA/NAAC accreditation scores — but with zero structured viva preparation programs. This is where VivAI starts.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     SLIDE 6 — BUSINESS MODEL
+     ════════════════════════════════════════════════════════════ -->
+<div class="slide" data-slide="6">
+  <div class="slide-tag anim">BUSINESS MODEL</div>
+  <h2 class="anim anim-d1">B2B Institutional + B2C Freemium<br/><span class="accent-text">Dual-engine</span> revenue model</h2>
+  <p class="subtitle anim anim-d2">Designed for India's price-sensitive market with institutional budgets as the primary driver.</p>
+
+  <div style="display:grid; grid-template-columns:1.2fr 1fr; gap:2rem; margin-top:2rem;">
+    <div class="anim anim-d3">
+      <table class="data-table">
+        <thead>
+          <tr><th>Plan</th><th>Buyer</th><th>Price</th><th>Features</th></tr>
+        </thead>
+        <tbody>
+          <tr class="row-accent">
+            <td><span class="badge badge-amber">Lite</span></td>
+            <td>College T&P Dept</td>
+            <td style="color:var(--green); font-weight:600;">₹1.5L/yr</td>
+            <td>500 seats, core viva + presentation, cohort dashboard</td>
+          </tr>
+          <tr class="row-accent">
+            <td><span class="badge badge-accent">Pro</span></td>
+            <td>Engineering College</td>
+            <td style="color:var(--green); font-weight:600;">₹5L/yr</td>
+            <td>Unlimited seats, all 7 modes, code-aware, team viva</td>
+          </tr>
+          <tr class="row-accent">
+            <td><span class="badge badge-purple">Plus</span></td>
+            <td>Multi-Department</td>
+            <td style="color:var(--green); font-weight:600;">₹10L/yr</td>
+            <td>Everything + custom scenarios + API + dedicated support</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-green">Free</span></td>
+            <td>Students</td>
+            <td>₹0</td>
+            <td>3 sessions/month, basic reports</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-amber">Premium</span></td>
+            <td>Students</td>
+            <td>₹199/mo</td>
+            <td>Unlimited sessions, all modes, full reports</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="anim anim-d4" style="display:flex; flex-direction:column; gap:1rem;">
+      <div class="card" style="border-left:3px solid var(--green); padding:1.25rem;">
+        <h3 style="font-size:0.85rem; color:var(--green);">💰 Unit Economics</h3>
+        <div style="margin-top:0.75rem; display:flex; flex-direction:column; gap:0.5rem;">
+          <div style="display:flex; justify-content:space-between;">
+            <span style="font-size:0.78rem; color:var(--text-dim);">LTV (Institution Pro)</span>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:0.82rem; font-weight:600;">₹5L/yr</span>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span style="font-size:0.78rem; color:var(--text-dim);">CAC (College)</span>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:0.82rem; font-weight:600;">₹25K</span>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span style="font-size:0.78rem; color:var(--text-dim);">LTV:CAC Ratio</span>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:0.82rem; font-weight:600; color:var(--green);">20:1</span>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span style="font-size:0.78rem; color:var(--text-dim);">Gross Margin</span>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:0.82rem; font-weight:600;">~85%</span>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span style="font-size:0.78rem; color:var(--text-dim);">Payback Period</span>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:0.82rem; font-weight:600;">2 months</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="padding:1.25rem;">
+        <h3 style="font-size:0.85rem; margin-bottom:0.6rem;">🧠 Why Institutions Buy</h3>
+        <div style="display:flex; flex-direction:column; gap:0.4rem;">
+          <div style="display:flex; align-items:center; gap:8px; font-size:0.78rem; color:var(--text-dim);">
+            <span style="color:var(--green);">▸</span> NBA/NAAC accreditation evidence (Student Performance criteria)
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; font-size:0.78rem; color:var(--text-dim);">
+            <span style="color:var(--green);">▸</span> Placement % improvement → better college rankings → more admissions
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; font-size:0.78rem; color:var(--text-dim);">
+            <span style="color:var(--green);">▸</span> Faculty force multiplier — students arrive better prepared
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; font-size:0.78rem; color:var(--text-dim);">
+            <span style="color:var(--green);">▸</span> ₹300/student/year on Institution Lite — less than one textbook
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     SLIDE 7 — COMPETITIVE LANDSCAPE
+     ════════════════════════════════════════════════════════════ -->
+<div class="slide" data-slide="7">
+  <div class="slide-tag anim">COMPETITIVE LANDSCAPE</div>
+  <h2 class="anim anim-d1">No direct competitor owns<br/><span class="accent-text">academic defense readiness</span></h2>
+  <p class="subtitle anim anim-d2">Our real competition is the status quo — students practicing alone in hostel rooms.</p>
+
+  <div class="anim anim-d3" style="margin-top:2rem;">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Capability</th>
+          <th style="text-align:center;">VivAI</th>
+          <th style="text-align:center;">ChatGPT</th>
+          <th style="text-align:center;">Interviewing.io</th>
+          <th style="text-align:center;">Exponent</th>
+          <th style="text-align:center;">Eklavvya</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="row-accent">
+          <td>Live voice AI examiner</td>
+          <td style="text-align:center; color:var(--green);">✓</td>
+          <td style="text-align:center; color:var(--red);">✗</td>
+          <td style="text-align:center; color:var(--red);">✗ (human)</td>
+          <td style="text-align:center; color:var(--red);">✗</td>
+          <td style="text-align:center; color:var(--amber);">~</td>
+        </tr>
+        <tr class="row-accent">
+          <td>Reads student project code</td>
+          <td style="text-align:center; color:var(--green);">✓</td>
+          <td style="text-align:center; color:var(--amber);">paste only</td>
+          <td style="text-align:center; color:var(--red);">✗</td>
+          <td style="text-align:center; color:var(--red);">✗</td>
+          <td style="text-align:center; color:var(--red);">✗</td>
+        </tr>
+        <tr class="row-accent">
+          <td>Hinglish / Indian languages</td>
+          <td style="text-align:center; color:var(--green);">13 langs</td>
+          <td style="text-align:center; color:var(--amber);">text only</td>
+          <td style="text-align:center; color:var(--red);">✗</td>
+          <td style="text-align:center; color:var(--red);">✗</td>
+          <td style="text-align:center; color:var(--red);">✗</td>
+        </tr>
+        <tr class="row-accent">
+          <td>Camera sentiment analysis</td>
+          <td style="text-align:center; color:var(--green);">✓</td>
+          <td style="text-align:center; color:var(--red);">✗</td>
+          <td style="text-align:center; color:var(--red);">✗</td>
+          <td style="text-align:center; color:var(--red);">✗</td>
+          <td style="text-align:center; color:var(--red);">✗</td>
+        </tr>
+        <tr class="row-accent">
+          <td>Team viva simulation</td>
+          <td style="text-align:center; color:var(--green);">✓</td>
+          <td style="text-align:center; color:var(--red);">✗</td>
+          <td style="text-align:center; color:var(--red);">✗</td>
+          <td style="text-align:center; color:var(--red);">✗</td>
+          <td style="text-align:center; color:var(--red);">✗</td>
+        </tr>
+        <tr class="row-accent">
+          <td>Weakness heatmap (cross-session)</td>
+          <td style="text-align:center; color:var(--green);">✓</td>
+          <td style="text-align:center; color:var(--red);">✗</td>
+          <td style="text-align:center; color:var(--red);">✗</td>
+          <td style="text-align:center; color:var(--red);">✗</td>
+          <td style="text-align:center; color:var(--red);">✗</td>
+        </tr>
+        <tr class="row-accent">
+          <td>Institutional dashboard</td>
+          <td style="text-align:center; color:var(--green);">✓</td>
+          <td style="text-align:center; color:var(--red);">✗</td>
+          <td style="text-align:center; color:var(--red);">✗</td>
+          <td style="text-align:center; color:var(--red);">✗</td>
+          <td style="text-align:center; color:var(--amber);">basic</td>
+        </tr>
+        <tr class="row-accent">
+          <td>Evidence-backed scoring</td>
+          <td style="text-align:center; color:var(--green);">✓</td>
+          <td style="text-align:center; color:var(--red);">✗</td>
+          <td style="text-align:center; color:var(--amber);">peer</td>
+          <td style="text-align:center; color:var(--amber);">rubric</td>
+          <td style="text-align:center; color:var(--red);">✗</td>
+        </tr>
+        <tr>
+          <td>Target user</td>
+          <td style="text-align:center; color:var(--accent);">Indian B.Tech</td>
+          <td style="text-align:center; color:var(--text-muted);">Everyone</td>
+          <td style="text-align:center; color:var(--text-muted);">US tech</td>
+          <td style="text-align:center; color:var(--text-muted);">US PM/MBA</td>
+          <td style="text-align:center; color:var(--text-muted);">India admin</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="quote-block anim anim-d4" style="margin-top:1.5rem; max-width:700px;">
+    "Category creation opportunity. No competitor exists because nobody else connected project workspaces to oral defense practice." — VivAI is defining the Defense Readiness category.
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     SLIDE 8 — TRACTION & MILESTONES
+     ════════════════════════════════════════════════════════════ -->
+<div class="slide" data-slide="8">
+  <div class="slide-tag anim">TRACTION & MILESTONES</div>
+  <h2 class="anim anim-d1">Built. Shipped. <span class="accent-text">Ready to scale.</span></h2>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:2rem; margin-top:2rem;">
+    <!-- Technical Milestones -->
+    <div class="anim anim-d2">
+      <h3 style="margin-bottom:1rem; font-size:0.95rem;">✅ What's Built</h3>
+      <div style="display:flex; flex-direction:column; gap:0.6rem;">
+        <div class="timeline-item">
+          <div class="timeline-dot" style="background:var(--green);"></div>
+          <div>
+            <div style="font-size:0.82rem; font-weight:500;">Full-stack platform (React 19 + FastAPI + Supabase)</div>
+            <div style="font-size:0.7rem; color:var(--text-muted);">Production-ready with 6 SQL migrations, 22+ API routers</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="background:var(--green);"></div>
+          <div>
+            <div style="font-size:0.82rem; font-weight:500;">Live voice engine with Gemini integration</div>
+            <div style="font-size:0.7rem; color:var(--text-muted);">Sub-second latency, 13 languages, 5 examiner personas</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="background:var(--green);"></div>
+          <div>
+            <div style="font-size:0.82rem; font-weight:500;">20+ practice scenarios with weighted rubrics</div>
+            <div style="font-size:0.7rem; color:var(--text-muted);">Academic, placement, corporate, public categories</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="background:var(--green);"></div>
+          <div>
+            <div style="font-size:0.82rem; font-weight:500;">Evidence-based reporting engine</div>
+            <div style="font-size:0.7rem; color:var(--text-muted);">Citation-disciplined, validated, deterministic delivery metrics</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="background:var(--green);"></div>
+          <div>
+            <div style="font-size:0.82rem; font-weight:500;">Kanban boards, teams, file management</div>
+            <div style="font-size:0.7rem; color:var(--text-muted);">Full project workspace with drag-and-drop task management</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="background:var(--green);"></div>
+          <div>
+            <div style="font-size:0.82rem; font-weight:500;">DPDP Act 2023 compliant</div>
+            <div style="font-size:0.7rem; color:var(--text-muted);">Consent flows, data erasure, grievance officer, parental verification</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Product Metrics -->
+    <div class="anim anim-d3">
+      <h3 style="margin-bottom:1rem; font-size:0.95rem;">📊 Product Metrics</h3>
+      <div style="display:flex; flex-direction:column; gap:0.8rem;">
+        <div class="card" style="padding:1rem 1.25rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:0.8rem; color:var(--text-dim);">Practice Scenarios</span>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:1.1rem; font-weight:700; color:var(--accent);">20+</span>
+          </div>
+        </div>
+        <div class="card" style="padding:1rem 1.25rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:0.8rem; color:var(--text-dim);">Examiner Personas</span>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:1.1rem; font-weight:700; color:var(--green);">5</span>
+          </div>
+        </div>
+        <div class="card" style="padding:1rem 1.25rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:0.8rem; color:var(--text-dim);">Supported Languages</span>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:1.1rem; font-weight:700; color:var(--purple);">13</span>
+          </div>
+        </div>
+        <div class="card" style="padding:1rem 1.25rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:0.8rem; color:var(--text-dim);">Backend API Routers</span>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:1.1rem; font-weight:700; color:var(--amber);">22</span>
+          </div>
+        </div>
+        <div class="card" style="padding:1rem 1.25rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:0.8rem; color:var(--text-dim);">DB Migrations</span>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:1.1rem; font-weight:700; color:var(--accent);">6</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card card-accent" style="margin-top:1rem; padding:1rem 1.25rem;">
+        <p style="font-size:0.8rem; color:var(--text-dim); text-align:center; font-style:italic;">
+          "This isn't a prototype. It's built. Every feature is live in production."
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     SLIDE 9 — DEFENSE READINESS SCORE
+     ════════════════════════════════════════════════════════════ -->
+<div class="slide" data-slide="9">
+  <div class="slide-tag anim">DEFENSE READINESS SCORE™</div>
+  <h2 class="anim anim-d1">A proprietary metric that<br/><span class="accent-text">defines the category</span></h2>
+  <p class="subtitle anim anim-d2">Composite score (0–100) calculated after each practice session. Evidence-backed, not AI-praise.</p>
+
+  <div style="display:grid; grid-template-columns:1.3fr 1fr; gap:2rem; margin-top:2rem;">
+    <div class="anim anim-d3">
+      <div class="card" style="padding:1.5rem;">
+        <h3 style="margin-bottom:1.25rem;">Score Dimensions</h3>
+        <div style="display:flex; flex-direction:column; gap:1rem;">
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:0.82rem; font-weight:500;">Technical Depth</span>
+              <span style="font-family:'JetBrains Mono',monospace; font-size:0.78rem; color:var(--accent);">30%</span>
+            </div>
+            <p style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">Can student explain why, not just what</p>
+            <div class="bar-track"><div class="bar-fill accent" style="width:30%;"></div></div>
+          </div>
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:0.82rem; font-weight:500;">Communication</span>
+              <span style="font-family:'JetBrains Mono',monospace; font-size:0.78rem; color:var(--green);">25%</span>
+            </div>
+            <p style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">WPM, filler words, pacing, clarity</p>
+            <div class="bar-track"><div class="bar-fill green" style="width:25%;"></div></div>
+          </div>
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:0.82rem; font-weight:500;">Coverage</span>
+              <span style="font-family:'JetBrains Mono',monospace; font-size:0.78rem; color:var(--purple);">20%</span>
+            </div>
+            <p style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">How much of the project/syllabus was addressed</p>
+            <div class="bar-track"><div class="bar-fill" style="width:20%; background:linear-gradient(90deg, #9333ea, var(--purple));"></div></div>
+          </div>
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:0.82rem; font-weight:500;">Confidence</span>
+              <span style="font-family:'JetBrains Mono',monospace; font-size:0.78rem; color:var(--amber);">15%</span>
+            </div>
+            <p style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">Hesitation patterns, barge-in recovery</p>
+            <div class="bar-track"><div class="bar-fill amber" style="width:15%;"></div></div>
+          </div>
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:0.82rem; font-weight:500;">Structure</span>
+              <span style="font-family:'JetBrains Mono',monospace; font-size:0.78rem; color:var(--accent);">10%</span>
+            </div>
+            <p style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">Logical flow, STAR-like answers, conciseness</p>
+            <div class="bar-track"><div class="bar-fill accent" style="width:10%;"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="anim anim-d4" style="display:flex; flex-direction:column; gap:1rem;">
+      <div class="card" style="padding:1.5rem; text-align:center;">
+        <h3 style="margin-bottom:1rem;">Readiness Bands</h3>
+        <div style="display:flex; flex-direction:column; gap:0.6rem;">
+          <div style="display:flex; align-items:center; gap:12px; padding:0.5rem 0.75rem; background:var(--red-dim); border-radius:8px; border:1px solid rgba(248,113,113,0.2);">
+            <span style="font-family:'JetBrains Mono',monospace; font-size:0.9rem; font-weight:700; color:var(--red); width:60px;">0–34</span>
+            <span style="font-size:0.8rem; color:var(--text-dim);">🔴 Just Getting Started</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px; padding:0.5rem 0.75rem; background:var(--amber-dim); border-radius:8px; border:1px solid rgba(251,191,36,0.2);">
+            <span style="font-family:'JetBrains Mono',monospace; font-size:0.9rem; font-weight:700; color:var(--amber); width:60px;">35–59</span>
+            <span style="font-size:0.8rem; color:var(--text-dim);">🟡 Building Up</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px; padding:0.5rem 0.75rem; background:var(--green-dim); border-radius:8px; border:1px solid rgba(74,222,128,0.2);">
+            <span style="font-family:'JetBrains Mono',monospace; font-size:0.9rem; font-weight:700; color:var(--green); width:60px;">60–79</span>
+            <span style="font-size:0.8rem; color:var(--text-dim);">🟢 Almost There</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px; padding:0.5rem 0.75rem; background:var(--accent-dim); border-radius:8px; border:1px solid rgba(175,221,255,0.2);">
+            <span style="font-family:'JetBrains Mono',monospace; font-size:0.9rem; font-weight:700; color:var(--accent); width:60px;">80–100</span>
+            <span style="font-size:0.8rem; color:var(--text-dim);">🏆 Defense Ready</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card card-accent" style="padding:1.25rem;">
+        <h3 style="font-size:0.85rem; margin-bottom:0.5rem;">🔄 Network Effect</h3>
+        <p style="font-size:0.75rem; color:var(--text-dim); line-height:1.5;">
+          As more students practice, VivAI builds <strong style="color:var(--text);">anonymized peer benchmarks</strong>:
+          <em>"Students from Tier-2 CSE departments average DRS 58. You're at 72 — top 15%."</em>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     SLIDE 10 — TECHNICAL MOAT
+     ════════════════════════════════════════════════════════════ -->
+<div class="slide" data-slide="10">
+  <div class="slide-tag anim">TECHNICAL MOAT</div>
+  <h2 class="anim anim-d1">Deep engineering that's<br/><span class="accent-text">hard to replicate</span></h2>
+
+  <div class="grid-3 anim anim-d2" style="margin-top:2rem;">
+    <div class="card">
+      <div class="feature-icon" style="background:var(--accent-dim);">🎙️</div>
+      <h3 style="font-size:0.88rem;">Live Voice Engine</h3>
+      <p style="font-size:0.75rem; color:var(--text-dim); margin-top:0.4rem;">Gemini half-cascade live models with custom audio gate management, echo cancellation, barge-in handling, and server-side mic safety. Sub-second latency across 13 languages.</p>
+      <div style="margin-top:0.75rem;">
+        <span class="badge badge-accent">WebSocket</span>
+        <span class="badge badge-green" style="margin-left:4px;">Real-time</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="feature-icon" style="background:var(--green-dim);">🧠</div>
+      <h3 style="font-size:0.88rem;">Evidence-Based Reports</h3>
+      <p style="font-size:0.75rem; color:var(--text-dim); margin-top:0.4rem;">Every finding in every report cites specific transcript evidence. Deterministic delivery metrics (WPM, fillers, talk ratio) computed from timestamped transcripts. Reports validated by pure functions.</p>
+      <div style="margin-top:0.75rem;">
+        <span class="badge badge-green">Auditable</span>
+        <span class="badge badge-amber" style="margin-left:4px;">No hallucination</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="feature-icon" style="background:var(--purple-dim);">📋</div>
+      <h3 style="font-size:0.88rem;">Registry Composition</h3>
+      <p style="font-size:0.75rem; color:var(--text-dim); margin-top:0.4rem;">Scenarios and personas are orthogonal dataclasses composed into live prompts. 7-axis behavioral matrix per persona. Rubrics sum to 1.0. All unit-tested.</p>
+      <div style="margin-top:0.75rem;">
+        <span class="badge badge-purple">20 scenarios</span>
+        <span class="badge badge-accent" style="margin-left:4px;">5 personas</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="feature-icon" style="background:var(--amber-dim);">🔐</div>
+      <h3 style="font-size:0.88rem;">Privacy Architecture</h3>
+      <p style="font-size:0.75rem; color:var(--text-dim); margin-top:0.4rem;">Ephemeral code processing — loaded in memory for session, raw files deleted within 7 days. Never trains on student code. DPDP Act compliant with verifiable parental consent.</p>
+      <div style="margin-top:0.75rem;">
+        <span class="badge badge-amber">DPDP Compliant</span>
+        <span class="badge badge-green" style="margin-left:4px;">India-hosted</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="feature-icon" style="background:var(--red-dim);">🏗️</div>
+      <h3 style="font-size:0.88rem;">Atomic Team Operations</h3>
+      <p style="font-size:0.75rem; color:var(--text-dim); margin-top:0.4rem;">Postgres RPC for atomic team creation. Self-healing membership lists. Sparse sort_order for Kanban drag-and-drop. Optimistic UI updates with TanStack Query.</p>
+      <div style="margin-top:0.75rem;">
+        <span class="badge badge-red">Zero orphan teams</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="feature-icon" style="background:var(--accent-dim);">🌍</div>
+      <h3 style="font-size:0.88rem;">13-Language Engine</h3>
+      <p style="font-size:0.75rem; color:var(--text-dim); margin-top:0.4rem;">BCP-47 language code mapping for Gemini TTS. Hindi, Hinglish, Telugu, Tamil, Kannada, Bengali, Marathi, Punjabi, Gujarati + English variants. Language-aware question generation.</p>
+      <div style="margin-top:0.75rem;">
+        <span class="badge badge-accent">BCP-47</span>
+        <span class="badge badge-green" style="margin-left:4px;">Code-mixed</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     SLIDE 11 — FINANCIAL PROJECTIONS
+     ════════════════════════════════════════════════════════════ -->
+<div class="slide" data-slide="11">
+  <div class="slide-tag anim">FINANCIAL PROJECTIONS</div>
+  <h2 class="anim anim-d1">Path to <span class="accent-text">$4.2M ARR</span> by Year 3</h2>
+  <p class="subtitle anim anim-d2">Conservative projections based on institutional B2B sales with 85% gross margins.</p>
+
+  <div style="display:grid; grid-template-columns:1.6fr 1fr; gap:2rem; margin-top:1.5rem;">
+    <!-- Revenue Chart -->
+    <div class="anim anim-d3">
+      <div class="card" style="padding:1.5rem;">
+        <h3 style="margin-bottom:1.25rem;">Revenue Projection ($K ARR)</h3>
+        <div class="bar-chart">
+          <div class="bar-col">
+            <div class="bar-val">$60K</div>
+            <div class="bar" style="height:3%; background:linear-gradient(180deg, var(--accent), rgba(175,221,255,0.3));"></div>
+            <div class="bar-label">Year 0</div>
+          </div>
+          <div class="bar-col">
+            <div class="bar-val">$480K</div>
+            <div class="bar" style="height:28%; background:linear-gradient(180deg, var(--green), rgba(74,222,128,0.3));"></div>
+            <div class="bar-label">Year 1</div>
+          </div>
+          <div class="bar-col">
+            <div class="bar-val">$1.8M</div>
+            <div class="bar" style="height:58%; background:linear-gradient(180deg, var(--purple), rgba(192,132,252,0.3));"></div>
+            <div class="bar-label">Year 2</div>
+          </div>
+          <div class="bar-col">
+            <div class="bar-val">$4.2M</div>
+            <div class="bar" style="height:100%; background:linear-gradient(180deg, var(--amber), rgba(251,191,36,0.3));"></div>
+            <div class="bar-label">Year 3</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detailed Projections Table -->
+      <div class="card" style="margin-top:1rem; padding:1rem;">
+        <table class="data-table" style="margin-top:0;">
+          <thead>
+            <tr><th>Metric</th><th>Year 1</th><th>Year 2</th><th>Year 3</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Institutional Clients</td>
+              <td style="color:var(--text);">20</td>
+              <td style="color:var(--text);">80</td>
+              <td style="color:var(--text);">200</td>
+            </tr>
+            <tr>
+              <td>B2C Premium Users</td>
+              <td style="color:var(--text);">500</td>
+              <td style="color:var(--text);">3,000</td>
+              <td style="color:var(--text);">12,000</td>
+            </tr>
+            <tr>
+              <td>Total Users (Institutional)</td>
+              <td style="color:var(--text);">8,000</td>
+              <td style="color:var(--text);">40,000</td>
+              <td style="color:var(--text);">120,000</td>
+            </tr>
+            <tr class="row-accent">
+              <td>Revenue</td>
+              <td style="color:var(--green);">$480K</td>
+              <td style="color:var(--green);">$1.8M</td>
+              <td style="color:var(--green);">$4.2M</td>
+            </tr>
+            <tr>
+              <td>Gross Margin</td>
+              <td>78%</td>
+              <td>83%</td>
+              <td>87%</td>
+            </tr>
+            <tr>
+              <td>Operating Expenses</td>
+              <td style="color:var(--red);">$620K</td>
+              <td style="color:var(--red);">$1.5M</td>
+              <td style="color:var(--red);">$2.8M</td>
+            </tr>
+            <tr>
+              <td>Net Income</td>
+              <td style="color:var(--red);">-$244K</td>
+              <td style="color:var(--green);">-$114K</td>
+              <td style="color:var(--green);">+$846K</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Key Assumptions & Unit Economics -->
+    <div class="anim anim-d4" style="display:flex; flex-direction:column; gap:1rem;">
+      <div class="card" style="padding:1.25rem;">
+        <h3 style="font-size:0.85rem; margin-bottom:0.75rem;">Key Assumptions</h3>
+        <div style="display:flex; flex-direction:column; gap:0.5rem;">
+          <div style="display:flex; align-items:flex-start; gap:8px; font-size:0.78rem; color:var(--text-dim);">
+            <span style="color:var(--accent);">▸</span> Pilot 5 colleges → 20 paid by Y1 end
+          </div>
+          <div style="display:flex; align-items:flex-start; gap:8px; font-size:0.78rem; color:var(--text-dim);">
+            <span style="color:var(--accent);">▸</span> Avg institution deal: ₹3.5L/yr (~$4.2K)
+          </div>
+          <div style="display:flex; align-items:flex-start; gap:8px; font-size:0.78rem; color:var(--text-dim);">
+            <span style="color:var(--accent);">▸</span> Net revenue retention: 130% (seat expansion)
+          </div>
+          <div style="display:flex; align-items:flex-start; gap:8px; font-size:0.78rem; color:var(--text-dim);">
+            <span style="color:var(--accent);">▸</span> Gemini API costs: ~$0.02/session (free tier + scale pricing)
+          </div>
+          <div style="display:flex; align-items:flex-start; gap:8px; font-size:0.78rem; color:var(--text-dim);">
+            <span style="color:var(--accent);">▸</span> Break-even at ~85 institutional clients
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="padding:1.25rem;">
+        <h3 style="font-size:0.85rem; margin-bottom:0.75rem;">Cost Structure</h3>
+        <div style="display:flex; flex-direction:column; gap:0.5rem;">
+          <div style="display:flex; justify-content:space-between; font-size:0.78rem;">
+            <span style="color:var(--text-dim);">AI/LLM Costs</span>
+            <span style="color:var(--text);">8% of rev</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill accent" style="width:8%;"></div></div>
+          <div style="display:flex; justify-content:space-between; font-size:0.78rem;">
+            <span style="color:var(--text-dim);">Infrastructure</span>
+            <span style="color:var(--text);">5% of rev</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill green" style="width:5%;"></div></div>
+          <div style="display:flex; justify-content:space-between; font-size:0.78rem;">
+            <span style="color:var(--text-dim);">Engineering Team</span>
+            <span style="color:var(--text);">35% of rev</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" style="width:35%; background:linear-gradient(90deg, #9333ea, var(--purple));"></div></div>
+          <div style="display:flex; justify-content:space-between; font-size:0.78rem;">
+            <span style="color:var(--text-dim);">Sales & Marketing</span>
+            <span style="color:var(--text);">25% of rev</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill amber" style="width:25%;"></div></div>
+          <div style="display:flex; justify-content:space-between; font-size:0.78rem;">
+            <span style="color:var(--text-dim);">G&A</span>
+            <span style="color:var(--text);">15% of rev</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" style="width:15%; background:linear-gradient(90deg, var(--red), #fca5a5);"></div></div>
+        </div>
+      </div>
+
+      <div class="card card-accent" style="padding:1rem;">
+        <div style="text-align:center;">
+          <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:0.25rem;">BREAKEVEN</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:1.6rem; font-weight:800; color:var(--green);">Month 28</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     SLIDE 12 — GO-TO-MARKET
+     ════════════════════════════════════════════════════════════ -->
+<div class="slide" data-slide="12">
+  <div class="slide-tag anim">GO-TO-MARKET STRATEGY</div>
+  <h2 class="anim anim-d1">Land with free pilots.<br/><span class="accent-text">Expand with readiness data.</span></h2>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:2rem; margin-top:2rem;">
+    <div class="anim anim-d2">
+      <h3 style="margin-bottom:1rem;">📍 Phase 1: Seed (Months 1-3)</h3>
+      <div style="display:flex; flex-direction:column; gap:0.6rem;">
+        <div style="display:flex; align-items:flex-start; gap:10px;">
+          <span class="badge badge-accent" style="flex-shrink:0;">01</span>
+          <div>
+            <div style="font-size:0.82rem; font-weight:500;">5 pilot colleges (Tier-2/3)</div>
+            <div style="font-size:0.7rem; color:var(--text-muted);">Free semester-long pilot — 500 seats each. Target: desperate-to-improve placement rates.</div>
+          </div>
+        </div>
+        <div style="display:flex; align-items:flex-start; gap:10px;">
+          <span class="badge badge-accent" style="flex-shrink:0;">02</span>
+          <div>
+            <div style="font-size:0.82rem; font-weight:500;">Campus ambassadors (2-3 per college)</div>
+            <div style="font-size:0.7rem; color:var(--text-muted);">Free premium + stipend. They run "Defense Readiness Week" drives.</div>
+          </div>
+        </div>
+        <div style="display:flex; align-items:flex-start; gap:10px;">
+          <span class="badge badge-accent" style="flex-shrink:0;">03</span>
+          <div>
+            <div style="font-size:0.82rem; font-weight:500;">500-student survey validation</div>
+            <div style="font-size:0.7rem; color:var(--text-muted);">"Have you felt unprepared for a viva?" → prove 70%+ demand.</div>
+          </div>
+        </div>
+      </div>
+
+      <h3 style="margin-top:2rem; margin-bottom:1rem;">📈 Phase 2: Scale (Months 4-12)</h3>
+      <div style="display:flex; flex-direction:column; gap:0.6rem;">
+        <div style="display:flex; align-items:flex-start; gap:10px;">
+          <span class="badge badge-green" style="flex-shrink:0;">04</span>
+          <div>
+            <div style="font-size:0.82rem; font-weight:500;">Convert pilots → ₹1.5-5L/yr licenses</div>
+            <div style="font-size:0.7rem; color:var(--text-muted);">Present readiness data to T&P deans. "Your students averaged 52% readiness."</div>
+          </div>
+        </div>
+        <div style="display:flex; align-items:flex-start; gap:10px;">
+          <span class="badge badge-green" style="flex-shrink:0;">05</span>
+          <div>
+            <div style="font-size:0.82rem; font-weight:500;">NAAC/NBA alignment positioning</div>
+            <div style="font-size:0.7rem; color:var(--text-muted);">Map VivAI sessions to accreditation criteria. Colleges pay for accreditation prep.</div>
+          </div>
+        </div>
+        <div style="display:flex; align-items:flex-start; gap:10px;">
+          <span class="badge badge-green" style="flex-shrink:0;">06</span>
+          <div>
+            <div style="font-size:0.82rem; font-weight:500;">Publish "Defense Readiness Validation Study"</div>
+            <div style="font-size:0.7rem; color:var(--text-muted);">Controlled test: 50 students on VivAI vs 50 control. First quantified study.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="anim anim-d3">
+      <h3 style="margin-bottom:1rem;">🌍 Phase 3: Expand (Year 2-3)</h3>
+      <div style="display:flex; flex-direction:column; gap:0.6rem;">
+        <div style="display:flex; align-items:flex-start; gap:10px;">
+          <span class="badge badge-purple" style="flex-shrink:0;">07</span>
+          <div>
+            <div style="font-size:0.82rem; font-weight:500;">B2C freemium funnel</div>
+            <div style="font-size:0.7rem; color:var(--text-muted);">Students at non-partner colleges → free tier → ₹199/mo premium conversion.</div>
+          </div>
+        </div>
+        <div style="display:flex; align-items:flex-start; gap:10px;">
+          <span class="badge badge-purple" style="flex-shrink:0;">08</span>
+          <div>
+            <div style="font-size:0.82rem; font-weight:500;">Multi-department campus deals</div>
+            <div style="font-size:0.7rem; color:var(--text-muted);">₹10L/yr campus-wide. Custom scenarios for specific departments.</div>
+          </div>
+        </div>
+        <div style="display:flex; align-items:flex-start; gap:10px;">
+          <span class="badge badge-purple" style="flex-shrink:0;">09</span>
+          <div>
+            <div style="font-size:0.82rem; font-weight:500;">Adjacent markets: MBA, medical, law vivas</div>
+            <div style="font-size:0.7rem; color:var(--text-muted);">Same platform, new scenario packs. ₹15B+ oral exam market across disciplines.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:1.5rem; padding:1.25rem;">
+        <h3 style="font-size:0.85rem; margin-bottom:0.75rem;">🛡️ Defensive Moats (Compounding)</h3>
+        <div style="display:flex; flex-direction:column; gap:0.5rem;">
+          <div style="display:flex; align-items:center; gap:8px; font-size:0.78rem; color:var(--text-dim);">
+            <span style="color:var(--accent);">◆</span> <strong style="color:var(--text);">Data network effect</strong> — college predictor improves with every user
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; font-size:0.78rem; color:var(--text-dim);">
+            <span style="color:var(--green);">◆</span> <strong style="color:var(--text);">Switching costs</strong> — weakness heatmaps & readiness history = lock-in
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; font-size:0.78rem; color:var(--text-dim);">
+            <span style="color:var(--purple);">◆</span> <strong style="color:var(--text);">Category ownership</strong> — "Defense Readiness" = VivAI coined
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; font-size:0.78rem; color:var(--text-dim);">
+            <span style="color:var(--amber);">◆</span> <strong style="color:var(--text);">Crowd-sourced faculty profiles</strong> — grows with each college
+          </div>
+        </div>
+      </div>
+
+      <div class="card card-accent" style="margin-top:1rem; padding:1rem;">
+        <div style="display:flex; justify-content:center; gap:2rem;">
+          <div style="text-align:center;">
+            <div style="font-family:'JetBrains Mono',monospace; font-size:0.65rem; color:var(--text-muted);">TARGET YEAR 3</div>
+            <div style="font-family:'JetBrains Mono',monospace; font-size:1.4rem; font-weight:800; color:var(--accent);">200</div>
+            <div style="font-size:0.7rem; color:var(--text-dim);">College Partners</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-family:'JetBrains Mono',monospace; font-size:0.65rem; color:var(--text-muted);">TOTAL USERS</div>
+            <div style="font-family:'JetBrains Mono',monospace; font-size:1.4rem; font-weight:800; color:var(--green);">132K</div>
+            <div style="font-size:0.7rem; color:var(--text-dim);">Students + Premium</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     SLIDE 13 — THE ASK
+     ════════════════════════════════════════════════════════════ -->
+<div class="slide" data-slide="13">
+  <div class="slide-tag anim">THE ASK</div>
+  <h2 class="anim anim-d1" style="font-size:clamp(2rem,4vw,3.5rem);">Raising <span class="accent-text">$1.5M</span> Seed</h2>
+  <p class="subtitle anim anim-d2" style="max-width:600px;">To convert 5 pilots → 20 paying institutions, build the sales engine, and hit break-even at Month 28.</p>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:2rem; margin-top:3rem;">
+    <div class="card anim anim-d3" style="text-align:center; padding:2rem 1.5rem;">
+      <div style="font-size:2rem; margin-bottom:0.75rem;">🏗️</div>
+      <h3 style="font-size:1rem;">Product & Engineering</h3>
+      <div style="font-family:'JetBrains Mono',monospace; font-size:1.5rem; font-weight:800; color:var(--accent); margin:0.75rem 0;">$600K</div>
+      <div class="label">40% OF RAISE</div>
+      <p style="font-size:0.75rem; color:var(--text-dim); margin-top:0.75rem; line-height:1.5;">Mobile app, offline capability, self-hosted deployment option, advanced analytics, open-source model integration</p>
+    </div>
+    <div class="card anim anim-d4" style="text-align:center; padding:2rem 1.5rem;">
+      <div style="font-size:2rem; margin-bottom:0.75rem;">📣</div>
+      <h3 style="font-size:1rem;">Sales & GTM</h3>
+      <div style="font-family:'JetBrains Mono',monospace; font-size:1.5rem; font-weight:800; color:var(--green); margin:0.75rem 0;">$525K</div>
+      <div class="label">35% OF RAISE</div>
+      <p style="font-size:0.75rem; color:var(--text-dim); margin-top:0.75rem; line-height:1.5;">Campus sales team (5 reps), pilot program operations, case study production, conference presence, NAAC/NBA positioning materials</p>
+    </div>
+    <div class="card anim anim-d5" style="text-align:center; padding:2rem 1.5rem;">
+      <div style="font-size:2rem; margin-bottom:0.75rem;">⚙️</div>
+      <h3 style="font-size:1rem;">Operations & Infra</h3>
+      <div style="font-family:'JetBrains Mono',monospace; font-size:1.5rem; font-weight:800; color:var(--purple); margin:0.75rem 0;">$375K</div>
+      <div class="label">25% OF RAISE</div>
+      <p style="font-size:0.75rem; color:var(--text-dim); margin-top:0.75rem; line-height:1.5;">Infrastructure scaling, ISO 27001 audit, SOC 2 Type I, data privacy compliance, 18-month runway</p>
+    </div>
+  </div>
+
+  <div class="glow-line anim anim-d6" style="margin-top:2.5rem;"></div>
+
+  <div class="grid-3 anim anim-d7" style="margin-top:1rem;">
+    <div style="text-align:center;">
+      <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:0.25rem;">18-MONTH RUNWAY</div>
+      <div style="font-family:'JetBrains Mono',monospace; font-size:1.1rem; font-weight:700; color:var(--text);">At $85K/mo burn</div>
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:0.25rem;">NEXT MILESTONE</div>
+      <div style="font-family:'JetBrains Mono',monospace; font-size:1.1rem; font-weight:700; color:var(--text);">20 paying colleges</div>
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:0.25rem;">SERIES A TRIGGER</div>
+      <div style="font-family:'JetBrains Mono',monospace; font-size:1.1rem; font-weight:700; color:var(--text);">$1.5M ARR</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     SLIDE 14 — CLOSING
+     ════════════════════════════════════════════════════════════ -->
+<div class="slide" data-slide="14">
+  <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; height:100%; position:relative;">
+    <div style="position:absolute; top:10%; left:20%; width:400px; height:400px; background:radial-gradient(circle, rgba(175,221,255,0.05) 0%, transparent 70%); pointer-events:none;"></div>
+    <div style="position:absolute; bottom:10%; right:15%; width:300px; height:300px; background:radial-gradient(circle, rgba(74,222,128,0.04) 0%, transparent 70%); pointer-events:none;"></div>
+
+    <div class="slide-tag anim">LET'S BUILD THE FUTURE</div>
+    <h1 class="anim anim-d1" style="max-width:700px; font-size:clamp(2rem,4.5vw,3.8rem);">
+      Every student deserves<br/>to be <span style="color:var(--accent);">defense-ready</span>.
+    </h1>
+    <div class="divider anim anim-d2" style="margin:1.5rem auto;"></div>
+    <p class="subtitle anim anim-d3" style="text-align:center; max-width:550px;">
+      VivAI is the first platform to connect what students build with how they defend it — powered by AI, grounded in evidence, built for India.
+    </p>
+
+    <div class="anim anim-d4" style="margin-top:2.5rem; display:flex; flex-direction:column; align-items:center; gap:1rem;">
+      <div style="display:flex; gap:2rem;">
+        <div style="text-align:center;">
+          <div style="font-size:0.65rem; font-family:'JetBrains Mono',monospace; color:var(--text-muted); letter-spacing:0.1em;">EMAIL</div>
+          <div style="font-size:0.9rem; color:var(--text); margin-top:4px;">founders@vivai.app</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:0.65rem; font-family:'JetBrains Mono',monospace; color:var(--text-muted); letter-spacing:0.1em;">WEB</div>
+          <div style="font-size:0.9rem; color:var(--text); margin-top:4px;">vivai.app</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="anim anim-d5" style="margin-top:3rem; display:flex; gap:0.75rem;">
+      <span class="badge badge-accent">SERIES A — $1.5M</span>
+      <span class="badge badge-green">18-MONTH RUNWAY</span>
+      <span class="badge badge-purple">PROFITABLE BY MONTH 28</span>
+    </div>
+  </div>
+</div>
+
+</div><!-- /deck -->
+
+<!-- ════════════════════════════════════════════════════════════
+     NAVIGATION BAR
+     ════════════════════════════════════════════════════════════ -->
+<div class="nav-bar" id="navbar">
+  <button class="nav-btn" onclick="prevSlide()">← PREV</button>
+  <div class="dots" id="dots"></div>
+  <button class="nav-btn" onclick="nextSlide()">NEXT →</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const totalSlides = slides.length;
+  let currentSlide = 0;
+
+  // Build dots
+  const dotsContainer = document.getElementById('dots');
+  for (let i = 0; i < totalSlides; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'dot' + (i === 0 ? ' active' : '');
+    dot.onclick = () => goToSlide(i);
+    dotsContainer.appendChild(dot);
+  }
+
+  function goToSlide(n) {
+    if (n < 0 || n >= totalSlides || n === currentSlide) return;
+    slides[currentSlide].classList.remove('active');
+    dotsContainer.children[currentSlide].classList.remove('active');
+    currentSlide = n;
+    slides[currentSlide].classList.add('active');
+    dotsContainer.children[currentSlide].classList.add('active');
+    document.querySelector('.page-indicator').textContent =
+      String(currentSlide + 1).padStart(2, '0') + ' / ' + String(totalSlides).padStart(2, '0');
+  }
+
+  function nextSlide() { goToSlide(currentSlide + 1); }
+  function prevSlide() { goToSlide(currentSlide - 1); }
+
+  // Keyboard navigation
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); nextSlide(); }
+    if (e.key === 'ArrowLeft' || e.key === 'Backspace' || e.key === 'PageUp') { e.preventDefault(); prevSlide(); }
+    if (e.key === 'Home') { e.preventDefault(); goToSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); goToSlide(totalSlides - 1); }
+  });
+
+  // Touch support
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 60) { diff > 0 ? nextSlide() : prevSlide(); }
+  });
+
+  // Init page indicator
+  document.querySelector('.page-indicator').textContent =
+    '01 / ' + String(totalSlides).padStart(2, '0');
+</script>
+
+</body>
+</html>

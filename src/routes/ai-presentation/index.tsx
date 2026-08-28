@@ -8,6 +8,8 @@ import { ErrorState } from "@/components/error-state";
 import { useRequireAuth } from "@/lib/auth-context";
 import { useCreatePresentation, usePresentations, useProjects } from "@/lib/hooks";
 
+import { LIVE_LANGUAGES } from "@/lib/languages";
+
 export const Route = createFileRoute("/ai-presentation/")({
   head: () => ({
     meta: [
@@ -34,6 +36,7 @@ function AIPresentation() {
   const [projectId, setProjectId] = useState("");
   const [type, setType] = useState<string>(SESSION_TYPES[0]);
   const [duration, setDuration] = useState<number>(10);
+  const [language, setLanguage] = useState<string>("English");
   const [topic, setTopic] = useState("");
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
@@ -51,6 +54,7 @@ function AIPresentation() {
         session_type: type,
         duration_minutes: duration,
         subject: topic.trim() || null,
+        language,
       });
       navigate({ to: "/ai-presentation/session/$id", params: { id: String(res.id) } });
     } catch (e) {
@@ -80,7 +84,7 @@ function AIPresentation() {
 
         {/* Top Section */}
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-12 shrink-0">
-          <div className="lg:col-span-6 rounded-2xl border border-white/10 bg-card/85 p-4 sm:p-5 backdrop-blur-2xl shadow-[var(--shadow-glass)] flex flex-col justify-between">
+          <div className="lg:col-span-5 rounded-2xl border border-white/10 bg-card/85 p-4 sm:p-5 backdrop-blur-2xl shadow-[var(--shadow-glass)] flex flex-col justify-between">
             <div>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-[#8DA6CC]/15 border border-[#8DA6CC]/30 px-2.5 py-1 text-[11px] font-mono font-bold text-[#8DA6CC]">
                 <span className="h-1.5 w-1.5 rounded-full bg-[#8DA6CC] animate-pulse" />
@@ -89,8 +93,8 @@ function AIPresentation() {
               <h2 className="mt-3 text-lg sm:text-xl font-bold tracking-tight text-white font-graphik">
                 Defend like it's the real review
               </h2>
-              <p className="mt-1 max-w-md text-xs sm:text-sm text-white/60 leading-relaxed">
-                Share your screen, present your slides, and AI faculty asks follow-ups, scores clarity, and flags missing topics.
+              <p className="mt-1 text-xs sm:text-sm text-white/60 leading-relaxed">
+                Share your screen, present your slides in <strong className="text-[#AFDDFF]">{language}</strong>, and AI faculty asks follow-ups, scores clarity, and flags missing topics.
               </p>
             </div>
             <div className="mt-4 flex flex-wrap gap-2.5">
@@ -105,12 +109,12 @@ function AIPresentation() {
             </div>
           </div>
 
-          <div className="lg:col-span-6 rounded-2xl border border-white/10 bg-card/85 p-4 sm:p-5 backdrop-blur-2xl shadow-[var(--shadow-glass)] flex flex-col justify-between">
+          <div className="lg:col-span-7 rounded-2xl border border-white/10 bg-card/85 p-4 sm:p-5 backdrop-blur-2xl shadow-[var(--shadow-glass)] flex flex-col justify-between">
             <div>
               <h3 className="text-xs font-bold uppercase tracking-wider text-white/50 font-mono">
                 [ SESSION_SETUP ]
               </h3>
-              <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <div className="rounded-xl border border-white/10 bg-white/5 p-2.5">
                   <span className="block text-[10px] text-white/50 font-medium">Project</span>
                   <select
@@ -152,16 +156,31 @@ function AIPresentation() {
                     ))}
                   </select>
                 </div>
+                <div className="rounded-xl border border-white/10 bg-white/5 p-2.5">
+                  <span className="block text-[10px] text-white/50 font-medium">Language</span>
+                  <select
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value)}
+                    className="mt-1 w-full min-h-[36px] rounded-lg bg-black/60 border border-white/10 px-2 py-1 text-xs font-bold text-white focus:outline-none focus:border-[#AFDDFF]"
+                  >
+                    {LIVE_LANGUAGES.map((l) => (
+                      <option key={l} value={l} className="bg-[#0A0E16] text-white">
+                        {l}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
               <div className="mt-2.5 rounded-xl border border-white/10 bg-white/5 p-2.5">
                 <label className="block text-[10px] text-white/50 font-medium">
                   Topic / focus (optional)
                 </label>
                 <input
+                  type="text"
+                  placeholder="e.g. Distributed Consensus Engine Architecture or Sprint 4 Demo"
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
-                  placeholder="e.g. IoT smart irrigation — sensor architecture and cloud pipeline"
-                  className="mt-1 w-full min-h-[36px] rounded-lg bg-black/60 border border-white/10 px-3 py-1 text-xs text-white placeholder:text-white/40 focus:outline-none focus:border-[#AFDDFF]"
+                  className="mt-1 w-full min-h-[36px] rounded-lg border border-white/10 bg-black/60 px-3 py-1.5 text-xs text-white placeholder:text-white/40 focus:border-[#AFDDFF] focus:outline-none"
                 />
               </div>
             </div>
