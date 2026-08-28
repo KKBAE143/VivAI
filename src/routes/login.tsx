@@ -55,7 +55,13 @@ function Login() {
     setError("");
     setLoading(true);
     try {
-      await login(email, password);
+      const res = await api<{ access_token?: string; refresh_token?: string | null }>("/api/auth/login", {
+        body: { email, password },
+      });
+      if (!res.access_token) {
+        throw new Error("No access token returned from server");
+      }
+      login(res.access_token, res.refresh_token ?? null);
       navigate({ to: "/" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to sign in");
