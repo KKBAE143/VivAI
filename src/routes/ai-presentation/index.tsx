@@ -60,126 +60,137 @@ function AIPresentation() {
 
   return (
     <AppShell fitViewport hideTopBar>
-      <div className="flex flex-col gap-3 lg:gap-3.5 h-full">
+      <div className="flex flex-col gap-3 lg:gap-3.5 h-full lg:overflow-hidden overflow-y-auto font-manrope">
         {/* Integrated Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-              AI Presentation Mock
-            </h1>
-            <p className="text-xs text-muted-foreground">
-              Present to AI faculty, share your screen, and get instant real-time feedback.
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white font-graphik">
+                AI Presentation Mock
+              </h1>
+              <span className="text-[10px] sm:text-xs text-[#8DA6CC] bg-[#8DA6CC]/15 px-2 py-0.5 rounded font-mono">
+                [ SLIDE_DEFENSE ]
+              </span>
+            </div>
+            <p className="text-xs text-white/50 mt-0.5">
+              Present to AI faculty, share your screen, and get instant real-time defense feedback.
             </p>
           </div>
         </div>
 
         {/* Top Section */}
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-12">
-          <Card className="lg:col-span-6 bg-primary text-primary-foreground p-4 sm:p-5 flex flex-col justify-between">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-12 shrink-0">
+          <div className="lg:col-span-6 rounded-2xl border border-white/10 bg-card/85 p-4 sm:p-5 backdrop-blur-2xl shadow-[var(--shadow-glass)] flex flex-col justify-between">
             <div>
-              <Badge tone="muted">
-                <span className="text-primary text-[11px] font-semibold">Live Screen Review</span>
-              </Badge>
-              <h2 className="mt-3 text-xl sm:text-2xl font-bold tracking-tight">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#8DA6CC]/15 border border-[#8DA6CC]/30 px-2.5 py-1 text-[11px] font-mono font-bold text-[#8DA6CC]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#8DA6CC] animate-pulse" />
+                LIVE_SCREEN_REVIEW
+              </span>
+              <h2 className="mt-3 text-lg sm:text-xl font-bold tracking-tight text-white font-graphik">
                 Defend like it's the real review
               </h2>
-              <p className="mt-1 max-w-md text-xs sm:text-sm text-primary-foreground/90 leading-relaxed">
-                Share your screen, present your slides, and AI faculty asks follow-ups, scores
-                clarity, and flags missing topics.
+              <p className="mt-1 max-w-md text-xs sm:text-sm text-white/60 leading-relaxed">
+                Share your screen, present your slides, and AI faculty asks follow-ups, scores clarity, and flags missing topics.
               </p>
             </div>
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-4 flex flex-wrap gap-2.5">
               <button
                 disabled={createSession.isPending}
                 onClick={() => void begin()}
-                className="flex items-center gap-1.5 rounded-xl bg-primary-foreground px-4 py-2 text-xs sm:text-sm font-semibold text-primary shadow-sm hover:opacity-95"
+                className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-[#AFDDFF] px-5 py-2.5 text-xs sm:text-sm font-bold text-black shadow-[0_0_14px_rgba(175,221,255,0.25)] hover:bg-[#c8e8ff] active:scale-95 transition-all cursor-pointer uppercase tracking-wider"
               >
-                <Play className="h-3.5 w-3.5" />{" "}
+                <Play className="h-4 w-4 fill-current" />{" "}
                 {createSession.isPending ? "Starting…" : "Start Session"}
               </button>
             </div>
-          </Card>
+          </div>
 
-          <Card className="lg:col-span-6 p-4 sm:p-5 flex flex-col justify-between">
+          <div className="lg:col-span-6 rounded-2xl border border-white/10 bg-card/85 p-4 sm:p-5 backdrop-blur-2xl shadow-[var(--shadow-glass)] flex flex-col justify-between">
             <div>
-              <h3 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                Session Setup
+              <h3 className="text-xs font-bold uppercase tracking-wider text-white/50 font-mono">
+                [ SESSION_SETUP ]
               </h3>
               <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <div className="rounded-lg bg-secondary p-2">
-                  <span className="block text-[10px] text-muted-foreground">Project</span>
+                <div className="rounded-xl border border-white/10 bg-white/5 p-2.5">
+                  <span className="block text-[10px] text-white/50 font-medium">Project</span>
                   <select
                     value={projectId}
                     onChange={(e) => setProjectId(e.target.value)}
-                    className="mt-0.5 w-full rounded bg-card px-1.5 py-1 text-xs font-semibold focus:outline-none truncate"
+                    className="mt-1 w-full min-h-[36px] rounded-lg bg-black/60 border border-white/10 px-2 py-1 text-xs font-bold text-white focus:outline-none focus:border-[#AFDDFF] truncate"
                   >
-                    <option value="">No project</option>
+                    <option value="" className="bg-[#0A0E16] text-white">No project</option>
                     {(projects ?? []).map((p) => (
-                      <option key={String(p.id)} value={String(p.id)}>
+                      <option key={String(p.id)} value={String(p.id)} className="bg-[#0A0E16] text-white">
                         {String(p.title)}
                       </option>
                     ))}
                   </select>
                 </div>
-                <div className="rounded-lg bg-secondary p-2">
-                  <span className="block text-[10px] text-muted-foreground">Type</span>
+                <div className="rounded-xl border border-white/10 bg-white/5 p-2.5">
+                  <span className="block text-[10px] text-white/50 font-medium">Type</span>
                   <select
                     value={type}
                     onChange={(e) => setType(e.target.value)}
-                    className="mt-0.5 w-full rounded bg-card px-1.5 py-1 text-xs font-semibold focus:outline-none"
+                    className="mt-1 w-full min-h-[36px] rounded-lg bg-black/60 border border-white/10 px-2 py-1 text-xs font-bold text-white focus:outline-none focus:border-[#AFDDFF]"
                   >
                     {SESSION_TYPES.map((t) => (
-                      <option key={t}>{t}</option>
+                      <option key={t} className="bg-[#0A0E16] text-white">{t}</option>
                     ))}
                   </select>
                 </div>
-                <div className="rounded-lg bg-secondary p-2">
-                  <span className="block text-[10px] text-muted-foreground">Duration</span>
+                <div className="rounded-xl border border-white/10 bg-white/5 p-2.5">
+                  <span className="block text-[10px] text-white/50 font-medium">Duration</span>
                   <select
                     value={duration}
                     onChange={(e) => setDuration(Number(e.target.value))}
-                    className="mt-0.5 w-full rounded bg-card px-1.5 py-1 text-xs font-semibold focus:outline-none"
+                    className="mt-1 w-full min-h-[36px] rounded-lg bg-black/60 border border-white/10 px-2 py-1 text-xs font-bold text-white focus:outline-none focus:border-[#AFDDFF]"
                   >
                     {DURATIONS.map((d) => (
-                      <option key={d} value={d}>
+                      <option key={d} value={d} className="bg-[#0A0E16] text-white">
                         {d} mins
                       </option>
                     ))}
                   </select>
                 </div>
               </div>
-              <div className="mt-2 rounded-lg bg-secondary p-2">
-                <label className="block text-[10px] text-muted-foreground">
+              <div className="mt-2.5 rounded-xl border border-white/10 bg-white/5 p-2.5">
+                <label className="block text-[10px] text-white/50 font-medium">
                   Topic / focus (optional)
                 </label>
                 <input
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
                   placeholder="e.g. IoT smart irrigation — sensor architecture and cloud pipeline"
-                  className="mt-1 w-full rounded bg-card px-2.5 py-1 text-xs focus:outline-none"
+                  className="mt-1 w-full min-h-[36px] rounded-lg bg-black/60 border border-white/10 px-3 py-1 text-xs text-white placeholder:text-white/40 focus:outline-none focus:border-[#AFDDFF]"
                 />
               </div>
             </div>
-            {error && <p className="mt-1.5 text-xs text-destructive">{error}</p>}
+            {error && <p className="mt-1.5 text-xs text-rose-400 font-mono">{error}</p>}
             <button
               disabled={createSession.isPending}
               onClick={() => void begin()}
-              className="mt-3 w-full rounded-xl bg-foreground py-2 text-xs sm:text-sm font-semibold text-background hover:opacity-90"
+              className="mt-3 min-h-[44px] w-full rounded-xl bg-[#AFDDFF] py-2.5 text-xs sm:text-sm font-bold text-black shadow-[0_0_14px_rgba(175,221,255,0.25)] hover:bg-[#c8e8ff] active:scale-[0.98] transition-all cursor-pointer uppercase tracking-wider"
             >
               {createSession.isPending ? "Starting…" : "Begin Presentation"}
             </button>
-          </Card>
+          </div>
         </div>
 
         {/* Past Sessions */}
-        <Card className="p-4 sm:p-5 flex-1 flex flex-col justify-between min-h-0">
+        <div className="rounded-2xl border border-white/10 bg-card/85 p-4 sm:p-5 backdrop-blur-2xl shadow-[var(--shadow-glass)] flex-1 flex flex-col justify-between min-h-0">
           <div>
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold">Past Sessions</h3>
-              {allSessions.length > 0 && <Badge tone="muted">{allSessions.length} total</Badge>}
+            <div className="flex items-center justify-between pb-2 border-b border-white/10">
+              <h3 className="text-sm font-bold text-white font-graphik tracking-wide">
+                [ PAST_SESSIONS ]
+              </h3>
+              {allSessions.length > 0 && (
+                <span className="text-[11px] font-mono text-white/60 bg-white/10 px-2 py-0.5 rounded">
+                  {allSessions.length} total
+                </span>
+              )}
             </div>
             {sessionsQuery.isLoading ? (
-              <p className="mt-3 text-xs text-muted-foreground">Loading sessions…</p>
+              <p className="mt-3 text-xs text-white/50">Loading sessions…</p>
             ) : sessionsQuery.error ? (
               <ErrorState
                 message={
@@ -195,7 +206,7 @@ function AIPresentation() {
                 description="Start your first AI presentation practice above."
               />
             ) : (
-              <div className="mt-3 grid gap-2.5 sm:grid-cols-3">
+              <div className="mt-3 grid gap-3 sm:grid-cols-3">
                 {visibleSessions.map((s) => {
                   const score = s.overall_score == null ? null : Number(s.overall_score);
                   const status = String(s.status ?? "Pending");
@@ -205,30 +216,37 @@ function AIPresentation() {
                       key={String(s.id)}
                       to="/ai-presentation/session/$id"
                       params={{ id: String(s.id) }}
-                      className="group block rounded-xl border border-border p-3 transition-colors hover:border-primary bg-card/60"
+                      className="group block rounded-xl border border-white/10 bg-white/5 p-3.5 transition-all hover:border-[#8DA6CC]/50 hover:bg-white/10 no-underline"
                     >
                       <div className="flex items-center justify-between">
-                        <MonitorSmartphone className="h-4 w-4 text-muted-foreground" />
-                        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                        <div className="grid h-8 w-8 place-items-center rounded-lg bg-[#8DA6CC]/20 text-[#8DA6CC]">
+                          <MonitorSmartphone className="h-4 w-4" />
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-white/40 group-hover:translate-x-1 group-hover:text-white transition-all" />
                       </div>
-                      <div className="mt-2 font-semibold text-xs sm:text-sm truncate">
+                      <div className="mt-2.5 font-bold text-xs sm:text-sm text-white truncate font-graphik">
                         {String(s.session_type ?? "Presentation")}
                       </div>
-                      <div className="mt-0.5 text-[10px] text-muted-foreground">
-                        {String(s.created_at ?? "").slice(0, 10)}
+                      <div className="mt-0.5 text-[10px] text-white/50">
+                        {String(s.created_at ?? "").slice(0, 10)} · {String(s.duration_minutes ?? "—")} min
                       </div>
-                      <div className="mt-2 flex items-center justify-between">
+                      <div className="mt-2.5 flex items-center justify-between pt-2 border-t border-white/10">
                         {score !== null ? (
-                          <Badge tone={score >= 80 ? "success" : "warning"}>{score}%</Badge>
+                          <span
+                            className={`rounded-md px-2 py-0.5 text-[10.5px] font-bold ${
+                              score >= 80 ? "bg-[#7CE4BA]/20 text-[#7CE4BA]" : "bg-[#8DA6CC]/20 text-[#8DA6CC]"
+                            }`}
+                          >
+                            {score}%
+                          </span>
                         ) : (
-                          <Badge tone="muted">{status}</Badge>
+                          <span className="rounded-md bg-white/10 px-2 py-0.5 text-[10.5px] font-medium text-white/60">
+                            {status}
+                          </span>
                         )}
-                        <span className="text-[11px] font-medium text-primary">
+                        <span className="text-[11px] font-bold text-[#8DA6CC] group-hover:underline">
                           {completed ? "Review" : status === "In Progress" ? "Resume" : "Open"}
                         </span>
-                      </div>
-                      <div className="mt-0.5 text-[10px] text-muted-foreground">
-                        {String(s.duration_minutes ?? "—")} min
                       </div>
                     </Link>
                   );
@@ -247,7 +265,7 @@ function AIPresentation() {
               className="mt-2 pt-2"
             />
           )}
-        </Card>
+        </div>
       </div>
     </AppShell>
   );

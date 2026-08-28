@@ -15,24 +15,27 @@ export function ModalShell({
 }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-md p-3 sm:p-4"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md p-0 sm:p-4 font-manrope animate-fade-in"
       onClick={onClose}
     >
       <div
-        className="max-h-[85vh] w-[calc(100%-1rem)] max-w-md overflow-y-auto rounded-3xl bg-card/85 backdrop-blur-2xl backdrop-saturate-150 border border-white/40 dark:border-white/15 p-5 sm:p-6 shadow-2xl"
+        className="max-h-[90vh] sm:max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-t-3xl sm:rounded-2xl bg-[#0A0E16]/95 backdrop-blur-2xl border-t sm:border border-white/10 p-5 sm:p-6 shadow-2xl pb-[max(1.5rem,env(safe-area-inset-bottom))]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">{title}</h3>
+        <div className="flex items-center justify-between pb-3 border-b border-white/10">
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-[#AFDDFF]" />
+            <h3 className="text-base sm:text-lg font-bold font-graphik tracking-wide text-white">{title}</h3>
+          </div>
           <button
-            aria-label="Close"
+            aria-label="Close dialog"
             onClick={onClose}
-            className="grid h-8 w-8 place-items-center rounded-xl bg-secondary/70 backdrop-blur-md border border-white/20 dark:border-white/10 text-muted-foreground hover:text-foreground transition-colors"
+            className="grid h-11 w-11 min-h-[44px] min-w-[44px] place-items-center rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
           >
-            <X className="h-4 w-4" />
+            <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="mt-4">{children}</div>
+        <div className="mt-4 text-white">{children}</div>
       </div>
     </div>
   );

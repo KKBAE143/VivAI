@@ -63,8 +63,11 @@ export function AppShell({
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">
-        Loading…
+      <div className="flex min-h-screen items-center justify-center bg-black text-sm text-white/50 font-manrope">
+        <div className="flex items-center gap-2">
+          <div className="h-2 w-2 rounded-full bg-[#AFDDFF] animate-pulse" />
+          <span>Loading workspace…</span>
+        </div>
       </div>
     );
   }
@@ -72,9 +75,9 @@ export function AppShell({
 
   if (wide) {
     return (
-      <div className="flex min-h-screen flex-col bg-background">
+      <div className="flex min-h-screen flex-col bg-background font-manrope">
         <WideTopBar onOpenMenu={() => setDrawerOpen(true)} />
-        <main className="min-h-0 min-w-0 flex-1 pb-20 lg:pb-0">{children}</main>
+        <main className="min-h-0 min-w-0 flex-1 pb-28 lg:pb-0">{children}</main>
         <MobileNav onOpenMenu={() => setDrawerOpen(true)} />
         <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
         <ConsentGate />
@@ -83,7 +86,7 @@ export function AppShell({
   }
   return (
     <div
-      className={`relative bg-background overflow-x-hidden ${
+      className={`relative bg-background overflow-x-hidden font-manrope ${
         fitViewport ? "min-h-screen lg:h-screen lg:max-h-screen lg:overflow-hidden" : "min-h-screen"
       }`}
     >
@@ -101,7 +104,7 @@ export function AppShell({
       >
         <Sidebar fitViewport={fitViewport} />
         <main
-          className={`min-w-0 flex-1 pb-20 lg:pb-0 ${
+          className={`min-w-0 flex-1 pb-28 lg:pb-0 ${
             fitViewport
               ? "lg:h-full lg:max-full lg:overflow-hidden flex flex-col space-y-0"
               : "space-y-4"
@@ -245,36 +248,28 @@ function WideTopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const title = pageTitle(pathname);
   return (
-    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2.5 border-b border-border/70 bg-card/75 px-3 backdrop-blur-2xl backdrop-saturate-150 sm:px-4 shadow-[var(--shadow-card)]">
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-white/10 bg-card/85 px-3 sm:px-5 backdrop-blur-2xl shadow-[var(--shadow-glass)]">
       <button
         onClick={onOpenMenu}
         aria-label="Open menu"
-        className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-secondary/70 backdrop-blur-md border border-white/30 dark:border-white/10 text-foreground lg:hidden"
+        className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 active:scale-95 transition-all lg:hidden cursor-pointer"
       >
-        <Menu className="h-5 w-5" />
+        <Menu className="h-5 w-5 text-white" />
       </button>
-      <Link to="/" aria-label="Home" className="hidden h-9 w-9 shrink-0 place-items-center sm:grid">
-        <img
-          src="/logo.jpeg"
-          alt="VivAI Logo"
-          className="h-8 w-8 rounded-xl object-cover shadow-sm ring-1 ring-border/40"
-        />
+      <Link to="/" aria-label="Home" className="hidden h-9 w-9 shrink-0 place-items-center sm:grid group">
+        <div className="h-8 w-8 rounded-lg bg-[#AFDDFF] flex items-center justify-center text-black font-black text-xs shadow-[0_0_12px_rgba(175,221,255,0.4)]">
+          V
+        </div>
       </Link>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold">{title}</p>
-        <p className="hidden truncate text-[11px] text-muted-foreground sm:block">
-          Full workspace · sidebar hidden for more room
+        <p className="truncate text-sm sm:text-base font-bold font-graphik text-white tracking-wide">{title}</p>
+        <p className="hidden truncate text-[11px] text-white/50 sm:block">
+          Full workspace · sidebar hidden for maximum focus
         </p>
       </div>
       <Link
-        to="/ai"
-        className="hidden rounded-xl border border-border/80 bg-secondary/60 backdrop-blur-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground sm:inline-flex"
-      >
-        AI Tools
-      </Link>
-      <Link
-        to="/"
-        className="rounded-xl border border-border/80 bg-secondary/60 backdrop-blur-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+        to="/dashboard"
+        className="hidden rounded-xl border border-white/10 bg-white/5 px-3.5 py-2 text-xs font-semibold text-white/70 hover:text-white hover:bg-white/10 sm:inline-flex no-underline transition-colors"
       >
         Dashboard
       </Link>
@@ -297,36 +292,34 @@ function TopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
   const title = pageTitle(pathname);
 
   return (
-    <header className="flex flex-wrap items-center justify-between gap-2.5 rounded-2xl bg-card/75 backdrop-blur-2xl border border-white/40 dark:border-white/10 p-2.5 shadow-[var(--shadow-glass)] sm:p-3">
-      <div className="flex min-w-0 items-center gap-2.5">
+    <header className="flex flex-wrap items-center justify-between gap-2.5 rounded-2xl bg-card/85 backdrop-blur-2xl border border-white/10 p-2.5 sm:p-3 shadow-[var(--shadow-glass)]">
+      <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
         <button
           onClick={onOpenMenu}
           aria-label="Open menu"
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-secondary/70 backdrop-blur-md border border-white/30 dark:border-white/10 text-foreground lg:hidden"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 active:scale-95 transition-all lg:hidden cursor-pointer"
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="h-5 w-5 text-white" />
         </button>
-        <div className="hidden h-8 w-8 shrink-0 place-items-center sm:grid lg:hidden">
-          <img
-            src="/logo.jpeg"
-            alt="VivAI Logo"
-            className="h-8 w-8 rounded-xl object-cover shadow-sm ring-1 ring-border/40"
-          />
+        <div className="hidden h-9 w-9 shrink-0 place-items-center sm:grid lg:hidden">
+          <div className="h-8 w-8 rounded-lg bg-[#AFDDFF] flex items-center justify-center text-black font-black text-xs shadow-[0_0_12px_rgba(175,221,255,0.4)]">
+            V
+          </div>
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold">{title}</p>
+          <p className="truncate text-sm sm:text-base font-bold font-graphik text-white tracking-wide">{title}</p>
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 sm:gap-2.5">
         <ThemeToggle />
         <Link
           to="/profile"
-          className="flex items-center gap-2 rounded-full border border-white/30 dark:border-white/10 bg-secondary/70 backdrop-blur-md px-2 py-1 text-xs font-medium hover:bg-secondary/90 transition-colors"
+          className="flex h-11 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-medium hover:bg-white/10 transition-colors no-underline text-white active:scale-95"
         >
-          <span className="grid h-6 w-6 place-items-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+          <span className="grid h-7 w-7 place-items-center rounded-full bg-[#AFDDFF] text-[11px] font-bold text-black shadow-xs">
             {initials}
           </span>
-          <span className="hidden max-w-[120px] truncate sm:inline">{fullName}</span>
+          <span className="hidden max-w-[120px] truncate sm:inline font-semibold">{fullName}</span>
         </Link>
       </div>
     </header>
@@ -335,7 +328,7 @@ function TopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
 
 function MobileNav({ onOpenMenu }: { onOpenMenu: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isActive = (to: string) => (to === "/" ? pathname === "/" : pathname.startsWith(to));
+  const isActive = (to: string) => (to === "/" ? pathname === "/" || pathname === "/dashboard" : pathname.startsWith(to));
   const mobileNav = [
     { to: "/dashboard", icon: LayoutDashboard, label: "Home" },
     { to: "/ai-viva", icon: BrainCircuit, label: "Viva" },
@@ -344,7 +337,7 @@ function MobileNav({ onOpenMenu }: { onOpenMenu: () => void }) {
     { to: "/projects", icon: FolderKanban, label: "Projects" },
   ];
   return (
-    <nav className="fixed inset-x-0 bottom-3 z-40 mx-auto flex max-w-sm items-center justify-around rounded-full border border-white/40 dark:border-white/10 bg-card/85 px-3 py-2 backdrop-blur-2xl shadow-[var(--shadow-glass)] lg:hidden">
+    <nav className="fixed inset-x-2.5 bottom-2.5 z-40 mx-auto flex max-w-md items-center justify-around rounded-2xl border border-white/15 bg-black/90 px-2 py-1.5 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.9),0_0_20px_rgba(175,221,255,0.1)] lg:hidden pb-[max(0.5rem,env(safe-area-inset-bottom))]">
       {mobileNav.map((item) => {
         const Icon = item.icon;
         const active = isActive(item.to);
@@ -352,22 +345,29 @@ function MobileNav({ onOpenMenu }: { onOpenMenu: () => void }) {
           <Link
             key={item.to}
             to={item.to}
-            className={`flex flex-col items-center gap-1 rounded-full px-3 py-1 text-[10px] font-medium transition-colors ${
-              active ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground"
+            className={`flex min-h-[48px] flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-1 text-[11px] font-medium transition-all no-underline active:scale-95 ${
+              active
+                ? "text-[#AFDDFF] font-bold"
+                : "text-white/50 hover:text-white"
             }`}
           >
-            <Icon className="h-4 w-4" />
-            <span>{item.label}</span>
+            <div className="relative">
+              <Icon className={`h-4 w-4 ${active ? "text-[#AFDDFF]" : "text-white/60"}`} />
+              {active && (
+                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-[#AFDDFF] shadow-[0_0_6px_#AFDDFF]" />
+              )}
+            </div>
+            <span className="text-[10px] leading-tight">{item.label}</span>
           </Link>
         );
       })}
       <button
         onClick={onOpenMenu}
-        aria-label="More"
-        className="flex flex-col items-center gap-1 rounded-full px-3 py-1 text-[10px] font-medium text-muted-foreground hover:text-foreground"
+        aria-label="More options"
+        className="flex min-h-[48px] flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-1 text-[11px] font-medium text-white/50 hover:text-white transition-all active:scale-95 cursor-pointer bg-transparent border-0"
       >
-        <Menu className="h-4 w-4" />
-        <span>More</span>
+        <Menu className="h-4 w-4 text-white/60" />
+        <span className="text-[10px] leading-tight">More</span>
       </button>
     </nav>
   );
@@ -378,35 +378,41 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
   const { logout } = useAuth();
   const { data: profile } = useProfile();
   const navigate = useNavigate();
-  const isActive = (to: string) => (to === "/" ? pathname === "/" : pathname.startsWith(to));
+  const isActive = (to: string) => (to === "/" ? pathname === "/" || pathname === "/dashboard" : pathname.startsWith(to));
+  const isAdmin = profile?.role === "admin" || profile?.role === "faculty";
 
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex lg:hidden">
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-black/80 backdrop-blur-md transition-opacity"
         onClick={onClose}
       />
-      <div className="relative flex w-full max-w-xs flex-1 flex-col justify-between bg-card/90 backdrop-blur-2xl border-r border-white/20 p-5 shadow-2xl">
+      <div className="relative flex w-full max-w-xs flex-1 flex-col justify-between bg-[#0A0E16]/95 backdrop-blur-3xl border-r border-white/10 p-5 shadow-2xl overflow-y-auto">
         <div>
-          <div className="flex items-center justify-between mb-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/10">
             <div className="flex items-center gap-2.5">
-              <img
-                src="/logo.jpeg"
-                alt="VivAI Logo"
-                className="h-8 w-8 shrink-0 rounded-xl object-cover shadow-sm ring-1 ring-border/40"
-              />
-              <span className="text-lg font-bold">VivAI</span>
+              <div className="h-8 w-8 rounded-lg bg-[#AFDDFF] flex items-center justify-center text-black font-black text-xs shadow-[0_0_12px_rgba(175,221,255,0.4)]">
+                V
+              </div>
+              <div>
+                <span className="font-graphik text-sm font-bold tracking-wider text-white">VIVAI // CORE</span>
+                <p className="text-[10px] text-white/40 font-mono">[ BTECH.CS // 2026 ]</p>
+              </div>
             </div>
             <button
               onClick={onClose}
-              className="grid h-8 w-8 place-items-center rounded-xl bg-secondary text-foreground"
+              aria-label="Close drawer"
+              className="grid h-11 w-11 min-h-[44px] min-w-[44px] place-items-center rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
             >
-              <X className="h-4 w-4" />
+              <X className="h-5 w-5" />
             </button>
           </div>
-          <nav className="flex flex-col gap-1">
+
+          {/* Navigation Links */}
+          <nav className="flex flex-col gap-1.5 font-manrope">
             {navItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.to);
@@ -415,36 +421,74 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
                   key={item.to}
                   to={item.to}
                   onClick={onClose}
-                  className={`flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-semibold ${
-                    active ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                  className={`flex min-h-[48px] items-center justify-between rounded-xl px-3.5 py-3 text-xs font-semibold transition-all no-underline active:scale-[0.98] ${
+                    active
+                      ? "bg-[#AFDDFF] text-black font-bold shadow-[0_0_16px_rgba(175,221,255,0.3)]"
+                      : "text-white/60 hover:bg-white/5 hover:text-white"
                   }`}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <Icon className="h-4 w-4" />
-                    <span>{item.label}</span>
+                  <div className="flex items-center gap-3">
+                    <Icon className={`h-4 w-4 shrink-0 ${active ? "text-black" : "text-white/70"}`} />
+                    <span className="text-sm">{item.label}</span>
                   </div>
                   {item.badge && (
-                    <span className="grid h-4 min-w-[16px] place-items-center rounded-full bg-primary/20 px-1 text-[9px] font-bold">
+                    <span
+                      className={`grid h-5 min-w-[20px] place-items-center rounded-full px-1.5 text-[10px] font-bold ${
+                        active ? "bg-black text-[#AFDDFF]" : "bg-[#AFDDFF]/20 text-[#AFDDFF]"
+                      }`}
+                    >
                       {item.badge}
                     </span>
                   )}
                 </Link>
               );
             })}
+
+            {isAdmin && (
+              <div className="mt-3 pt-3 border-t border-white/10 flex flex-col gap-1.5">
+                <Link
+                  to="/faculty"
+                  onClick={onClose}
+                  className={`flex min-h-[48px] items-center gap-3 rounded-xl px-3.5 py-3 text-xs font-semibold transition-all no-underline active:scale-[0.98] ${
+                    isActive("/faculty")
+                      ? "bg-[#AFDDFF] text-black font-bold shadow-[0_0_16px_rgba(175,221,255,0.3)]"
+                      : "text-white/60 hover:bg-white/5 hover:text-white"
+                  }`}
+                >
+                  <ClipboardCheck className="h-4 w-4 shrink-0" />
+                  <span className="text-sm">Faculty Console</span>
+                </Link>
+                <Link
+                  to="/admin"
+                  onClick={onClose}
+                  className={`flex min-h-[48px] items-center gap-3 rounded-xl px-3.5 py-3 text-xs font-semibold transition-all no-underline active:scale-[0.98] ${
+                    isActive("/admin")
+                      ? "bg-[#AFDDFF] text-black font-bold shadow-[0_0_16px_rgba(175,221,255,0.3)]"
+                      : "text-white/60 hover:bg-white/5 hover:text-white"
+                  }`}
+                >
+                  <Building2 className="h-4 w-4 shrink-0" />
+                  <span className="text-sm">Institution Admin</span>
+                </Link>
+              </div>
+            )}
           </nav>
         </div>
 
-        <button
-          onClick={() => {
-            onClose();
-            logout();
-            navigate({ to: "/login" });
-          }}
-          className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-secondary"
-        >
-          <LogOut className="h-4 w-4" />
-          <span>Sign out</span>
-        </button>
+        {/* Drawer Footer */}
+        <div className="pt-4 border-t border-white/10">
+          <button
+            onClick={() => {
+              onClose();
+              logout();
+              navigate({ to: "/login" });
+            }}
+            className="flex min-h-[48px] w-full items-center gap-3 rounded-xl px-3.5 py-3 text-xs font-medium text-white/50 hover:bg-white/5 hover:text-white transition-all cursor-pointer"
+          >
+            <LogOut className="h-4 w-4" />
+            <span className="text-sm">Sign out</span>
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -456,9 +500,9 @@ function ThemeToggle() {
     <button
       onClick={toggle}
       aria-label="Toggle theme"
-      className="grid h-8 w-8 place-items-center rounded-full border border-white/30 dark:border-white/10 bg-secondary/70 backdrop-blur-md text-foreground hover:bg-secondary transition-colors"
+      className="grid h-11 w-11 min-h-[44px] min-w-[44px] place-items-center rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
     >
-      {theme === "dark" ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+      {theme === "dark" ? <Sun className="h-4 w-4 text-white" /> : <Moon className="h-4 w-4 text-white" />}
     </button>
   );
 }

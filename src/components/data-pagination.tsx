@@ -57,35 +57,35 @@ export function DataPagination({
   return (
     <div
       className={cn(
-        "mt-5 flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border/60",
+        "mt-5 flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-white/10 font-manrope",
         className,
       )}
     >
       {/* Item Range info */}
-      <div className="text-xs text-muted-foreground">
+      <div className="text-xs text-white/50">
         {startIdx !== null && endIdx !== null && totalItems !== undefined ? (
           <span>
-            Showing <span className="font-semibold text-foreground">{startIdx}</span>–
-            <span className="font-semibold text-foreground">{endIdx}</span> of{" "}
-            <span className="font-semibold text-foreground">{totalItems}</span> {itemName}
+            Showing <span className="font-semibold text-white">{startIdx}</span>–
+            <span className="font-semibold text-white">{endIdx}</span> of{" "}
+            <span className="font-semibold text-white">{totalItems}</span> {itemName}
           </span>
         ) : (
           <span>
-            Page <span className="font-semibold text-foreground">{page}</span> of{" "}
-            <span className="font-semibold text-foreground">{totalPages}</span>
+            Page <span className="font-semibold text-white">{page}</span> of{" "}
+            <span className="font-semibold text-white">{totalPages}</span>
           </span>
         )}
       </div>
 
       {/* Page Controls */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1.5">
         <button
           onClick={() => onPageChange(Math.max(1, page - 1))}
           disabled={page <= 1}
           aria-label="Previous Page"
-          className="flex h-8 items-center gap-1 rounded-lg border border-border bg-card px-2.5 text-xs font-medium text-foreground transition-colors hover:bg-secondary disabled:pointer-events-none disabled:opacity-40"
+          className="flex h-10 sm:h-8 items-center gap-1 rounded-xl border border-white/10 bg-white/5 px-3 text-xs font-semibold text-white transition-all hover:bg-white/10 active:scale-95 disabled:pointer-events-none disabled:opacity-30 cursor-pointer"
         >
-          <ChevronLeft className="h-3.5 w-3.5" />
+          <ChevronLeft className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
           <span className="hidden sm:inline">Prev</span>
         </button>
 
@@ -95,7 +95,7 @@ export function DataPagination({
               return (
                 <span
                   key={`ellipsis-${idx}`}
-                  className="flex h-8 w-6 items-center justify-center text-xs text-muted-foreground"
+                  className="flex h-10 sm:h-8 w-6 items-center justify-center text-xs text-white/40"
                 >
                   …
                 </span>
@@ -111,10 +111,10 @@ export function DataPagination({
                 onClick={() => onPageChange(pageNum)}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold transition-all",
+                  "flex h-10 w-10 sm:h-8 sm:w-8 items-center justify-center rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95",
                   isActive
-                    ? "bg-primary text-primary-foreground shadow-sm scale-105"
-                    : "border border-border bg-card text-foreground hover:bg-secondary",
+                    ? "bg-[#AFDDFF] text-black shadow-[0_0_12px_rgba(175,221,255,0.3)] scale-105"
+                    : "border border-white/10 bg-white/5 text-white/70 hover:text-white hover:bg-white/10",
                 )}
               >
                 {pageNum}
@@ -127,10 +127,10 @@ export function DataPagination({
           onClick={() => onPageChange(Math.min(totalPages, page + 1))}
           disabled={page >= totalPages}
           aria-label="Next Page"
-          className="flex h-8 items-center gap-1 rounded-lg border border-border bg-card px-2.5 text-xs font-medium text-foreground transition-colors hover:bg-secondary disabled:pointer-events-none disabled:opacity-40"
+          className="flex h-10 sm:h-8 items-center gap-1 rounded-xl border border-white/10 bg-white/5 px-3 text-xs font-semibold text-white transition-all hover:bg-white/10 active:scale-95 disabled:pointer-events-none disabled:opacity-30 cursor-pointer"
         >
           <span className="hidden sm:inline">Next</span>
-          <ChevronRight className="h-3.5 w-3.5" />
+          <ChevronRight className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
         </button>
       </div>
     </div>

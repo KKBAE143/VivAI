@@ -33,21 +33,26 @@ function LeaderboardPage() {
 
   return (
     <AppShell fitViewport hideTopBar>
-      <div className="flex flex-col gap-3 lg:gap-3.5 h-full">
+      <div className="flex flex-col gap-3 lg:gap-3.5 h-full lg:overflow-hidden overflow-y-auto font-manrope">
         {/* Integrated Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-              Leaderboard
-            </h1>
-            <p className="text-xs text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white font-graphik">
+                Leaderboard
+              </h1>
+              <span className="text-[10px] sm:text-xs text-[#AFDDFF] bg-[#AFDDFF]/15 px-2 py-0.5 rounded font-mono">
+                [ PEER_RANKINGS ]
+              </span>
+            </div>
+            <p className="text-xs text-white/50 mt-0.5">
               Earn XP by practicing — vivas, presentations and pitches all count.
             </p>
           </div>
         </div>
 
         {game.data && (
-          <div className="grid grid-cols-2 gap-2 sm:gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-3 sm:grid-cols-4 shrink-0">
             <StatTile icon={Star} label="Your XP" value={String(game.data.xp)} tint />
             <StatTile icon={Award} label="Level" value={String(game.data.level)} />
             <StatTile icon={Flame} label="Current Streak" value={`${game.data.current_streak}d`} />
@@ -65,15 +70,21 @@ function LeaderboardPage() {
             onRetry={() => void board.refetch()}
           />
         ) : (
-          <Card className="p-4 sm:p-5 flex-1 flex flex-col justify-between min-h-0">
+          <div className="rounded-2xl border border-white/10 bg-card/85 p-4 sm:p-5 backdrop-blur-2xl shadow-[var(--shadow-glass)] flex-1 flex flex-col justify-between min-h-0">
             <div>
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold">Top Students</h3>
-                {allRows.length > 0 && <Badge tone="muted">{allRows.length} ranked</Badge>}
+              <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                <h3 className="text-sm font-bold text-white font-graphik tracking-wide">
+                  [ TOP_STUDENTS ]
+                </h3>
+                {allRows.length > 0 && (
+                  <span className="text-[11px] font-mono text-white/60 bg-white/10 px-2 py-0.5 rounded">
+                    {allRows.length} ranked
+                  </span>
+                )}
               </div>
-              <div className="mt-2.5 space-y-1">
+              <div className="mt-2.5 space-y-1.5">
                 {allRows.length === 0 && (
-                  <p className="py-6 text-center text-xs text-muted-foreground">
+                  <p className="py-6 text-center text-xs text-white/40">
                     No ranked students yet — be the first to practice.
                   </p>
                 )}
@@ -83,35 +94,43 @@ function LeaderboardPage() {
                   return (
                     <div
                       key={String(row.id)}
-                      className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 sm:gap-3 rounded-lg px-2.5 py-1.5 ${
-                        isMe ? "bg-primary/10" : "hover:bg-secondary/60"
+                      className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5 sm:gap-3 rounded-xl border border-white/5 px-3 py-2.5 transition-all ${
+                        isMe
+                          ? "bg-[#AFDDFF]/15 border-[#AFDDFF]/30 shadow-[0_0_12px_rgba(175,221,255,0.15)]"
+                          : "bg-white/5 hover:bg-white/10"
                       }`}
                     >
                       <span
-                        className={`grid h-6 w-6 sm:h-7 sm:w-7 place-items-center rounded-full text-xs font-bold ${rankTone(rank)}`}
+                        className={`grid h-7 w-7 sm:h-8 sm:w-8 place-items-center rounded-lg text-xs font-bold font-mono ${rankTone(rank)}`}
                       >
                         {rank}
                       </span>
                       <div className="min-w-0">
-                        <div className="truncate text-xs sm:text-sm font-semibold">
+                        <div className="truncate text-xs sm:text-sm font-bold text-white">
                           {String(row.full_name ?? "Student")}{" "}
-                          {isMe && <span className="text-primary">(You)</span>}
+                          {isMe && <span className="text-[#AFDDFF] font-mono text-xs">(You)</span>}
                         </div>
-                        <div className="truncate text-[10px] text-muted-foreground">
+                        <div className="truncate text-[10px] text-white/50 font-mono">
                           {[row.branch, row.year ? `${String(row.year)} Yr` : null]
                             .filter(Boolean)
                             .join(" · ") || "—"}
                         </div>
                       </div>
-                      <div className="flex items-center gap-1.5 sm:gap-2">
+                      <div className="flex items-center gap-2 sm:gap-2.5">
                         {Number(row.current_streak ?? 0) > 0 && (
-                          <span className="flex items-center gap-1 text-[10px] text-warning font-medium">
-                            <Flame className="h-3 w-3" /> {String(row.current_streak)}
+                          <span className="flex items-center gap-1 text-[11px] text-amber-400 font-bold">
+                            <Flame className="h-3.5 w-3.5 fill-amber-400/20" /> {String(row.current_streak)}
                           </span>
                         )}
-                        <Badge tone={rank <= 3 ? "primary" : "muted"}>
+                        <span
+                          className={`rounded-lg px-2.5 py-1 text-xs font-mono font-bold ${
+                            rank <= 3
+                              ? "bg-[#AFDDFF] text-black shadow-xs"
+                              : "bg-white/10 text-white/70"
+                          }`}
+                        >
                           {String(row.xp ?? 0)} XP
-                        </Badge>
+                        </span>
                       </div>
                     </div>
                   );
@@ -129,7 +148,7 @@ function LeaderboardPage() {
                 className="mt-2 pt-2"
               />
             )}
-          </Card>
+          </div>
         )}
       </div>
     </AppShell>
@@ -137,10 +156,10 @@ function LeaderboardPage() {
 }
 
 function rankTone(rank: number): string {
-  if (rank === 1) return "bg-warning/20 text-warning";
-  if (rank === 2) return "bg-muted-foreground/20 text-foreground";
-  if (rank === 3) return "bg-primary-soft text-accent-foreground";
-  return "bg-secondary text-muted-foreground";
+  if (rank === 1) return "bg-amber-400 text-black shadow-[0_0_10px_rgba(251,191,36,0.5)]";
+  if (rank === 2) return "bg-white/80 text-black";
+  if (rank === 3) return "bg-[#8DA6CC] text-black";
+  return "bg-white/10 text-white/60";
 }
 
 function StatTile({
@@ -156,13 +175,17 @@ function StatTile({
 }) {
   return (
     <div
-      className={`rounded-2xl p-3 sm:p-4 shadow-[var(--shadow-card)] ${tint ? "bg-primary-soft" : "bg-card"}`}
+      className={`rounded-2xl p-3.5 sm:p-4 border border-white/10 backdrop-blur-2xl transition-all ${
+        tint
+          ? "bg-[#AFDDFF]/10 border-[#AFDDFF]/30 shadow-[0_0_15px_rgba(175,221,255,0.15)]"
+          : "bg-card/85 shadow-[var(--shadow-glass)]"
+      }`}
     >
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-muted-foreground">{label}</span>
-        <Icon className={`h-4 w-4 ${tint ? "text-primary" : "text-muted-foreground"}`} />
+        <span className="text-xs font-medium text-white/60">{label}</span>
+        <Icon className={`h-4 w-4 ${tint ? "text-[#AFDDFF]" : "text-white/40"}`} />
       </div>
-      <div className="mt-2 text-2xl font-bold">{value}</div>
+      <div className="mt-2 text-xl sm:text-2xl font-bold font-graphik text-white">{value}</div>
     </div>
   );
 }

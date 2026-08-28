@@ -22,11 +22,41 @@ import { Badge } from "@/components/app-shell";
 import { useReorderTasks, type ApiRecord } from "@/lib/hooks";
 import type { TaskStatus } from "@/lib/types";
 
-const COLUMNS: Array<{ status: TaskStatus; tone: "muted" | "primary" | "warning" | "success" }> = [
-  { status: "To Do", tone: "muted" },
-  { status: "In Progress", tone: "primary" },
-  { status: "Review", tone: "warning" },
-  { status: "Done", tone: "success" },
+const STATUS_CONFIG: Record<
+  TaskStatus,
+  { label: string; dotColor: string; bgBadge: string; textBadge: string }
+> = {
+  "To Do": {
+    label: "TO_DO",
+    dotColor: "bg-white/40",
+    bgBadge: "bg-white/10",
+    textBadge: "text-white/70",
+  },
+  "In Progress": {
+    label: "IN_PROGRESS",
+    dotColor: "bg-[#AFDDFF]",
+    bgBadge: "bg-[#AFDDFF]/15 border border-[#AFDDFF]/30",
+    textBadge: "text-[#AFDDFF]",
+  },
+  Review: {
+    label: "IN_REVIEW",
+    dotColor: "bg-amber-400",
+    bgBadge: "bg-amber-400/15 border border-amber-400/30",
+    textBadge: "text-amber-400",
+  },
+  Done: {
+    label: "COMPLETED",
+    dotColor: "bg-[#7CE4BA]",
+    bgBadge: "bg-[#7CE4BA]/15 border border-[#7CE4BA]/30",
+    textBadge: "text-[#7CE4BA]",
+  },
+};
+
+const COLUMNS: Array<{ status: TaskStatus }> = [
+  { status: "To Do" },
+  { status: "In Progress" },
+  { status: "Review" },
+  { status: "Done" },
 ];
 
 const ordered = (tasks: ApiRecord[]) =>
@@ -68,18 +98,24 @@ function Card({
       }
       {...sortable.attributes}
       {...sortable.listeners}
-      className={`rounded-lg bg-card p-3 shadow-sm ring-1 ring-border/50 touch-none ${overlay ? "rotate-1 shadow-xl" : "cursor-grab active:cursor-grabbing"} ${sortable.isDragging ? "opacity-30" : ""}`}
+      className={`rounded-xl bg-[#0A0E16]/95 border border-white/10 p-3.5 shadow-md backdrop-blur-xl font-manrope touch-none transition-all ${
+        overlay
+          ? "rotate-1 shadow-2xl border-[#AFDDFF] scale-105"
+          : "cursor-grab active:cursor-grabbing hover:border-white/20"
+      } ${sortable.isDragging ? "opacity-30" : ""}`}
     >
       <div className="flex items-start justify-between gap-2">
-        <strong className="text-sm leading-snug">{String(task.title)}</strong>
+        <strong className="text-xs sm:text-sm font-bold text-white leading-snug font-graphik">
+          {String(task.title)}
+        </strong>
         {!overlay && (
-          <span className="flex gap-1">
+          <span className="flex items-center gap-1 shrink-0">
             <button
               type="button"
               onPointerDown={(e) => e.stopPropagation()}
               onClick={() => onEdit(task)}
               aria-label="Edit task"
-              className="p-1"
+              className="grid h-8 w-8 min-h-[32px] min-w-[32px] place-items-center rounded-lg bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 active:scale-90 transition-all cursor-pointer"
             >
               <Pencil className="h-3.5 w-3.5" />
             </button>
@@ -88,7 +124,7 @@ function Card({
               onPointerDown={(e) => e.stopPropagation()}
               onClick={() => onDelete(task)}
               aria-label="Delete task"
-              className="p-1 text-destructive"
+              className="grid h-8 w-8 min-h-[32px] min-w-[32px] place-items-center rounded-lg bg-white/5 border border-white/10 text-rose-400 hover:text-rose-300 hover:bg-rose-500/15 active:scale-90 transition-all cursor-pointer"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>
@@ -96,15 +132,19 @@ function Card({
         )}
       </div>
       {task.description ? (
-        <p className="mt-1 text-xs text-muted-foreground">{String(task.description)}</p>
+        <p className="mt-1.5 text-xs text-white/50 line-clamp-2 leading-relaxed">
+          {String(task.description)}
+        </p>
       ) : null}
-      <div className="mt-2 flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
+      <div className="mt-3 flex items-center justify-between gap-2 pt-2 border-t border-white/5 text-[10px] text-white/40">
         <span>{task.due_date ? `Due ${String(task.due_date).slice(0, 10)}` : "No due date"}</span>
         <span className="flex items-center gap-1.5">
-          {String(task.priority ?? "med")}
+          <span className="rounded bg-white/5 px-1.5 py-0.5 font-mono text-[9px] uppercase text-white/60">
+            {String(task.priority ?? "med")}
+          </span>
           {initial && (
             <span
-              className="grid h-5 w-5 place-items-center rounded-full bg-secondary text-[9px] font-semibold text-foreground"
+              className="grid h-5 w-5 place-items-center rounded-full bg-[#AFDDFF] text-[10px] font-bold text-black shadow-xs"
               title="Assignee"
             >
               {initial}
@@ -118,34 +158,44 @@ function Card({
 
 function Column({
   status,
-  tone,
   tasks,
   members,
   onEdit,
   onDelete,
 }: {
   status: TaskStatus;
-  tone: "muted" | "primary" | "warning" | "success";
   tasks: ApiRecord[];
   members: ApiRecord[];
   onEdit: (task: ApiRecord) => void;
   onDelete: (task: ApiRecord) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: `column:${status}` });
+  const cfg = STATUS_CONFIG[status] ?? {
+    label: status,
+    dotColor: "bg-white/40",
+    bgBadge: "bg-white/10",
+    textBadge: "text-white",
+  };
+
   return (
     <section
       ref={setNodeRef}
-      className={`min-h-44 min-w-[260px] flex-1 rounded-xl bg-secondary p-3 md:min-w-0 ${isOver ? "ring-2 ring-primary/40" : ""}`}
+      className={`snap-center min-h-48 min-w-[280px] xs:min-w-[300px] shrink-0 md:shrink md:min-w-0 flex-1 rounded-2xl border border-white/10 bg-card/80 p-3.5 backdrop-blur-xl transition-all ${
+        isOver ? "ring-2 ring-[#AFDDFF] bg-[#AFDDFF]/5 border-[#AFDDFF]/50" : ""
+      }`}
     >
-      <div className="mb-3 flex justify-between">
-        <Badge tone={tone}>{status}</Badge>
-        <span className="text-xs text-muted-foreground">{tasks.length}</span>
+      <div className="mb-3 flex items-center justify-between pb-2 border-b border-white/10">
+        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-bold font-mono ${cfg.bgBadge} ${cfg.textBadge}`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${cfg.dotColor}`} />
+          {cfg.label}
+        </span>
+        <span className="text-xs font-mono font-bold text-white/50">{tasks.length}</span>
       </div>
       <SortableContext
         items={tasks.map((task) => String(task.id))}
         strategy={verticalListSortingStrategy}
       >
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           {tasks.map((task) => (
             <Card
               key={String(task.id)}
@@ -156,7 +206,9 @@ function Column({
             />
           ))}
           {tasks.length === 0 && (
-            <p className="py-3 text-xs text-muted-foreground">Drop a task here</p>
+            <div className="py-6 text-center rounded-xl border border-dashed border-white/10 bg-white/2">
+              <p className="text-xs text-white/40 font-mono">Drop task here</p>
+            </div>
           )}
         </div>
       </SortableContext>
@@ -235,11 +287,11 @@ export function KanbanBoard({
       onDragCancel={() => setActive(null)}
       onDragEnd={onDragEnd}
     >
-      <div className="mt-4 flex gap-3 overflow-x-auto pb-3 md:grid md:overflow-visible md:pb-0 md:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-4 md:grid md:overflow-visible md:pb-0 md:grid-cols-2 xl:grid-cols-4">
         {COLUMNS.map((column) => (
           <Column
             key={column.status}
-            {...column}
+            status={column.status}
             tasks={groups[column.status]}
             members={teamMembers}
             onEdit={onEdit}

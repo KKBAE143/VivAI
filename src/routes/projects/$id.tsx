@@ -84,104 +84,124 @@ function ProjectDetail() {
 
   return (
     <AppShell>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <Link
-            to="/projects"
-            className="grid h-9 w-9 place-items-center rounded-xl bg-card shadow-[var(--shadow-card)]"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge tone={type === "Major" ? "primary" : "warning"}>{type}</Badge>
-              <Badge tone={status === "Completed" ? "success" : "primary"}>
-                <span className="h-1.5 w-1.5 rounded-full bg-current" /> {status}
-              </Badge>
+      <div className="flex flex-col gap-4 font-manrope">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <Link
+              to="/projects"
+              className="grid h-11 w-11 min-h-[44px] min-w-[44px] place-items-center rounded-xl border border-white/10 bg-white/5 text-white/70 hover:text-white hover:bg-white/10 active:scale-95 transition-all no-underline"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-[#AFDDFF]/15 border border-[#AFDDFF]/30 px-2.5 py-0.5 text-[10.5px] font-mono font-bold text-[#AFDDFF]">
+                  {type}
+                </span>
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10.5px] font-mono font-bold ${
+                    status === "Completed"
+                      ? "bg-[#7CE4BA]/15 border border-[#7CE4BA]/30 text-[#7CE4BA]"
+                      : "bg-white/10 text-white/80"
+                  }`}
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-current" /> {status}
+                </span>
+              </div>
+              <h1 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight text-white font-graphik">
+                {String(project.title)}
+              </h1>
+              <p className="mt-1 text-xs text-white/50">
+                {String(project.subject ?? "General")}
+                {project.semester ? ` · Semester ${String(project.semester)}` : ""}
+              </p>
             </div>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight">{String(project.title)}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {String(project.subject ?? "General")}
-              {project.semester ? ` · Semester ${String(project.semester)}` : ""}
-            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setEditing(true)}
+              className="min-h-[40px] inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs sm:text-sm font-bold text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
+            >
+              <Pencil className="h-4 w-4" /> Edit
+            </button>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setEditing(true)}
-            className="flex items-center gap-2 rounded-xl bg-secondary px-4 py-2.5 text-sm font-medium"
-          >
-            <Pencil className="h-4 w-4" /> Edit
-          </button>
+
+        {/* Responsive Tab Bar */}
+        <div className="rounded-2xl border border-white/10 bg-card/85 p-1.5 backdrop-blur-2xl shadow-[var(--shadow-glass)]">
+          <div className="flex items-center gap-1 overflow-x-auto whitespace-nowrap pb-0.5 sm:pb-0 scrollbar-none">
+            {TABS.map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`min-h-[40px] shrink-0 rounded-xl px-4 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer active:scale-95 ${
+                  t === tab
+                    ? "bg-[#AFDDFF] text-black shadow-[0_0_12px_rgba(175,221,255,0.3)]"
+                    : "text-white/60 hover:text-white hover:bg-white/5"
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
         </div>
+
+        {tab === "Overview" && (
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+            <div className="lg:col-span-8 rounded-2xl border border-white/10 bg-card/85 p-4 sm:p-6 backdrop-blur-2xl shadow-[var(--shadow-glass)]">
+              <h3 className="text-sm sm:text-base font-bold text-white font-graphik tracking-wide">
+                [ ABOUT_PROJECT ]
+              </h3>
+              <p className="mt-2 text-xs sm:text-sm leading-relaxed text-white/70">{about}</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {techStack.map((t) => (
+                  <span
+                    key={t}
+                    className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-mono text-[#AFDDFF]"
+                  >
+                    {t}
+                  </span>
+                ))}
+                {techStack.length === 0 && (
+                  <span className="text-xs text-white/40">No tech stack listed</span>
+                )}
+              </div>
+              <div className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                {[
+                  { l: "Tasks", v: `${doneTasks} / ${tasks.length}`, i: CheckCircle2 },
+                  { l: "Files", v: String(files.length), i: FileText },
+                  { l: "Team", v: `${memberCount} members`, i: Users },
+                  { l: "Due", v: due, i: Clock },
+                ].map((s) => {
+                  const I = s.i;
+                  return (
+                    <div key={s.l} className="rounded-xl border border-white/10 bg-white/5 p-3">
+                      <I className="h-4 w-4 text-[#AFDDFF]" />
+                      <div className="mt-2 text-base sm:text-lg font-bold text-white font-graphik">{s.v}</div>
+                      <div className="text-[11px] text-white/50 font-mono">{s.l}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <ProgressCard projectId={id} progress={progress} tasks={tasks} />
+          </div>
+        )}
+
+        {tab === "Tasks" && (
+          <TasksBoard
+            projectId={id}
+            tasks={tasks}
+            teamMembers={(teams[0]?.team_members as ApiRecord[] | undefined) ?? []}
+          />
+        )}
+        {tab === "Team" && <ProjectTeamTab projectId={id} teams={teams} />}
+        {tab === "Files" && <FilesTab files={files} />}
+        {tab === "Viva Prep" && <VivaTab vivas={vivas} projectId={id} />}
+        {tab === "Activity" && <ActivityTab tasks={tasks} vivas={vivas} />}
+
+        {editing && <EditProjectModal project={project} onClose={() => setEditing(false)} />}
       </div>
-
-      <Card className="!p-1.5 sm:!p-2">
-        <div className="flex items-center gap-1 overflow-x-auto whitespace-nowrap pb-0.5 sm:pb-0">
-          {TABS.map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`shrink-0 rounded-xl px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium transition-colors ${
-                t === tab
-                  ? "bg-foreground text-background"
-                  : "text-muted-foreground hover:bg-secondary"
-              }`}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
-      </Card>
-
-      {tab === "Overview" && (
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
-          <Card className="lg:col-span-8">
-            <h3 className="text-base font-semibold">About this project</h3>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{about}</p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {techStack.map((t) => (
-                <Badge key={t}>{t}</Badge>
-              ))}
-              {techStack.length === 0 && (
-                <span className="text-xs text-muted-foreground">No tech stack listed</span>
-              )}
-            </div>
-            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {[
-                { l: "Tasks", v: `${doneTasks} / ${tasks.length}`, i: CheckCircle2 },
-                { l: "Files", v: String(files.length), i: FileText },
-                { l: "Team", v: `${memberCount} members`, i: Users },
-                { l: "Due", v: due, i: Clock },
-              ].map((s) => {
-                const I = s.i;
-                return (
-                  <div key={s.l} className="rounded-xl bg-secondary p-3">
-                    <I className="h-4 w-4 text-muted-foreground" />
-                    <div className="mt-2 text-lg font-bold">{s.v}</div>
-                    <div className="text-xs text-muted-foreground">{s.l}</div>
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
-          <ProgressCard projectId={id} progress={progress} tasks={tasks} />
-        </div>
-      )}
-
-      {tab === "Tasks" && (
-        <TasksBoard
-          projectId={id}
-          tasks={tasks}
-          teamMembers={(teams[0]?.team_members as ApiRecord[] | undefined) ?? []}
-        />
-      )}
-      {tab === "Team" && <ProjectTeamTab projectId={id} teams={teams} />}
-      {tab === "Files" && <FilesTab files={files} />}
-      {tab === "Viva Prep" && <VivaTab vivas={vivas} projectId={id} />}
-      {tab === "Activity" && <ActivityTab tasks={tasks} vivas={vivas} />}
-
-      {editing && <EditProjectModal project={project} onClose={() => setEditing(false)} />}
     </AppShell>
   );
 }

@@ -213,12 +213,21 @@ export default function LandingHero() {
         </div>
 
         {/* Main H1 Headline */}
-        <h1
-          className="font-graphik text-white font-normal leading-[1em] absolute anim-fade-up text-[32px] sm:text-[48px] md:text-[68px] top-[140px] sm:top-[160px] md:top-[178px] left-5 md:left-[35px] max-w-[300px] sm:max-w-[420px] md:max-w-[554px] z-20"
-          style={{ animationDelay: "400ms" }}
-        >
-          Intelligent Viva. Absolute Readiness.
-        </h1>
+        <div className="absolute top-[105px] xs:top-[125px] sm:top-[150px] md:top-[178px] left-4 xs:left-5 md:left-[35px] right-4 xs:right-5 sm:right-auto max-w-full sm:max-w-[420px] md:max-w-[554px] z-20">
+          <div className="sm:hidden mb-2.5 inline-flex items-center gap-1.5 rounded-full bg-[#AFDDFF]/15 border border-[#AFDDFF]/30 px-2.5 py-1 text-[10px] font-mono text-[#AFDDFF]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#AFDDFF] animate-pulse" />
+            <span>AI DEFENSE COCKPIT</span>
+          </div>
+          <h1
+            className="font-graphik text-white font-normal leading-[1.05em] anim-fade-up text-[28px] xs:text-[34px] sm:text-[46px] md:text-[68px]"
+            style={{ animationDelay: "400ms" }}
+          >
+            Intelligent Viva. Absolute Readiness.
+          </h1>
+          <p className="sm:hidden mt-3 text-xs text-white/60 font-manrope leading-relaxed">
+            Gemini-powered live viva simulations, slide intelligence & real-time readiness metrics.
+          </p>
+        </div>
 
         {/* Grid Lines + Plus Intersections */}
         <div className="absolute inset-0 pointer-events-none">
@@ -333,18 +342,26 @@ export default function LandingHero() {
         </div>
 
         {/* Bottom Row: CTA Button (Left) & Chamfered Info Card (Right) */}
-        <div className="absolute bottom-5 md:bottom-[35px] left-5 md:left-[35px] right-5 md:right-[35px] flex flex-col md:flex-row items-start md:items-end justify-between gap-5 md:gap-0 z-20">
-          {/* CTA Button */}
-          <Link
-            to="/ai-viva/new"
-            className="bg-[#AFDDFF] px-[16px] md:px-[20px] py-[10px] md:py-[12px] flex items-center gap-[10px] hover:bg-[#c8e8ff] transition-colors anim-fade-up no-underline cursor-pointer"
-            style={{ animationDelay: "900ms" }}
-          >
-            <span className="text-black text-[16px] leading-none">&#10022;</span>
-            <span className="font-manrope text-black text-[12px] md:text-[13px] leading-[15.6px] uppercase tracking-wide font-medium">
-              LAUNCH MOCK VIVA
-            </span>
-          </Link>
+        <div className="absolute bottom-5 xs:bottom-6 md:bottom-[35px] left-4 xs:left-5 md:left-[35px] right-4 xs:right-5 md:right-[35px] flex flex-col sm:flex-row items-stretch sm:items-end justify-between gap-3 sm:gap-4 md:gap-0 z-20">
+          {/* CTA Buttons Row */}
+          <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-2.5">
+            <Link
+              to="/ai-viva/new"
+              className="bg-[#AFDDFF] min-h-[48px] px-[18px] md:px-[22px] py-[12px] flex items-center justify-center gap-[10px] hover:bg-[#c8e8ff] active:scale-[0.98] transition-all anim-fade-up no-underline cursor-pointer shadow-[0_0_20px_rgba(175,221,255,0.35)]"
+              style={{ animationDelay: "900ms" }}
+            >
+              <span className="text-black text-[16px] leading-none">&#10022;</span>
+              <span className="font-manrope text-black text-[13px] uppercase tracking-wider font-bold">
+                LAUNCH MOCK VIVA
+              </span>
+            </Link>
+            <Link
+              to="/dashboard"
+              className="sm:hidden min-h-[48px] px-4 py-3 flex items-center justify-center gap-2 rounded-none border border-white/20 bg-black/60 backdrop-blur-md text-white text-xs font-mono tracking-wider hover:bg-white/10 active:scale-[0.98] transition-all no-underline"
+            >
+              <span>[ DASHBOARD ]</span>
+            </Link>
+          </div>
 
           {/* Right Chamfered Info Card */}
           <div

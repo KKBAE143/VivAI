@@ -186,11 +186,11 @@ export default function Dashboard() {
           }}
         />
       ) : (
-        <div className="flex h-full max-h-full min-h-0 w-full max-w-[1550px] mx-auto flex-col justify-between gap-3 lg:gap-3.5 overflow-hidden font-manrope">
+        <div className="flex h-full lg:max-h-full min-h-0 w-full max-w-[1550px] mx-auto flex-col justify-between gap-3 lg:gap-3.5 lg:overflow-hidden overflow-y-auto font-manrope">
           {/* Top Bar / Integrated Cyber Header */}
-          <div className="flex shrink-0 items-center justify-between gap-3 rounded-2xl border border-white/10 bg-card/85 px-4 py-2.5 backdrop-blur-2xl shadow-[var(--shadow-glass)]">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#AFDDFF] text-sm font-black text-black shadow-[0_0_12px_rgba(175,221,255,0.35)]">
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2.5 sm:gap-3 rounded-2xl border border-white/10 bg-card/85 px-3.5 sm:px-4 py-2.5 backdrop-blur-2xl shadow-[var(--shadow-glass)]">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+              <div className="grid h-9 w-9 sm:h-10 sm:w-10 shrink-0 place-items-center rounded-xl bg-[#AFDDFF] text-sm font-black text-black shadow-[0_0_12px_rgba(175,221,255,0.35)]">
                 {firstName.charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0">
@@ -198,7 +198,7 @@ export default function Dashboard() {
                   <h1 className="truncate font-graphik text-sm font-bold text-white sm:text-base tracking-wide">
                     Welcome back, {firstName}
                   </h1>
-                  <span className="inline-block select-none text-xs text-[#AFDDFF] bg-[#AFDDFF]/15 px-1.5 py-0.5 rounded font-mono">
+                  <span className="inline-block select-none text-[10px] sm:text-xs text-[#AFDDFF] bg-[#AFDDFF]/15 px-1.5 py-0.5 rounded font-mono">
                     [ ONLINE ]
                   </span>
                 </div>
@@ -211,9 +211,9 @@ export default function Dashboard() {
             </div>
 
             {/* Quick Status Pills & Controls */}
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               {/* Gamification Pills */}
-              <div className="hidden sm:flex items-center gap-2">
+              <div className="hidden md:flex items-center gap-2">
                 <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-white/80 backdrop-blur-sm">
                   <Flame className="h-3.5 w-3.5 text-amber-400 fill-amber-400/20" />
                   <span>{streak}d streak</span>
@@ -227,30 +227,21 @@ export default function Dashboard() {
               </div>
 
               {/* Search */}
-              <div className="relative w-36 sm:w-48">
+              <div className="relative w-28 xs:w-36 sm:w-48">
                 <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/40" />
                 <input
                   type="text"
-                  placeholder="Search workspace..."
+                  placeholder="Search..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-full border border-white/10 bg-white/5 py-1 pl-7 pr-2.5 text-xs text-white placeholder:text-white/40 backdrop-blur-md focus:border-[#AFDDFF] focus:outline-none focus:ring-1 focus:ring-[#AFDDFF] shadow-2xs transition-all"
+                  className="w-full rounded-full border border-white/10 bg-white/5 py-1.5 pl-7 pr-2.5 text-xs text-white placeholder:text-white/40 backdrop-blur-md focus:border-[#AFDDFF] focus:outline-none focus:ring-1 focus:ring-[#AFDDFF] shadow-2xs transition-all"
                 />
               </div>
-
-              {/* Theme Toggle */}
-              <button
-                onClick={toggle}
-                aria-label="Toggle theme"
-                className="grid h-8 w-8 place-items-center rounded-full border border-white/10 bg-white/5 text-white/70 hover:text-[#AFDDFF] backdrop-blur-md transition-colors shadow-2xs cursor-pointer"
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-              </button>
 
               {/* New Project CTA */}
               <Link
                 to="/projects/new"
-                className="inline-flex items-center gap-1 rounded-full bg-[#AFDDFF] px-3 py-1.5 text-xs font-bold text-black shadow-[0_0_12px_rgba(175,221,255,0.3)] hover:bg-[#c8e8ff] transition-all no-underline"
+                className="inline-flex min-h-[36px] items-center gap-1 rounded-full bg-[#AFDDFF] px-3 py-1.5 text-xs font-bold text-black shadow-[0_0_12px_rgba(175,221,255,0.3)] hover:bg-[#c8e8ff] active:scale-95 transition-all no-underline"
               >
                 <Plus className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">New Project</span>
@@ -281,16 +272,16 @@ export default function Dashboard() {
               </div>
 
               {/* Gauge + Status + Mini Breakdown */}
-              <div className="grid grid-cols-[auto_1fr] items-center gap-4 my-auto py-1">
+              <div className="flex flex-col xs:grid xs:grid-cols-[auto_1fr] items-center gap-3.5 sm:gap-4 my-auto py-2">
                 <div className="relative shrink-0">
                   <ReadinessGauge score={readinessScore} size={88} strokeWidth={8} />
                 </div>
-                <div className="flex flex-col gap-2 min-w-0">
+                <div className="flex flex-col gap-2 w-full min-w-0">
                   <div>
                     <span className="inline-block rounded-[3px] bg-[#AFDDFF] px-2 py-0.5 text-[10px] font-bold text-black uppercase tracking-wider">
                       {readinessLabel}
                     </span>
-                    <p className="text-[11px] text-white/60 mt-1 line-clamp-1">
+                    <p className="text-[11px] text-white/60 mt-1 line-clamp-2 xs:line-clamp-1">
                       {readiness?.actions?.[0]?.text ??
                         "Cross-questioning practice recommended on your core project modules."}
                     </p>
@@ -323,7 +314,7 @@ export default function Dashboard() {
               <button
                 onClick={() => handleQuickDrill()}
                 disabled={isStartingQuickViva !== null}
-                className="mt-1 flex items-center justify-center gap-2 rounded-xl bg-[#AFDDFF] px-3 py-2 text-xs font-bold text-black shadow-[0_0_14px_rgba(175,221,255,0.25)] hover:bg-[#c8e8ff] transition-all disabled:opacity-50 cursor-pointer uppercase tracking-wider"
+                className="mt-2 flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-[#AFDDFF] px-3 py-2.5 text-xs font-bold text-black shadow-[0_0_14px_rgba(175,221,255,0.25)] hover:bg-[#c8e8ff] active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer uppercase tracking-wider"
               >
                 <span className="text-black text-[14px] leading-none">&#10022;</span>
                 <span>
@@ -494,9 +485,9 @@ export default function Dashboard() {
                         <button
                           onClick={() => handleQuickDrill(undefined, id)}
                           disabled={isStartingQuickViva === id}
-                          className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-[#AFDDFF]/15 border border-[#AFDDFF]/30 px-2.5 py-1 text-[11px] font-bold text-[#AFDDFF] hover:bg-[#AFDDFF] hover:text-black transition-colors cursor-pointer"
+                          className="shrink-0 min-h-[38px] inline-flex items-center gap-1.5 rounded-lg bg-[#AFDDFF]/15 border border-[#AFDDFF]/30 px-3 py-1.5 text-[11px] font-bold text-[#AFDDFF] hover:bg-[#AFDDFF] hover:text-black active:scale-95 transition-all cursor-pointer"
                         >
-                          <BrainCircuit className="h-3 w-3" />
+                          <BrainCircuit className="h-3.5 w-3.5" />
                           <span>Defend</span>
                         </button>
                       </div>
@@ -531,9 +522,9 @@ export default function Dashboard() {
                     <p className="text-xs font-semibold text-white">No sessions completed</p>
                     <Link
                       to="/ai-viva/new"
-                      className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[#AFDDFF] no-underline"
+                      className="mt-2 inline-flex min-h-[38px] items-center gap-1.5 rounded-xl bg-[#AFDDFF] px-3.5 py-2 text-xs font-bold text-black no-underline shadow-xs"
                     >
-                      <Play className="h-3 w-3 fill-current" /> Start First Viva
+                      <Play className="h-3.5 w-3.5 fill-current" /> Start First Viva
                     </Link>
                   </div>
                 ) : (
@@ -575,7 +566,7 @@ export default function Dashboard() {
                           <Link
                             to="/ai-viva/session/$id"
                             params={{ id }}
-                            className="rounded-lg bg-white/10 px-2 py-1 text-[10.5px] font-semibold text-white hover:bg-white/20 transition-colors no-underline"
+                            className="min-h-[38px] inline-flex items-center justify-center rounded-lg bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-white/20 active:scale-95 transition-all no-underline"
                           >
                             Review
                           </Link>
@@ -626,9 +617,9 @@ export default function Dashboard() {
                       <button
                         onClick={() => handleQuickDrill(topicName)}
                         disabled={isStartingQuickViva === topicName}
-                        className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-[#AFDDFF]/15 border border-[#AFDDFF]/30 px-2.5 py-1 text-[11px] font-bold text-[#AFDDFF] hover:bg-[#AFDDFF] hover:text-black transition-all cursor-pointer disabled:opacity-50"
+                        className="shrink-0 min-h-[38px] inline-flex items-center gap-1.5 rounded-lg bg-[#AFDDFF]/15 border border-[#AFDDFF]/30 px-3 py-1.5 text-[11px] font-bold text-[#AFDDFF] hover:bg-[#AFDDFF] hover:text-black active:scale-95 transition-all cursor-pointer disabled:opacity-50"
                       >
-                        <Play className="h-2.5 w-2.5 fill-current" />
+                        <Play className="h-3 w-3 fill-current" />
                         <span>{isStartingQuickViva === topicName ? "..." : "Drill"}</span>
                       </button>
                     </div>

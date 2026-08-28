@@ -122,182 +122,227 @@ function NewViva() {
 
   return (
     <AppShell>
-      <div className="flex items-center gap-3">
-        <Link
-          to="/ai-viva"
-          className="grid h-9 w-9 place-items-center rounded-xl bg-card shadow-[var(--shadow-card)]"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Link>
-        <PageHeader title="New Mock Viva" subtitle="Configure your session and start practicing." />
-      </div>
-      <Card>
-        <Section title="Session Type">
-          <div className="grid gap-3 sm:grid-cols-3">
-            {SESSION_TYPES.map((o) => {
-              const I = o.i;
-              const active = sessionType === o.value;
-              return (
-                <button
-                  key={o.value}
-                  onClick={() => setSessionType(o.value)}
-                  className={`rounded-xl border p-4 text-left transition-colors ${active ? "border-primary bg-primary-soft" : "border-border hover:border-primary"}`}
-                >
-                  <I className="h-5 w-5 text-primary" />
-                  <div className="mt-3 font-semibold">{o.t}</div>
-                  <div className="mt-0.5 text-xs text-muted-foreground">{o.d}</div>
-                </button>
-              );
-            })}
-          </div>
-        </Section>
-        <Section title="Duration">
-          <div className="flex flex-wrap gap-2">
-            {DURATIONS.map((d) => (
-              <button
-                key={d.minutes}
-                onClick={() => setDuration(d.minutes)}
-                className={`rounded-xl border px-4 py-2.5 text-sm font-medium ${duration === d.minutes ? "border-primary bg-primary-soft" : "border-border"}`}
-              >
-                {d.label}
-              </button>
-            ))}
-          </div>
-        </Section>
-        <Section title="Difficulty">
-          <div className="flex flex-wrap gap-2">
-            {["Easy", "Medium", "Hard", "Adaptive"].map((d) => (
-              <button
-                key={d}
-                onClick={() => setDifficulty(d)}
-                className={`rounded-full px-4 py-1.5 text-sm font-medium ${difficulty === d ? "bg-foreground text-background" : "bg-secondary"}`}
-              >
-                {d}
-              </button>
-            ))}
-          </div>
-        </Section>
-        <Section title="Examiner Persona">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {personas.map((p) => {
-              const active = persona === p.value;
-              return (
-                <button
-                  key={p.value}
-                  onClick={() => setPersona(p.value)}
-                  className={`rounded-xl border p-3 text-left transition-colors ${active ? "border-primary bg-primary-soft" : "border-border hover:border-primary"}`}
-                >
-                  <div className="font-semibold">{p.t}</div>
-                  <div className="mt-0.5 text-xs text-muted-foreground">{p.d}</div>
-                </button>
-              );
-            })}
-          </div>
-        </Section>
-        {isProjectViva ? (
-          <Section title="Which project will you defend?">
-            <select
-              value={projectId}
-              onChange={(e) => setProjectId(e.target.value)}
-              className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm"
-            >
-              <option value="">Select your project…</option>
-              {(projects ?? []).map((p) => (
-                <option key={String(p.id)} value={String(p.id)}>
-                  {String(p.title)}
-                </option>
-              ))}
-            </select>
-            {(projects ?? []).length === 0 ? (
-              <p className="mt-2 text-xs text-muted-foreground">
-                You have no projects yet.{" "}
-                <Link
-                  to="/projects/new"
-                  className="font-medium text-primary underline-offset-2 hover:underline"
-                >
-                  Add a project
-                </Link>{" "}
-                first, or switch to a Subject/General viva.
-              </p>
-            ) : (
-              <p className="mt-2 text-xs text-muted-foreground">
-                The examiner will ask questions grounded in this project&apos;s stack and
-                description.
-              </p>
-            )}
-          </Section>
-        ) : (
-          <Section
-            title={
-              isSubjectViva
-                ? "Your subject, branch & topics"
-                : "Focus (branch / subject / topics — optional)"
-            }
+      <div className="mx-auto max-w-4xl font-manrope">
+        <div className="flex items-center gap-3 mb-4">
+          <Link
+            to="/ai-viva"
+            className="grid h-11 w-11 min-h-[44px] min-w-[44px] place-items-center rounded-xl border border-white/10 bg-white/5 text-white/70 hover:text-white hover:bg-white/10 active:scale-95 transition-all no-underline"
           >
-            <textarea
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              rows={3}
-              placeholder={
-                isSubjectViva
-                  ? "e.g. ECE — Digital Signal Processing. Focus on FIR/IIR filters, z-transform and sampling."
-                  : "e.g. CSE 3rd year — go deep on DBMS and Operating Systems. Leave blank for a general technical interview."
-              }
-              className="w-full resize-none rounded-xl border border-border bg-card px-4 py-3 text-sm leading-relaxed focus:border-primary focus:outline-none"
-            />
-            <p className="mt-2 text-xs text-muted-foreground">
-              Type your exact branch, subject and topics — the examiner tailors every question to
-              this. Quick add:
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white font-graphik">
+                Configure Mock Viva
+              </h1>
+              <span className="text-[10px] sm:text-xs text-[#AFDDFF] bg-[#AFDDFF]/15 px-2 py-0.5 rounded font-mono">
+                [ PARAMETERS ]
+              </span>
+            </div>
+            <p className="text-xs text-white/50 mt-0.5">
+              Set defense duration, examiner persona, difficulty and project grounding.
             </p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {SUBJECT_SUGGESTIONS.map((s) => (
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-card/85 p-4 sm:p-6 backdrop-blur-2xl shadow-[var(--shadow-glass)]">
+          <Section title="Session Type">
+            <div className="grid gap-3 sm:grid-cols-3">
+              {SESSION_TYPES.map((o) => {
+                const I = o.i;
+                const active = sessionType === o.value;
+                return (
+                  <button
+                    key={o.value}
+                    onClick={() => setSessionType(o.value)}
+                    className={`rounded-xl border p-4 text-left transition-all min-h-[80px] cursor-pointer active:scale-[0.98] ${
+                      active
+                        ? "border-[#AFDDFF] bg-[#AFDDFF]/10 shadow-[0_0_15px_rgba(175,221,255,0.15)]"
+                        : "border-white/10 bg-white/5 hover:border-white/20 text-white/80"
+                    }`}
+                  >
+                    <I className={`h-5 w-5 ${active ? "text-[#AFDDFF]" : "text-white/60"}`} />
+                    <div className="mt-3 font-bold text-sm text-white font-graphik">{o.t}</div>
+                    <div className="mt-0.5 text-xs text-white/50">{o.d}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </Section>
+
+          <Section title="Duration">
+            <div className="flex flex-wrap gap-2.5">
+              {DURATIONS.map((d) => (
                 <button
-                  key={s}
-                  type="button"
-                  onClick={() => addSuggestion(s)}
-                  className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-primary-soft hover:text-accent-foreground"
+                  key={d.minutes}
+                  onClick={() => setDuration(d.minutes)}
+                  className={`min-h-[44px] rounded-xl border px-4 py-2.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer active:scale-95 ${
+                    duration === d.minutes
+                      ? "border-[#AFDDFF] bg-[#AFDDFF] text-black shadow-[0_0_12px_rgba(175,221,255,0.3)]"
+                      : "border-white/10 bg-white/5 text-white/80 hover:bg-white/10"
+                  }`}
                 >
-                  + {s}
+                  {d.label}
                 </button>
               ))}
             </div>
           </Section>
-        )}
-        <Section title="Language">
-          <div className="flex flex-wrap gap-2">
-            {LIVE_LANGUAGES.map((l) => (
-              <button
-                key={l}
-                onClick={() => setLanguage(l)}
-                className={`rounded-full px-4 py-1.5 text-sm font-medium ${language === l ? "bg-foreground text-background" : "bg-secondary"}`}
+
+          <Section title="Difficulty">
+            <div className="flex flex-wrap gap-2.5">
+              {["Easy", "Medium", "Hard", "Adaptive"].map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setDifficulty(d)}
+                  className={`min-h-[40px] rounded-xl px-4 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer active:scale-95 ${
+                    difficulty === d
+                      ? "bg-[#AFDDFF] text-black shadow-[0_0_12px_rgba(175,221,255,0.3)]"
+                      : "border border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+                  }`}
+                >
+                  {d}
+                </button>
+              ))}
+            </div>
+          </Section>
+
+          <Section title="Examiner Persona">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {personas.map((p) => {
+                const active = persona === p.value;
+                return (
+                  <button
+                    key={p.value}
+                    onClick={() => setPersona(p.value)}
+                    className={`rounded-xl border p-3.5 text-left transition-all min-h-[75px] cursor-pointer active:scale-[0.98] ${
+                      active
+                        ? "border-[#AFDDFF] bg-[#AFDDFF]/10 shadow-[0_0_15px_rgba(175,221,255,0.15)]"
+                        : "border-white/10 bg-white/5 hover:border-white/20 text-white/80"
+                    }`}
+                  >
+                    <div className="font-bold text-xs sm:text-sm text-white font-graphik">{p.t}</div>
+                    <div className="mt-0.5 text-xs text-white/50">{p.d}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </Section>
+
+          {isProjectViva ? (
+            <Section title="Which project will you defend?">
+              <select
+                value={projectId}
+                onChange={(e) => setProjectId(e.target.value)}
+                className="w-full min-h-[48px] rounded-xl border border-white/15 bg-black/60 px-4 py-3 text-xs sm:text-sm text-white focus:border-[#AFDDFF] focus:outline-none"
               >
-                {l}
-              </button>
-            ))}
+                <option value="" className="bg-[#0A0E16] text-white">Select your project…</option>
+                {(projects ?? []).map((p) => (
+                  <option key={String(p.id)} value={String(p.id)} className="bg-[#0A0E16] text-white">
+                    {String(p.title)}
+                  </option>
+                ))}
+              </select>
+              {(projects ?? []).length === 0 ? (
+                <p className="mt-2 text-xs text-white/50">
+                  You have no projects yet.{" "}
+                  <Link
+                    to="/projects/new"
+                    className="font-bold text-[#AFDDFF] hover:underline"
+                  >
+                    Add a project
+                  </Link>{" "}
+                  first, or switch to a Subject/General viva.
+                </p>
+              ) : (
+                <p className="mt-2 text-xs text-white/50">
+                  The examiner will ask questions grounded in this project&apos;s stack and description.
+                </p>
+              )}
+            </Section>
+          ) : (
+            <Section
+              title={
+                isSubjectViva
+                  ? "Your subject, branch & topics"
+                  : "Focus (branch / subject / topics — optional)"
+              }
+            >
+              <textarea
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                rows={3}
+                placeholder={
+                  isSubjectViva
+                    ? "e.g. ECE — Digital Signal Processing. Focus on FIR/IIR filters, z-transform and sampling."
+                    : "e.g. CSE 3rd year — go deep on DBMS and Operating Systems. Leave blank for a general technical interview."
+                }
+                className="w-full resize-none rounded-xl border border-white/15 bg-black/60 px-4 py-3 text-xs sm:text-sm text-white leading-relaxed placeholder:text-white/40 focus:border-[#AFDDFF] focus:outline-none"
+              />
+              <p className="mt-2 text-xs text-white/50">
+                Type your exact branch, subject and topics — the examiner tailors every question to this. Quick add:
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {SUBJECT_SUGGESTIONS.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => addSuggestion(s)}
+                    className="min-h-[32px] rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-white/70 transition-all hover:bg-white/10 hover:text-white cursor-pointer active:scale-95"
+                  >
+                    + {s}
+                  </button>
+                ))}
+              </div>
+            </Section>
+          )}
+
+          <Section title="Language">
+            <div className="flex flex-wrap gap-2.5">
+              {LIVE_LANGUAGES.map((l) => (
+                <button
+                  key={l}
+                  onClick={() => setLanguage(l)}
+                  className={`min-h-[38px] rounded-xl px-4 py-1.5 text-xs sm:text-sm font-bold transition-all cursor-pointer active:scale-95 ${
+                    language === l
+                      ? "bg-[#AFDDFF] text-black shadow-[0_0_12px_rgba(175,221,255,0.3)]"
+                      : "border border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+                  }`}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+          </Section>
+
+          {error && <p className="mt-4 text-xs font-mono text-rose-400">{error}</p>}
+
+          <div className="mt-6 flex flex-wrap justify-end gap-3 pt-4 border-t border-white/10">
+            <Link
+              to="/ai-viva"
+              className="min-h-[48px] inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-xs sm:text-sm font-semibold text-white/70 hover:text-white hover:bg-white/10 active:scale-95 transition-all no-underline"
+            >
+              Cancel
+            </Link>
+            <button
+              disabled={mutate.isPending || !canStart}
+              onClick={() => void handleStart()}
+              className="min-h-[48px] inline-flex items-center justify-center gap-2 rounded-xl bg-[#AFDDFF] px-6 py-3 text-xs sm:text-sm font-bold text-black shadow-[0_0_16px_rgba(175,221,255,0.3)] hover:bg-[#c8e8ff] active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 transition-all cursor-pointer uppercase tracking-wider"
+            >
+              <Mic className="h-4 w-4" /> {mutate.isPending ? "Creating…" : "Begin Mock Viva"}
+            </button>
           </div>
-        </Section>
-        {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
-        <div className="mt-6 flex flex-wrap justify-end gap-3">
-          <Link to="/ai-viva" className="rounded-xl bg-secondary px-4 py-3 text-sm font-medium">
-            Cancel
-          </Link>
-          <button
-            disabled={mutate.isPending || !canStart}
-            onClick={() => void handleStart()}
-            className="flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Mic className="h-4 w-4" /> {mutate.isPending ? "Creating…" : "Begin Mock Viva"}
-          </button>
         </div>
-      </Card>
+      </div>
     </AppShell>
   );
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="border-t border-border py-5 first:border-t-0 first:pt-0">
-      <h3 className="mb-3 text-sm font-semibold">{title}</h3>
+    <div className="border-t border-white/10 py-5 first:border-t-0 first:pt-0">
+      <h3 className="mb-3 text-xs sm:text-sm font-bold text-white uppercase tracking-wider font-mono">
+        [ {title.toUpperCase()} ]
+      </h3>
       {children}
     </div>
   );

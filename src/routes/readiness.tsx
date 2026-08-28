@@ -24,16 +24,20 @@ function ReadinessPage() {
 
   return (
     <AppShell fitViewport hideTopBar>
-      <div className="flex flex-col gap-3 lg:gap-3.5 h-full">
+      <div className="flex flex-col gap-3 lg:gap-3.5 h-full lg:overflow-hidden overflow-y-auto font-manrope">
         {/* Integrated Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-              Defense Readiness
-            </h1>
-            <p className="text-xs text-muted-foreground">
-              A weighted view of how prepared you are to defend your project, and exactly what to do
-              next.
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white font-graphik">
+                Defense Readiness
+              </h1>
+              <span className="text-[10px] sm:text-xs text-[#AFDDFF] bg-[#AFDDFF]/15 px-2 py-0.5 rounded font-mono">
+                [ DRS_STATION ]
+              </span>
+            </div>
+            <p className="text-xs text-white/50 mt-0.5">
+              A weighted evaluation of your oral defense preparation, code comprehension, and next drills.
             </p>
           </div>
         </div>
@@ -43,69 +47,70 @@ function ReadinessPage() {
         ) : (
           <div className="flex-1 flex flex-col gap-3 min-h-0">
             {/* Top Score Card */}
-            <Card className="p-3.5 sm:p-4">
-              <div className="grid gap-3 md:grid-cols-[auto_minmax(0,1fr)] md:items-center md:gap-6">
-                <div className="flex items-center gap-3 sm:gap-4">
-                  <ReadinessGauge score={data?.score ?? 0} size={90} />
+            <div className="rounded-2xl border border-white/10 bg-card/85 p-4 sm:p-5 backdrop-blur-2xl shadow-[var(--shadow-glass)]">
+              <div className="grid gap-4 md:grid-cols-[auto_minmax(0,1fr)] md:items-center md:gap-6">
+                <div className="flex flex-col xs:flex-row items-center gap-4 text-center xs:text-left">
+                  <ReadinessGauge score={data?.score ?? 0} size={96} strokeWidth={9} />
                   <div className="min-w-0">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Overall Score
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-white/50 font-mono">
+                      OVERALL_READINESS
                     </p>
-                    <p className="text-base sm:text-lg font-bold text-foreground">
+                    <p className="text-lg sm:text-xl font-bold text-white font-graphik mt-0.5">
                       {data?.label ?? "Getting started"}
                     </p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {data?.viva_sessions ?? 0} vivas · {data?.presentation_sessions ?? 0}{" "}
-                      presentations
+                    <p className="text-xs text-white/50 mt-0.5">
+                      {data?.viva_sessions ?? 0} vivas · {data?.presentation_sessions ?? 0} presentations
                     </p>
                     {data?.model && (
-                      <div className="mt-1.5 flex items-center gap-1.5">
-                        <Badge tone="primary">
+                      <div className="mt-2 flex flex-wrap items-center justify-center xs:justify-start gap-2">
+                        <span className="rounded-full bg-[#AFDDFF]/15 border border-[#AFDDFF]/30 px-2.5 py-0.5 text-[10px] font-bold font-mono text-[#AFDDFF]">
                           {data.model === "v2" ? "DRS v2" : "Classic v1"}
-                        </Badge>
+                        </span>
                         <Link
                           to="/profile"
-                          className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary"
+                          className="inline-flex min-h-[32px] items-center gap-1 text-[11px] font-medium text-white/60 hover:text-[#AFDDFF] no-underline"
                         >
-                          <Settings className="h-3 w-3" /> Change model
+                          <Settings className="h-3.5 w-3.5" /> Change model
                         </Link>
                       </div>
                     )}
                   </div>
                 </div>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                   {(data?.components ?? []).map((c) => (
                     <div
                       key={c.key}
-                      className="rounded-lg border border-border p-2 bg-secondary/20"
+                      className="rounded-xl border border-white/10 bg-white/5 p-3"
                     >
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-medium">{c.label}</span>
-                        <span className="font-bold">{Math.round(c.score)}</span>
+                      <div className="flex items-center justify-between text-xs text-white font-semibold">
+                        <span>{c.label}</span>
+                        <span className="text-[#AFDDFF] font-bold">{Math.round(c.score)}%</span>
                       </div>
-                      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-secondary">
+                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
                         <div
-                          className="h-full rounded-full bg-primary"
+                          className="h-full rounded-full bg-[#AFDDFF] shadow-[0_0_8px_rgba(175,221,255,0.4)]"
                           style={{ width: `${Math.min(100, c.score)}%` }}
                         />
                       </div>
-                      <p className="mt-1 text-[10px] text-muted-foreground">
-                        Weight {Math.round(c.weight * 100)}%
+                      <p className="mt-1 text-[10px] text-white/40 font-mono">
+                        Weight: {Math.round(c.weight * 100)}%
                       </p>
                     </div>
                   ))}
                 </div>
               </div>
-            </Card>
+            </div>
 
             {/* Bottom 2 Cards Grid */}
             <div className="grid gap-3 lg:grid-cols-2 flex-1 min-h-0">
-              <Card className="p-3.5 sm:p-4 flex flex-col justify-between overflow-y-auto">
+              <div className="rounded-2xl border border-white/10 bg-card/85 p-4 sm:p-5 backdrop-blur-2xl shadow-[var(--shadow-glass)] flex flex-col justify-between overflow-y-auto">
                 <div>
-                  <h3 className="text-xs sm:text-sm font-semibold">Do this next</h3>
-                  <div className="mt-2.5 space-y-2">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-white/50 font-mono">
+                    [ RECOMMENDED_ACTIONS ]
+                  </h3>
+                  <div className="mt-3 space-y-2.5">
                     {(data?.actions ?? []).length === 0 && (
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-white/50">
                         You&apos;re in great shape. Keep practicing to stay sharp.
                       </p>
                     )}
@@ -113,42 +118,46 @@ function ReadinessPage() {
                       <Link
                         key={i}
                         to={a.to}
-                        className="flex items-center justify-between gap-2.5 rounded-lg border border-border p-2.5 transition-colors hover:border-primary bg-card/60"
+                        className="flex items-center justify-between gap-2.5 rounded-xl border border-white/10 bg-white/5 p-3 min-h-[48px] transition-all hover:bg-white/10 hover:border-[#AFDDFF]/40 no-underline"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
-                            <Sparkles className="h-3.5 w-3.5" />
+                          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#AFDDFF]/15 text-[#AFDDFF]">
+                            <Sparkles className="h-4 w-4" />
                           </span>
-                          <span className="text-xs font-medium truncate">{a.text}</span>
+                          <span className="text-xs font-bold text-white truncate">{a.text}</span>
                         </div>
-                        <span className="flex shrink-0 items-center gap-1 text-[11px] font-semibold text-primary">
-                          {a.cta} <ArrowRight className="h-3 w-3" />
+                        <span className="flex shrink-0 items-center gap-1 text-xs font-bold text-[#AFDDFF]">
+                          {a.cta} <ArrowRight className="h-3.5 w-3.5" />
                         </span>
                       </Link>
                     ))}
                   </div>
                 </div>
-              </Card>
+              </div>
 
-              <Card className="p-3.5 sm:p-4 flex flex-col justify-between overflow-y-auto">
+              <div className="rounded-2xl border border-white/10 bg-card/85 p-4 sm:p-5 backdrop-blur-2xl shadow-[var(--shadow-glass)] flex flex-col justify-between overflow-y-auto">
                 <div>
-                  <h3 className="text-xs sm:text-sm font-semibold">Weak topics to review</h3>
-                  <div className="mt-2.5 space-y-1.5">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-white/50 font-mono">
+                    [ WEAK_TOPICS ]
+                  </h3>
+                  <div className="mt-3 space-y-2">
                     {(data?.weak_topics ?? []).length === 0 ? (
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-white/50">
                         No weak topics detected yet — complete a few vivas to surface them.
                       </p>
                     ) : (
                       (data?.weak_topics ?? []).slice(0, 3).map((t, i) => (
                         <div
                           key={i}
-                          className="flex items-center justify-between rounded-lg border border-border p-2.5 text-xs bg-card/60"
+                          className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-3 text-xs"
                         >
                           <div className="flex items-center gap-2 min-w-0">
-                            <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />
-                            <span className="font-medium truncate">{t.topic}</span>
+                            <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0" />
+                            <span className="font-bold text-white truncate">{t.topic}</span>
                           </div>
-                          <Badge tone="warning">{t.accuracy}% acc</Badge>
+                          <span className="rounded-md bg-amber-400/15 border border-amber-400/30 px-2 py-0.5 text-[11px] font-bold text-amber-400">
+                            {t.accuracy}% acc
+                          </span>
                         </div>
                       ))
                     )}
@@ -156,11 +165,12 @@ function ReadinessPage() {
                 </div>
                 <Link
                   to="/ai-viva/new"
-                  className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary"
+                  className="mt-4 min-h-[44px] inline-flex items-center justify-center gap-2 rounded-xl bg-[#AFDDFF] px-4 py-2.5 text-xs sm:text-sm font-bold text-black shadow-[0_0_12px_rgba(175,221,255,0.25)] hover:bg-[#c8e8ff] active:scale-95 transition-all no-underline uppercase tracking-wider"
                 >
-                  Practice weak topics in a mock viva <ArrowRight className="h-3.5 w-3.5" />
+                  <span>Practice Weak Topics</span>
+                  <ArrowRight className="h-4 w-4" />
                 </Link>
-              </Card>
+              </div>
             </div>
           </div>
         )}
