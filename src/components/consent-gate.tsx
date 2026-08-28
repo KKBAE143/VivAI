@@ -192,14 +192,14 @@ export function ConsentGate() {
       {status.is_minor && !status.parental_consent && (
         <div className="rounded-lg bg-warning/10 p-3 text-sm text-foreground space-y-2">
           <p>
-            You told us you are under 18. Under the DPDP Act, a parent or guardian must
-            verify their consent before practice sessions can run.
+            You told us you are under 18. Under the DPDP Act, a parent or guardian must verify their
+            consent before practice sessions can run.
           </p>
           {status.verification_pending && status.parent_email && (
             <p className="text-xs text-muted-foreground">
-              A verification link has been sent to <strong>{status.parent_email}</strong>.
-              Practice sessions will be enabled once your parent clicks that link.
-              The link expires after 48 hours.
+              A verification link has been sent to <strong>{status.parent_email}</strong>. Practice
+              sessions will be enabled once your parent clicks that link. The link expires after 48
+              hours.
             </p>
           )}
           {!status.parental_consent && (

@@ -302,11 +302,13 @@ function Onboarding() {
     <div className="min-h-screen bg-background px-4 py-10">
       <div className="mx-auto max-w-2xl">
         <header className="mb-8 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-primary-foreground">
-              <GraduationCap className="h-5 w-5" />
-            </div>
-            <span className="font-semibold">VivAI</span>
+          <div className="flex items-center gap-2.5">
+            <img
+              src="/logo.jpeg"
+              alt="VivAI Logo"
+              className="h-10 w-10 rounded-xl object-cover shadow-sm ring-1 ring-border/40"
+            />
+            <span className="font-bold text-lg">VivAI</span>
           </div>
           {role && !pending && (
             <span className="text-xs text-muted-foreground" aria-live="polite">

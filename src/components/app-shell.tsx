@@ -134,9 +134,11 @@ function Sidebar({ fitViewport = false }: { fitViewport?: boolean }) {
       <div className="flex flex-col gap-3.5">
         {/* Brand Logo */}
         <Link to="/" aria-label="Home" className="flex items-center gap-2.5 px-2 pt-0.5">
-          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
-            <GraduationCap className="h-4.5 w-4.5" />
-          </span>
+          <img
+            src="/logo.jpeg"
+            alt="VivAI Logo"
+            className="h-8 w-8 shrink-0 rounded-xl object-cover shadow-sm ring-1 ring-border/40"
+          />
           <span className="text-base font-bold tracking-tight text-foreground">VivAI</span>
         </Link>
 
@@ -250,12 +252,12 @@ function WideTopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
       >
         <Menu className="h-5 w-5" />
       </button>
-      <Link
-        to="/"
-        aria-label="Home"
-        className="hidden grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm sm:grid"
-      >
-        <GraduationCap className="h-4 w-4" />
+      <Link to="/" aria-label="Home" className="hidden h-9 w-9 shrink-0 place-items-center sm:grid">
+        <img
+          src="/logo.jpeg"
+          alt="VivAI Logo"
+          className="h-8 w-8 rounded-xl object-cover shadow-sm ring-1 ring-border/40"
+        />
       </Link>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold">{title}</p>
@@ -303,8 +305,12 @@ function TopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
         >
           <Menu className="h-5 w-5" />
         </button>
-        <div className="hidden grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm sm:grid lg:hidden">
-          <GraduationCap className="h-4 w-4" />
+        <div className="hidden h-8 w-8 shrink-0 place-items-center sm:grid lg:hidden">
+          <img
+            src="/logo.jpeg"
+            alt="VivAI Logo"
+            className="h-8 w-8 rounded-xl object-cover shadow-sm ring-1 ring-border/40"
+          />
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold">{title}</p>
@@ -385,9 +391,11 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
         <div>
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2.5">
-              <span className="grid h-9 w-9 place-items-center rounded-2xl bg-primary text-primary-foreground">
-                <GraduationCap className="h-5 w-5" />
-              </span>
+              <img
+                src="/logo.jpeg"
+                alt="VivAI Logo"
+                className="h-8 w-8 shrink-0 rounded-xl object-cover shadow-sm ring-1 ring-border/40"
+              />
               <span className="text-lg font-bold">VivAI</span>
             </div>
             <button

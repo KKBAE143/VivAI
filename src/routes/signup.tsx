@@ -78,7 +78,11 @@ function Signup() {
           // Submit T&C and privacy consent as separate actions — the checkbox
           // covers both, but each is a distinct consent under the DPDP Act.
           await api("/api/privacy/consent", {
-            body: { consent_type: "tos", is_minor: isMinor, parent_email: isMinor ? parentEmail : undefined },
+            body: {
+              consent_type: "tos",
+              is_minor: isMinor,
+              parent_email: isMinor ? parentEmail : undefined,
+            },
           });
           await api("/api/privacy/consent", {
             body: { consent_type: "privacy", is_minor: isMinor },
@@ -107,22 +111,16 @@ function Signup() {
       className="relative min-h-screen w-full bg-[#070D0E] bg-cover bg-center bg-no-repeat flex items-center justify-center p-4 sm:p-6 lg:p-12 overflow-x-hidden"
       style={{ backgroundImage: `url(${loginBg})` }}
     >
-      {/* Dark vignette overlay */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/75"
-      />
-
       <div className="relative z-10 w-full max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14 items-center">
         {/* Left Column: Medallion & Welcome */}
         <div className="flex flex-col items-center text-center">
           {/* Circular Gold Medallion Logo */}
-          <div className="relative w-56 h-56 sm:w-72 sm:h-72 md:w-88 md:h-88 rounded-full p-2 bg-gradient-to-b from-[#E8C170] via-[#946A1B] to-[#E8C170] shadow-[0_0_50px_rgba(212,163,70,0.3),0_20px_50px_rgba(0,0,0,0.95)]">
-            <div className="w-full h-full rounded-full overflow-hidden border-2 border-[#FFE082]/70 bg-black/60">
+          <div className="relative w-56 h-56 sm:w-72 sm:h-72 md:w-88 md:h-88 rounded-full p-1.5 bg-gradient-to-b from-[#E8C170] via-[#946A1B] to-[#E8C170] shadow-[0_0_50px_rgba(212,163,70,0.35),0_20px_50px_rgba(0,0,0,0.95)]">
+            <div className="w-full h-full rounded-full overflow-hidden border-2 border-[#FFE082]/80 bg-black">
               <img
                 src={logoImg}
                 alt="VivAI Logo"
-                className="w-full h-full object-cover rounded-full transform scale-102"
+                className="w-full h-full object-cover rounded-full transform scale-[1.19]"
               />
             </div>
           </div>
@@ -328,7 +326,8 @@ function Signup() {
                 {isMinor && (
                   <div className="space-y-2">
                     <p className="rounded-lg bg-warning/15 border border-warning/20 px-2.5 py-1.5 text-[10px] text-warning">
-                      Under Indian law (DPDP Act), a parent or guardian must verify their consent by clicking a link sent to their email.
+                      Under Indian law (DPDP Act), a parent or guardian must verify their consent by
+                      clicking a link sent to their email.
                     </p>
                     <div>
                       <label className="text-[10px] font-bold tracking-[0.15em] text-[#E8C170] uppercase flex items-center gap-1.5 mb-1">

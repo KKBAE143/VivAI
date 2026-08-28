@@ -43,7 +43,8 @@ function VerifyParentalPage() {
 
   const { data, isLoading, error } = useQuery<VerifyResult>({
     queryKey: ["verify-parental", token],
-    queryFn: () => api<VerifyResult>(`/api/privacy/verify-parental?token=${encodeURIComponent(token)}`),
+    queryFn: () =>
+      api<VerifyResult>(`/api/privacy/verify-parental?token=${encodeURIComponent(token)}`),
     enabled: !!token,
     retry: false,
   });
@@ -55,9 +56,7 @@ function VerifyParentalPage() {
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Parental Consent Verification
           </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            VivAI — AI-powered student companion
-          </p>
+          <p className="mt-2 text-sm text-muted-foreground">VivAI — AI-powered student companion</p>
         </div>
 
         <Card className="space-y-4">
@@ -106,9 +105,9 @@ function VerifyParentalPage() {
               </div>
               <p className="text-sm text-muted-foreground">{data.message}</p>
               <p className="text-xs text-muted-foreground">
-                Your child can now use VivAI&apos;s practice sessions (mock viva, presentation coaching,
-                pitch drill, and communication coaching). You can withdraw this consent at any time
-                by contacting grievance@vivai.app.
+                Your child can now use VivAI&apos;s practice sessions (mock viva, presentation
+                coaching, pitch drill, and communication coaching). You can withdraw this consent at
+                any time by contacting grievance@vivai.app.
               </p>
             </div>
           )}
