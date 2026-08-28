@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Trophy, Flame, Star, Award } from "lucide-react";
+import { useState } from "react";
 
 import { AppShell, Card, PageHeader, Badge } from "@/components/app-shell";
+import { DataPagination } from "@/components/data-pagination";
 import { ErrorState } from "@/components/error-state";
 import { useRequireAuth } from "@/lib/auth-context";
 import { useLeaderboard, useMe } from "@/lib/hooks";
@@ -13,13 +15,21 @@ export const Route = createFileRoute("/leaderboard")({
   component: LeaderboardPage,
 });
 
+const PAGE_SIZE = 8;
+
 function LeaderboardPage() {
   const { ready, isLoading: authLoading } = useRequireAuth();
   const board = useLeaderboard();
   const me = useMe();
   const game = useGamification();
+  const [page, setPage] = useState(1);
 
   if (!authLoading && !ready) return null;
+
+  const allRows = board.data ?? [];
+  const totalPages = Math.max(1, Math.ceil(allRows.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const visibleRows = allRows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   return (
     <AppShell>
@@ -45,16 +55,19 @@ function LeaderboardPage() {
         <ErrorState message="Could not load the leaderboard" onRetry={() => void board.refetch()} />
       ) : (
         <Card>
-          <h3 className="text-base font-semibold">Top Students</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-semibold">Top Students</h3>
+            {allRows.length > 0 && <Badge tone="muted">{allRows.length} ranked</Badge>}
+          </div>
           <div className="mt-4 space-y-1">
-            {(board.data ?? []).length === 0 && (
+            {allRows.length === 0 && (
               <p className="py-6 text-center text-sm text-muted-foreground">
                 No ranked students yet — be the first to practice.
               </p>
             )}
-            {(board.data ?? []).map((row: ApiRecord, i: number) => {
+            {visibleRows.map((row: ApiRecord, i: number) => {
               const isMe = row.id === me.data?.id;
-              const rank = i + 1;
+              const rank = (safePage - 1) * PAGE_SIZE + i + 1;
               return (
                 <div
                   key={String(row.id)}
@@ -90,6 +103,14 @@ function LeaderboardPage() {
               );
             })}
           </div>
+          <DataPagination
+            page={safePage}
+            totalPages={totalPages}
+            totalItems={allRows.length}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
+            itemName="students"
+          />
         </Card>
       )}
     </AppShell>

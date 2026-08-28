@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { MonitorSmartphone, Play, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { AppShell, Card, PageHeader, Badge } from "@/components/app-shell";
+import { DataPagination } from "@/components/data-pagination";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 import { useRequireAuth } from "@/lib/auth-context";
@@ -22,6 +23,7 @@ export const Route = createFileRoute("/ai-presentation/")({
 
 const SESSION_TYPES = ["Mid Review", "Final Demo", "Internal"] as const;
 const DURATIONS = [5, 10, 15, 20] as const;
+const PAGE_SIZE = 6;
 
 function AIPresentation() {
   useRequireAuth();
@@ -34,6 +36,12 @@ function AIPresentation() {
   const [duration, setDuration] = useState<number>(10);
   const [topic, setTopic] = useState("");
   const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
+
+  const allSessions = sessionsQuery.data ?? [];
+  const totalPages = Math.max(1, Math.ceil(allSessions.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const visibleSessions = allSessions.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const begin = async () => {
     setError("");
@@ -152,7 +160,10 @@ function AIPresentation() {
       </div>
 
       <Card>
-        <h3 className="text-base font-semibold">Past Sessions</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-semibold">Past Sessions</h3>
+          {allSessions.length > 0 && <Badge tone="muted">{allSessions.length} total</Badge>}
+        </div>
         {sessionsQuery.isLoading ? (
           <p className="mt-4 text-sm text-muted-foreground">Loading sessions…</p>
         ) : sessionsQuery.error ? (
@@ -164,51 +175,61 @@ function AIPresentation() {
             }
             onRetry={() => void sessionsQuery.refetch()}
           />
-        ) : (sessionsQuery.data ?? []).length === 0 ? (
+        ) : allSessions.length === 0 ? (
           <EmptyState
             title="No sessions yet"
             description="Start your first AI presentation practice above."
           />
         ) : (
-          <div className="mt-4 grid gap-3 md:grid-cols-3">
-            {(sessionsQuery.data ?? []).map((s) => {
-              const score = s.overall_score == null ? null : Number(s.overall_score);
-              const status = String(s.status ?? "Pending");
-              const completed = status === "Completed";
-              return (
-                <Link
-                  key={String(s.id)}
-                  to="/ai-presentation/session/$id"
-                  params={{ id: String(s.id) }}
-                  className="group block rounded-xl border border-border p-4 transition-colors hover:border-primary"
-                >
-                  <div className="flex items-center justify-between">
-                    <MonitorSmartphone className="h-5 w-5 text-muted-foreground" />
-                    <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
-                  </div>
-                  <div className="mt-3 font-semibold">
-                    {String(s.session_type ?? "Presentation")}
-                  </div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {String(s.created_at ?? "").slice(0, 10)}
-                  </div>
-                  <div className="mt-3 flex items-center justify-between">
-                    {score !== null ? (
-                      <Badge tone={score >= 80 ? "success" : "warning"}>{score}%</Badge>
-                    ) : (
-                      <Badge tone="muted">{status}</Badge>
-                    )}
-                    <span className="text-xs font-medium text-primary">
-                      {completed ? "Review" : status === "In Progress" ? "Resume" : "Open"}
-                    </span>
-                  </div>
-                  <div className="mt-1 text-[11px] text-muted-foreground">
-                    {String(s.duration_minutes ?? "—")} min
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+          <>
+            <div className="mt-4 grid gap-3 md:grid-cols-3">
+              {visibleSessions.map((s) => {
+                const score = s.overall_score == null ? null : Number(s.overall_score);
+                const status = String(s.status ?? "Pending");
+                const completed = status === "Completed";
+                return (
+                  <Link
+                    key={String(s.id)}
+                    to="/ai-presentation/session/$id"
+                    params={{ id: String(s.id) }}
+                    className="group block rounded-xl border border-border p-4 transition-colors hover:border-primary"
+                  >
+                    <div className="flex items-center justify-between">
+                      <MonitorSmartphone className="h-5 w-5 text-muted-foreground" />
+                      <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                    </div>
+                    <div className="mt-3 font-semibold truncate">
+                      {String(s.session_type ?? "Presentation")}
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {String(s.created_at ?? "").slice(0, 10)}
+                    </div>
+                    <div className="mt-3 flex items-center justify-between">
+                      {score !== null ? (
+                        <Badge tone={score >= 80 ? "success" : "warning"}>{score}%</Badge>
+                      ) : (
+                        <Badge tone="muted">{status}</Badge>
+                      )}
+                      <span className="text-xs font-medium text-primary">
+                        {completed ? "Review" : status === "In Progress" ? "Resume" : "Open"}
+                      </span>
+                    </div>
+                    <div className="mt-1 text-[11px] text-muted-foreground">
+                      {String(s.duration_minutes ?? "—")} min
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+            <DataPagination
+              page={safePage}
+              totalPages={totalPages}
+              totalItems={allSessions.length}
+              pageSize={PAGE_SIZE}
+              onPageChange={setPage}
+              itemName="sessions"
+            />
+          </>
         )}
       </Card>
     </AppShell>

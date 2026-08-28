@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Plus, Search, Filter, MoreHorizontal, FolderKanban } from "lucide-react";
 import { useState } from "react";
 import { AppShell, Card, PageHeader, Badge } from "@/components/app-shell";
+import { DataPagination } from "@/components/data-pagination";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 import { TableSkeleton } from "@/components/loading-skeleton";
@@ -19,11 +20,13 @@ export const Route = createFileRoute("/projects/")({
 });
 
 const FILTERS = ["All", "PBL", "Major", "Mini", "Completed"] as const;
+const PAGE_SIZE = 6;
 
 function Projects() {
   useRequireAuth();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const typeFilter =
     filter === "PBL" || filter === "Major" || filter === "Mini" ? filter : undefined;
   const { data, isLoading, error, refetch } = useProjects(typeFilter);
@@ -42,6 +45,10 @@ function Projects() {
           .includes(q),
     );
   }
+
+  const totalPages = Math.max(1, Math.ceil(projects.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const visibleProjects = projects.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   return (
     <AppShell>
@@ -63,7 +70,10 @@ function Projects() {
             {FILTERS.map((t) => (
               <button
                 key={t}
-                onClick={() => setFilter(t)}
+                onClick={() => {
+                  setFilter(t);
+                  setPage(1);
+                }}
                 className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
                   filter === t
                     ? "bg-foreground text-background"
@@ -80,7 +90,10 @@ function Projects() {
               <input
                 placeholder="Search projects"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
                 className="w-40 bg-transparent focus:outline-none"
               />
             </div>
@@ -108,103 +121,113 @@ function Projects() {
             }
           />
         ) : (
-          <div className="mt-5 overflow-x-auto">
-            <table className="w-full min-w-[720px] text-sm">
-              <thead>
-                <tr className="border-b border-border text-left text-xs font-medium text-muted-foreground">
-                  <th className="py-2 pr-3 font-medium">Project</th>
-                  <th className="py-2 pr-3 font-medium">Type</th>
-                  <th className="py-2 pr-3 font-medium">Progress</th>
-                  <th className="py-2 pr-3 font-medium">Status</th>
-                  <th className="py-2 pr-3 font-medium">Deadline</th>
-                  <th className="py-2 pr-3 font-medium">Tech Stack</th>
-                  <th className="py-2" />
-                </tr>
-              </thead>
-              <tbody>
-                {projects.map((p) => {
-                  const progress = Number(p.progress ?? 0);
-                  const status = String(p.status ?? "In Progress");
-                  const type = String(p.type ?? "PBL");
-                  const tech = ((p.tech_stack as string[] | null | undefined) ?? []).slice(0, 3);
-                  return (
-                    <tr
-                      key={String(p.id)}
-                      className="border-b border-border last:border-0 hover:bg-secondary/40"
-                    >
-                      <td className="py-3.5 pr-3">
-                        <Link to="/projects/$id" params={{ id: String(p.id) }} className="block">
-                          <div className="font-semibold">{String(p.title)}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {String(p.subject ?? "—")}
+          <>
+            <div className="mt-5 overflow-x-auto">
+              <table className="w-full min-w-[720px] text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left text-xs font-medium text-muted-foreground">
+                    <th className="py-2 pr-3 font-medium">Project</th>
+                    <th className="py-2 pr-3 font-medium">Type</th>
+                    <th className="py-2 pr-3 font-medium">Progress</th>
+                    <th className="py-2 pr-3 font-medium">Status</th>
+                    <th className="py-2 pr-3 font-medium">Deadline</th>
+                    <th className="py-2 pr-3 font-medium">Tech Stack</th>
+                    <th className="py-2" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleProjects.map((p) => {
+                    const progress = Number(p.progress ?? 0);
+                    const status = String(p.status ?? "In Progress");
+                    const type = String(p.type ?? "PBL");
+                    const tech = ((p.tech_stack as string[] | null | undefined) ?? []).slice(0, 3);
+                    return (
+                      <tr
+                        key={String(p.id)}
+                        className="border-b border-border last:border-0 hover:bg-secondary/40"
+                      >
+                        <td className="py-3.5 pr-3">
+                          <Link to="/projects/$id" params={{ id: String(p.id) }} className="block">
+                            <div className="font-semibold">{String(p.title)}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {String(p.subject ?? "—")}
+                            </div>
+                          </Link>
+                        </td>
+                        <td className="py-3.5 pr-3">
+                          <Badge
+                            tone={
+                              type === "Major" ? "primary" : type === "Mini" ? "muted" : "warning"
+                            }
+                          >
+                            {type}
+                          </Badge>
+                        </td>
+                        <td className="py-3.5 pr-3">
+                          <div className="flex items-center gap-2">
+                            <div className="h-1.5 w-24 overflow-hidden rounded-full bg-secondary">
+                              <div
+                                className={`h-full rounded-full ${progress === 100 ? "bg-success" : "bg-primary"}`}
+                                style={{ width: `${progress}%` }}
+                              />
+                            </div>
+                            <span className="text-xs font-medium text-muted-foreground">
+                              {progress}%
+                            </span>
                           </div>
-                        </Link>
-                      </td>
-                      <td className="py-3.5 pr-3">
-                        <Badge
-                          tone={
-                            type === "Major" ? "primary" : type === "Mini" ? "muted" : "warning"
-                          }
-                        >
-                          {type}
-                        </Badge>
-                      </td>
-                      <td className="py-3.5 pr-3">
-                        <div className="flex items-center gap-2">
-                          <div className="h-1.5 w-24 overflow-hidden rounded-full bg-secondary">
-                            <div
-                              className={`h-full rounded-full ${progress === 100 ? "bg-success" : "bg-primary"}`}
-                              style={{ width: `${progress}%` }}
-                            />
+                        </td>
+                        <td className="py-3.5 pr-3">
+                          <Badge
+                            tone={
+                              status === "Completed"
+                                ? "success"
+                                : status === "Under Review"
+                                  ? "warning"
+                                  : "primary"
+                            }
+                          >
+                            <span className="h-1.5 w-1.5 rounded-full bg-current" /> {status}
+                          </Badge>
+                        </td>
+                        <td className="py-3.5 pr-3 text-xs text-muted-foreground">
+                          {p.deadline ? String(p.deadline).slice(0, 10) : "—"}
+                        </td>
+                        <td className="py-3.5 pr-3">
+                          <div className="flex flex-wrap gap-1">
+                            {tech.length ? (
+                              tech.map((t) => (
+                                <Badge key={t} tone="muted">
+                                  {t}
+                                </Badge>
+                              ))
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
                           </div>
-                          <span className="text-xs font-medium text-muted-foreground">
-                            {progress}%
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-3.5 pr-3">
-                        <Badge
-                          tone={
-                            status === "Completed"
-                              ? "success"
-                              : status === "Under Review"
-                                ? "warning"
-                                : "primary"
-                          }
-                        >
-                          <span className="h-1.5 w-1.5 rounded-full bg-current" /> {status}
-                        </Badge>
-                      </td>
-                      <td className="py-3.5 pr-3 text-xs text-muted-foreground">
-                        {p.deadline ? String(p.deadline).slice(0, 10) : "—"}
-                      </td>
-                      <td className="py-3.5 pr-3">
-                        <div className="flex flex-wrap gap-1">
-                          {tech.length ? (
-                            tech.map((t) => (
-                              <Badge key={t} tone="muted">
-                                {t}
-                              </Badge>
-                            ))
-                          ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-3.5 text-right">
-                        <button
-                          aria-label="More"
-                          className="text-muted-foreground hover:text-foreground"
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        </td>
+                        <td className="py-3.5 text-right">
+                          <button
+                            aria-label="More"
+                            className="text-muted-foreground hover:text-foreground"
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <DataPagination
+              page={safePage}
+              totalPages={totalPages}
+              totalItems={projects.length}
+              pageSize={PAGE_SIZE}
+              onPageChange={setPage}
+              itemName="projects"
+            />
+          </>
         )}
       </Card>
       <Card className="border border-dashed border-border bg-transparent shadow-none">

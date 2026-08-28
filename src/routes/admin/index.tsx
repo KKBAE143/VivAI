@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { AppShell, Card, PageHeader, Badge } from "@/components/app-shell";
+import { DataPagination } from "@/components/data-pagination";
 import { ErrorState } from "@/components/error-state";
 import { CardSkeleton } from "@/components/loading-skeleton";
 import { useRequireAuth, useAuth } from "@/lib/auth-context";
@@ -328,27 +329,14 @@ function AdminDashboard() {
           </table>
         </div>
         {/* Pagination */}
-        {(students.data?.total ?? 0) > 20 && (
-          <div className="mt-4 flex items-center justify-between">
-            <button
-              disabled={studentPage <= 1}
-              onClick={() => setStudentPage((p) => Math.max(1, p - 1))}
-              className="rounded-lg bg-secondary px-3 py-1.5 text-xs font-medium disabled:opacity-40"
-            >
-              Previous
-            </button>
-            <span className="text-xs text-muted-foreground">
-              Page {studentPage} of {Math.ceil((students.data?.total ?? 0) / 20)}
-            </span>
-            <button
-              disabled={studentPage >= Math.ceil((students.data?.total ?? 0) / 20)}
-              onClick={() => setStudentPage((p) => p + 1)}
-              className="rounded-lg bg-secondary px-3 py-1.5 text-xs font-medium disabled:opacity-40"
-            >
-              Next
-            </button>
-          </div>
-        )}
+        <DataPagination
+          page={studentPage}
+          totalPages={Math.ceil((students.data?.total ?? 0) / 20)}
+          totalItems={students.data?.total ?? 0}
+          pageSize={20}
+          onPageChange={setStudentPage}
+          itemName="students"
+        />
       </Card>
     </AppShell>
   );

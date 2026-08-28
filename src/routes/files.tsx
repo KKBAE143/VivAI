@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useRef, useState } from "react";
 import { AppShell, Card, PageHeader, Badge } from "@/components/app-shell";
+import { DataPagination } from "@/components/data-pagination";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 import { TableSkeleton } from "@/components/loading-skeleton";
@@ -29,6 +30,8 @@ export const Route = createFileRoute("/files")({
   }),
   component: Files,
 });
+
+const PAGE_SIZE = 6;
 
 function iconFor(mimeType: string) {
   if (mimeType.startsWith("image/")) return ImageIcon;
@@ -51,6 +54,12 @@ function Files() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploadError, setUploadError] = useState("");
   const [dragging, setDragging] = useState(false);
+  const [page, setPage] = useState(1);
+
+  const allFiles = files ?? [];
+  const totalPages = Math.max(1, Math.ceil(allFiles.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const visibleFiles = allFiles.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const doUpload = async (file: File) => {
     setUploadError("");
@@ -129,7 +138,10 @@ function Files() {
       </button>
       {uploadError && <p className="text-sm text-destructive">{uploadError}</p>}
       <Card>
-        <h3 className="text-base font-semibold">All Files</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-semibold">All Files</h3>
+          {allFiles.length > 0 && <Badge tone="muted">{allFiles.length} total</Badge>}
+        </div>
         {isLoading ? (
           <div className="mt-4">
             <TableSkeleton rows={5} />
@@ -139,56 +151,66 @@ function Files() {
             message={error instanceof Error ? error.message : "Could not load your files"}
             onRetry={() => void refetch()}
           />
-        ) : (files ?? []).length === 0 ? (
+        ) : allFiles.length === 0 ? (
           <EmptyState
             title="No files yet"
             description="Upload your first document, report or slide deck."
           />
         ) : (
-          <div className="mt-4 divide-y divide-border">
-            {(files ?? []).map((f) => {
-              const I = iconFor(String(f.mime_type ?? ""));
-              const fileId = String(f.id);
-              return (
-                <div
-                  key={fileId}
-                  className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 py-3.5"
-                >
-                  <div className="grid h-10 w-10 place-items-center rounded-xl bg-secondary">
-                    <I className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold">
-                      {String(f.original_name ?? f.name)}
+          <>
+            <div className="mt-4 divide-y divide-border">
+              {visibleFiles.map((f) => {
+                const I = iconFor(String(f.mime_type ?? ""));
+                const fileId = String(f.id);
+                return (
+                  <div
+                    key={fileId}
+                    className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 py-3.5"
+                  >
+                    <div className="grid h-10 w-10 place-items-center rounded-xl bg-secondary">
+                      <I className="h-5 w-5 text-muted-foreground" />
                     </div>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                      <Badge>{f.project_id ? "Project file" : "General"}</Badge>
-                      <span>{formatSize(Number(f.size_bytes ?? 0))}</span>
-                      <span>·</span>
-                      <span>{String(f.created_at ?? "").slice(0, 10)}</span>
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold">
+                        {String(f.original_name ?? f.name)}
+                      </div>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        <Badge>{f.project_id ? "Project file" : "General"}</Badge>
+                        <span>{formatSize(Number(f.size_bytes ?? 0))}</span>
+                        <span>·</span>
+                        <span>{String(f.created_at ?? "").slice(0, 10)}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        aria-label="Download"
+                        onClick={() => void download(fileId)}
+                        className="grid h-9 w-9 place-items-center rounded-xl bg-secondary hover:bg-secondary/70"
+                      >
+                        <Download className="h-4 w-4" />
+                      </button>
+                      <button
+                        aria-label="Delete"
+                        disabled={deleteFile.isPending}
+                        onClick={() => deleteFile.mutate(fileId)}
+                        className="grid h-9 w-9 place-items-center rounded-xl bg-secondary text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      aria-label="Download"
-                      onClick={() => void download(fileId)}
-                      className="grid h-9 w-9 place-items-center rounded-xl bg-secondary hover:bg-secondary/70"
-                    >
-                      <Download className="h-4 w-4" />
-                    </button>
-                    <button
-                      aria-label="Delete"
-                      disabled={deleteFile.isPending}
-                      onClick={() => deleteFile.mutate(fileId)}
-                      className="grid h-9 w-9 place-items-center rounded-xl bg-secondary text-destructive hover:bg-destructive/10"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+            <DataPagination
+              page={safePage}
+              totalPages={totalPages}
+              totalItems={allFiles.length}
+              pageSize={PAGE_SIZE}
+              onPageChange={setPage}
+              itemName="files"
+            />
+          </>
         )}
       </Card>
     </AppShell>

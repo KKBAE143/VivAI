@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { AppShell, PageHeader } from "@/components/app-shell";
+import { DataPagination } from "@/components/data-pagination";
 import { ErrorState } from "@/components/error-state";
 import { CardSkeleton } from "@/components/loading-skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -438,6 +439,7 @@ function FacultyConsole() {
   const dashboard = useFacultyDashboard();
   const [scheduling, setScheduling] = useState(false);
   const [reviewing, setReviewing] = useState<FacultySession | null>(null);
+  const [page, setPage] = useState(1);
 
   if (dashboard.isLoading) {
     return (
@@ -470,6 +472,10 @@ function FacultyConsole() {
 
   const summary = dashboard.data?.summary;
   const sessions = dashboard.data?.sessions ?? [];
+  const PAGE_SIZE = 8;
+  const totalPages = Math.max(1, Math.ceil(sessions.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const visibleSessions = sessions.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   return (
     <AppShell>
@@ -518,52 +524,62 @@ function FacultyConsole() {
               </Button>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Team</TableHead>
-                    <TableHead>Subject</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Score</TableHead>
-                    <TableHead>Scheduled</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sessions.map((s) => (
-                    <TableRow key={s.id}>
-                      <TableCell className="font-medium">{s.team_name ?? "—"}</TableCell>
-                      <TableCell>{s.subject ?? "—"}</TableCell>
-                      <TableCell>
-                        <Badge variant={STATUS_TONE[s.status] ?? "outline"}>{s.status}</Badge>
-                      </TableCell>
-                      <TableCell>{s.score ?? "—"}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {formatDate(s.created_at)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {s.status === "Completed" ? (
-                          s.reviewed_at ? (
-                            <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-                              <CheckCircle2 className="h-4 w-4" /> Signed off
-                            </span>
-                          ) : (
-                            <Button size="sm" onClick={() => setReviewing(s)}>
-                              Review
-                            </Button>
-                          )
-                        ) : (
-                          <span className="font-mono text-xs text-muted-foreground">
-                            {s.join_code ?? "—"}
-                          </span>
-                        )}
-                      </TableCell>
+            <>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Team</TableHead>
+                      <TableHead>Subject</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Score</TableHead>
+                      <TableHead>Scheduled</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {visibleSessions.map((s) => (
+                      <TableRow key={s.id}>
+                        <TableCell className="font-medium">{s.team_name ?? "—"}</TableCell>
+                        <TableCell>{s.subject ?? "—"}</TableCell>
+                        <TableCell>
+                          <Badge variant={STATUS_TONE[s.status] ?? "outline"}>{s.status}</Badge>
+                        </TableCell>
+                        <TableCell>{s.score ?? "—"}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {formatDate(s.created_at)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {s.status === "Completed" ? (
+                            s.reviewed_at ? (
+                              <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                                <CheckCircle2 className="h-4 w-4" /> Signed off
+                              </span>
+                            ) : (
+                              <Button size="sm" onClick={() => setReviewing(s)}>
+                                Review
+                              </Button>
+                            )
+                          ) : (
+                            <span className="font-mono text-xs text-muted-foreground">
+                              {s.join_code ?? "—"}
+                            </span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <DataPagination
+                page={safePage}
+                totalPages={totalPages}
+                totalItems={sessions.length}
+                pageSize={PAGE_SIZE}
+                onPageChange={setPage}
+                itemName="vivas"
+              />
+            </>
           )}
         </CardContent>
       </Card>

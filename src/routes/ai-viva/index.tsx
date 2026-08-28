@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Mic, Sparkles, Play, TrendingUp } from "lucide-react";
 import { useState } from "react";
 import { AppShell, Card, PageHeader, Badge } from "@/components/app-shell";
+import { DataPagination } from "@/components/data-pagination";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 import { CardSkeleton } from "@/components/loading-skeleton";
@@ -22,6 +23,8 @@ export const Route = createFileRoute("/ai-viva/")({
   component: AiVivaHub,
 });
 
+const PAGE_SIZE = 6;
+
 function AiVivaHub() {
   useRequireAuth();
   const sessionsQuery = useVivaSessions();
@@ -32,6 +35,7 @@ function AiVivaHub() {
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickSubject, setQuickSubject] = useState("");
   const [quickLanguage, setQuickLanguage] = useState("English");
+  const [page, setPage] = useState(1);
 
   const sessions = sessionsQuery.data ?? [];
   const stats = statsQuery.data;
@@ -42,6 +46,10 @@ function AiVivaHub() {
     .slice(0, 7)
     .map((s) => Number(s.score))
     .reverse();
+
+  const totalPages = Math.max(1, Math.ceil(sessions.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const visibleSessions = sessions.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const quickViva = async () => {
     setError("");
@@ -181,7 +189,10 @@ function AiVivaHub() {
         )}
       </div>
       <Card>
-        <h3 className="text-base font-semibold">Recent Sessions</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-semibold">Recent Sessions</h3>
+          {sessions.length > 0 && <Badge tone="muted">{sessions.length} total</Badge>}
+        </div>
         {sessionsQuery.isLoading ? (
           <p className="mt-4 text-sm text-muted-foreground">Loading sessions…</p>
         ) : sessionsQuery.error ? (
@@ -199,40 +210,50 @@ function AiVivaHub() {
             description="Configure your first mock viva above to start practicing."
           />
         ) : (
-          <div className="mt-4 divide-y divide-border">
-            {sessions.map((s) => {
-              const score = s.score == null ? null : Number(s.score);
-              const title = String(s.subject ?? `${String(s.session_type ?? "General")} Viva`);
-              return (
-                <div
-                  key={String(s.id)}
-                  className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-3.5"
-                >
-                  <div className="min-w-0">
-                    <div className="truncate font-semibold">{title}</div>
-                    <div className="mt-0.5 text-xs text-muted-foreground">
-                      {String(s.created_at ?? "").slice(0, 10)} ·{" "}
-                      {String(s.duration_minutes ?? "—")} min
+          <>
+            <div className="mt-4 divide-y divide-border">
+              {visibleSessions.map((s) => {
+                const score = s.score == null ? null : Number(s.score);
+                const title = String(s.subject ?? `${String(s.session_type ?? "General")} Viva`);
+                return (
+                  <div
+                    key={String(s.id)}
+                    className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-3.5"
+                  >
+                    <div className="min-w-0">
+                      <div className="truncate font-semibold">{title}</div>
+                      <div className="mt-0.5 text-xs text-muted-foreground">
+                        {String(s.created_at ?? "").slice(0, 10)} ·{" "}
+                        {String(s.duration_minutes ?? "—")} min
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {score !== null ? (
+                        <Badge tone={score >= 80 ? "success" : "warning"}>{score}%</Badge>
+                      ) : (
+                        <Badge tone="muted">{String(s.status ?? "Pending")}</Badge>
+                      )}
+                      <Link
+                        to="/ai-viva/session/$id"
+                        params={{ id: String(s.id) }}
+                        className="rounded-xl bg-secondary px-3 py-1.5 text-xs font-medium"
+                      >
+                        {s.status === "Completed" ? "Review" : "Resume"}
+                      </Link>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    {score !== null ? (
-                      <Badge tone={score >= 80 ? "success" : "warning"}>{score}%</Badge>
-                    ) : (
-                      <Badge tone="muted">{String(s.status ?? "Pending")}</Badge>
-                    )}
-                    <Link
-                      to="/ai-viva/session/$id"
-                      params={{ id: String(s.id) }}
-                      className="rounded-xl bg-secondary px-3 py-1.5 text-xs font-medium"
-                    >
-                      {s.status === "Completed" ? "Review" : "Resume"}
-                    </Link>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+            <DataPagination
+              page={safePage}
+              totalPages={totalPages}
+              totalItems={sessions.length}
+              pageSize={PAGE_SIZE}
+              onPageChange={setPage}
+              itemName="sessions"
+            />
+          </>
         )}
       </Card>
     </AppShell>
