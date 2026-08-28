@@ -22,7 +22,7 @@ import {
   X,
   ArrowUpRight,
 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useState, useRef, useEffect, useCallback, type ReactNode } from "react";
 import { ConsentGate } from "@/components/consent-gate";
 import { useTheme } from "@/lib/theme";
 import { useAuth, useRequireAuth } from "@/lib/auth-context";
@@ -328,34 +328,208 @@ function TopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
 
 function MobileNav({ onOpenMenu }: { onOpenMenu: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isActive = (to: string) => (to === "/" ? pathname === "/" || pathname === "/dashboard" : pathname.startsWith(to));
+  const navigate = useNavigate();
+  const isActive = (to?: string) => {
+    if (!to) return false;
+    return to === "/" ? pathname === "/" || pathname === "/dashboard" : pathname.startsWith(to);
+  };
+
   const mobileNav = [
     { to: "/dashboard", icon: LayoutDashboard, label: "Home" },
     { to: "/ai-viva", icon: BrainCircuit, label: "Viva" },
     { to: "/ai-presentation", icon: MonitorSmartphone, label: "Slides" },
     { to: "/advanced/sentiment-analysis", icon: Video, label: "Coach", badge: "2" },
     { to: "/projects", icon: FolderKanban, label: "Projects" },
+    { to: "#more", icon: Menu, label: "More", isAction: true },
   ];
+
+  const activeIndex = Math.max(
+    0,
+    mobileNav.findIndex((item) => !item.isAction && isActive(item.to)),
+  );
+
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [lensStyle, setLensStyle] = useState<{ left: number; width: number; top: number; height: number }>({
+    left: 4,
+    width: 60,
+    top: 4,
+    height: 48,
+  });
+
+  const containerRef = useRef<HTMLElement>(null);
+  const itemRefs = useRef<(HTMLElement | null)[]>([]);
+  const isPointerDownRef = useRef(false);
+  const startXRef = useRef(0);
+  const hasMovedRef = useRef(false);
+
+  const currentIndex = dragIndex !== null ? dragIndex : activeIndex;
+
+  const updateLensToItem = useCallback((idx: number) => {
+    const el = itemRefs.current[idx];
+    const container = containerRef.current;
+    if (el && container) {
+      const elRect = el.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      setLensStyle({
+        left: elRect.left - containerRect.left,
+        width: elRect.width,
+        top: elRect.top - containerRect.top,
+        height: elRect.height,
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isDragging) {
+      updateLensToItem(activeIndex);
+    }
+  }, [activeIndex, isDragging, updateLensToItem]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      updateLensToItem(currentIndex);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [currentIndex, updateLensToItem]);
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLElement>) => {
+    isPointerDownRef.current = true;
+    startXRef.current = e.clientX;
+    hasMovedRef.current = false;
+    try {
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+    } catch {}
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLElement>) => {
+    if (!isPointerDownRef.current) return;
+    const dist = Math.abs(e.clientX - startXRef.current);
+    if (dist > 5) {
+      hasMovedRef.current = true;
+      setIsDragging(true);
+    }
+
+    if (hasMovedRef.current && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const relativeX = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+      const targetWidth = rect.width / mobileNav.length;
+      const hoveredIdx = Math.max(0, Math.min(mobileNav.length - 1, Math.floor(relativeX / targetWidth)));
+
+      const lensW = lensStyle.width || targetWidth;
+      const freeLeft = Math.max(2, Math.min(rect.width - lensW - 2, relativeX - lensW / 2));
+      setLensStyle((prev) => ({ ...prev, left: freeLeft }));
+
+      if (hoveredIdx !== dragIndex) {
+        setDragIndex(hoveredIdx);
+        if (typeof window !== "undefined" && "vibrate" in navigator) {
+          try {
+            navigator.vibrate(8);
+          } catch {}
+        }
+      }
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLElement>) => {
+    if (!isPointerDownRef.current) return;
+    isPointerDownRef.current = false;
+
+    if (hasMovedRef.current && dragIndex !== null) {
+      const selectedItem = mobileNav[dragIndex];
+      if (selectedItem) {
+        if (selectedItem.isAction) {
+          onOpenMenu();
+        } else if (selectedItem.to) {
+          navigate({ to: selectedItem.to });
+        }
+      }
+      updateLensToItem(dragIndex);
+    } else {
+      updateLensToItem(activeIndex);
+    }
+
+    setIsDragging(false);
+    setDragIndex(null);
+    hasMovedRef.current = false;
+  };
+
   return (
-    <nav className="fixed inset-x-3 bottom-3 sm:bottom-4 z-40 mx-auto flex max-w-[400px] items-center justify-between rounded-full liquid-glass-bar p-1.5 lg:hidden pb-[max(0.4rem,env(safe-area-inset-bottom))]">
-      {mobileNav.map((item) => {
+    <nav
+      ref={containerRef}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      className="fixed inset-x-3 bottom-3 sm:bottom-4 z-40 mx-auto flex max-w-[420px] items-center justify-between rounded-full liquid-glass-bar p-1.5 lg:hidden pb-[max(0.4rem,env(safe-area-inset-bottom))] touch-none select-none"
+    >
+      {/* Dynamic Animated Liquid Glass Lens */}
+      <div
+        className="liquid-glass-lens"
+        style={{
+          left: `${lensStyle.left}px`,
+          top: `${lensStyle.top}px`,
+          width: `${lensStyle.width}px`,
+          height: `${lensStyle.height}px`,
+          transform: isDragging ? "scale(1.08, 0.94)" : "scale(1)",
+          transition: isDragging
+            ? "transform 0.12s ease-out"
+            : "left 0.38s cubic-bezier(0.175, 0.885, 0.32, 1.25), width 0.3s ease, transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.25)",
+        }}
+      />
+
+      {mobileNav.map((item, idx) => {
         const Icon = item.icon;
-        const active = isActive(item.to);
+        const active = currentIndex === idx;
+
+        if (item.isAction) {
+          return (
+            <button
+              key={item.label}
+              ref={(el) => {
+                itemRefs.current[idx] = el;
+              }}
+              onClick={() => {
+                if (!hasMovedRef.current) onOpenMenu();
+              }}
+              aria-label={item.label}
+              className="relative flex min-h-[50px] flex-1 flex-col items-center justify-center gap-0.5 rounded-full px-1.5 py-1 text-[11px] font-medium transition-all duration-200 select-none cursor-pointer bg-transparent border-0 z-10"
+            >
+              <div className="flex flex-col items-center justify-center">
+                <Menu
+                  className={`h-5 w-5 transition-all duration-200 ${
+                    active ? "text-[#38BDF8] scale-105" : "text-white/90"
+                  }`}
+                />
+                <span
+                  className={`mt-0.5 text-[10px] tracking-tight leading-none transition-all duration-200 ${
+                    active ? "text-[#38BDF8] font-bold" : "text-white/80 font-medium"
+                  }`}
+                >
+                  {item.label}
+                </span>
+              </div>
+            </button>
+          );
+        }
+
         return (
           <Link
             key={item.to}
             to={item.to}
-            className={`relative flex min-h-[50px] flex-1 flex-col items-center justify-center gap-0.5 rounded-full px-2 py-1 text-[11px] font-medium transition-all duration-200 no-underline select-none active:scale-95 ${
-              active
-                ? "text-[#38BDF8] font-bold"
-                : "text-white/80 hover:text-white"
-            }`}
+            ref={(el) => {
+              itemRefs.current[idx] = el;
+            }}
+            onClick={(e) => {
+              if (hasMovedRef.current) e.preventDefault();
+            }}
+            className="relative flex min-h-[50px] flex-1 flex-col items-center justify-center gap-0.5 rounded-full px-1.5 py-1 text-[11px] font-medium transition-all duration-200 no-underline select-none z-10"
           >
-            {active && <div className="liquid-glass-lens" />}
-            <div className="relative z-10 flex flex-col items-center justify-center">
+            <div className="flex flex-col items-center justify-center">
               <div className="relative">
                 <Icon
-                  className={`h-5 w-5 transition-transform duration-200 ${
+                  className={`h-5 w-5 transition-all duration-200 ${
                     active
                       ? "text-[#38BDF8] drop-shadow-[0_0_8px_rgba(56,189,248,0.6)] scale-105"
                       : "text-white/90"
@@ -368,7 +542,7 @@ function MobileNav({ onOpenMenu }: { onOpenMenu: () => void }) {
                 )}
               </div>
               <span
-                className={`mt-0.5 text-[10px] tracking-tight leading-none ${
+                className={`mt-0.5 text-[10px] tracking-tight leading-none transition-all duration-200 ${
                   active ? "text-[#38BDF8] font-bold" : "text-white/80 font-medium"
                 }`}
               >
@@ -378,18 +552,6 @@ function MobileNav({ onOpenMenu }: { onOpenMenu: () => void }) {
           </Link>
         );
       })}
-      <button
-        onClick={onOpenMenu}
-        aria-label="More options"
-        className="relative flex min-h-[50px] flex-1 flex-col items-center justify-center gap-0.5 rounded-full px-2 py-1 text-[11px] font-medium text-white/80 hover:text-white transition-all duration-200 select-none active:scale-95 cursor-pointer bg-transparent border-0"
-      >
-        <div className="relative z-10 flex flex-col items-center justify-center">
-          <Menu className="h-5 w-5 text-white/90" />
-          <span className="mt-0.5 text-[10px] tracking-tight leading-none text-white/80 font-medium">
-            More
-          </span>
-        </div>
-      </button>
     </nav>
   );
 }
