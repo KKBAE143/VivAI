@@ -333,11 +333,11 @@ function MobileNav({ onOpenMenu }: { onOpenMenu: () => void }) {
     { to: "/dashboard", icon: LayoutDashboard, label: "Home" },
     { to: "/ai-viva", icon: BrainCircuit, label: "Viva" },
     { to: "/ai-presentation", icon: MonitorSmartphone, label: "Slides" },
-    { to: "/advanced/sentiment-analysis", icon: Video, label: "Coach" },
+    { to: "/advanced/sentiment-analysis", icon: Video, label: "Coach", badge: "2" },
     { to: "/projects", icon: FolderKanban, label: "Projects" },
   ];
   return (
-    <nav className="fixed inset-x-2.5 bottom-2.5 z-40 mx-auto flex max-w-md items-center justify-around rounded-2xl border border-white/15 bg-black/90 px-2 py-1.5 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.9),0_0_20px_rgba(175,221,255,0.1)] lg:hidden pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+    <nav className="fixed inset-x-3 bottom-3 sm:bottom-4 z-40 mx-auto flex max-w-[400px] items-center justify-between rounded-full liquid-glass-bar p-1.5 lg:hidden pb-[max(0.4rem,env(safe-area-inset-bottom))]">
       {mobileNav.map((item) => {
         const Icon = item.icon;
         const active = isActive(item.to);
@@ -345,29 +345,50 @@ function MobileNav({ onOpenMenu }: { onOpenMenu: () => void }) {
           <Link
             key={item.to}
             to={item.to}
-            className={`flex min-h-[48px] flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-1 text-[11px] font-medium transition-all no-underline active:scale-95 ${
+            className={`relative flex min-h-[50px] flex-1 flex-col items-center justify-center gap-0.5 rounded-full px-2 py-1 text-[11px] font-medium transition-all duration-200 no-underline select-none active:scale-95 ${
               active
-                ? "text-[#AFDDFF] font-bold"
-                : "text-white/50 hover:text-white"
+                ? "text-[#38BDF8] font-bold"
+                : "text-white/80 hover:text-white"
             }`}
           >
-            <div className="relative">
-              <Icon className={`h-4 w-4 ${active ? "text-[#AFDDFF]" : "text-white/60"}`} />
-              {active && (
-                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-[#AFDDFF] shadow-[0_0_6px_#AFDDFF]" />
-              )}
+            {active && <div className="liquid-glass-lens" />}
+            <div className="relative z-10 flex flex-col items-center justify-center">
+              <div className="relative">
+                <Icon
+                  className={`h-5 w-5 transition-transform duration-200 ${
+                    active
+                      ? "text-[#38BDF8] drop-shadow-[0_0_8px_rgba(56,189,248,0.6)] scale-105"
+                      : "text-white/90"
+                  }`}
+                />
+                {item.badge && !active && (
+                  <span className="absolute -top-1.5 -right-2 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#ff453a] px-1 text-[10px] font-black text-white shadow-[0_2px_8px_rgba(255,69,58,0.7)] ring-1 ring-black/40">
+                    {item.badge}
+                  </span>
+                )}
+              </div>
+              <span
+                className={`mt-0.5 text-[10px] tracking-tight leading-none ${
+                  active ? "text-[#38BDF8] font-bold" : "text-white/80 font-medium"
+                }`}
+              >
+                {item.label}
+              </span>
             </div>
-            <span className="text-[10px] leading-tight">{item.label}</span>
           </Link>
         );
       })}
       <button
         onClick={onOpenMenu}
         aria-label="More options"
-        className="flex min-h-[48px] flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-1 text-[11px] font-medium text-white/50 hover:text-white transition-all active:scale-95 cursor-pointer bg-transparent border-0"
+        className="relative flex min-h-[50px] flex-1 flex-col items-center justify-center gap-0.5 rounded-full px-2 py-1 text-[11px] font-medium text-white/80 hover:text-white transition-all duration-200 select-none active:scale-95 cursor-pointer bg-transparent border-0"
       >
-        <Menu className="h-4 w-4 text-white/60" />
-        <span className="text-[10px] leading-tight">More</span>
+        <div className="relative z-10 flex flex-col items-center justify-center">
+          <Menu className="h-5 w-5 text-white/90" />
+          <span className="mt-0.5 text-[10px] tracking-tight leading-none text-white/80 font-medium">
+            More
+          </span>
+        </div>
       </button>
     </nav>
   );
