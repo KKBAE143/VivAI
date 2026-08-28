@@ -87,11 +87,12 @@ export function AppShell({
         fitViewport ? "min-h-screen lg:h-screen lg:max-h-screen lg:overflow-hidden" : "min-h-screen"
       }`}
     >
-      {/* Atmospheric ambient light mesh */}
+      {/* Atmospheric ambient light mesh using exact 4-color swatch */}
       <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-        <div className="absolute -top-40 right-[-10%] h-[550px] w-[550px] rounded-full bg-primary/12 blur-[130px] dark:bg-primary/18" />
-        <div className="absolute top-[35%] -left-32 h-[500px] w-[500px] rounded-full bg-[oklch(0.70_0.065_250/0.14)] blur-[140px] dark:bg-[oklch(0.70_0.065_250/0.16)]" />
-        <div className="absolute -bottom-40 right-[20%] h-[600px] w-[600px] rounded-full bg-[oklch(0.89_0.085_85/0.12)] blur-[150px] dark:bg-[oklch(0.89_0.085_85/0.10)]" />
+        <div className="absolute -top-40 right-[-10%] h-[550px] w-[550px] rounded-full bg-[#DF6D41]/14 blur-[130px] dark:bg-[#DF6D41]/18" />
+        <div className="absolute top-[30%] -left-32 h-[500px] w-[500px] rounded-full bg-[#8DA6CC]/16 blur-[140px] dark:bg-[#8DA6CC]/18" />
+        <div className="absolute top-[60%] -right-20 h-[450px] w-[450px] rounded-full bg-[#AAA648]/12 blur-[130px] dark:bg-[#AAA648]/15" />
+        <div className="absolute -bottom-40 left-[15%] h-[600px] w-[600px] rounded-full bg-[#F7D89A]/15 blur-[150px] dark:bg-[#F7D89A]/12" />
       </div>
       <div
         className={`relative z-10 flex w-full gap-3 sm:gap-4 lg:gap-4 p-2.5 sm:p-3.5 lg:p-3.5 ${
@@ -205,15 +206,15 @@ function Sidebar({ fitViewport = false }: { fitViewport?: boolean }) {
 
       {/* Bottom Area: Promo Card + Sign Out */}
       <div className="flex flex-col gap-3">
-        {/* Rounded Promo/Download Card matching ref */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-transparent p-3 border border-primary/25">
+        {/* Rounded Promo/Download Card with Canyon & Buttercream gradient */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#DF6D41]/15 via-[#F7D89A]/10 to-transparent p-3 border border-[#8DA6CC]/30 shadow-xs">
           <div className="flex items-start justify-between">
-            <div className="grid h-7 w-7 place-items-center rounded-xl bg-primary/20 text-primary">
+            <div className="grid h-7 w-7 place-items-center rounded-xl bg-[#DF6D41]/20 text-[#DF6D41]">
               <Sparkles className="h-3.5 w-3.5" />
             </div>
             <Link
               to="/ai-viva/new"
-              className="grid h-6 w-6 place-items-center rounded-full bg-primary text-primary-foreground shadow-xs hover:scale-105 transition-transform"
+              className="grid h-6 w-6 place-items-center rounded-full bg-[#DF6D41] text-white shadow-xs hover:scale-105 transition-transform"
             >
               <ArrowUpRight className="h-3 w-3" />
             </Link>
