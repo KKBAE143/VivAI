@@ -21,8 +21,12 @@ import {
   Menu,
   X,
   ArrowUpRight,
+  Home,
+  BarChart3,
+  User,
 } from "lucide-react";
 import { useState, useRef, useEffect, useCallback, type ReactNode } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { ConsentGate } from "@/components/consent-gate";
 import { useTheme } from "@/lib/theme";
 import { useAuth, useRequireAuth } from "@/lib/auth-context";
@@ -337,228 +341,118 @@ function TopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
   );
 }
 
-function MobileNav({ onOpenMenu }: { onOpenMenu: () => void }) {
+function MobileNav({ onOpenMenu }: { onOpenMenu?: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const navigate = useNavigate();
-  const isActive = (to?: string) => {
-    if (!to) return false;
-    return to === "/" ? pathname === "/" || pathname === "/dashboard" : pathname.startsWith(to);
-  };
 
-  const mobileNav = [
-    { to: "/dashboard", icon: LayoutDashboard, label: "Home" },
-    { to: "/ai-viva", icon: BrainCircuit, label: "Viva" },
-    { to: "/ai-presentation", icon: MonitorSmartphone, label: "Slides" },
-    { to: "/advanced/sentiment-analysis", icon: Video, label: "Coach", badge: "2" },
-    { to: "/projects", icon: FolderKanban, label: "Projects" },
-    { to: "#more", icon: Menu, label: "More", isAction: true },
+  const navItems = [
+    {
+      id: "home",
+      label: "Home",
+      to: "/dashboard",
+      icon: Home,
+      isActive:
+        pathname === "/" ||
+        pathname === "/dashboard" ||
+        (!pathname.startsWith("/readiness") &&
+          !pathname.startsWith("/advanced") &&
+          !pathname.startsWith("/profile") &&
+          !pathname.startsWith("/settings")),
+    },
+    {
+      id: "analytics",
+      label: "Analytics",
+      to: "/readiness",
+      icon: BarChart3,
+      isActive:
+        pathname.startsWith("/readiness") ||
+        pathname.startsWith("/advanced"),
+    },
+    {
+      id: "account",
+      label: "Account",
+      to: "/profile",
+      icon: User,
+      isActive:
+        pathname.startsWith("/profile") ||
+        pathname.startsWith("/settings"),
+    },
   ];
 
-  const activeIndex = Math.max(
-    0,
-    mobileNav.findIndex((item) => !item.isAction && isActive(item.to)),
-  );
-
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [lensStyle, setLensStyle] = useState<{ left: number; width: number; top: number; height: number }>({
-    left: 4,
-    width: 60,
-    top: 4,
-    height: 48,
-  });
-
-  const containerRef = useRef<HTMLElement>(null);
-  const itemRefs = useRef<(HTMLElement | null)[]>([]);
-  const isPointerDownRef = useRef(false);
-  const startXRef = useRef(0);
-  const hasMovedRef = useRef(false);
-
-  const currentIndex = dragIndex !== null ? dragIndex : activeIndex;
-
-  const updateLensToItem = useCallback((idx: number) => {
-    const el = itemRefs.current[idx];
-    const container = containerRef.current;
-    if (el && container) {
-      const elRect = el.getBoundingClientRect();
-      const containerRect = container.getBoundingClientRect();
-      setLensStyle({
-        left: elRect.left - containerRect.left,
-        width: elRect.width,
-        top: elRect.top - containerRect.top,
-        height: elRect.height,
-      });
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!isDragging) {
-      updateLensToItem(activeIndex);
-    }
-  }, [activeIndex, isDragging, updateLensToItem]);
-
-  useEffect(() => {
-    const handleResize = () => {
-      updateLensToItem(currentIndex);
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [currentIndex, updateLensToItem]);
-
-  const handlePointerDown = (e: React.PointerEvent<HTMLElement>) => {
-    isPointerDownRef.current = true;
-    startXRef.current = e.clientX;
-    hasMovedRef.current = false;
-    try {
-      e.currentTarget.setPointerCapture?.(e.pointerId);
-    } catch {}
-  };
-
-  const handlePointerMove = (e: React.PointerEvent<HTMLElement>) => {
-    if (!isPointerDownRef.current) return;
-    const dist = Math.abs(e.clientX - startXRef.current);
-    if (dist > 5) {
-      hasMovedRef.current = true;
-      setIsDragging(true);
-    }
-
-    if (hasMovedRef.current && containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      const relativeX = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
-      const targetWidth = rect.width / mobileNav.length;
-      const hoveredIdx = Math.max(0, Math.min(mobileNav.length - 1, Math.floor(relativeX / targetWidth)));
-
-      const lensW = lensStyle.width || targetWidth;
-      const freeLeft = Math.max(2, Math.min(rect.width - lensW - 2, relativeX - lensW / 2));
-      setLensStyle((prev) => ({ ...prev, left: freeLeft }));
-
-      if (hoveredIdx !== dragIndex) {
-        setDragIndex(hoveredIdx);
-        if (typeof window !== "undefined" && "vibrate" in navigator) {
-          try {
-            navigator.vibrate(8);
-          } catch {}
-        }
-      }
-    }
-  };
-
-  const handlePointerUp = (e: React.PointerEvent<HTMLElement>) => {
-    if (!isPointerDownRef.current) return;
-    isPointerDownRef.current = false;
-
-    if (hasMovedRef.current && dragIndex !== null) {
-      const selectedItem = mobileNav[dragIndex];
-      if (selectedItem) {
-        if (selectedItem.isAction) {
-          onOpenMenu();
-        } else if (selectedItem.to) {
-          navigate({ to: selectedItem.to });
-        }
-      }
-      updateLensToItem(dragIndex);
-    } else {
-      updateLensToItem(activeIndex);
-    }
-
-    setIsDragging(false);
-    setDragIndex(null);
-    hasMovedRef.current = false;
-  };
+  const activeItem = navItems.find((item) => item.isActive) || navItems[0];
 
   return (
-    <nav
-      ref={containerRef}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
-      className="fixed inset-x-3 bottom-3 sm:bottom-4 z-40 mx-auto flex max-w-[420px] items-center justify-between rounded-full liquid-glass-bar p-1.5 lg:hidden pb-[max(0.4rem,env(safe-area-inset-bottom))] touch-none select-none"
-    >
-      {/* Dynamic Animated Liquid Glass Lens */}
-      <div
-        className="liquid-glass-lens"
-        style={{
-          left: `${lensStyle.left}px`,
-          top: `${lensStyle.top}px`,
-          width: `${lensStyle.width}px`,
-          height: `${lensStyle.height}px`,
-          transform: isDragging ? "scale(1.08, 0.94)" : "scale(1)",
-          transition: isDragging
-            ? "transform 0.12s ease-out"
-            : "left 0.38s cubic-bezier(0.175, 0.885, 0.32, 1.25), width 0.3s ease, transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.25)",
-        }}
-      />
-
-      {mobileNav.map((item, idx) => {
+    <nav className="fixed inset-x-4 bottom-4 sm:bottom-5 z-40 mx-auto flex max-w-[320px] items-center justify-between rounded-full bg-[#080b11]/90 p-1.5 backdrop-blur-2xl border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.85),inset_0_1px_1.5px_rgba(255,255,255,0.25)] lg:hidden pb-[max(0.4rem,env(safe-area-inset-bottom))] select-none">
+      {navItems.map((item) => {
         const Icon = item.icon;
-        const active = currentIndex === idx;
-
-        if (item.isAction) {
-          return (
-            <button
-              key={item.label}
-              ref={(el) => {
-                itemRefs.current[idx] = el;
-              }}
-              onClick={() => {
-                if (!hasMovedRef.current) onOpenMenu();
-              }}
-              aria-label={item.label}
-              className="relative flex min-h-[50px] flex-1 flex-col items-center justify-center gap-0.5 rounded-full px-1.5 py-1 text-[11px] font-medium transition-all duration-200 select-none cursor-pointer bg-transparent border-0 z-10"
-            >
-              <div className="flex flex-col items-center justify-center">
-                <Menu
-                  className={`h-5 w-5 transition-all duration-200 ${
-                    active ? "text-[#38BDF8] scale-105" : "text-white/90"
-                  }`}
-                />
-                <span
-                  className={`mt-0.5 text-[10px] tracking-tight leading-none transition-all duration-200 ${
-                    active ? "text-[#38BDF8] font-bold" : "text-white/80 font-medium"
-                  }`}
-                >
-                  {item.label}
-                </span>
-              </div>
-            </button>
-          );
-        }
+        const active = item.id === activeItem.id;
 
         return (
           <Link
-            key={item.to}
+            key={item.id}
             to={item.to}
-            ref={(el) => {
-              itemRefs.current[idx] = el;
-            }}
-            onClick={(e) => {
-              if (hasMovedRef.current) e.preventDefault();
-            }}
-            className="relative flex min-h-[50px] flex-1 flex-col items-center justify-center gap-0.5 rounded-full px-1.5 py-1 text-[11px] font-medium transition-all duration-200 no-underline select-none z-10"
+            className="relative flex h-[52px] flex-1 items-center justify-center rounded-full no-underline select-none active:scale-95 transition-transform duration-150 cursor-pointer"
           >
-            <div className="flex flex-col items-center justify-center">
-              <div className="relative">
-                <Icon
-                  className={`h-5 w-5 transition-all duration-200 ${
-                    active
-                      ? "text-[#38BDF8] drop-shadow-[0_0_8px_rgba(56,189,248,0.6)] scale-105"
-                      : "text-white/90"
-                  }`}
-                />
-                {item.badge && !active && (
-                  <span className="absolute -top-1.5 -right-2 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#ff453a] px-1 text-[10px] font-black text-white shadow-[0_2px_8px_rgba(255,69,58,0.7)] ring-1 ring-black/40">
-                    {item.badge}
-                  </span>
-                )}
-              </div>
-              <span
-                className={`mt-0.5 text-[10px] tracking-tight leading-none transition-all duration-200 ${
-                  active ? "text-[#38BDF8] font-bold" : "text-white/80 font-medium"
-                }`}
+            {/* 3D Dynamic Glossy Glass Bubble / Lens */}
+            {active && (
+              <motion.div
+                layoutId="mobile-active-lens"
+                className="absolute inset-0 rounded-full"
+                style={{
+                  background:
+                    "radial-gradient(120% 120% at 50% 0%, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.08) 45%, rgba(0, 0, 0, 0.45) 100%)",
+                  backdropFilter: "blur(20px) saturate(200%)",
+                  WebkitBackdropFilter: "blur(20px) saturate(200%)",
+                  border: "1px solid rgba(255, 255, 255, 0.4)",
+                  boxShadow:
+                    "inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.95), inset 0 3px 6px 0 rgba(175, 221, 255, 0.45), inset 0 -2px 3px 0 rgba(255, 120, 200, 0.3), 0 8px 24px -2px rgba(0, 0, 0, 0.7), 0 2px 8px rgba(0, 0, 0, 0.4)",
+                }}
+                transition={{
+                  type: "spring",
+                  stiffness: 400,
+                  damping: 30,
+                  mass: 0.8,
+                }}
               >
-                {item.label}
-              </span>
+                {/* Prismatic Rainbow Rim Reflection */}
+                <div
+                  className="absolute -inset-[1px] rounded-full pointer-events-none opacity-90"
+                  style={{
+                    padding: "1px",
+                    background:
+                      "linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(175,221,255,0.7) 25%, rgba(255,200,100,0.3) 50%, rgba(255,100,220,0.35) 75%, rgba(100,220,255,0.7) 100%)",
+                    WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                    WebkitMaskComposite: "xor",
+                    maskComposite: "exclude",
+                  }}
+                />
+              </motion.div>
+            )}
+
+            {/* Icon + Slide-Fade Label */}
+            <div className="relative z-10 flex flex-col items-center justify-center">
+              <Icon
+                className={`transition-all duration-200 ${
+                  active
+                    ? "h-5 w-5 text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.75)] scale-105 stroke-[2.2]"
+                    : "h-5 w-5 text-white/60 hover:text-white stroke-[1.8]"
+                }`}
+              />
+
+              {/* Text label with vertical slide-fade transition ONLY on active state */}
+              <AnimatePresence mode="wait">
+                {active && (
+                  <motion.span
+                    key={item.label}
+                    initial={{ opacity: 0, y: 4, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 3, scale: 0.9 }}
+                    transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                    className="mt-0.5 text-[10px] font-bold tracking-tight text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.6)] leading-none font-graphik"
+                  >
+                    {item.label}
+                  </motion.span>
+                )}
+              </AnimatePresence>
             </div>
           </Link>
         );
