@@ -55,9 +55,12 @@ function Login() {
     setError("");
     setLoading(true);
     try {
-      const res = await api<{ access_token?: string; refresh_token?: string | null }>("/api/auth/login", {
-        body: { email, password },
-      });
+      const res = await api<{ access_token?: string; refresh_token?: string | null }>(
+        "/api/auth/login",
+        {
+          body: { email, password },
+        },
+      );
       if (!res.access_token) {
         throw new Error("No access token returned from server");
       }

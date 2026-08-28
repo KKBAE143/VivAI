@@ -13,7 +13,13 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { AppShell, Card, Badge } from "@/components/app-shell";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ErrorState } from "@/components/error-state";
 import { ProjectDetailSkeleton } from "@/components/loading-skeleton";
 import { ModalShell } from "@/components/modal-shell";
@@ -178,7 +184,9 @@ function ProjectDetail() {
                   return (
                     <div key={s.l} className="rounded-xl border border-white/10 bg-white/5 p-3">
                       <I className="h-4 w-4 text-[#AFDDFF]" />
-                      <div className="mt-2 text-base sm:text-lg font-bold text-white font-graphik">{s.v}</div>
+                      <div className="mt-2 text-base sm:text-lg font-bold text-white font-graphik">
+                        {s.v}
+                      </div>
                       <div className="text-[11px] text-white/50 font-mono">{s.l}</div>
                     </div>
                   );

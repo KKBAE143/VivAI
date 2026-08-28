@@ -12,7 +12,8 @@ const buttonVariants = cva(
         default: "apple-glass-btn-primary",
         glassPrimary: "apple-glass-btn-primary",
         glassSecondary: "apple-glass-btn-secondary",
-        destructive: "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90 rounded-xl",
+        destructive:
+          "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90 rounded-xl",
         outline:
           "border border-white/15 bg-white/5 shadow-sm hover:bg-white/10 hover:border-white/25 text-white rounded-xl",
         secondary: "apple-glass-btn-secondary",

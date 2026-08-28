@@ -187,9 +187,10 @@ export async function api<T = unknown>(path: string, options: ApiOptions = {}): 
   breadcrumb("http", `${method} ${path} -> ${res.status} (${Date.now() - startedAt}ms)`);
 
   if (!res.ok) {
-    let message = res.status === 404
-      ? `API endpoint not found (404). Verify the backend is running at ${API_URL}.`
-      : `Request failed (${res.status})`;
+    let message =
+      res.status === 404
+        ? `API endpoint not found (404). Verify the backend is running at ${API_URL}.`
+        : `Request failed (${res.status})`;
     let code: string | undefined;
     // The backend stamps every response with the id of the failure behind it;
     // carrying it here is what lets a browser event be joined to its backend

@@ -128,9 +128,11 @@ export function AppShell({
 function Sidebar({ fitViewport = false }: { fitViewport?: boolean }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { logout } = useAuth();
+  const { theme, toggle } = useTheme();
   const { data: profile } = useProfile();
   const navigate = useNavigate();
-  const isActive = (to: string) => (to === "/" ? pathname === "/" || pathname === "/dashboard" : pathname.startsWith(to));
+  const isActive = (to: string) =>
+    to === "/" ? pathname === "/" || pathname === "/dashboard" : pathname.startsWith(to);
   const isAdmin = profile?.role === "admin" || profile?.role === "faculty";
 
   return (
@@ -141,7 +143,11 @@ function Sidebar({ fitViewport = false }: { fitViewport?: boolean }) {
     >
       <div className="flex flex-col gap-3.5">
         {/* Apple VisionOS Brand Header */}
-        <Link to="/" aria-label="Home" className="flex items-center gap-2.5 px-2 pt-1 no-underline group select-none">
+        <Link
+          to="/"
+          aria-label="Home"
+          className="flex items-center gap-2.5 px-2 pt-1 no-underline group select-none"
+        >
           <div className="h-8 w-8 rounded-xl bg-gradient-to-b from-[#0071e3] to-[#005bb5] dark:from-[#dcf0ff] dark:to-[#AFDDFF] flex items-center justify-center text-white dark:text-black font-black text-sm shadow-[0_2px_10px_rgba(0,113,227,0.3)] dark:shadow-[0_0_16px_rgba(175,221,255,0.45)] transition-transform group-hover:scale-105">
             V
           </div>
@@ -224,8 +230,8 @@ function Sidebar({ fitViewport = false }: { fitViewport?: boolean }) {
         </nav>
       </div>
 
-      {/* Bottom Area: Promo Card + Sign Out */}
-      <div className="flex flex-col gap-3 font-manrope">
+      {/* Bottom Area: Promo Card + Theme Switcher + Sign Out */}
+      <div className="flex flex-col gap-2 font-manrope">
         {/* Apple Frosted Promo Card */}
         <div className="relative overflow-hidden rounded-2xl bg-black/5 dark:bg-white/5 p-3 border border-border shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">
           <div className="flex items-start justify-between">
@@ -244,6 +250,23 @@ function Sidebar({ fitViewport = false }: { fitViewport?: boolean }) {
             Oral defense simulations
           </p>
         </div>
+
+        {/* Sidebar Theme Switcher Button */}
+        <button
+          onClick={toggle}
+          aria-label="Toggle theme mode"
+          className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-medium text-foreground transition-all hover:bg-black/5 dark:hover:bg-white/8 cursor-pointer active:scale-95 border border-border/60 bg-black/5 dark:bg-white/5"
+        >
+          <div className="flex items-center gap-2.5">
+            {theme === "dark" ? (
+              <Sun className="h-4 w-4 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]" />
+            ) : (
+              <Moon className="h-4 w-4 text-primary" />
+            )}
+            <span className="font-semibold">{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
+          </div>
+          <span className="text-[10px] font-mono text-muted-foreground uppercase">{theme}</span>
+        </button>
 
         {/* Sign out */}
         <button
@@ -273,13 +296,19 @@ function WideTopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
       >
         <Menu className="h-5 w-5 text-foreground" />
       </button>
-      <Link to="/" aria-label="Home" className="hidden h-9 w-9 shrink-0 place-items-center sm:grid group">
+      <Link
+        to="/"
+        aria-label="Home"
+        className="hidden h-9 w-9 shrink-0 place-items-center sm:grid group"
+      >
         <div className="h-8 w-8 rounded-xl bg-gradient-to-b from-[#0071e3] to-[#005bb5] dark:from-[#dcf0ff] dark:to-[#AFDDFF] flex items-center justify-center text-white dark:text-black font-black text-xs shadow-xs">
           V
         </div>
       </Link>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm sm:text-base font-bold font-graphik text-foreground tracking-wide">{title}</p>
+        <p className="truncate text-sm sm:text-base font-bold font-graphik text-foreground tracking-wide">
+          {title}
+        </p>
         <p className="hidden truncate text-[11px] text-muted-foreground sm:block">
           Full workspace · sidebar hidden for maximum focus
         </p>
@@ -324,7 +353,9 @@ function TopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
           </div>
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm sm:text-base font-bold font-graphik text-foreground tracking-wide">{title}</p>
+          <p className="truncate text-sm sm:text-base font-bold font-graphik text-foreground tracking-wide">
+            {title}
+          </p>
         </div>
       </div>
       <div className="flex items-center gap-2 sm:gap-2.5">
@@ -369,7 +400,12 @@ function MobileNav({ onOpenMenu }: { onOpenMenu?: () => void }) {
 
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [lensStyle, setLensStyle] = useState<{ left: number; width: number; top: number; height: number }>({
+  const [lensStyle, setLensStyle] = useState<{
+    left: number;
+    width: number;
+    top: number;
+    height: number;
+  }>({
     left: 4,
     width: 54,
     top: 4,
@@ -419,7 +455,9 @@ function MobileNav({ onOpenMenu }: { onOpenMenu?: () => void }) {
     hasMovedRef.current = false;
     try {
       e.currentTarget.setPointerCapture?.(e.pointerId);
-    } catch {}
+    } catch {
+      // Ignore pointer capture errors if unsupported
+    }
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLElement>) => {
@@ -434,7 +472,10 @@ function MobileNav({ onOpenMenu }: { onOpenMenu?: () => void }) {
       const rect = containerRef.current.getBoundingClientRect();
       const relativeX = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
       const targetWidth = rect.width / navItems.length;
-      const hoveredIdx = Math.max(0, Math.min(navItems.length - 1, Math.floor(relativeX / targetWidth)));
+      const hoveredIdx = Math.max(
+        0,
+        Math.min(navItems.length - 1, Math.floor(relativeX / targetWidth)),
+      );
 
       const lensW = lensStyle.width || targetWidth;
       const freeLeft = Math.max(2, Math.min(rect.width - lensW - 2, relativeX - lensW / 2));
@@ -445,7 +486,9 @@ function MobileNav({ onOpenMenu }: { onOpenMenu?: () => void }) {
         if (typeof window !== "undefined" && "vibrate" in navigator) {
           try {
             navigator.vibrate(8);
-          } catch {}
+          } catch {
+            // Ignore vibration error on unsupported platforms
+          }
         }
       }
     }
@@ -618,20 +661,26 @@ function MobileNav({ onOpenMenu }: { onOpenMenu?: () => void }) {
 function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { logout } = useAuth();
+  const { theme, toggle } = useTheme();
   const { data: profile } = useProfile();
   const navigate = useNavigate();
-  const isActive = (to: string) => (to === "/" ? pathname === "/" || pathname === "/dashboard" : pathname.startsWith(to));
+
+  const isActive = (to: string) =>
+    to === "/" ? pathname === "/" || pathname === "/dashboard" : pathname.startsWith(to);
   const isAdmin = profile?.role === "admin" || profile?.role === "faculty";
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex lg:hidden">
+    <div className="fixed inset-0 z-50 lg:hidden">
+      {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-xl transition-opacity"
         onClick={onClose}
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
       />
-      <div className="relative flex w-full max-w-xs flex-1 flex-col justify-between bg-white/95 dark:bg-[#0A0E16]/95 backdrop-blur-3xl border-r border-border rounded-r-[28px] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.3)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.9)] overflow-y-auto">
+
+      {/* Drawer Panel */}
+      <div className="fixed inset-y-0 right-0 w-full max-w-xs bg-card/95 border-l border-border p-6 shadow-2xl backdrop-blur-2xl flex flex-col justify-between overflow-y-auto animate-in slide-in-from-right duration-200">
         <div>
           {/* Header */}
           <div className="flex items-center justify-between mb-6 pb-4 border-b border-border">
@@ -640,7 +689,9 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
                 V
               </div>
               <div>
-                <span className="font-graphik text-sm font-bold tracking-wider text-foreground">VIVAI // CORE</span>
+                <span className="font-graphik text-sm font-bold tracking-wider text-foreground">
+                  VIVAI // CORE
+                </span>
                 <p className="text-[10px] text-muted-foreground font-mono">[ BTECH.CS // 2026 ]</p>
               </div>
             </div>
@@ -670,7 +721,9 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <Icon className={`h-4 w-4 shrink-0 ${active ? "text-white dark:text-black" : "text-muted-foreground"}`} />
+                    <Icon
+                      className={`h-4 w-4 shrink-0 ${active ? "text-white dark:text-black" : "text-muted-foreground"}`}
+                    />
                     <span className="text-sm">{item.label}</span>
                   </div>
                   {item.badge && (
@@ -719,15 +772,34 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
           </nav>
         </div>
 
-        {/* Drawer Footer */}
-        <div className="pt-4 border-t border-border">
+        {/* Drawer Footer with Theme Toggle & Sign out */}
+        <div className="pt-4 border-t border-border flex flex-col gap-2.5">
+          {/* Drawer Theme Switcher Button */}
+          <button
+            onClick={toggle}
+            aria-label="Toggle theme mode"
+            className="flex min-h-[44px] w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-medium text-foreground bg-black/5 dark:bg-white/5 border border-border transition-all cursor-pointer active:scale-95"
+          >
+            <div className="flex items-center gap-3">
+              {theme === "dark" ? (
+                <Sun className="h-4 w-4 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]" />
+              ) : (
+                <Moon className="h-4 w-4 text-primary" />
+              )}
+              <span className="text-sm font-semibold">
+                {theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              </span>
+            </div>
+            <span className="text-[10px] font-mono text-muted-foreground uppercase">{theme}</span>
+          </button>
+
           <button
             onClick={() => {
               onClose();
               logout();
               navigate({ to: "/login" });
             }}
-            className="flex min-h-[48px] w-full items-center gap-3 rounded-xl px-3.5 py-3 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all cursor-pointer"
+            className="flex min-h-[44px] w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all cursor-pointer"
           >
             <LogOut className="h-4 w-4" />
             <span className="text-sm">Sign out</span>
@@ -738,13 +810,13 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
   );
 }
 
-function ThemeToggle() {
+export function ThemeToggle() {
   const { theme, toggle } = useTheme();
   return (
     <button
       onClick={toggle}
       aria-label="Toggle theme"
-      className="grid h-11 w-11 min-h-[44px] min-w-[44px] place-items-center rounded-full border border-border bg-black/5 dark:bg-white/5 text-foreground hover:bg-black/10 dark:hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
+      className="grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-2xl border border-border bg-black/5 dark:bg-white/5 text-foreground hover:bg-black/10 dark:hover:bg-white/10 active:scale-95 transition-all cursor-pointer shadow-xs"
     >
       {theme === "dark" ? (
         <Sun className="h-4 w-4 text-amber-300 drop-shadow-[0_0_8px_rgba(253,224,71,0.5)]" />

@@ -1,8 +1,22 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Mic, BookOpen, FolderKanban, BrainCircuit, Sparkles, Check } from "lucide-react";
+import {
+  ArrowLeft,
+  Mic,
+  BookOpen,
+  FolderKanban,
+  BrainCircuit,
+  Sparkles,
+  Check,
+} from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "@/components/app-shell";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useRequireAuth } from "@/lib/auth-context";
 import { useCreateVivaSession, useProjects } from "@/lib/hooks";
 import { usePersonaCatalog } from "@/lib/hooks-features";
@@ -131,9 +145,7 @@ function NewViva() {
                 <h1 className="text-sm sm:text-base font-bold tracking-tight text-foreground font-graphik">
                   Configure Mock Viva
                 </h1>
-                <span className="apple-pill-badge py-0.5 px-2 text-[10px]">
-                  PARAMETERS
-                </span>
+                <span className="apple-pill-badge py-0.5 px-2 text-[10px]">PARAMETERS</span>
               </div>
               <p className="text-[11px] text-muted-foreground hidden sm:block">
                 Set defense duration, examiner persona, difficulty and project grounding.
@@ -161,17 +173,17 @@ function NewViva() {
 
         {/* Full Viewport 2-Column Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 lg:gap-3 flex-1 min-h-0">
-          
           {/* Left Column: Scope & Examiner (7 cols on lg, 7 cols on xl) */}
           <div className="lg:col-span-7 flex flex-col gap-2.5 lg:gap-3 min-h-0 justify-between">
-            
             {/* Card 1: Session Type */}
             <div className="apple-glass-card p-3.5">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[11px] font-bold text-foreground uppercase tracking-wider font-mono">
                   [ 01 · SESSION TYPE ]
                 </span>
-                <span className="text-[11px] text-muted-foreground">Choose oral defense format</span>
+                <span className="text-[11px] text-muted-foreground">
+                  Choose oral defense format
+                </span>
               </div>
               <div className="grid gap-2 grid-cols-1 sm:grid-cols-3">
                 {SESSION_TYPES.map((o) => {
@@ -188,10 +200,16 @@ function NewViva() {
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <I className={`h-4 w-4 ${active ? "text-primary" : "text-muted-foreground"}`} />
-                        {active && <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />}
+                        <I
+                          className={`h-4 w-4 ${active ? "text-primary" : "text-muted-foreground"}`}
+                        />
+                        {active && (
+                          <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                        )}
                       </div>
-                      <div className="mt-1.5 font-bold text-xs sm:text-sm text-foreground font-graphik">{o.t}</div>
+                      <div className="mt-1.5 font-bold text-xs sm:text-sm text-foreground font-graphik">
+                        {o.t}
+                      </div>
                       <div className="mt-0.5 text-[11px] text-muted-foreground">{o.d}</div>
                     </button>
                   );
@@ -203,7 +221,13 @@ function NewViva() {
             <div className="apple-glass-card p-3.5 flex-1 flex flex-col justify-center">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[11px] font-bold text-foreground uppercase tracking-wider font-mono">
-                  [ 02 · {isProjectViva ? "PROJECT GROUNDING" : isSubjectViva ? "SUBJECT & SYLLABUS" : "FOCUS AREA"} ]
+                  [ 02 ·{" "}
+                  {isProjectViva
+                    ? "PROJECT GROUNDING"
+                    : isSubjectViva
+                      ? "SUBJECT & SYLLABUS"
+                      : "FOCUS AREA"}{" "}
+                  ]
                 </span>
                 <span className="text-[11px] text-muted-foreground">
                   {isProjectViva ? "Select project codebase" : "Target topics"}
@@ -220,9 +244,7 @@ function NewViva() {
                       <SelectValue placeholder="Select your project to defend…" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="placeholder">
-                        Select your project to defend…
-                      </SelectItem>
+                      <SelectItem value="placeholder">Select your project to defend…</SelectItem>
                       {(projects ?? []).map((p) => (
                         <SelectItem key={String(p.id)} value={String(p.id)}>
                           {String(p.title)}
@@ -241,7 +263,8 @@ function NewViva() {
                       </p>
                     ) : (
                       <p className="text-muted-foreground">
-                        The AI examiner will ask questions grounded in this project's architecture, dependencies, and code.
+                        The AI examiner will ask questions grounded in this project's architecture,
+                        dependencies, and code.
                       </p>
                     )}
                   </div>
@@ -282,7 +305,9 @@ function NewViva() {
                 <span className="text-[11px] font-bold text-foreground uppercase tracking-wider font-mono">
                   [ 03 · EXAMINER PERSONA ]
                 </span>
-                <span className="text-[11px] text-primary font-mono font-bold">{selectedPersonaObj?.t ?? persona}</span>
+                <span className="text-[11px] text-primary font-mono font-bold">
+                  {selectedPersonaObj?.t ?? persona}
+                </span>
               </div>
               <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 xl:grid-cols-5">
                 {personas.map((p) => {
@@ -299,22 +324,24 @@ function NewViva() {
                     >
                       <div>
                         <div className="flex items-center justify-between">
-                          <span className="font-bold text-xs text-foreground font-graphik">{p.t}</span>
+                          <span className="font-bold text-xs text-foreground font-graphik">
+                            {p.t}
+                          </span>
                           {active && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
                         </div>
-                        <div className="mt-1 text-[10px] text-muted-foreground leading-snug line-clamp-2">{p.d}</div>
+                        <div className="mt-1 text-[10px] text-muted-foreground leading-snug line-clamp-2">
+                          {p.d}
+                        </div>
                       </div>
                     </button>
                   );
                 })}
               </div>
             </div>
-
           </div>
 
           {/* Right Column: Parameters, Language, Live Summary & Actions (5 cols on lg/xl) */}
           <div className="lg:col-span-5 flex flex-col gap-2.5 lg:gap-3 min-h-0 justify-between">
-            
             {/* Card 4: Duration & Difficulty */}
             <div className="apple-glass-card p-3.5 space-y-3">
               {/* Duration */}
@@ -323,7 +350,9 @@ function NewViva() {
                   <span className="text-[11px] font-bold text-foreground uppercase tracking-wider font-mono">
                     [ 04 · DURATION ]
                   </span>
-                  <span className="text-[11px] text-primary font-mono font-bold">{duration} minutes</span>
+                  <span className="text-[11px] text-primary font-mono font-bold">
+                    {duration} minutes
+                  </span>
                 </div>
                 <div className="grid grid-cols-4 gap-1.5">
                   {DURATIONS.map((d) => (
@@ -408,7 +437,9 @@ function NewViva() {
                   <span className="text-muted-foreground">/</span>
                   <span className="text-primary">{selectedPersonaObj?.t ?? persona}</span>
                   <span className="text-muted-foreground">/</span>
-                  <span className="text-foreground/80">{duration}m ({difficulty})</span>
+                  <span className="text-foreground/80">
+                    {duration}m ({difficulty})
+                  </span>
                   <span className="text-muted-foreground">/</span>
                   <span className="text-muted-foreground">{language}</span>
                 </div>
@@ -439,7 +470,6 @@ function NewViva() {
                 {mutate.isPending ? "Starting Session…" : "Begin Mock Viva"}
               </button>
             </div>
-
           </div>
         </div>
       </div>

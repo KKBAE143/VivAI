@@ -10,8 +10,7 @@ const badgeVariants = cva(
       variant: {
         default:
           "border-[#AFDDFF]/30 bg-[#AFDDFF]/15 text-[#AFDDFF] shadow-[0_0_12px_rgba(175,221,255,0.15)]",
-        secondary:
-          "border-white/15 bg-white/5 text-white/80 hover:bg-white/10",
+        secondary: "border-white/15 bg-white/5 text-white/80 hover:bg-white/10",
         destructive:
           "border-[#FF453A]/30 bg-[#FF453A]/15 text-[#FF453A] shadow-[0_0_12px_rgba(255,69,58,0.2)]",
         success:

@@ -389,8 +389,8 @@ export default function LandingHero() {
                 />
               </svg>
               <p className="relative font-manrope text-white text-[13px] leading-[18px] mb-[18px]">
-                Engineers the future of academic defense with Gemini-powered live viva
-                simulations, slide intelligence, and real-time student readiness metrics.
+                Engineers the future of academic defense with Gemini-powered live viva simulations,
+                slide intelligence, and real-time student readiness metrics.
               </p>
               <Link
                 to="/readiness"

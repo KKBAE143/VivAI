@@ -365,7 +365,8 @@ function DrsModelSelector({ currentModel }: { currentModel: string }) {
           <span className="text-sm font-bold text-white font-graphik">Classic (v1)</span>
         </div>
         <p className="mt-2 text-xs text-white/50 leading-relaxed">
-          Viva performance, Presentation skills, Topic coverage, Practice consistency, Project progress.
+          Viva performance, Presentation skills, Topic coverage, Practice consistency, Project
+          progress.
         </p>
       </button>
       <button
@@ -382,7 +383,9 @@ function DrsModelSelector({ currentModel }: { currentModel: string }) {
               selected === "v2" ? "border-[#AFDDFF] bg-[#AFDDFF]" : "border-white/30"
             }`}
           />
-          <span className="text-sm font-bold text-white font-graphik">Defense Readiness Score (v2)</span>
+          <span className="text-sm font-bold text-white font-graphik">
+            Defense Readiness Score (v2)
+          </span>
         </div>
         <p className="mt-2 text-xs text-white/50 leading-relaxed">
           Technical Depth, Communication, Coverage, Confidence, Structure.

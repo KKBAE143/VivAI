@@ -247,43 +247,98 @@
    Hero Section: Typography & Choreographed Keyframe Animations
    ========================================================================== */
 .font-graphik {
-  font-family: 'Graphik LCG Regular Regular', 'Graphik LCG', system-ui, -apple-system, sans-serif;
+  font-family:
+    "Graphik LCG Regular Regular",
+    "Graphik LCG",
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 .font-manrope {
-  font-family: 'Manrope', system-ui, -apple-system, sans-serif;
+  font-family:
+    "Manrope",
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(18px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 @keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-20px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 @keyframes slideInRight {
-  from { opacity: 0; transform: translateX(20px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.85); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 @keyframes drawLine {
-  from { opacity: 0; stroke-dashoffset: 100; }
-  to { opacity: 1; stroke-dashoffset: 0; }
+  from {
+    opacity: 0;
+    stroke-dashoffset: 100;
+  }
+  to {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
 }
 @keyframes gridReveal {
-  from { opacity: 0; transform: scaleY(0); }
-  to { opacity: 1; transform: scaleY(1); }
+  from {
+    opacity: 0;
+    transform: scaleY(0);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
 }
 @keyframes gridRevealH {
-  from { opacity: 0; transform: scaleX(0); }
-  to { opacity: 1; transform: scaleX(1); }
+  from {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
 }
 
 .anim-fade-up {
@@ -327,7 +382,12 @@
    ========================================================================== */
 
 .liquid-glass-bar {
-  background: radial-gradient(135% 120% at 50% 0%, rgba(255, 255, 255, 0.14) 0%, rgba(25, 31, 44, 0.72) 40%, rgba(12, 16, 24, 0.9) 100%);
+  background: radial-gradient(
+    135% 120% at 50% 0%,
+    rgba(255, 255, 255, 0.14) 0%,
+    rgba(25, 31, 44, 0.72) 40%,
+    rgba(12, 16, 24, 0.9) 100%
+  );
   backdrop-filter: blur(40px) saturate(220%);
   -webkit-backdrop-filter: blur(40px) saturate(220%);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -341,7 +401,12 @@
 .liquid-glass-lens {
   position: absolute;
   border-radius: 9999px;
-  background: radial-gradient(120% 120% at 50% 0%, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0.1) 45%, rgba(0, 0, 0, 0.28) 100%);
+  background: radial-gradient(
+    120% 120% at 50% 0%,
+    rgba(255, 255, 255, 0.32) 0%,
+    rgba(255, 255, 255, 0.1) 45%,
+    rgba(0, 0, 0, 0.28) 100%
+  );
   backdrop-filter: blur(28px) saturate(200%);
   -webkit-backdrop-filter: blur(28px) saturate(200%);
   border: 1px solid rgba(255, 255, 255, 0.45);
@@ -349,11 +414,9 @@
     /* Prismatic specular top rim */
     inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.95),
     inset 0 3px 6px 0 rgba(175, 221, 255, 0.55),
-    /* Chromatic iridescent bottom rim */
-    inset 0 -2px 3px 0 rgba(255, 120, 200, 0.35),
+    /* Chromatic iridescent bottom rim */ inset 0 -2px 3px 0 rgba(255, 120, 200, 0.35),
     inset 0 -1px 1.5px 0 rgba(100, 220, 255, 0.5),
-    /* Convex glass dome shadow */
-    0 8px 24px -2px rgba(0, 0, 0, 0.65),
+    /* Convex glass dome shadow */ 0 8px 24px -2px rgba(0, 0, 0, 0.65),
     0 2px 8px rgba(0, 0, 0, 0.4);
   pointer-events: none;
   z-index: 0;
@@ -374,7 +437,9 @@
     rgba(255, 100, 220, 0.4) 70%,
     rgba(100, 220, 255, 0.75) 100%
   );
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;
@@ -387,7 +452,11 @@
 
 /* Apple Squircle Glass Surfaces */
 .apple-glass-card {
-  background: radial-gradient(135% 120% at 50% 0%, rgba(255, 255, 255, 0.88) 0%, rgba(248, 250, 252, 0.72) 100%);
+  background: radial-gradient(
+    135% 120% at 50% 0%,
+    rgba(255, 255, 255, 0.88) 0%,
+    rgba(248, 250, 252, 0.72) 100%
+  );
   backdrop-filter: blur(32px) saturate(190%);
   -webkit-backdrop-filter: blur(32px) saturate(190%);
   border: 1px solid rgba(255, 255, 255, 0.85);
@@ -400,7 +469,12 @@
 }
 
 .dark .apple-glass-card {
-  background: radial-gradient(135% 120% at 50% 0%, rgba(255, 255, 255, 0.11) 0%, rgba(20, 26, 38, 0.78) 40%, rgba(10, 14, 22, 0.92) 100%);
+  background: radial-gradient(
+    135% 120% at 50% 0%,
+    rgba(255, 255, 255, 0.11) 0%,
+    rgba(20, 26, 38, 0.78) 40%,
+    rgba(10, 14, 22, 0.92) 100%
+  );
   backdrop-filter: blur(32px) saturate(210%);
   -webkit-backdrop-filter: blur(32px) saturate(210%);
   border: 1px solid rgba(255, 255, 255, 0.16);
@@ -413,7 +487,10 @@
 }
 
 .apple-glass-card-hover {
-  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.28s ease;
+  transition:
+    transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.28s ease;
 }
 
 .apple-glass-card-hover:hover {
@@ -435,7 +512,7 @@
 
 /* Apple Tactile Glass Buttons */
 .apple-glass-btn-primary {
-  background: linear-gradient(180deg, #0077ED 0%, #0062C4 100%);
+  background: linear-gradient(180deg, #0077ed 0%, #0062c4 100%);
   color: #ffffff;
   font-weight: 700;
   border-radius: 16px;
@@ -443,7 +520,10 @@
   box-shadow:
     inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.6),
     0 4px 14px rgba(0, 113, 227, 0.35);
-  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.25), box-shadow 0.2s ease, background 0.2s ease;
+  transition:
+    transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.25),
+    box-shadow 0.2s ease,
+    background 0.2s ease;
 }
 
 .apple-glass-btn-primary:hover {
@@ -486,7 +566,10 @@
     0 2px 8px rgba(0, 0, 0, 0.04);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.25), background 0.2s ease, border-color 0.2s ease;
+  transition:
+    transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.25),
+    background 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .apple-glass-btn-secondary:hover {
@@ -542,13 +625,16 @@
   font-weight: 700;
   color: #0071e3;
   backdrop-filter: blur(16px);
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.8), 0 2px 6px rgba(0, 113, 227, 0.1);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.8),
+    0 2px 6px rgba(0, 113, 227, 0.1);
 }
 
 .dark .apple-pill-badge {
   background: rgba(175, 221, 255, 0.12);
   border: 1px solid rgba(175, 221, 255, 0.28);
   color: #afddff;
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.25), 0 0 12px rgba(175, 221, 255, 0.15);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.25),
+    0 0 12px rgba(175, 221, 255, 0.15);
 }
-

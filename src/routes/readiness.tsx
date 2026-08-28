@@ -32,12 +32,11 @@ function ReadinessPage() {
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white font-graphik">
                 Defense Readiness
               </h1>
-              <span className="apple-pill-badge py-0.5 px-2 text-[10px]">
-                DRS COCKPIT
-              </span>
+              <span className="apple-pill-badge py-0.5 px-2 text-[10px]">DRS COCKPIT</span>
             </div>
             <p className="text-xs text-white/50 mt-0.5">
-              A weighted evaluation of your oral defense preparation, code comprehension, and next drills.
+              A weighted evaluation of your oral defense preparation, code comprehension, and next
+              drills.
             </p>
           </div>
         </div>
@@ -59,7 +58,8 @@ function ReadinessPage() {
                       {data?.label ?? "Getting started"}
                     </p>
                     <p className="text-xs text-white/50 mt-0.5">
-                      {data?.viva_sessions ?? 0} vivas · {data?.presentation_sessions ?? 0} presentations
+                      {data?.viva_sessions ?? 0} vivas · {data?.presentation_sessions ?? 0}{" "}
+                      presentations
                     </p>
                     {data?.model && (
                       <div className="mt-2 flex flex-wrap items-center justify-center xs:justify-start gap-2">
@@ -147,7 +147,10 @@ function ReadinessPage() {
                       </p>
                     ) : (
                       (data?.weak_topics ?? []).slice(0, 3).map((t, i) => {
-                        const scoreVal = (t as { accuracy?: number; avg_score?: number }).accuracy ?? (t as { accuracy?: number; avg_score?: number }).avg_score ?? 60;
+                        const scoreVal =
+                          (t as { accuracy?: number; avg_score?: number }).accuracy ??
+                          (t as { accuracy?: number; avg_score?: number }).avg_score ??
+                          60;
                         return (
                           <div
                             key={i}

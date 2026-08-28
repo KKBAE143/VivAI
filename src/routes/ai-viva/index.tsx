@@ -78,9 +78,7 @@ function AiVivaHub() {
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground font-graphik">
                 AI Mock Viva
               </h1>
-              <span className="apple-pill-badge py-0.5 px-2 text-[10px]">
-                ORAL DEFENSE
-              </span>
+              <span className="apple-pill-badge py-0.5 px-2 text-[10px]">ORAL DEFENSE</span>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
               Practice oral defense, get instant scoring, code questioning and improvement tips.
@@ -103,7 +101,8 @@ function AiVivaHub() {
                 Begin a new mock viva
               </h2>
               <p className="mt-1 max-w-md text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                Pick a subject or project, set examiner persona, and start answering. Voice or text — your call.
+                Pick a subject or project, set examiner persona, and start answering. Voice or text
+                — your call.
               </p>
             </div>
             <div className="mt-4 flex flex-wrap gap-2.5">
@@ -201,8 +200,13 @@ function AiVivaHub() {
                   { l: "Questions", v: String(totalQuestions) },
                   { l: "Top Subject", v: String(topSubject) },
                 ].map((s) => (
-                  <div key={s.l} className="rounded-2xl border border-border bg-black/5 dark:bg-white/5 p-2 shadow-xs">
-                    <div className="truncate text-xs sm:text-sm font-bold text-foreground">{s.v}</div>
+                  <div
+                    key={s.l}
+                    className="rounded-2xl border border-border bg-black/5 dark:bg-white/5 p-2 shadow-xs"
+                  >
+                    <div className="truncate text-xs sm:text-sm font-bold text-foreground">
+                      {s.v}
+                    </div>
                     <div className="text-[10px] text-muted-foreground">{s.l}</div>
                   </div>
                 ))}
@@ -251,7 +255,9 @@ function AiVivaHub() {
                       className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-2.5"
                     >
                       <div className="min-w-0">
-                        <div className="truncate text-xs sm:text-sm font-bold text-foreground">{title}</div>
+                        <div className="truncate text-xs sm:text-sm font-bold text-foreground">
+                          {title}
+                        </div>
                         <div className="text-[11px] text-muted-foreground">
                           {String(s.created_at ?? "").slice(0, 10)} ·{" "}
                           {String(s.duration_minutes ?? "—")} min

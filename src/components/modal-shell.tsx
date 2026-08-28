@@ -25,7 +25,9 @@ export function ModalShell({
         <div className="flex items-center justify-between pb-3 border-b border-white/10">
           <div className="flex items-center gap-2">
             <div className="h-2 w-2 rounded-full bg-[#AFDDFF]" />
-            <h3 className="text-base sm:text-lg font-bold font-graphik tracking-wide text-white">{title}</h3>
+            <h3 className="text-base sm:text-lg font-bold font-graphik tracking-wide text-white">
+              {title}
+            </h3>
           </div>
           <button
             aria-label="Close dialog"

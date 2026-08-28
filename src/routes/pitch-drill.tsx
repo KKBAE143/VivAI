@@ -17,7 +17,13 @@ import {
 } from "lucide-react";
 
 import { AppShell, Card, PageHeader, Badge } from "@/components/app-shell";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useRequireAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import { LIVE_LANGUAGES } from "@/lib/languages";
@@ -180,12 +186,11 @@ function PitchDrillPage() {
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white font-graphik">
                 90-Second Pitch Drill
               </h1>
-              <span className="apple-pill-badge py-0.5 px-2 text-[10px]">
-                ELEVATOR PITCH
-              </span>
+              <span className="apple-pill-badge py-0.5 px-2 text-[10px]">ELEVATOR PITCH</span>
             </div>
             <p className="text-xs text-white/50 mt-0.5">
-              Practice sharp, timed project pitches. Choose live conversational AI coaching or a timed solo drill.
+              Practice sharp, timed project pitches. Choose live conversational AI coaching or a
+              timed solo drill.
             </p>
           </div>
 
@@ -225,7 +230,9 @@ function PitchDrillPage() {
                   Real-Time Pitch Coaching
                 </h2>
                 <p className="mx-auto mt-1.5 max-w-md text-xs text-white/60 leading-relaxed">
-                  Speak your pitch naturally in <strong className="text-[#AFDDFF]">{language}</strong>. Your AI coach listens live, reacts as you go, and asks follow-up questions — just like a real panel.
+                  Speak your pitch naturally in{" "}
+                  <strong className="text-[#AFDDFF]">{language}</strong>. Your AI coach listens
+                  live, reacts as you go, and asks follow-up questions — just like a real panel.
                 </p>
               </div>
               <button
@@ -240,7 +247,9 @@ function PitchDrillPage() {
                 )}
                 {livePhase === "starting" ? "Starting Coach…" : "Start Live Pitch"}
               </button>
-              {liveStartError && <p className="text-xs font-mono text-rose-400">{liveStartError}</p>}
+              {liveStartError && (
+                <p className="text-xs font-mono text-rose-400">{liveStartError}</p>
+              )}
             </div>
 
             <div className="space-y-3 flex flex-col">
@@ -302,7 +311,8 @@ function PitchDrillPage() {
                 </div>
 
                 <p className="mt-3 text-[10px] text-white/40 font-mono">
-                  Aim to cover: <span className="font-bold text-white">problem, approach, tech, impact</span>.
+                  Aim to cover:{" "}
+                  <span className="font-bold text-white">problem, approach, tech, impact</span>.
                 </p>
               </div>
             </div>
@@ -346,7 +356,8 @@ function PitchDrillPage() {
 
               {!speech.supported && (
                 <p className="max-w-sm text-center text-xs text-amber-400 font-mono">
-                  Speech recognition isn&apos;t supported in this browser. Try Chrome for mic capture.
+                  Speech recognition isn&apos;t supported in this browser. Try Chrome for mic
+                  capture.
                 </p>
               )}
 
@@ -424,7 +435,9 @@ function PitchDrillPage() {
                   </Select>
                 </div>
                 <p className="mt-3 text-xs text-white/50 leading-relaxed">
-                  Aim to cover: <span className="font-bold text-white">problem, approach, tech, impact</span> — all within 90 seconds.
+                  Aim to cover:{" "}
+                  <span className="font-bold text-white">problem, approach, tech, impact</span> —
+                  all within 90 seconds.
                 </p>
               </div>
 

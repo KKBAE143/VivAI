@@ -2,7 +2,13 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { MonitorSmartphone, Play, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { AppShell, Card, PageHeader, Badge } from "@/components/app-shell";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { DataPagination } from "@/components/data-pagination";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
@@ -73,9 +79,7 @@ function AIPresentation() {
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground font-graphik">
                 AI Presentation Mock
               </h1>
-              <span className="apple-pill-badge py-0.5 px-2 text-[10px]">
-                SLIDE DEFENSE
-              </span>
+              <span className="apple-pill-badge py-0.5 px-2 text-[10px]">SLIDE DEFENSE</span>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
               Present to AI faculty, share your screen, and get instant real-time defense feedback.
@@ -95,7 +99,9 @@ function AIPresentation() {
                 Defend like it's the real review
               </h2>
               <p className="mt-1 text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                Share your screen, present your slides in <strong className="text-primary">{language}</strong>, and AI faculty asks follow-ups, scores clarity, and flags missing topics.
+                Share your screen, present your slides in{" "}
+                <strong className="text-primary">{language}</strong>, and AI faculty asks
+                follow-ups, scores clarity, and flags missing topics.
               </p>
             </div>
             <div className="mt-4 flex flex-wrap gap-2.5">
@@ -117,7 +123,9 @@ function AIPresentation() {
               </h3>
               <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <div className="rounded-2xl border border-border bg-black/5 dark:bg-white/5 p-2.5 shadow-xs">
-                  <span className="block text-[10px] text-muted-foreground font-medium mb-1">Project</span>
+                  <span className="block text-[10px] text-muted-foreground font-medium mb-1">
+                    Project
+                  </span>
                   <Select
                     value={projectId || "none"}
                     onValueChange={(v) => setProjectId(v === "none" ? "" : v)}
@@ -136,7 +144,9 @@ function AIPresentation() {
                   </Select>
                 </div>
                 <div className="rounded-2xl border border-border bg-black/5 dark:bg-white/5 p-2.5 shadow-xs">
-                  <span className="block text-[10px] text-muted-foreground font-medium mb-1">Type</span>
+                  <span className="block text-[10px] text-muted-foreground font-medium mb-1">
+                    Type
+                  </span>
                   <Select value={type} onValueChange={(v) => setType(v as typeof type)}>
                     <SelectTrigger className="w-full min-h-[36px] rounded-xl bg-card border border-border px-2 py-1 text-xs font-bold text-foreground focus:border-primary">
                       <SelectValue />
@@ -151,7 +161,9 @@ function AIPresentation() {
                   </Select>
                 </div>
                 <div className="rounded-2xl border border-border bg-black/5 dark:bg-white/5 p-2.5 shadow-xs">
-                  <span className="block text-[10px] text-muted-foreground font-medium mb-1">Duration</span>
+                  <span className="block text-[10px] text-muted-foreground font-medium mb-1">
+                    Duration
+                  </span>
                   <Select value={String(duration)} onValueChange={(v) => setDuration(Number(v))}>
                     <SelectTrigger className="w-full min-h-[36px] rounded-xl bg-card border border-border px-2 py-1 text-xs font-bold text-foreground focus:border-primary">
                       <SelectValue />
@@ -166,7 +178,9 @@ function AIPresentation() {
                   </Select>
                 </div>
                 <div className="rounded-2xl border border-border bg-black/5 dark:bg-white/5 p-2.5 shadow-xs">
-                  <span className="block text-[10px] text-muted-foreground font-medium mb-1">Language</span>
+                  <span className="block text-[10px] text-muted-foreground font-medium mb-1">
+                    Language
+                  </span>
                   <Select value={language} onValueChange={setLanguage}>
                     <SelectTrigger className="w-full min-h-[36px] rounded-xl bg-card border border-border px-2 py-1 text-xs font-bold text-foreground focus:border-primary">
                       <SelectValue />
@@ -257,13 +271,16 @@ function AIPresentation() {
                         {String(s.session_type ?? "Presentation")}
                       </div>
                       <div className="mt-0.5 text-[10px] text-muted-foreground">
-                        {String(s.created_at ?? "").slice(0, 10)} · {String(s.duration_minutes ?? "—")} min
+                        {String(s.created_at ?? "").slice(0, 10)} ·{" "}
+                        {String(s.duration_minutes ?? "—")} min
                       </div>
                       <div className="mt-2.5 flex items-center justify-between pt-2 border-t border-border">
                         {score !== null ? (
                           <span
                             className={`rounded-md px-2 py-0.5 text-[10.5px] font-bold ${
-                              score >= 80 ? "bg-emerald-500/15 text-emerald-600 dark:text-[#7CE4BA]" : "bg-primary/15 text-primary"
+                              score >= 80
+                                ? "bg-emerald-500/15 text-emerald-600 dark:text-[#7CE4BA]"
+                                : "bg-primary/15 text-primary"
                             }`}
                           >
                             {score}%

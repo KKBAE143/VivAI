@@ -119,7 +119,8 @@ function LeaderboardPage() {
                       <div className="flex items-center gap-2 sm:gap-2.5">
                         {Number(row.current_streak ?? 0) > 0 && (
                           <span className="flex items-center gap-1 text-[11px] text-amber-400 font-bold">
-                            <Flame className="h-3.5 w-3.5 fill-amber-400/20" /> {String(row.current_streak)}
+                            <Flame className="h-3.5 w-3.5 fill-amber-400/20" />{" "}
+                            {String(row.current_streak)}
                           </span>
                         )}
                         <span

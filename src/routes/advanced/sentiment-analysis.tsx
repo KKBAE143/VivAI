@@ -121,8 +121,7 @@ function CommunicationCoach() {
         s.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
         s.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         s.category?.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory =
-        selectedCategory === "All" || s.category === selectedCategory;
+      const matchesCategory = selectedCategory === "All" || s.category === selectedCategory;
       return matchesSearch && matchesCategory;
     });
   }, [scenarios, searchQuery, selectedCategory]);
@@ -210,12 +209,11 @@ function CommunicationCoach() {
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground font-graphik">
                 AI Communication Coach
               </h1>
-              <span className="apple-pill-badge py-0.5 px-2 text-[10px]">
-                VISION & VOICE
-              </span>
+              <span className="apple-pill-badge py-0.5 px-2 text-[10px]">VISION & VOICE</span>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Pick a role-play scenario and practice live with real-time camera, eye contact & vocal pacing feedback.
+              Pick a role-play scenario and practice live with real-time camera, eye contact & vocal
+              pacing feedback.
             </p>
           </div>
 
@@ -296,7 +294,9 @@ function CommunicationCoach() {
             {scenariosQuery.isLoading ? (
               <div className="py-16 flex flex-col items-center justify-center gap-3 text-center">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                <span className="text-xs text-muted-foreground font-mono">Loading communication scenarios catalog…</span>
+                <span className="text-xs text-muted-foreground font-mono">
+                  Loading communication scenarios catalog…
+                </span>
               </div>
             ) : filteredScenarios.length === 0 ? (
               <div className="py-16 text-center text-muted-foreground">
@@ -319,7 +319,9 @@ function CommunicationCoach() {
                       <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground font-mono">
                         [ {category} ]
                       </h4>
-                      <span className="text-[10px] text-muted-foreground font-mono">{items.length} options</span>
+                      <span className="text-[10px] text-muted-foreground font-mono">
+                        {items.length} options
+                      </span>
                     </div>
 
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -414,7 +416,9 @@ function CommunicationCoach() {
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-[11px] text-white/50 font-mono truncate">
-                      <span>Language: <strong className="text-[#AFDDFF]">{language}</strong></span>
+                      <span>
+                        Language: <strong className="text-[#AFDDFF]">{language}</strong>
+                      </span>
                       <span>·</span>
                       <button
                         onClick={() => setIsModalOpen(true)}
@@ -478,9 +482,7 @@ function CommunicationCoach() {
                     <span className="rounded-full bg-[#AFDDFF]/15 border border-[#AFDDFF]/30 px-2.5 py-0.5 text-[10px] font-mono font-bold text-[#AFDDFF]">
                       {scenario.category}
                     </span>
-                    <span className="text-[10px] font-mono text-white/50">
-                      {duration} MIN
-                    </span>
+                    <span className="text-[10px] font-mono text-white/50">{duration} MIN</span>
                   </div>
                   <h2 className="mt-1 text-lg sm:text-xl font-bold tracking-tight text-white font-graphik">
                     {scenario.label}
@@ -579,7 +581,9 @@ function CommunicationCoach() {
                   </div>
                   <div className="rounded-xl bg-black/40 p-2 border border-white/5">
                     <Mic className="h-4 w-4 text-[#AFDDFF] mx-auto mb-1" />
-                    <span className="block text-[10px] text-white/70 font-bold">Vocal Pitch & Pace</span>
+                    <span className="block text-[10px] text-white/70 font-bold">
+                      Vocal Pitch & Pace
+                    </span>
                     <span className="text-[9px] text-white/40 font-mono">Real-time analysis</span>
                   </div>
                   <div className="rounded-xl bg-black/40 p-2 border border-white/5">
@@ -677,7 +681,9 @@ function CoachReport({ sessionId, onDone }: { sessionId: string; onDone: () => v
       <header className="sticky top-0 z-10 border-b border-white/10 bg-[#0A0E16]/80 backdrop-blur-2xl">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
           <div>
-            <div className="text-sm font-bold text-white font-graphik">{scenario} — Coaching Report</div>
+            <div className="text-sm font-bold text-white font-graphik">
+              {scenario} — Coaching Report
+            </div>
             <div className="text-xs text-[#AFDDFF] font-mono">[ SESSION_TELEMETRY ]</div>
           </div>
           <button
@@ -776,7 +782,10 @@ function CoachReport({ sessionId, onDone }: { sessionId: string; onDone: () => v
             </h3>
             <ul className="mt-3 space-y-2 text-xs text-white/80">
               {recommendations.map((r, i) => (
-                <li key={i} className="rounded-xl border border-white/5 bg-white/5 p-3 flex items-start gap-2.5">
+                <li
+                  key={i}
+                  className="rounded-xl border border-white/5 bg-white/5 p-3 flex items-start gap-2.5"
+                >
                   <span className="text-[#AFDDFF] font-bold">✦</span>
                   <span>{r}</span>
                 </li>

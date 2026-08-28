@@ -18,7 +18,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useState, useMemo } from "react";
-import { AppShell } from "@/components/app-shell";
+import { AppShell, ThemeToggle } from "@/components/app-shell";
 import { ErrorState } from "@/components/error-state";
 import { DashboardSkeleton } from "@/components/loading-skeleton";
 import { ReadinessGauge } from "@/components/readiness-gauge";
@@ -186,40 +186,42 @@ export default function Dashboard() {
           }}
         />
       ) : (
-        <div className="flex h-full lg:max-h-full min-h-0 w-full max-w-[1550px] mx-auto flex-col justify-between gap-3 lg:gap-3.5 lg:overflow-hidden overflow-y-auto font-manrope">
-          {/* Top Bar / Integrated Apple VisionOS Header */}
-          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2.5 sm:gap-3 apple-glass-card rounded-[22px] px-3.5 sm:px-4 py-2.5">
-            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-              <div className="grid h-9 w-9 sm:h-10 sm:w-10 shrink-0 place-items-center rounded-2xl bg-gradient-to-b from-[#0071e3] to-[#005bb5] dark:from-[#dcf0ff] dark:to-[#AFDDFF] text-sm font-black text-white dark:text-black shadow-xs">
+        <div className="flex h-full lg:max-h-full min-h-0 w-full max-w-[1600px] mx-auto flex-col justify-between gap-3 lg:gap-3.5 lg:overflow-hidden overflow-y-auto font-manrope">
+          {/* Header Bar */}
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 apple-glass-card rounded-[24px] px-4 sm:px-5 py-2.5 sm:py-3 shadow-sm">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+              <div className="w-10 h-10 rounded-full bg-primary/10 border-2 border-border flex items-center justify-center text-primary font-bold text-base shadow-xs shrink-0">
                 {firstName.charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h1 className="truncate font-graphik text-sm font-bold text-foreground sm:text-base tracking-wide">
+                <div className="flex items-center gap-2.5">
+                  <h1 className="truncate font-graphik text-sm sm:text-base font-bold text-foreground tracking-wide">
                     Welcome back, {firstName}
                   </h1>
-                  <span className="apple-pill-badge py-0.5 px-2 text-[10px]">
-                    ONLINE
-                  </span>
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full border border-emerald-500/20">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider">Online</span>
+                  </div>
                 </div>
-                <p className="hidden truncate text-[11px] text-muted-foreground sm:block">
+                <p className="hidden truncate text-xs text-muted-foreground sm:block mt-0.5">
                   {readinessScore >= 75
                     ? "Ready for oral defense · Keep drilling technical depth"
-                    : "Target identified weak topics today to elevate defense score"}
+                    : "Target identified weak topics today to advance readiness score"}
                 </p>
               </div>
             </div>
 
-            {/* Quick Status Pills & Controls */}
-            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-              {/* Gamification Pills */}
-              <div className="hidden md:flex items-center gap-2">
-                <div className="flex items-center gap-1.5 rounded-full border border-border bg-black/5 dark:bg-white/5 px-2.5 py-1 text-[11px] font-medium text-foreground backdrop-blur-md">
-                  <Flame className="h-3.5 w-3.5 text-amber-500 fill-amber-500/20" />
+            {/* Header Right Widgets */}
+            <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+              {/* Gamification Capsule */}
+              <div className="hidden md:flex items-center gap-3 bg-black/5 dark:bg-white/5 border border-border px-3.5 py-1.5 rounded-2xl backdrop-blur-md">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                  <Flame className="h-4 w-4 text-orange-400 fill-orange-400/20" />
                   <span>{streak}d streak</span>
                 </div>
-                <div className="apple-pill-badge">
-                  <Star className="h-3.5 w-3.5 text-primary fill-primary/20" />
+                <div className="w-px h-4 bg-border"></div>
+                <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
                   <span>
                     Lvl {level} · {xp} XP
                   </span>
@@ -227,21 +229,24 @@ export default function Dashboard() {
               </div>
 
               {/* Search */}
-              <div className="relative w-28 xs:w-36 sm:w-48">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <div className="relative w-32 xs:w-40 sm:w-48">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                 <input
                   type="text"
                   placeholder="Search..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-full border border-border bg-black/5 dark:bg-white/5 py-1.5 pl-7 pr-2.5 text-xs text-foreground placeholder:text-muted-foreground backdrop-blur-md focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all"
+                  className="w-full rounded-2xl border border-border bg-black/5 dark:bg-white/5 py-1.5 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground backdrop-blur-md focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all"
                 />
               </div>
+
+              {/* Theme Switcher Toggle */}
+              <ThemeToggle />
 
               {/* New Project CTA */}
               <Link
                 to="/projects/new"
-                className="apple-glass-btn-primary px-3 py-1.5 text-xs font-bold sm:inline-flex no-underline"
+                className="apple-glass-btn-primary px-4 py-1.5 text-xs font-bold sm:inline-flex items-center gap-1.5 no-underline rounded-2xl shadow-md cursor-pointer"
               >
                 <Plus className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">New Project</span>
@@ -249,188 +254,193 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Row 1: Split Hero (Readiness Station on left + AI Action Launchpad on right) */}
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-12 shrink-0 lg:flex-1 lg:min-h-0 items-stretch">
-            {/* Defense Readiness Station (5 cols) */}
-            <div className="relative flex flex-col justify-between overflow-hidden apple-glass-card p-4 lg:col-span-5 min-h-0">
+          {/* Row 1: 5-Column Hero Grid (Defense Readiness on 2 cols + 3 Service Cards) */}
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-5 shrink-0 lg:flex-1 lg:min-h-0 items-stretch">
+            {/* Defense Readiness Card (2 cols) */}
+            <div className="relative flex flex-col justify-between overflow-hidden apple-glass-card rounded-[24px] p-4 sm:p-5 lg:col-span-2 min-h-0">
               <div className="flex items-center justify-between pb-2 border-b border-border">
                 <div className="flex items-center gap-2">
-                  <span className="grid h-7 w-7 place-items-center rounded-xl bg-gradient-to-b from-[#0071e3] to-[#005bb5] dark:from-[#dcf0ff] dark:to-[#AFDDFF] text-white dark:text-black shadow-xs">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shadow-xs">
                     <Target className="h-4 w-4" />
-                  </span>
-                  <h2 className="font-graphik text-xs xl:text-sm font-bold text-foreground tracking-wide">
+                  </div>
+                  <h2 className="font-graphik text-xs sm:text-sm font-bold text-foreground tracking-tight uppercase">
                     DEFENSE READINESS
                   </h2>
                 </div>
                 <Link
                   to="/readiness"
-                  className="text-[11px] font-bold text-primary hover:underline flex items-center gap-0.5 no-underline"
+                  className="text-xs font-semibold text-primary hover:underline flex items-center gap-1 no-underline"
                 >
                   <span>Full Report</span>
                   <ChevronRight className="h-3 w-3" />
                 </Link>
               </div>
 
-              {/* Gauge + Status + Mini Breakdown */}
-              <div className="flex flex-col xs:grid xs:grid-cols-[auto_1fr] items-center gap-3.5 sm:gap-4 my-auto py-2">
-                <div className="relative shrink-0">
-                  <ReadinessGauge score={readinessScore} size={92} strokeWidth={9} />
+              {/* Circular Gauge Centerpiece */}
+              <div className="flex flex-col items-center justify-center my-auto py-1 sm:py-2">
+                <ReadinessGauge score={readinessScore} size={124} strokeWidth={10} />
+                <div className="mt-2 bg-primary/10 text-primary border border-primary/20 text-[10px] font-bold px-3 py-0.5 rounded-full uppercase tracking-wider">
+                  {readinessLabel}
                 </div>
-                <div className="flex flex-col gap-2 w-full min-w-0">
-                  <div>
-                    <span className="apple-pill-badge py-0.5 px-2 text-[10px] uppercase tracking-wider">
-                      {readinessLabel}
-                    </span>
-                    <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 xs:line-clamp-1">
-                      {readiness?.actions?.[0]?.text ??
-                        "Cross-questioning practice recommended on your core project modules."}
-                    </p>
-                  </div>
+              </div>
 
-                  {/* 2 Mini Progress Bars */}
-                  <div className="flex flex-col gap-1.5">
-                    {components.slice(0, 2).map((c) => {
-                      const score = Math.round(c.score);
-                      return (
-                        <div key={c.key}>
-                          <div className="flex items-center justify-between text-[10px] font-semibold text-foreground/80">
-                            <span>{c.label}</span>
-                            <span className="text-primary font-bold">{score}%</span>
-                          </div>
-                          <div className="mt-0.5 h-1.5 w-full overflow-hidden rounded-full bg-black/10 dark:bg-white/10 shadow-[inset_0_1px_1px_rgba(0,0,0,0.2)]">
-                            <div
-                              className="h-full rounded-full bg-gradient-to-r from-[#34c759] to-[#0071e3] dark:from-[#7CE4BA] dark:to-[#AFDDFF] transition-all duration-500 shadow-xs"
-                              style={{ width: `${score}%` }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
+              {/* Advice & Mini Breakdown Bars */}
+              <div className="space-y-2">
+                <p className="text-xs text-primary font-medium text-center line-clamp-1">
+                  {readiness?.actions?.[0]?.text ??
+                    "Raise your viva average with another focused session."}
+                </p>
+
+                <div className="space-y-1.5">
+                  <div>
+                    <div className="flex justify-between text-[10px] font-bold mb-0.5">
+                      <span className="text-foreground/80">Viva performance</span>
+                      <span className="text-foreground font-bold">
+                        {Math.round(components[0]?.score ?? 78)}%
+                      </span>
+                    </div>
+                    <div className="h-1.5 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary rounded-full transition-all duration-500"
+                        style={{ width: `${Math.round(components[0]?.score ?? 78)}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-[10px] font-bold mb-0.5">
+                      <span className="text-foreground/80">Presentation skills</span>
+                      <span className="text-foreground font-bold">
+                        {Math.round(components[1]?.score ?? 80)}%
+                      </span>
+                    </div>
+                    <div className="h-1.5 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-indigo-500 rounded-full transition-all duration-500"
+                        style={{ width: `${Math.round(components[1]?.score ?? 80)}%` }}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Instant CTA Button matching Apple Primary Glass */}
+              {/* Launch CTA */}
               <button
                 onClick={() => handleQuickDrill()}
                 disabled={isStartingQuickViva !== null}
-                className="mt-2 apple-glass-btn-primary flex min-h-[44px] items-center justify-center gap-2 px-3 py-2.5 text-xs uppercase tracking-wider cursor-pointer"
+                className="w-full mt-3 apple-glass-btn-primary py-2.5 sm:py-3 rounded-2xl text-xs font-bold shadow-md flex items-center justify-center gap-2 uppercase tracking-wider cursor-pointer"
               >
-                <span className="text-[14px] leading-none">&#10022;</span>
+                <Play className="h-3 w-3 fill-current" />
                 <span>
                   {isStartingQuickViva ? "Launching Viva..." : "Launch Defense Simulation"}
                 </span>
               </button>
             </div>
 
-            {/* AI Action Launchpad (7 cols, 3 cards) */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:col-span-7 min-h-0 items-stretch">
-              {/* Card 1: AI Mock Viva */}
-              <Link
-                to="/ai-viva/new"
-                className="group relative flex flex-col justify-between overflow-hidden apple-glass-card apple-glass-card-hover p-4 no-underline"
-              >
-                <div>
-                  <div className="flex items-center justify-between">
-                    <div className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-b from-[#0071e3] to-[#005bb5] dark:from-[#dcf0ff] dark:to-[#AFDDFF] text-white dark:text-black shadow-xs group-hover:scale-105 transition-transform">
-                      <BrainCircuit className="h-5 w-5" />
-                    </div>
-                    <span className="apple-pill-badge text-[10px]">
-                      {vivaStats?.total_sessions ?? dashStats?.viva_sessions ?? 0} Vivas
-                    </span>
+            {/* Service Card 1: AI Mock Viva */}
+            <Link
+              to="/ai-viva/new"
+              className="group relative flex flex-col justify-between overflow-hidden apple-glass-card apple-glass-card-hover rounded-[24px] p-4 sm:p-5 no-underline lg:col-span-1 min-h-0"
+            >
+              <div>
+                <div className="flex items-start justify-between mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
+                    <BrainCircuit className="h-5 w-5" />
                   </div>
-                  <h3 className="mt-3 text-xs xl:text-sm font-bold text-foreground group-hover:text-primary transition-colors">
-                    AI Mock Viva
-                  </h3>
-                  <p className="mt-1 text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
-                    Practice oral defense with Strict, Balanced, or Friendly AI professors.
-                  </p>
+                  <span className="bg-primary/10 text-primary border border-primary/20 text-[10px] font-bold px-2.5 py-1 rounded-full">
+                    {vivaStats?.total_sessions ?? dashStats?.viva_sessions ?? 0} Vivas
+                  </span>
                 </div>
-                <div className="mt-2 flex items-center gap-1 text-[11px] font-bold text-primary">
-                  <span>Start Mock Session</span>
-                  <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </Link>
+                <h3 className="font-bold text-foreground text-sm sm:text-base mb-1 group-hover:text-primary transition-colors font-graphik">
+                  AI Mock Viva
+                </h3>
+                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
+                  Practice real interactions with Smart, Balanced, or Friendly AI professors.
+                </p>
+              </div>
+              <div className="mt-3 flex items-center gap-1 text-xs font-bold text-primary group-hover:gap-1.5 transition-all">
+                <span>Start Mock Session</span>
+                <ChevronRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            </Link>
 
-              {/* Card 2: Slide & Presentation */}
-              <Link
-                to="/ai-presentation"
-                className="group relative flex flex-col justify-between overflow-hidden apple-glass-card apple-glass-card-hover p-4 no-underline"
-              >
-                <div>
-                  <div className="flex items-center justify-between">
-                    <div className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-b from-[#5856d6] to-[#af52de] dark:from-[#c0d4f4] dark:to-[#8DA6CC] text-white dark:text-black shadow-xs group-hover:scale-105 transition-transform">
-                      <MonitorSmartphone className="h-5 w-5" />
-                    </div>
-                    <span className="rounded-full bg-primary/10 border border-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary">
-                      {dashStats?.presentation_sessions ?? 0} Pitches
-                    </span>
+            {/* Service Card 2: Slide Deck Mock */}
+            <Link
+              to="/ai-presentation"
+              className="group relative flex flex-col justify-between overflow-hidden apple-glass-card apple-glass-card-hover rounded-[24px] p-4 sm:p-5 no-underline lg:col-span-1 min-h-0"
+            >
+              <div>
+                <div className="flex items-start justify-between mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
+                    <MonitorSmartphone className="h-5 w-5" />
                   </div>
-                  <h3 className="mt-3 text-xs xl:text-sm font-bold text-foreground group-hover:text-primary transition-colors">
-                    Slide Deck Mock
-                  </h3>
-                  <p className="mt-1 text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
-                    Upload slides, practice project demos, and get anticipated questions.
-                  </p>
+                  <span className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 text-[10px] font-bold px-2.5 py-1 rounded-full">
+                    {dashStats?.presentation_sessions ?? 0} Pitches
+                  </span>
                 </div>
-                <div className="mt-2 flex items-center gap-1 text-[11px] font-bold text-primary">
-                  <span>Open Presentation Hub</span>
-                  <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </Link>
+                <h3 className="font-bold text-foreground text-sm sm:text-base mb-1 group-hover:text-primary transition-colors font-graphik">
+                  Slide Deck Mock
+                </h3>
+                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
+                  Upload slides, create project scenarios, and get structured questions.
+                </p>
+              </div>
+              <div className="mt-3 flex items-center gap-1 text-xs font-bold text-primary group-hover:gap-1.5 transition-all">
+                <span>Open Presentation Hub</span>
+                <ChevronRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            </Link>
 
-              {/* Card 3: Live Voice Coach */}
-              <Link
-                to="/advanced/sentiment-analysis"
-                className="group relative flex flex-col justify-between overflow-hidden apple-glass-card apple-glass-card-hover p-4 no-underline"
-              >
-                <div>
-                  <div className="flex items-center justify-between">
-                    <div className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-b from-[#34c759] to-[#30b0c7] dark:from-[#d4f8e8] dark:to-[#7CE4BA] text-white dark:text-black shadow-xs group-hover:scale-105 transition-transform">
-                      <Video className="h-5 w-5" />
-                    </div>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-[#7CE4BA]">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-[#7CE4BA] animate-ping" />
-                      Live Voice
-                    </span>
+            {/* Service Card 3: Speech Coach */}
+            <Link
+              to="/advanced/sentiment-analysis"
+              className="group relative flex flex-col justify-between overflow-hidden apple-glass-card apple-glass-card-hover rounded-[24px] p-4 sm:p-5 no-underline lg:col-span-1 min-h-0"
+            >
+              <div>
+                <div className="flex items-start justify-between mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-[#7CE4BA] flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
+                    <Video className="h-5 w-5" />
                   </div>
-                  <h3 className="mt-3 text-xs xl:text-sm font-bold text-foreground group-hover:text-emerald-600 dark:group-hover:text-[#7CE4BA] transition-colors">
-                    Speech Coach
-                  </h3>
-                  <p className="mt-1 text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
-                    Real-time speech analytics, pace (WPM), clarity, and filler ratio.
-                  </p>
+                  <span className="bg-emerald-500/10 text-emerald-600 dark:text-[#7CE4BA] border border-emerald-500/20 text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Live
+                  </span>
                 </div>
-                <div className="mt-2 flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-[#7CE4BA]">
-                  <span>Enter Live Coach</span>
-                  <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </Link>
-            </div>
+                <h3 className="font-bold text-foreground text-sm sm:text-base mb-1 group-hover:text-emerald-600 dark:group-hover:text-[#7CE4BA] transition-colors font-graphik">
+                  Speech Coach
+                </h3>
+                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
+                  Real-time speech analytics, pace (WPM), clarity, and filler stats.
+                </p>
+              </div>
+              <div className="mt-3 flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-[#7CE4BA] group-hover:gap-1.5 transition-all">
+                <span>Enter Live Coach</span>
+                <ChevronRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            </Link>
           </div>
 
-          {/* Row 2: 3-Column Core Workstation (Projects, Recent Vivas, Weakness Radar) */}
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-12 shrink-0 lg:flex-1 lg:min-h-0 items-stretch">
-            {/* Col 1: Active Projects (4 cols) */}
-            <div className="flex flex-col justify-between apple-glass-card p-4 lg:col-span-4 min-h-0">
-              <div className="flex items-center justify-between pb-2 border-b border-border">
+          {/* Row 2: 3-Column Core Workstation (Active Projects, Recent Sessions, Weakness Radar) */}
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-3 shrink-0 lg:flex-1 lg:min-h-0 items-stretch">
+            {/* Col 1: Active Projects */}
+            <div className="flex flex-col justify-between apple-glass-card rounded-[24px] p-4 sm:p-5 min-h-0">
+              <div className="flex items-center justify-between pb-2.5 border-b border-border">
                 <div className="flex items-center gap-2">
-                  <span className="grid h-6 w-6 place-items-center rounded-lg bg-primary/15 text-primary">
+                  <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-xs shadow-xs">
                     <FolderKanban className="h-3.5 w-3.5" />
-                  </span>
-                  <h3 className="font-graphik text-xs xl:text-sm font-bold text-foreground tracking-wide">
+                  </div>
+                  <h2 className="font-graphik text-xs sm:text-sm font-bold text-foreground tracking-wide uppercase">
                     ACTIVE PROJECTS
-                  </h3>
+                  </h2>
                 </div>
                 <Link
                   to="/projects"
-                  className="text-[11px] font-semibold text-muted-foreground hover:text-primary transition-colors no-underline"
+                  className="text-[10px] font-semibold text-muted-foreground hover:text-primary transition-colors no-underline"
                 >
                   View All ({allProjects.length})
                 </Link>
               </div>
 
-              <div className="flex flex-col gap-2 my-auto py-1 min-h-0 overflow-y-auto">
+              <div className="flex flex-col gap-2.5 my-auto py-1 min-h-0 overflow-y-auto">
                 {activeProjects.length === 0 ? (
                   <div className="py-4 text-center">
                     <p className="text-xs font-semibold text-foreground">No projects yet</p>
@@ -451,10 +461,10 @@ export default function Dashboard() {
                     return (
                       <div
                         key={id}
-                        className="flex items-center justify-between gap-2.5 rounded-2xl border border-border bg-black/5 dark:bg-white/5 p-2.5 transition-all hover:bg-black/8 dark:hover:bg-white/10"
+                        className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-black/5 dark:bg-white/5 p-3 transition-colors hover:bg-black/8 dark:hover:bg-white/10"
                       >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-gradient-to-b from-[#0071e3] to-[#005bb5] dark:from-[#c0d4f4] dark:to-[#8DA6CC] font-bold text-xs text-white dark:text-black shadow-xs">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-primary/15 text-primary font-bold text-sm flex items-center justify-center shrink-0 shadow-xs">
                             {title.charAt(0).toUpperCase()}
                           </div>
                           <div className="min-w-0">
@@ -462,22 +472,24 @@ export default function Dashboard() {
                               <Link
                                 to="/projects/$id"
                                 params={{ id }}
-                                className="truncate text-xs font-bold text-foreground hover:text-primary transition-colors no-underline"
+                                className="truncate text-xs font-bold text-foreground hover:text-primary transition-colors no-underline max-w-[130px] sm:max-w-[160px]"
                               >
                                 {title}
                               </Link>
-                              <span className="rounded-full bg-muted px-1.5 py-0.2 text-[9px] font-medium text-muted-foreground font-mono">
+                              <span className="rounded-md bg-muted px-1.5 py-0.2 text-[9px] font-bold text-muted-foreground uppercase">
                                 {projectType}
                               </span>
                             </div>
-                            <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
-                              <div className="h-1.5 w-16 overflow-hidden rounded-full bg-black/10 dark:bg-white/10 shadow-xs">
+                            <div className="mt-1">
+                              <div className="text-[9px] text-muted-foreground mb-0.5">
+                                Progress {progress}%
+                              </div>
+                              <div className="w-28 sm:w-32 h-1 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
                                 <div
-                                  className="h-full rounded-full bg-primary"
+                                  className="h-full bg-primary rounded-full transition-all duration-500"
                                   style={{ width: `${progress}%` }}
                                 />
                               </div>
-                              <span>{progress}%</span>
                             </div>
                           </div>
                         </div>
@@ -485,9 +497,9 @@ export default function Dashboard() {
                         <button
                           onClick={() => handleQuickDrill(undefined, id)}
                           disabled={isStartingQuickViva === id}
-                          className="shrink-0 apple-glass-btn-secondary px-3 py-1.5 text-[11px] font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                          className="shrink-0 flex items-center gap-1.5 px-3.5 py-2 apple-glass-btn-secondary rounded-xl text-foreground text-[10px] font-bold cursor-pointer"
                         >
-                          <BrainCircuit className="h-3.5 w-3.5" />
+                          <Target className="h-3 w-3 text-primary" />
                           <span>Defend</span>
                         </button>
                       </div>
@@ -497,26 +509,26 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Col 2: Recent Viva Defense Sessions (4 cols) */}
-            <div className="flex flex-col justify-between apple-glass-card p-4 lg:col-span-4 min-h-0">
-              <div className="flex items-center justify-between pb-2 border-b border-border">
+            {/* Col 2: Recent Sessions */}
+            <div className="flex flex-col justify-between apple-glass-card rounded-[24px] p-4 sm:p-5 min-h-0">
+              <div className="flex items-center justify-between pb-2.5 border-b border-border">
                 <div className="flex items-center gap-2">
-                  <span className="grid h-6 w-6 place-items-center rounded-lg bg-primary/15 text-primary">
+                  <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-xs shadow-xs">
                     <Clock className="h-3.5 w-3.5" />
-                  </span>
-                  <h3 className="font-graphik text-xs xl:text-sm font-bold text-foreground tracking-wide">
+                  </div>
+                  <h2 className="font-graphik text-xs sm:text-sm font-bold text-foreground tracking-wide uppercase">
                     RECENT SESSIONS
-                  </h3>
+                  </h2>
                 </div>
                 <Link
                   to="/ai-viva"
-                  className="text-[11px] font-semibold text-muted-foreground hover:text-primary transition-colors no-underline"
+                  className="text-[10px] font-semibold text-muted-foreground hover:text-primary transition-colors no-underline"
                 >
                   History
                 </Link>
               </div>
 
-              <div className="flex flex-col gap-2 my-auto py-1 min-h-0 overflow-y-auto">
+              <div className="flex flex-col gap-2.5 my-auto py-1 min-h-0 overflow-y-auto">
                 {recentSessions.length === 0 ? (
                   <div className="py-4 text-center">
                     <p className="text-xs font-semibold text-foreground">No sessions completed</p>
@@ -537,36 +549,36 @@ export default function Dashboard() {
                     return (
                       <div
                         key={id}
-                        className="flex items-center justify-between gap-2.5 rounded-2xl border border-border bg-black/5 dark:bg-white/5 p-2.5 transition-all hover:bg-black/8 dark:hover:bg-white/10"
+                        className="flex items-center justify-between gap-2.5 rounded-2xl border border-border bg-black/5 dark:bg-white/5 p-3 transition-colors hover:bg-black/8 dark:hover:bg-white/10"
                       >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-gradient-to-b from-[#0071e3] to-[#005bb5] dark:from-[#dcf0ff] dark:to-[#AFDDFF] text-white dark:text-black font-bold shadow-xs">
-                            <BrainCircuit className="h-4 w-4" />
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 shadow-xs">
+                            <Sparkles className="h-4 w-4" />
                           </div>
                           <div className="min-w-0">
-                            <p className="truncate text-xs font-bold text-foreground">{subject}</p>
-                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                            <p className="truncate text-xs font-bold text-foreground max-w-[120px] sm:max-w-[150px]">
+                              {subject}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
                               Examiner: {persona}
                             </p>
                           </div>
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0">
-                          {score != null ? (
-                            <span
-                              className={`rounded-full px-2 py-0.5 text-[10.5px] font-bold ${
-                                score >= 75
-                                  ? "bg-emerald-500/15 text-emerald-600 dark:text-[#7CE4BA] border border-emerald-500/30"
-                                  : "bg-primary/15 text-primary border border-primary/30"
-                              }`}
-                            >
-                              {score}%
-                            </span>
-                          ) : null}
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                              score != null && score >= 75
+                                ? "bg-emerald-500/15 text-emerald-600 dark:text-[#7CE4BA]"
+                                : "bg-primary/15 text-primary"
+                            }`}
+                          >
+                            {score != null ? `${score}%` : "Pending"}
+                          </span>
                           <Link
                             to="/ai-viva/session/$id"
                             params={{ id }}
-                            className="apple-glass-btn-secondary px-3 py-1.5 text-[11px] font-semibold no-underline"
+                            className="px-3.5 py-1.5 apple-glass-btn-secondary rounded-xl text-foreground text-[10px] font-bold no-underline"
                           >
                             Review
                           </Link>
@@ -578,26 +590,26 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Col 3: Weakness Radar & Instant Drills (4 cols) */}
-            <div className="flex flex-col justify-between apple-glass-card p-4 lg:col-span-4 min-h-0">
-              <div className="flex items-center justify-between pb-2 border-b border-border">
+            {/* Col 3: Weakness Radar */}
+            <div className="flex flex-col justify-between apple-glass-card rounded-[24px] p-4 sm:p-5 min-h-0">
+              <div className="flex items-center justify-between pb-2.5 border-b border-border">
                 <div className="flex items-center gap-2">
-                  <span className="grid h-6 w-6 place-items-center rounded-lg bg-rose-500/15 text-rose-500">
+                  <div className="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center text-xs shadow-xs">
                     <AlertCircle className="h-3.5 w-3.5" />
-                  </span>
-                  <h3 className="font-graphik text-xs xl:text-sm font-bold text-foreground tracking-wide">
+                  </div>
+                  <h2 className="font-graphik text-xs sm:text-sm font-bold text-foreground tracking-wide uppercase">
                     WEAKNESS RADAR
-                  </h3>
+                  </h2>
                 </div>
                 <Link
                   to="/advanced/sentiment-analysis"
-                  className="text-[11px] font-semibold text-muted-foreground hover:text-primary transition-colors no-underline"
+                  className="text-[10px] font-semibold text-muted-foreground hover:text-primary transition-colors no-underline"
                 >
                   Analytics
                 </Link>
               </div>
 
-              <div className="flex flex-col gap-2 my-auto py-1 min-h-0 overflow-y-auto">
+              <div className="flex flex-col gap-2.5 my-auto py-1 min-h-0 overflow-y-auto">
                 {weakTopics.slice(0, 2).map((item, idx) => {
                   const topicName = typeof item === "string" ? item : item.topic;
                   const avgScore =
@@ -606,20 +618,22 @@ export default function Dashboard() {
                   return (
                     <div
                       key={idx}
-                      className="flex items-center justify-between gap-2.5 rounded-2xl border border-border bg-black/5 dark:bg-white/5 p-2.5 transition-all hover:bg-black/8 dark:hover:bg-white/10"
+                      className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-black/5 dark:bg-white/5 p-3 transition-colors hover:bg-black/8 dark:hover:bg-white/10"
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-xs font-bold text-foreground">{topicName}</p>
-                        <p className="text-[10px] font-semibold text-primary mt-0.5">
-                          Avg: {avgScore}% · High Priority
+                        <p className="truncate text-xs font-bold text-foreground max-w-[140px] sm:max-w-[180px]">
+                          {topicName}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5 font-medium">
+                          Avg: {avgScore}% • High Priority
                         </p>
                       </div>
                       <button
                         onClick={() => handleQuickDrill(topicName)}
                         disabled={isStartingQuickViva === topicName}
-                        className="shrink-0 apple-glass-btn-primary px-3 py-1.5 text-[11px] font-bold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        className="shrink-0 flex items-center gap-1.5 px-4 py-2 apple-glass-btn-primary rounded-xl text-[10px] font-bold cursor-pointer disabled:opacity-50"
                       >
-                        <Play className="h-3 w-3 fill-current" />
+                        <Play className="h-2.5 w-2.5 fill-current" />
                         <span>{isStartingQuickViva === topicName ? "..." : "Drill"}</span>
                       </button>
                     </div>

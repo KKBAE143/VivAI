@@ -185,7 +185,9 @@ function Column({
       }`}
     >
       <div className="mb-3 flex items-center justify-between pb-2 border-b border-white/10">
-        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-bold font-mono ${cfg.bgBadge} ${cfg.textBadge}`}>
+        <span
+          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-bold font-mono ${cfg.bgBadge} ${cfg.textBadge}`}
+        >
           <span className={`h-1.5 w-1.5 rounded-full ${cfg.dotColor}`} />
           {cfg.label}
         </span>

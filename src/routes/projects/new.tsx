@@ -2,7 +2,13 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Check } from "lucide-react";
 import { useState } from "react";
 import { AppShell, Card, PageHeader } from "@/components/app-shell";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useRequireAuth } from "@/lib/auth-context";
 import { useCreateProject } from "@/lib/hooks";
 
@@ -86,15 +92,7 @@ function NewProject() {
                   <div
                     className={`grid h-6 w-6 place-items-center rounded-full text-xs font-semibold ${i === 0 ? "bg-primary text-primary-foreground" : "bg-black/5 dark:bg-white/10 text-muted-foreground"}`}
                   >
-                    {i === 0 ? (
-                      "1"
-                    ) : i === 1 ? (
-                      "2"
-                    ) : i === 2 ? (
-                      "3"
-                    ) : (
-                      <Check className="h-3 w-3" />
-                    )}
+                    {i === 0 ? "1" : i === 1 ? "2" : i === 2 ? "3" : <Check className="h-3 w-3" />}
                   </div>
                   <span
                     className={`text-xs font-medium truncate ${i === 0 ? "text-foreground font-bold" : "text-muted-foreground"}`}
@@ -102,7 +100,9 @@ function NewProject() {
                     {s}
                   </span>
                 </div>
-                <div className={`h-1 rounded-full ${i === 0 ? "bg-primary" : "bg-black/10 dark:bg-white/10"}`} />
+                <div
+                  className={`h-1 rounded-full ${i === 0 ? "bg-primary" : "bg-black/10 dark:bg-white/10"}`}
+                />
               </div>
             ))}
           </div>
@@ -140,7 +140,9 @@ function NewProject() {
                         className="sr-only"
                       />
                       <div className="font-bold text-xs sm:text-sm text-foreground">{p.t}</div>
-                      <div className="mt-1 text-[11px] text-muted-foreground leading-tight">{p.d}</div>
+                      <div className="mt-1 text-[11px] text-muted-foreground leading-tight">
+                        {p.d}
+                      </div>
                     </label>
                   ))}
                 </div>
