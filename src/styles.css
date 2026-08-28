@@ -66,26 +66,26 @@
 
 :root {
   --radius: 1rem;
-  /* Warm Buttercream-kissed airy background (#FAF7F2) */
-  --background: oklch(0.972 0.012 85);
-  /* Deep Espresso Slate (#1E1B18) high-contrast editorial text */
-  --foreground: oklch(0.24 0.03 50);
+  /* Warm Buttercream canvas (#FAF6EE) */
+  --background: oklch(0.975 0.012 85);
+  /* Deep Espresso Slate (#1E1916) ultra-crisp typography */
+  --foreground: oklch(0.22 0.03 50);
   /* Translucent frosted glass card surface */
-  --card: oklch(1 0 0 / 0.85);
-  --card-foreground: oklch(0.24 0.03 50);
+  --card: oklch(1 0 0 / 0.88);
+  --card-foreground: oklch(0.22 0.03 50);
   --popover: oklch(1 0 0 / 0.95);
-  --popover-foreground: oklch(0.24 0.03 50);
-  /* Canyon (#DF6D41) signature radiant CTA & brand punch */
+  --popover-foreground: oklch(0.22 0.03 50);
+  /* Canyon (#DF6D41) signature radiant CTA */
   --primary: oklch(0.63 0.16 43);
   --primary-foreground: oklch(0.99 0 0);
   --primary-soft: oklch(0.63 0.16 43 / 0.14);
-  /* Soft Buttercream (#F7D89A) tinted secondary surface */
-  --secondary: oklch(0.93 0.025 85 / 0.8);
-  --secondary-foreground: oklch(0.32 0.04 50);
+  /* Soft Buttercream (#F7D89A) secondary surface */
+  --secondary: oklch(0.93 0.025 85 / 0.85);
+  --secondary-foreground: oklch(0.3 0.04 50);
   --muted: oklch(0.94 0.01 85 / 0.7);
-  /* Morning Sky (#8DA6CC) muted typography */
+  /* Morning Sky (#8DA6CC) muted text */
   --muted-foreground: oklch(0.48 0.03 60);
-  /* Buttercream (#F7D89A) soft highlight accent */
+  /* Buttercream (#F7D89A) highlight accent */
   --accent: oklch(0.89 0.085 85 / 0.55);
   --accent-foreground: oklch(0.42 0.08 45);
   --destructive: oklch(0.6 0.22 25);
@@ -95,8 +95,8 @@
   /* Buttercream (#F7D89A) warning amber */
   --warning: oklch(0.89 0.085 85);
   /* Morning Sky (#8DA6CC) refined border */
-  --border: oklch(0.84 0.025 85 / 0.65);
-  --input: oklch(0.86 0.02 85 / 0.75);
+  --border: oklch(0.7 0.065 250 / 0.25);
+  --input: oklch(0.7 0.065 250 / 0.3);
   --ring: oklch(0.63 0.16 43);
   /* Palette charts */
   --chart-1: oklch(0.63 0.16 43); /* Canyon #DF6D41 */
@@ -109,41 +109,41 @@
   --sidebar-primary: oklch(0.63 0.16 43);
   --sidebar-primary-foreground: oklch(0.99 0 0);
   --sidebar-accent: oklch(0.93 0.025 85 / 0.8);
-  --sidebar-accent-foreground: oklch(0.24 0.03 50);
-  --sidebar-border: oklch(0.84 0.025 85 / 0.45);
+  --sidebar-accent-foreground: oklch(0.22 0.03 50);
+  --sidebar-border: oklch(0.7 0.065 250 / 0.2);
   --sidebar-ring: oklch(0.63 0.16 43);
   /* Apple specular glass dual-layer shadow with top lip reflection */
   --shadow-card:
-    0 4px 20px -2px oklch(0.24 0.03 50 / 0.06), 0 1px 3px 0 oklch(0.24 0.03 50 / 0.03),
+    0 4px 20px -2px oklch(0.22 0.03 50 / 0.06), 0 1px 3px 0 oklch(0.22 0.03 50 / 0.03),
     inset 0 1px 1px 0 oklch(1 0 0 / 0.9);
   --shadow-glass:
-    0 8px 32px -4px oklch(0.24 0.03 50 / 0.08), 0 2px 8px -1px oklch(0.24 0.03 50 / 0.04),
+    0 8px 32px -4px oklch(0.22 0.03 50 / 0.08), 0 2px 8px -1px oklch(0.22 0.03 50 / 0.04),
     inset 0 1px 1.5px 0 oklch(1 0 0 / 0.95);
   --shadow-glass-hover:
-    0 14px 40px -4px oklch(0.24 0.03 50 / 0.12), 0 4px 12px -2px oklch(0.24 0.03 50 / 0.06),
+    0 14px 40px -4px oklch(0.22 0.03 50 / 0.12), 0 4px 12px -2px oklch(0.22 0.03 50 / 0.06),
     inset 0 1px 2px 0 oklch(1 0 0 / 1);
 }
 
 .dark {
-  /* Deep Canyon Night / Rich Espresso (#1A1715) dark background */
-  --background: oklch(0.2 0.025 50);
+  /* High-contrast Midnight Slate (#10161E) background */
+  --background: oklch(0.18 0.02 245);
   /* Luminous Buttercream (#F7D89A) high-contrast text */
-  --foreground: oklch(0.95 0.015 85);
-  /* Frosted Dark Slate-Espresso glass card surface */
-  --card: oklch(0.26 0.025 50 / 0.78);
-  --card-foreground: oklch(0.95 0.015 85);
-  --popover: oklch(0.24 0.025 50 / 0.92);
-  --popover-foreground: oklch(0.95 0.015 85);
+  --foreground: oklch(0.96 0.015 85);
+  /* Frosted Midnight Slate card glass (#17202B) */
+  --card: oklch(0.24 0.028 245 / 0.78);
+  --card-foreground: oklch(0.96 0.015 85);
+  --popover: oklch(0.22 0.028 245 / 0.94);
+  --popover-foreground: oklch(0.96 0.015 85);
   /* Canyon (#DF6D41) radiant CTA */
   --primary: oklch(0.63 0.16 43);
   --primary-foreground: oklch(0.99 0 0);
   --primary-soft: oklch(0.63 0.16 43 / 0.2);
   /* Secondary dark card surface */
-  --secondary: oklch(0.3 0.03 50 / 0.7);
-  --secondary-foreground: oklch(0.95 0.015 85);
-  --muted: oklch(0.24 0.02 50 / 0.7);
+  --secondary: oklch(0.3 0.03 245 / 0.7);
+  --secondary-foreground: oklch(0.96 0.015 85);
+  --muted: oklch(0.22 0.02 245 / 0.7);
   /* Morning Sky (#8DA6CC) muted text */
-  --muted-foreground: oklch(0.72 0.035 250);
+  --muted-foreground: oklch(0.74 0.035 250);
   /* Canyon (#DF6D41) highlight glow */
   --accent: oklch(0.63 0.16 43 / 0.2);
   --accent-foreground: oklch(0.63 0.16 43);
@@ -154,20 +154,20 @@
   /* Buttercream (#F7D89A) warning amber */
   --warning: oklch(0.89 0.085 85);
   /* Morning Sky (#8DA6CC) frosted border */
-  --border: oklch(0.7 0.065 250 / 0.2);
-  --input: oklch(0.7 0.065 250 / 0.24);
+  --border: oklch(0.7 0.065 250 / 0.22);
+  --input: oklch(0.7 0.065 250 / 0.25);
   --ring: oklch(0.63 0.16 43);
   --chart-1: oklch(0.63 0.16 43); /* Canyon #DF6D41 */
   --chart-2: oklch(0.7 0.065 250); /* Morning Sky #8DA6CC */
   --chart-3: oklch(0.68 0.12 110); /* Olive Grove #AAA648 */
   --chart-4: oklch(0.89 0.085 85); /* Buttercream #F7D89A */
   --chart-5: oklch(0.65 0.22 25);
-  --sidebar: oklch(0.18 0.025 50 / 0.88);
-  --sidebar-foreground: oklch(0.72 0.035 250);
+  --sidebar: oklch(0.16 0.02 245 / 0.88);
+  --sidebar-foreground: oklch(0.74 0.035 250);
   --sidebar-primary: oklch(0.63 0.16 43);
   --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.28 0.025 50 / 0.75);
-  --sidebar-accent-foreground: oklch(0.95 0.015 85);
+  --sidebar-accent: oklch(0.26 0.028 245 / 0.75);
+  --sidebar-accent-foreground: oklch(0.96 0.015 85);
   --sidebar-border: oklch(0.7 0.065 250 / 0.16);
   --sidebar-ring: oklch(0.63 0.16 43);
   /* Apple specular dark glass dual-layer shadow */

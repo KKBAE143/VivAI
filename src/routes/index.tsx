@@ -332,83 +332,83 @@ export default function Dashboard() {
 
             {/* AI Action Launchpad (7 cols, 3 cards) */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:col-span-7 min-h-0 items-stretch">
-              {/* Card 1: AI Mock Viva */}
+              {/* Card 1: AI Mock Viva (Canyon #DF6D41) */}
               <Link
                 to="/ai-viva/new"
-                className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 backdrop-blur-2xl shadow-[var(--shadow-glass)] transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-[var(--shadow-glass-hover)]"
+                className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 backdrop-blur-2xl shadow-[var(--shadow-glass)] transition-all hover:-translate-y-0.5 hover:border-[#DF6D41]/60 hover:shadow-[var(--shadow-glass-hover)]"
               >
                 <div>
                   <div className="flex items-center justify-between">
-                    <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary/15 text-primary group-hover:scale-105 transition-transform">
+                    <div className="grid h-9 w-9 place-items-center rounded-xl bg-[#DF6D41]/15 text-[#DF6D41] group-hover:scale-105 transition-transform">
                       <BrainCircuit className="h-4.5 w-4.5" />
                     </div>
-                    <span className="rounded-full bg-secondary/80 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                    <span className="rounded-full bg-[#DF6D41]/10 border border-[#DF6D41]/20 px-2 py-0.5 text-[10px] font-bold text-[#DF6D41]">
                       {vivaStats?.total_sessions ?? dashStats?.viva_sessions ?? 0} Vivas
                     </span>
                   </div>
-                  <h3 className="mt-2.5 text-xs xl:text-sm font-bold text-foreground group-hover:text-primary transition-colors">
+                  <h3 className="mt-2.5 text-xs xl:text-sm font-bold text-foreground group-hover:text-[#DF6D41] transition-colors">
                     AI Mock Viva
                   </h3>
                   <p className="mt-1 text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
                     Practice oral defense with Strict, Balanced, or Friendly AI professors.
                   </p>
                 </div>
-                <div className="mt-2 flex items-center gap-1 text-[11px] font-bold text-primary">
+                <div className="mt-2 flex items-center gap-1 text-[11px] font-bold text-[#DF6D41]">
                   <span>Start Mock Session</span>
                   <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
                 </div>
               </Link>
 
-              {/* Card 2: Slide & Presentation */}
+              {/* Card 2: Slide & Presentation (Morning Sky #8DA6CC) */}
               <Link
                 to="/ai-presentation"
-                className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 backdrop-blur-2xl shadow-[var(--shadow-glass)] transition-all hover:-translate-y-0.5 hover:border-purple-500/50 hover:shadow-[var(--shadow-glass-hover)]"
+                className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 backdrop-blur-2xl shadow-[var(--shadow-glass)] transition-all hover:-translate-y-0.5 hover:border-[#8DA6CC]/60 hover:shadow-[var(--shadow-glass-hover)]"
               >
                 <div>
                   <div className="flex items-center justify-between">
-                    <div className="grid h-9 w-9 place-items-center rounded-xl bg-purple-500/15 text-purple-500 group-hover:scale-105 transition-transform">
+                    <div className="grid h-9 w-9 place-items-center rounded-xl bg-[#8DA6CC]/20 text-[#8DA6CC] group-hover:scale-105 transition-transform">
                       <MonitorSmartphone className="h-4.5 w-4.5" />
                     </div>
-                    <span className="rounded-full bg-secondary/80 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                    <span className="rounded-full bg-[#8DA6CC]/15 border border-[#8DA6CC]/25 px-2 py-0.5 text-[10px] font-bold text-[#8DA6CC]">
                       {dashStats?.presentation_sessions ?? 0} Pitches
                     </span>
                   </div>
-                  <h3 className="mt-2.5 text-xs xl:text-sm font-bold text-foreground group-hover:text-purple-500 transition-colors">
+                  <h3 className="mt-2.5 text-xs xl:text-sm font-bold text-foreground group-hover:text-[#8DA6CC] transition-colors">
                     Presentation Mock
                   </h3>
                   <p className="mt-1 text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
                     Upload slides, practice project demos, and get anticipated questions.
                   </p>
                 </div>
-                <div className="mt-2 flex items-center gap-1 text-[11px] font-bold text-purple-500 dark:text-purple-400">
+                <div className="mt-2 flex items-center gap-1 text-[11px] font-bold text-[#8DA6CC]">
                   <span>Open Presentation Hub</span>
                   <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
                 </div>
               </Link>
 
-              {/* Card 3: Live Voice Coach */}
+              {/* Card 3: Live Voice Coach (Olive Grove #AAA648) */}
               <Link
                 to="/advanced/sentiment-analysis"
-                className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 backdrop-blur-2xl shadow-[var(--shadow-glass)] transition-all hover:-translate-y-0.5 hover:border-emerald-500/50 hover:shadow-[var(--shadow-glass-hover)]"
+                className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 backdrop-blur-2xl shadow-[var(--shadow-glass)] transition-all hover:-translate-y-0.5 hover:border-[#AAA648]/60 hover:shadow-[var(--shadow-glass-hover)]"
               >
                 <div>
                   <div className="flex items-center justify-between">
-                    <div className="grid h-9 w-9 place-items-center rounded-xl bg-emerald-500/15 text-emerald-500 group-hover:scale-105 transition-transform">
+                    <div className="grid h-9 w-9 place-items-center rounded-xl bg-[#AAA648]/20 text-[#AAA648] group-hover:scale-105 transition-transform">
                       <Video className="h-4.5 w-4.5" />
                     </div>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#AAA648]/15 border border-[#AAA648]/25 px-2 py-0.5 text-[10px] font-bold text-[#AAA648]">
+                      <span className="h-1.5 w-1.5 rounded-full bg-[#AAA648] animate-ping" />
                       Live Voice
                     </span>
                   </div>
-                  <h3 className="mt-2.5 text-xs xl:text-sm font-bold text-foreground group-hover:text-emerald-500 transition-colors">
+                  <h3 className="mt-2.5 text-xs xl:text-sm font-bold text-foreground group-hover:text-[#AAA648] transition-colors">
                     Live Defense Coach
                   </h3>
                   <p className="mt-1 text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
                     Real-time speech analytics, pace (WPM), clarity, and filler ratio.
                   </p>
                 </div>
-                <div className="mt-2 flex items-center gap-1 text-[11px] font-bold text-emerald-500 dark:text-emerald-400">
+                <div className="mt-2 flex items-center gap-1 text-[11px] font-bold text-[#AAA648]">
                   <span>Enter Live Coach</span>
                   <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
                 </div>
@@ -422,14 +422,14 @@ export default function Dashboard() {
             <div className="flex flex-col justify-between rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 xl:p-4 backdrop-blur-2xl shadow-[var(--shadow-glass)] lg:col-span-4 min-h-0">
               <div className="flex items-center justify-between pb-2 border-b border-border/30">
                 <div className="flex items-center gap-2">
-                  <span className="grid h-6 w-6 place-items-center rounded-lg bg-primary/15 text-primary">
+                  <span className="grid h-6 w-6 place-items-center rounded-lg bg-[#8DA6CC]/20 text-[#8DA6CC]">
                     <FolderKanban className="h-3.5 w-3.5" />
                   </span>
                   <h3 className="text-xs xl:text-sm font-bold text-foreground">Active Projects</h3>
                 </div>
                 <Link
                   to="/projects"
-                  className="text-[10.5px] font-semibold text-muted-foreground hover:text-primary transition-colors"
+                  className="text-[10.5px] font-semibold text-muted-foreground hover:text-[#8DA6CC] transition-colors"
                 >
                   View All ({allProjects.length})
                 </Link>
@@ -441,7 +441,7 @@ export default function Dashboard() {
                     <p className="text-xs font-semibold text-foreground">No projects yet</p>
                     <Link
                       to="/projects/new"
-                      className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-primary"
+                      className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[#DF6D41]"
                     >
                       <Plus className="h-3 w-3" /> Create Project
                     </Link>
@@ -459,7 +459,7 @@ export default function Dashboard() {
                         className="flex items-center justify-between gap-2.5 rounded-xl border border-border/30 bg-background/50 p-2.5 transition-all hover:bg-background/80"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary/15 font-bold text-xs text-primary">
+                          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#8DA6CC]/15 font-bold text-xs text-[#8DA6CC]">
                             {title.charAt(0).toUpperCase()}
                           </div>
                           <div className="min-w-0">
@@ -467,7 +467,7 @@ export default function Dashboard() {
                               <Link
                                 to="/projects/$id"
                                 params={{ id }}
-                                className="truncate text-xs font-bold text-foreground hover:text-primary transition-colors"
+                                className="truncate text-xs font-bold text-foreground hover:text-[#8DA6CC] transition-colors"
                               >
                                 {title}
                               </Link>
@@ -490,7 +490,7 @@ export default function Dashboard() {
                         <button
                           onClick={() => handleQuickDrill(undefined, id)}
                           disabled={isStartingQuickViva === id}
-                          className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-secondary px-2.5 py-1 text-[11px] font-semibold text-foreground hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer"
+                          className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-secondary px-2.5 py-1 text-[11px] font-semibold text-foreground hover:bg-[#DF6D41] hover:text-white transition-colors cursor-pointer"
                         >
                           <BrainCircuit className="h-3 w-3" />
                           <span>Defend</span>
@@ -506,14 +506,14 @@ export default function Dashboard() {
             <div className="flex flex-col justify-between rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 xl:p-4 backdrop-blur-2xl shadow-[var(--shadow-glass)] lg:col-span-4 min-h-0">
               <div className="flex items-center justify-between pb-2 border-b border-border/30">
                 <div className="flex items-center gap-2">
-                  <span className="grid h-6 w-6 place-items-center rounded-lg bg-emerald-500/15 text-emerald-500">
+                  <span className="grid h-6 w-6 place-items-center rounded-lg bg-[#AAA648]/20 text-[#AAA648]">
                     <Clock className="h-3.5 w-3.5" />
                   </span>
                   <h3 className="text-xs xl:text-sm font-bold text-foreground">Recent Sessions</h3>
                 </div>
                 <Link
                   to="/ai-viva"
-                  className="text-[10.5px] font-semibold text-muted-foreground hover:text-primary transition-colors"
+                  className="text-[10.5px] font-semibold text-muted-foreground hover:text-[#AAA648] transition-colors"
                 >
                   History
                 </Link>
@@ -525,7 +525,7 @@ export default function Dashboard() {
                     <p className="text-xs font-semibold text-foreground">No sessions completed</p>
                     <Link
                       to="/ai-viva/new"
-                      className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-primary"
+                      className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[#DF6D41]"
                     >
                       <Play className="h-3 w-3 fill-current" /> Start First Viva
                     </Link>
@@ -543,7 +543,7 @@ export default function Dashboard() {
                         className="flex items-center justify-between gap-2.5 rounded-xl border border-border/30 bg-background/50 p-2.5 transition-all hover:bg-background/80"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-emerald-500/15 text-emerald-500 font-bold">
+                          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#AAA648]/15 text-[#AAA648] font-bold">
                             <BrainCircuit className="h-4 w-4" />
                           </div>
                           <div className="min-w-0">
@@ -559,8 +559,8 @@ export default function Dashboard() {
                             <span
                               className={`rounded-md px-2 py-0.5 text-[10.5px] font-bold ${
                                 score >= 75
-                                  ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                                  : "bg-primary/15 text-primary"
+                                  ? "bg-[#AAA648]/20 text-[#AAA648]"
+                                  : "bg-[#DF6D41]/15 text-[#DF6D41]"
                               }`}
                             >
                               {score}%
@@ -585,14 +585,14 @@ export default function Dashboard() {
             <div className="flex flex-col justify-between rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 xl:p-4 backdrop-blur-2xl shadow-[var(--shadow-glass)] lg:col-span-4 min-h-0">
               <div className="flex items-center justify-between pb-2 border-b border-border/30">
                 <div className="flex items-center gap-2">
-                  <span className="grid h-6 w-6 place-items-center rounded-lg bg-rose-500/15 text-rose-500">
+                  <span className="grid h-6 w-6 place-items-center rounded-lg bg-[#DF6D41]/15 text-[#DF6D41]">
                     <AlertCircle className="h-3.5 w-3.5" />
                   </span>
                   <h3 className="text-xs xl:text-sm font-bold text-foreground">Weakness Radar</h3>
                 </div>
                 <Link
                   to="/weakness-heatmap"
-                  className="text-[10.5px] font-semibold text-muted-foreground hover:text-primary transition-colors"
+                  className="text-[10.5px] font-semibold text-muted-foreground hover:text-[#DF6D41] transition-colors"
                 >
                   Heatmap
                 </Link>
@@ -611,14 +611,14 @@ export default function Dashboard() {
                     >
                       <div className="min-w-0">
                         <p className="truncate text-xs font-bold text-foreground">{topicName}</p>
-                        <p className="text-[10px] font-semibold text-rose-500 dark:text-rose-400 mt-0.5">
+                        <p className="text-[10px] font-semibold text-[#DF6D41] mt-0.5">
                           Avg: {avgScore}% · High Priority
                         </p>
                       </div>
                       <button
                         onClick={() => handleQuickDrill(topicName)}
                         disabled={isStartingQuickViva === topicName}
-                        className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-primary/15 px-2.5 py-1 text-[11px] font-bold text-primary hover:bg-primary hover:text-primary-foreground transition-all cursor-pointer disabled:opacity-50"
+                        className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-[#DF6D41]/15 px-2.5 py-1 text-[11px] font-bold text-[#DF6D41] hover:bg-[#DF6D41] hover:text-white transition-all cursor-pointer disabled:opacity-50"
                       >
                         <Play className="h-2.5 w-2.5 fill-current" />
                         <span>{isStartingQuickViva === topicName ? "..." : "Drill"}</span>

@@ -9,14 +9,14 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VerifyParentalRouteImport } from './routes/verify-parental'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ReadinessRouteImport } from './routes/readiness'
 import { Route as ProgressRouteImport } from './routes/progress'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PrivacyRouteImport } from './routes/privacy'
-import { Route as TermsRouteImport } from './routes/terms'
-import { Route as VerifyParentalRouteImport } from './routes/verify-parental'
 import { Route as PitchDrillRouteImport } from './routes/pitch-drill'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LoginRouteImport } from './routes/login'
@@ -47,6 +47,16 @@ import { Route as AiPresentationSessionIdRouteImport } from './routes/ai-present
 import { Route as AdvancedVivaTeamJoinJoinCodeRouteImport } from './routes/advanced/viva-team_.join.$joinCode'
 import { Route as AdvancedVivaCodeAwareSessionIdRouteImport } from './routes/advanced/viva-code-aware_.session.$id'
 
+const VerifyParentalRoute = VerifyParentalRouteImport.update({
+  id: '/verify-parental',
+  path: '/verify-parental',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
@@ -75,16 +85,6 @@ const ProfileRoute = ProfileRouteImport.update({
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TermsRoute = TermsRouteImport.update({
-  id: '/terms',
-  path: '/terms',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const VerifyParentalRoute = VerifyParentalRouteImport.update({
-  id: '/verify-parental',
-  path: '/verify-parental',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PitchDrillRoute = PitchDrillRouteImport.update({
@@ -246,13 +246,13 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/pitch-drill': typeof PitchDrillRoute
   '/privacy': typeof PrivacyRoute
-  '/terms': typeof TermsRoute
-  '/verify-parental': typeof VerifyParentalRoute
   '/profile': typeof ProfileRoute
   '/progress': typeof ProgressRoute
   '/readiness': typeof ReadinessRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/terms': typeof TermsRoute
+  '/verify-parental': typeof VerifyParentalRoute
   '/advanced/sentiment-analysis': typeof AdvancedSentimentAnalysisRoute
   '/advanced/viva-code-aware': typeof AdvancedVivaCodeAwareRoute
   '/advanced/viva-team': typeof AdvancedVivaTeamRoute
@@ -285,13 +285,13 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/pitch-drill': typeof PitchDrillRoute
   '/privacy': typeof PrivacyRoute
-  '/terms': typeof TermsRoute
-  '/verify-parental': typeof VerifyParentalRoute
   '/profile': typeof ProfileRoute
   '/progress': typeof ProgressRoute
   '/readiness': typeof ReadinessRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/terms': typeof TermsRoute
+  '/verify-parental': typeof VerifyParentalRoute
   '/advanced/sentiment-analysis': typeof AdvancedSentimentAnalysisRoute
   '/advanced/viva-code-aware': typeof AdvancedVivaCodeAwareRoute
   '/advanced/viva-team': typeof AdvancedVivaTeamRoute
@@ -325,13 +325,13 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/pitch-drill': typeof PitchDrillRoute
   '/privacy': typeof PrivacyRoute
-  '/terms': typeof TermsRoute
-  '/verify-parental': typeof VerifyParentalRoute
   '/profile': typeof ProfileRoute
   '/progress': typeof ProgressRoute
   '/readiness': typeof ReadinessRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/terms': typeof TermsRoute
+  '/verify-parental': typeof VerifyParentalRoute
   '/advanced/sentiment-analysis': typeof AdvancedSentimentAnalysisRoute
   '/advanced/viva-code-aware': typeof AdvancedVivaCodeAwareRoute
   '/advanced/viva-team': typeof AdvancedVivaTeamRoute
@@ -366,13 +366,13 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/pitch-drill'
     | '/privacy'
-    | '/terms'
-    | '/verify-parental'
     | '/profile'
     | '/progress'
     | '/readiness'
     | '/reset-password'
     | '/signup'
+    | '/terms'
+    | '/verify-parental'
     | '/advanced/sentiment-analysis'
     | '/advanced/viva-code-aware'
     | '/advanced/viva-team'
@@ -405,13 +405,13 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/pitch-drill'
     | '/privacy'
-    | '/terms'
-    | '/verify-parental'
     | '/profile'
     | '/progress'
     | '/readiness'
     | '/reset-password'
     | '/signup'
+    | '/terms'
+    | '/verify-parental'
     | '/advanced/sentiment-analysis'
     | '/advanced/viva-code-aware'
     | '/advanced/viva-team'
@@ -444,13 +444,13 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/pitch-drill'
     | '/privacy'
-    | '/terms'
-    | '/verify-parental'
     | '/profile'
     | '/progress'
     | '/readiness'
     | '/reset-password'
     | '/signup'
+    | '/terms'
+    | '/verify-parental'
     | '/advanced/sentiment-analysis'
     | '/advanced/viva-code-aware'
     | '/advanced/viva-team'
@@ -484,13 +484,13 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   PitchDrillRoute: typeof PitchDrillRoute
   PrivacyRoute: typeof PrivacyRoute
-  TermsRoute: typeof TermsRoute
-  VerifyParentalRoute: typeof VerifyParentalRoute
   ProfileRoute: typeof ProfileRoute
   ProgressRoute: typeof ProgressRoute
   ReadinessRoute: typeof ReadinessRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  TermsRoute: typeof TermsRoute
+  VerifyParentalRoute: typeof VerifyParentalRoute
   AdvancedSentimentAnalysisRoute: typeof AdvancedSentimentAnalysisRoute
   AdvancedVivaCodeAwareRoute: typeof AdvancedVivaCodeAwareRoute
   AdvancedVivaTeamRoute: typeof AdvancedVivaTeamRoute
@@ -516,6 +516,20 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/verify-parental': {
+      id: '/verify-parental'
+      path: '/verify-parental'
+      fullPath: '/verify-parental'
+      preLoaderRoute: typeof VerifyParentalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
@@ -556,20 +570,6 @@ declare module '@tanstack/react-router' {
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/terms': {
-      id: '/terms'
-      path: '/terms'
-      fullPath: '/terms'
-      preLoaderRoute: typeof TermsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/verify-parental': {
-      id: '/verify-parental'
-      path: '/verify-parental'
-      fullPath: '/verify-parental'
-      preLoaderRoute: typeof VerifyParentalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pitch-drill': {
@@ -788,13 +788,13 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   PitchDrillRoute: PitchDrillRoute,
   PrivacyRoute: PrivacyRoute,
-  TermsRoute: TermsRoute,
-  VerifyParentalRoute: VerifyParentalRoute,
   ProfileRoute: ProfileRoute,
   ProgressRoute: ProgressRoute,
   ReadinessRoute: ReadinessRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  TermsRoute: TermsRoute,
+  VerifyParentalRoute: VerifyParentalRoute,
   AdvancedSentimentAnalysisRoute: AdvancedSentimentAnalysisRoute,
   AdvancedVivaCodeAwareRoute: AdvancedVivaCodeAwareRoute,
   AdvancedVivaTeamRoute: AdvancedVivaTeamRoute,
