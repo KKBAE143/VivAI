@@ -90,7 +90,7 @@ export function AppShell({
       {/* Atmospheric ambient light mesh */}
       <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
         <div className="absolute -top-40 right-[-10%] h-[550px] w-[550px] rounded-full bg-primary/10 blur-[130px] dark:bg-primary/15" />
-        <div className="absolute top-[35%] -left-32 h-[500px] w-[500px] rounded-full bg-[oklch(0.772_0.024_205/0.12)] blur-[140px] dark:bg-[oklch(0.35_0.035_208/0.4)]" />
+        <div className="absolute top-[35%] -left-32 h-[500px] w-[500px] rounded-full bg-[oklch(0.428_0.052_215/0.12)] blur-[140px] dark:bg-[oklch(0.35_0.045_215/0.4)]" />
         <div className="absolute -bottom-40 right-[20%] h-[600px] w-[600px] rounded-full bg-primary/8 blur-[150px] dark:bg-primary/10" />
       </div>
       <div
@@ -339,7 +339,7 @@ function MobileNav({ onOpenMenu }: { onOpenMenu: () => void }) {
     { to: "/", icon: LayoutDashboard, label: "Home" },
     { to: "/ai-viva", icon: BrainCircuit, label: "Viva" },
     { to: "/ai-presentation", icon: MonitorSmartphone, label: "Slides" },
-    { to: "/readiness", icon: Gauge, label: "DRS" },
+    { to: "/advanced/sentiment-analysis", icon: Video, label: "Coach" },
     { to: "/projects", icon: FolderKanban, label: "Projects" },
   ];
   return (

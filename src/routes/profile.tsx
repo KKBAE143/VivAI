@@ -29,6 +29,8 @@ export const Route = createFileRoute("/profile")({
   component: Profile,
 });
 
+type Tab = "profile" | "readiness" | "danger";
+
 function Profile() {
   useRequireAuth();
   const { data: profile, isLoading, error, refetch } = useProfile();
@@ -36,6 +38,7 @@ function Profile() {
   const { logout } = useAuth();
   const navigate = useNavigate();
 
+  const [activeTab, setActiveTab] = useState<Tab>("profile");
   const [fullName, setFullName] = useState("");
   const [college, setCollege] = useState("");
   const [branch, setBranch] = useState("");
@@ -88,21 +91,22 @@ function Profile() {
 
   if (isLoading) {
     return (
-      <AppShell>
-        <PageHeader
-          title="Profile & Settings"
-          subtitle="Manage your account, preferences, and notifications."
-        />
-        <div className="grid gap-5 lg:grid-cols-[280px_1fr]">
-          <CardSkeleton className="h-72" />
-          <CardSkeleton className="h-96" />
+      <AppShell fitViewport hideTopBar>
+        <div className="flex flex-col gap-3 lg:gap-3.5 h-full">
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Profile & Settings</h1>
+          </div>
+          <div className="grid gap-3 lg:grid-cols-[240px_1fr] flex-1 min-h-0">
+            <CardSkeleton className="h-full" />
+            <CardSkeleton className="h-full" />
+          </div>
         </div>
       </AppShell>
     );
   }
   if (error) {
     return (
-      <AppShell>
+      <AppShell fitViewport hideTopBar>
         <ErrorState
           message={error instanceof Error ? error.message : "Could not load your profile"}
           onRetry={() => void refetch()}
@@ -112,137 +116,186 @@ function Profile() {
   }
 
   return (
-    <AppShell>
-      <PageHeader
-        title="Profile & Settings"
-        subtitle="Manage your account, preferences, and notifications."
-      />
-      <div className="grid gap-5 lg:grid-cols-[280px_1fr]">
-        <Card className="h-fit">
-          <div className="flex flex-col items-center text-center">
-            <div className="relative">
-              <div className="grid h-24 w-24 place-items-center rounded-2xl bg-primary text-2xl font-bold text-primary-foreground">
-                {initials}
-              </div>
-              <button className="absolute -bottom-2 -right-2 grid h-9 w-9 place-items-center rounded-xl bg-card text-foreground shadow-[var(--shadow-card)]">
-                <Camera className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="mt-4 text-lg font-bold">{String(profile?.full_name ?? "Student")}</div>
-            <div className="text-xs text-muted-foreground">{String(profile?.email ?? "")}</div>
-            <Badge tone="primary">
-              {[
-                profile?.year ? `${String(profile.year)} Year` : null,
-                profile?.branch ? String(profile.branch) : null,
-              ]
-                .filter(Boolean)
-                .join(" · ") || "Set up your profile"}
-            </Badge>
+    <AppShell fitViewport hideTopBar>
+      <div className="flex flex-col gap-3 lg:gap-3.5 h-full">
+        {/* Integrated Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+              Profile & Settings
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              Manage your personal information, academic details, and preferences.
+            </p>
           </div>
-          <div className="mt-5 space-y-2 text-sm">
-            {[
-              { l: "Profile", i: Sparkles, active: true },
-              { l: "Account", i: Lock },
-              { l: "Notifications", i: Bell },
-              { l: "Preferences", i: Globe },
-            ].map((t) => {
-              const I = t.i;
-              return (
-                <button
-                  key={t.l}
-                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium ${
-                    t.active
-                      ? "bg-secondary text-foreground"
-                      : "text-muted-foreground hover:bg-secondary/60"
-                  }`}
-                >
-                  <I className="h-4 w-4" /> {t.l}
-                </button>
-              );
-            })}
+        </div>
+
+        {/* 2-Column Split: Nav & Content */}
+        <div className="grid gap-3 lg:grid-cols-[240px_1fr] flex-1 min-h-0">
+          {/* Left User & Tab Navigation Card */}
+          <Card className="p-4 flex flex-col justify-between">
+            <div>
+              <div className="flex flex-col items-center text-center">
+                <div className="relative">
+                  <div className="grid h-16 w-16 place-items-center rounded-2xl bg-primary text-xl font-bold text-primary-foreground shadow-sm">
+                    {initials}
+                  </div>
+                </div>
+                <div className="mt-2.5 text-sm font-bold truncate max-w-[200px]">
+                  {String(profile?.full_name ?? "Student")}
+                </div>
+                <div className="text-[11px] text-muted-foreground truncate max-w-[200px]">
+                  {String(profile?.email ?? "")}
+                </div>
+                <div className="mt-1.5">
+                  <Badge tone="primary">
+                    {[
+                      profile?.year ? `${String(profile.year)} Yr` : null,
+                      profile?.branch ? String(profile.branch) : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ") || "Student"}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-1">
+                {[
+                  { id: "profile" as Tab, label: "Profile Info", icon: Sparkles },
+                  { id: "readiness" as Tab, label: "Readiness Model", icon: Gauge },
+                  { id: "danger" as Tab, label: "Privacy & Data", icon: AlertTriangle },
+                ].map((t) => {
+                  const I = t.icon;
+                  const active = activeTab === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => setActiveTab(t.id)}
+                      className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
+                        active
+                          ? "bg-primary text-primary-foreground font-semibold"
+                          : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+                      }`}
+                    >
+                      <I className="h-3.5 w-3.5" /> {t.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <button
               onClick={signOut}
-              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/10"
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-xs font-semibold text-destructive hover:bg-destructive/20 transition-colors"
             >
-              <LogOut className="h-4 w-4" /> Sign Out
+              <LogOut className="h-3.5 w-3.5" /> Sign Out
             </button>
-          </div>
-        </Card>
-        <Card>
-          <h3 className="text-lg font-semibold">Profile Information</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Update your personal details and academic info.
-          </p>
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            <Field label="Full Name" value={fullName} onChange={setFullName} />
-            <Field
-              label="Email"
-              value={String(profile?.email ?? "")}
-              onChange={() => undefined}
-              disabled
-            />
-            <Field label="College Name" value={college} onChange={setCollege} />
-            <Field label="Branch" value={branch} onChange={setBranch} />
-            <Field label="Year of Study" value={year} onChange={setYear} />
-            <Field label="Roll Number" value={rollNumber} onChange={setRollNumber} />
-          </div>
-          <div className="mt-5">
-            <span className="mb-1.5 block text-sm font-medium">Bio</span>
-            <textarea
-              rows={3}
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-            />
-          </div>
-          {saveError && <p className="mt-3 text-sm text-destructive">{saveError}</p>}
-          {saved && <p className="mt-3 text-sm text-success">Profile saved.</p>}
-          <div className="mt-6 flex flex-wrap justify-end gap-3">
-            <button
-              onClick={() => void refetch()}
-              className="rounded-xl bg-secondary px-4 py-2.5 text-sm font-medium"
-            >
-              Cancel
-            </button>
-            <button
-              disabled={updateProfile.isPending}
-              onClick={() => void handleSave()}
-              className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"
-            >
-              {updateProfile.isPending ? "Saving…" : "Save Changes"}
-            </button>
-          </div>
-        </Card>
+          </Card>
+
+          {/* Right Main Content Card */}
+          <Card className="p-4 sm:p-5 flex flex-col justify-between overflow-y-auto">
+            {activeTab === "profile" && (
+              <div className="flex flex-col justify-between h-full">
+                <div>
+                  <div className="flex items-center justify-between pb-3 border-b border-border/40">
+                    <div>
+                      <h3 className="text-sm font-semibold">Profile Information</h3>
+                      <p className="text-xs text-muted-foreground">
+                        Update your personal details and academic info.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3.5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <Field label="Full Name" value={fullName} onChange={setFullName} />
+                    <Field
+                      label="Email"
+                      value={String(profile?.email ?? "")}
+                      onChange={() => undefined}
+                      disabled
+                    />
+                    <Field label="College Name" value={college} onChange={setCollege} />
+                    <Field label="Branch" value={branch} onChange={setBranch} />
+                    <Field label="Year of Study" value={year} onChange={setYear} />
+                    <Field label="Roll Number" value={rollNumber} onChange={setRollNumber} />
+                  </div>
+
+                  <div className="mt-3">
+                    <span className="mb-1 block text-xs font-medium">Bio</span>
+                    <textarea
+                      rows={2}
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value)}
+                      placeholder="Brief note about your academic interests or goals…"
+                      className="w-full rounded-lg border border-border bg-card px-3 py-2 text-xs focus:border-primary focus:outline-none"
+                    />
+                  </div>
+                  {saveError && <p className="mt-2 text-xs text-destructive">{saveError}</p>}
+                  {saved && (
+                    <p className="mt-2 text-xs text-success font-medium">
+                      Profile saved successfully.
+                    </p>
+                  )}
+                </div>
+
+                <div className="mt-4 flex justify-end gap-2 pt-3 border-t border-border/40">
+                  <button
+                    onClick={() => void refetch()}
+                    className="rounded-lg bg-secondary px-3.5 py-1.5 text-xs font-medium hover:bg-secondary/80"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    disabled={updateProfile.isPending}
+                    onClick={() => void handleSave()}
+                    className="rounded-lg bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50 hover:opacity-95"
+                  >
+                    {updateProfile.isPending ? "Saving…" : "Save Changes"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "readiness" && (
+              <div className="flex flex-col justify-between h-full">
+                <div>
+                  <div className="flex items-center gap-2 pb-3 border-b border-border/40">
+                    <Gauge className="h-4 w-4 text-primary" />
+                    <div>
+                      <h3 className="text-sm font-semibold">Readiness Model Preference</h3>
+                      <p className="text-xs text-muted-foreground">
+                        Choose how your Defense Readiness Score is calculated.
+                      </p>
+                    </div>
+                  </div>
+                  <DrsModelSelector currentModel={String(profile?.drs_model ?? "v1")} />
+                </div>
+              </div>
+            )}
+
+            {activeTab === "danger" && (
+              <div className="flex flex-col justify-between h-full">
+                <div>
+                  <div className="flex items-center gap-2 pb-3 border-b border-border/40">
+                    <AlertTriangle className="h-4 w-4 text-destructive" />
+                    <div>
+                      <h3 className="text-sm font-semibold text-destructive">
+                        Privacy & Data Controls
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        Permanently erase all your sessions, transcripts, uploads, and scores.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <DeleteDataButton />
+                  </div>
+                </div>
+              </div>
+            )}
+          </Card>
+        </div>
       </div>
-
-      {/* Readiness Model Preferences */}
-      <Card className="mt-5">
-        <div className="flex items-start gap-3">
-          <Gauge className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-          <div className="flex-1">
-            <h3 className="font-semibold">Readiness Model</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Choose how your Defense Readiness Score is calculated.
-            </p>
-            <DrsModelSelector currentModel={String(profile?.drs_model ?? "v1")} />
-          </div>
-        </div>
-      </Card>
-
-      {/* Danger Zone */}
-      <Card className="mt-5 border-destructive/20">
-        <div className="flex items-start gap-3">
-          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
-          <div className="flex-1">
-            <h3 className="font-semibold text-destructive">Danger Zone</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Permanently erase all your sessions, transcripts, uploads, and scores. This action
-              cannot be undone.
-            </p>
-            <DeleteDataButton />
-          </div>
-        </div>
-      </Card>
     </AppShell>
   );
 }
@@ -260,12 +313,12 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-sm font-medium">{label}</span>
+      <span className="mb-1 block text-xs font-medium text-foreground">{label}</span>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
-        className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm disabled:bg-secondary disabled:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+        className="w-full rounded-lg border border-border bg-card px-3 py-1.5 text-xs disabled:bg-secondary disabled:text-muted-foreground focus:border-primary focus:outline-none"
       />
     </label>
   );

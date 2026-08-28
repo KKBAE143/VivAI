@@ -190,7 +190,7 @@ export default function Dashboard() {
           {/* Top Bar / Integrated Header (Compact) */}
           <div className="flex shrink-0 items-center justify-between gap-3 rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 px-4 py-2.5 backdrop-blur-2xl shadow-[var(--shadow-glass)]">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-tr from-primary to-amber-400 text-sm font-black text-primary-foreground shadow-xs">
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-tr from-primary to-[#FF7A29] text-sm font-black text-primary-foreground shadow-xs">
                 {firstName.charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0">
@@ -285,7 +285,7 @@ export default function Dashboard() {
                 </div>
                 <div className="flex flex-col gap-2 min-w-0">
                   <div>
-                    <span className="inline-block rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary dark:text-amber-300">
+                    <span className="inline-block rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">
                       {readinessLabel}
                     </span>
                     <p className="text-[11px] text-muted-foreground mt-1 line-clamp-1">
@@ -560,7 +560,7 @@ export default function Dashboard() {
                               className={`rounded-md px-2 py-0.5 text-[10.5px] font-bold ${
                                 score >= 75
                                   ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                                  : "bg-primary/15 text-primary dark:text-amber-400"
+                                  : "bg-primary/15 text-primary"
                               }`}
                             >
                               {score}%
@@ -618,7 +618,7 @@ export default function Dashboard() {
                       <button
                         onClick={() => handleQuickDrill(topicName)}
                         disabled={isStartingQuickViva === topicName}
-                        className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-primary/15 px-2.5 py-1 text-[11px] font-bold text-primary dark:text-amber-400 hover:bg-primary hover:text-primary-foreground transition-all cursor-pointer disabled:opacity-50"
+                        className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-primary/15 px-2.5 py-1 text-[11px] font-bold text-primary hover:bg-primary hover:text-primary-foreground transition-all cursor-pointer disabled:opacity-50"
                       >
                         <Play className="h-2.5 w-2.5 fill-current" />
                         <span>{isStartingQuickViva === topicName ? "..." : "Drill"}</span>

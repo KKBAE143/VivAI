@@ -24,7 +24,7 @@ function readRecoveryToken(): string {
 
 function GreekMeanderFrieze() {
   return (
-    <div className="w-full flex items-center justify-center overflow-hidden opacity-50 text-[#D4A346] pb-3 border-b border-[#D4A346]/20">
+    <div className="w-full flex items-center justify-center overflow-hidden opacity-60 text-[#E9631A] pb-3 border-b border-[#E9631A]/20">
       <svg
         className="w-full h-3 max-w-[320px]"
         viewBox="0 0 320 12"
@@ -83,7 +83,7 @@ function ResetPassword() {
 
   return (
     <div
-      className="relative min-h-screen w-full bg-[#070D0E] bg-cover bg-center bg-no-repeat flex items-center justify-center p-4 sm:p-6 lg:p-12 overflow-x-hidden"
+      className="relative min-h-screen w-full bg-[#0E1B1F] bg-cover bg-center bg-no-repeat flex items-center justify-center p-4 sm:p-6 lg:p-12 overflow-x-hidden"
       style={{ backgroundImage: `url(${loginBg})` }}
     >
       {/* Dark vignette overlay */}
@@ -93,11 +93,11 @@ function ResetPassword() {
       />
 
       <div className="relative z-10 w-full max-w-md mx-auto">
-        <div className="relative rounded-[26px] sm:rounded-[30px] border-2 border-[#C69234]/60 bg-[#0C1618]/90 backdrop-blur-2xl p-6 sm:p-8 shadow-[0_25px_70px_rgba(0,0,0,0.95),0_0_35px_rgba(212,163,70,0.18),inset_0_1px_2px_rgba(255,220,130,0.35)]">
+        <div className="relative rounded-[26px] sm:rounded-[30px] border-2 border-[#E9631A]/50 bg-[#16292D]/90 backdrop-blur-2xl p-6 sm:p-8 shadow-[0_25px_70px_rgba(0,0,0,0.95),0_0_35px_rgba(233,99,26,0.18),inset_0_1px_2px_rgba(239,239,239,0.35)]">
           {/* Logo medallion chip */}
           <div className="flex justify-center mb-3">
-            <div className="w-16 h-16 rounded-full p-1 bg-gradient-to-b from-[#E8C170] via-[#946A1B] to-[#E8C170] shadow-[0_0_20px_rgba(212,163,70,0.3)]">
-              <div className="w-full h-full rounded-full overflow-hidden border border-[#FFE082]/70 bg-black/60">
+            <div className="w-16 h-16 rounded-full p-1 bg-gradient-to-b from-[#E9631A] via-[#FF8C42] to-[#E9631A] shadow-[0_0_20px_rgba(233,99,26,0.3)]">
+              <div className="w-full h-full rounded-full overflow-hidden border border-[#EFEFEF]/70 bg-black/60">
                 <img src={logoImg} alt="VivAI" className="w-full h-full object-cover" />
               </div>
             </div>
@@ -107,13 +107,13 @@ function ResetPassword() {
 
           <div className="text-center pt-3 pb-6">
             <div className="flex items-center justify-center gap-2.5">
-              <span className="text-[#C69234] text-sm select-none">❧</span>
-              <h1 className="font-serif text-xl sm:text-2xl font-bold tracking-[0.2em] text-[#E8C170] uppercase drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+              <span className="text-[#E9631A] text-sm select-none">❧</span>
+              <h1 className="font-serif text-xl sm:text-2xl font-bold tracking-[0.2em] text-[#EFEFEF] uppercase drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
                 NEW PASSWORD
               </h1>
-              <span className="text-[#C69234] text-sm select-none">☙</span>
+              <span className="text-[#E9631A] text-sm select-none">☙</span>
             </div>
-            <p className="mt-2 text-xs text-[#D0C7B7]">
+            <p className="mt-2 text-xs text-[#D0D7D9]">
               Choose a strong password to secure your credentials.
             </p>
           </div>
@@ -126,7 +126,7 @@ function ResetPassword() {
           ) : !accessToken ? (
             <div className="rounded-xl border border-destructive/40 bg-destructive/15 p-4 text-xs text-destructive">
               This reset link is invalid or has expired. Please request a new link from the{" "}
-              <Link to="/forgot-password" className="font-semibold text-[#E8C170] underline">
+              <Link to="/forgot-password" className="font-semibold text-[#E9631A] underline">
                 forgot password
               </Link>{" "}
               page.
@@ -140,8 +140,8 @@ function ResetPassword() {
               }}
             >
               <div>
-                <label className="text-[11px] font-bold tracking-[0.18em] text-[#E8C170] uppercase flex items-center gap-2 mb-1.5">
-                  <Lock className="h-3.5 w-3.5 text-[#E8C170]" />
+                <label className="text-[11px] font-bold tracking-[0.18em] text-[#EFEFEF] uppercase flex items-center gap-2 mb-1.5">
+                  <Lock className="h-3.5 w-3.5 text-[#E9631A]" />
                   NEW PASSWORD
                 </label>
                 <input
@@ -150,13 +150,13 @@ function ResetPassword() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full rounded-xl border border-[#C69234]/50 bg-[#060D0F]/90 px-4 py-2.5 text-sm text-[#F4F1EA] placeholder-[#A8BDC3]/40 focus:border-[#F5A623] focus:outline-none focus:ring-1 focus:ring-[#F5A623] transition-all"
+                  className="w-full rounded-xl border border-[#315762] bg-[#0E1B1F]/90 px-4 py-2.5 text-sm text-[#EFEFEF] placeholder-[#7E9DA6]/50 focus:border-[#E9631A] focus:outline-none focus:ring-1 focus:ring-[#E9631A] transition-all"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-bold tracking-[0.18em] text-[#E8C170] uppercase flex items-center gap-2 mb-1.5">
-                  <Lock className="h-3.5 w-3.5 text-[#E8C170]" />
+                <label className="text-[11px] font-bold tracking-[0.18em] text-[#EFEFEF] uppercase flex items-center gap-2 mb-1.5">
+                  <Lock className="h-3.5 w-3.5 text-[#E9631A]" />
                   CONFIRM PASSWORD
                 </label>
                 <input
@@ -165,7 +165,7 @@ function ResetPassword() {
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
                   required
-                  className="w-full rounded-xl border border-[#C69234]/50 bg-[#060D0F]/90 px-4 py-2.5 text-sm text-[#F4F1EA] placeholder-[#A8BDC3]/40 focus:border-[#F5A623] focus:outline-none focus:ring-1 focus:ring-[#F5A623] transition-all"
+                  className="w-full rounded-xl border border-[#315762] bg-[#0E1B1F]/90 px-4 py-2.5 text-sm text-[#EFEFEF] placeholder-[#7E9DA6]/50 focus:border-[#E9631A] focus:outline-none focus:ring-1 focus:ring-[#E9631A] transition-all"
                 />
               </div>
 
@@ -178,7 +178,7 @@ function ResetPassword() {
               <button
                 type="submit"
                 disabled={loading || !password || !confirm}
-                className="relative mt-4 block w-full rounded-xl bg-gradient-to-r from-[#C68910] via-[#F5A623] to-[#C68910] hover:from-[#D49618] hover:via-[#FFB834] hover:to-[#D49618] px-4 py-3.5 text-center text-sm font-bold tracking-[0.2em] text-[#16292D] uppercase shadow-[0_6px_25px_rgba(245,166,35,0.45)] border border-[#FFE082]/70 transition-all duration-300 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                className="relative mt-4 block w-full rounded-xl bg-gradient-to-r from-[#D35400] via-[#E9631A] to-[#D35400] hover:from-[#E9631A] hover:via-[#FF7A29] hover:to-[#E9631A] px-4 py-3.5 text-center text-sm font-bold tracking-[0.2em] text-[#FFFFFF] uppercase shadow-[0_6px_25px_rgba(233,99,26,0.45)] border border-[#FFA568]/70 transition-all duration-300 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
               >
                 {loading ? "UPDATING…" : "UPDATE PASSWORD"}
               </button>
@@ -188,7 +188,7 @@ function ResetPassword() {
           <div className="mt-6 text-center">
             <Link
               to="/login"
-              className="inline-flex items-center gap-2 text-xs font-semibold text-[#E8C170] hover:text-[#FFE082] transition-colors"
+              className="inline-flex items-center gap-2 text-xs font-semibold text-[#E9631A] hover:text-[#FFA568] transition-colors"
             >
               <ArrowLeft className="h-3.5 w-3.5" /> Back to sign in
             </Link>
