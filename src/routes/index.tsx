@@ -1,636 +1,390 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import {
-  BrainCircuit,
-  MonitorSmartphone,
-  Video,
-  Plus,
-  ArrowRight,
-  Sparkles,
-  Search,
-  FolderKanban,
-  Flame,
-  Star,
-  Target,
-  Clock,
-  AlertCircle,
-  Play,
-  ChevronRight,
-  Zap,
-} from "lucide-react";
-import { useState, useMemo } from "react";
-import { AppShell } from "@/components/app-shell";
-import { ErrorState } from "@/components/error-state";
-import { DashboardSkeleton } from "@/components/loading-skeleton";
-import { ReadinessGauge } from "@/components/readiness-gauge";
-import { useRequireAuth } from "@/lib/auth-context";
-import { useTheme } from "@/lib/theme";
-import {
-  useDashboard,
-  useProfile,
-  useProjects,
-  useVivaSessions,
-  useVivaStats,
-  useCreateVivaSession,
-} from "@/lib/hooks";
-import { useReadiness, useGamification } from "@/lib/hooks-features";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Sparkles, Menu, X } from "lucide-react";
+import { useState } from "react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Dashboard — VivAI" },
+      { title: "VIVAI // CORE — Academic Intelligence OS" },
       {
         name: "description",
         content:
-          "Your AI-powered academic defense and viva preparation hub. Monitor readiness, track project milestones, and drill weak topics.",
+          "Engineers the future of academic defense with Gemini-powered live viva simulations, slide intelligence, and real-time student readiness metrics.",
       },
-      { property: "og:title", content: "VivAI Dashboard" },
+      { property: "og:title", content: "VIVAI // CORE" },
       {
         property: "og:description",
-        content: "Smart project defense cockpit and AI viva examiner for engineering students.",
+        content: "Intelligent Viva. Absolute Readiness. Real-time academic defense simulation OS.",
       },
     ],
   }),
-  component: Dashboard,
+  component: LandingHero,
 });
 
-export default function Dashboard() {
-  const { ready, isLoading: authLoading } = useRequireAuth();
-  const profileQuery = useProfile();
-  const projectsQuery = useProjects();
-  const sessionsQuery = useVivaSessions();
-  const statsQuery = useVivaStats();
-  const dashboardQuery = useDashboard();
-  const readinessQuery = useReadiness();
-  const gamificationQuery = useGamification();
-  const createSession = useCreateVivaSession();
-  const navigate = useNavigate();
-  const { toggle } = useTheme();
+const navLinks = [
+  { number: "01", label: "MOCK_VIVA", href: "/ai-viva", delay: "350ms" },
+  { number: "02", label: "PRESENTATION_AI", href: "/ai-presentation", delay: "450ms" },
+  { number: "03", label: "READINESS_INDEX", href: "/readiness", delay: "550ms" },
+  { number: "04", label: "TEAM_WORKSPACE", href: "/teams", delay: "650ms" },
+];
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isStartingQuickViva, setIsStartingQuickViva] = useState<string | null>(null);
+const verticalGridPositions = ["12.6%", "37.5%", "61.9%", "86.2%"];
+const horizontalGridPositions = ["32.7%", "71.4%"];
 
-  // Weak Topics computed before any early return
-  const readiness = readinessQuery.data;
-  const vivaStats = statsQuery.data;
+const connectorLines = [
+  { x1: "38%", y1: "14%", x2: "52%", y2: "14%", delay: 1200 },
+  { x1: "52%", y1: "14%", x2: "60%", y2: "27%", delay: 1400 },
+  { x1: "32%", y1: "58%", x2: "20%", y2: "74%", delay: 1500 },
+  { x1: "20%", y1: "74%", x2: "6%", y2: "74%", delay: 1700 },
+  { x1: "78%", y1: "53%", x2: "63%", y2: "53%", delay: 1800 },
+  { x1: "63%", y1: "53%", x2: "50%", y2: "63%", delay: 2000 },
+];
 
-  const weakTopics = useMemo(() => {
-    if (readiness?.weak_topics && readiness.weak_topics.length > 0) {
-      return readiness.weak_topics.slice(0, 3);
-    }
-    if (vivaStats?.weaknesses && vivaStats.weaknesses.length > 0) {
-      return vivaStats.weaknesses.slice(0, 3);
-    }
-    return [
-      { topic: "Database Indexing & Normalization", avg_score: 55 },
-      { topic: "API Security & Token Expiry", avg_score: 62 },
-      { topic: "System Architecture Justification", avg_score: 58 },
-    ];
-  }, [readiness, vivaStats]);
-
-  const queries = [
-    profileQuery,
-    projectsQuery,
-    sessionsQuery,
-    statsQuery,
-    dashboardQuery,
-    readinessQuery,
-    gamificationQuery,
-  ] as const;
-
-  const loading = authLoading || queries.some((q) => q.isLoading);
-  const failed = queries.find((q) => q.error);
-
-  if (!authLoading && !ready) return null;
-
-  // Profile data
-  const profile = profileQuery.data;
-  const fullName = String(profile?.full_name ?? "Student");
-  const firstName = fullName.split(" ")[0] || "Student";
-
-  // Readiness
-  const readinessScore = Math.round(readiness?.score ?? 78);
-  const readinessLabel =
-    readiness?.label ??
-    (readinessScore >= 80
-      ? "Ready to Defend"
-      : readinessScore >= 60
-        ? "Almost Ready"
-        : "Building Foundations");
-
-  const components = readiness?.components ?? [
-    { key: "technical", label: "Viva Performance", score: 82, weight: 0.35 },
-    { key: "code", label: "Code Comprehension", score: 80, weight: 0.25 },
-  ];
-
-  // Gamification
-  const gamification = gamificationQuery.data;
-  const level = gamification?.level ?? 1;
-  const xp = gamification?.xp ?? 150;
-  const streak = gamification?.current_streak ?? 1;
-
-  // Projects & Sessions
-  const allProjects = projectsQuery.data ?? [];
-  const allSessions = sessionsQuery.data ?? [];
-  const dashStats = dashboardQuery.data;
-
-  // Filtered projects
-  const activeProjects = allProjects.filter((p) => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    return (
-      String(p.title ?? "")
-        .toLowerCase()
-        .includes(q) ||
-      String(p.subject ?? "")
-        .toLowerCase()
-        .includes(q)
-    );
-  });
-
-  // Filtered sessions
-  const recentSessions = allSessions.slice(0, 3);
-
-  // Quick Viva Launch Handler
-  const handleQuickDrill = async (topic?: string, projectId?: string) => {
-    const key = topic || projectId || "general";
-    setIsStartingQuickViva(key);
-    try {
-      const res = await createSession.mutateAsync({
-        session_type: projectId ? "Project" : topic ? "Subject" : "General",
-        project_id: projectId || undefined,
-        subject: topic || undefined,
-        duration_minutes: 5,
-        difficulty: "Adaptive",
-        persona: "balanced",
-        language: "English",
-      });
-      navigate({ to: "/ai-viva/session/$id", params: { id: String(res.id) } });
-    } catch {
-      navigate({ to: "/ai-viva/new" });
-    } finally {
-      setIsStartingQuickViva(null);
-    }
-  };
+export default function LandingHero() {
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <AppShell hideTopBar={true} fitViewport={true}>
-      {loading ? (
-        <DashboardSkeleton />
-      ) : failed ? (
-        <ErrorState
-          message={
-            failed.error instanceof Error ? failed.error.message : "Could not load your dashboard"
-          }
-          onRetry={() => {
-            for (const q of queries) void q.refetch();
-          }}
-        />
-      ) : (
-        <div className="flex h-full max-h-full min-h-0 w-full max-w-[1550px] mx-auto flex-col justify-between gap-3 lg:gap-3.5 overflow-hidden">
-          {/* Top Bar / Integrated Header (Compact) */}
-          <div className="flex shrink-0 items-center justify-between gap-3 rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 px-4 py-2.5 backdrop-blur-2xl shadow-[var(--shadow-glass)]">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-tr from-primary to-[#F7D89A] text-sm font-black text-primary-foreground shadow-xs">
-                {firstName.charAt(0).toUpperCase()}
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h1 className="truncate text-sm font-bold text-foreground sm:text-base">
-                    Welcome back, {firstName}
-                  </h1>
-                  <span className="inline-block select-none text-sm">👋</span>
-                </div>
-                <p className="hidden truncate text-[11px] text-muted-foreground sm:block">
-                  {readinessScore >= 75
-                    ? "Ready for defense · Keep sharpening technical delivery"
-                    : "Focus on identified weak topics today to boost readiness"}
-                </p>
-              </div>
-            </div>
+    <section className="relative w-full h-screen overflow-hidden bg-black select-none">
+      {/* Background Video Layer */}
+      <video
+        className="absolute inset-0 w-full h-full object-cover anim-fade-in"
+        src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260813_115057_94c3699b-0fd1-4124-bcf3-3626bb8c1f77.mp4"
+        autoPlay
+        muted
+        loop
+        playsInline
+      />
 
-            {/* Quick Status Pills & Controls */}
-            <div className="flex items-center gap-2 shrink-0">
-              {/* Gamification Pills */}
-              <div className="hidden sm:flex items-center gap-2">
-                <div className="flex items-center gap-1.5 rounded-full border border-border/40 bg-background/60 px-2.5 py-1 text-[11px] font-bold text-foreground backdrop-blur-sm">
-                  <Flame className="h-3.5 w-3.5 text-orange-500 fill-orange-500/20" />
-                  <span>{streak}d streak</span>
-                </div>
-                <div className="flex items-center gap-1.5 rounded-full border border-border/40 bg-background/60 px-2.5 py-1 text-[11px] font-bold text-foreground backdrop-blur-sm">
-                  <Star className="h-3.5 w-3.5 text-primary fill-primary/20" />
-                  <span>
-                    Lvl {level} · {xp} XP
+      {/* Content Layer */}
+      <div className="relative z-10 w-full h-full">
+        {/* Navigation Bar */}
+        <nav className="absolute top-0 left-0 w-full flex items-center px-5 md:px-[35px] py-5 md:py-[27px] z-30">
+          <div className="flex items-center gap-[40px]">
+            {/* Wordmark */}
+            <Link
+              to="/"
+              className="font-graphik text-white text-[18px] md:text-[21px] leading-[21px] whitespace-nowrap anim-fade-up no-underline cursor-pointer"
+              style={{ animationDelay: "200ms" }}
+            >
+              VIVAI // CORE
+            </Link>
+
+            {/* Desktop Nav Links */}
+            <div className="hidden lg:flex items-center gap-[40px]">
+              {navLinks.map((item) => (
+                <Link
+                  key={item.number}
+                  to={item.href}
+                  className="flex items-center gap-[3px] anim-fade-up no-underline"
+                  style={{ animationDelay: item.delay }}
+                >
+                  <span className="font-manrope text-[#AFDDFF]/80 text-[13px] leading-[15.6px]">
+                    {item.number}.
                   </span>
-                </div>
-              </div>
-
-              {/* Search */}
-              <div className="relative w-36 sm:w-48">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-full border border-border/60 bg-background/80 py-1 pl-7 pr-2.5 text-xs text-foreground placeholder:text-muted-foreground/70 backdrop-blur-md focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs transition-all"
-                />
-              </div>
-
-              {/* Theme Toggle */}
-              <button
-                onClick={toggle}
-                aria-label="Toggle theme"
-                className="grid h-8 w-8 place-items-center rounded-full border border-border/60 bg-background/80 text-muted-foreground hover:text-foreground backdrop-blur-md transition-colors shadow-2xs cursor-pointer"
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-              </button>
-
-              {/* New Project CTA */}
-              <Link
-                to="/projects/new"
-                className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground shadow-2xs hover:scale-[1.02] active:scale-[0.98] transition-transform"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">New Project</span>
-              </Link>
+                  <span className="font-manrope text-white text-[13px] leading-[15.6px] hover:text-[#AFDDFF] transition-colors">
+                    {item.label}
+                  </span>
+                </Link>
+              ))}
             </div>
           </div>
 
-          {/* Row 1: Split Hero (Readiness Station on left + AI Action Launchpad on right) */}
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-12 shrink-0 lg:flex-1 lg:min-h-0 items-stretch">
-            {/* Defense Readiness Station (5 cols) */}
-            <div className="relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/40 dark:border-white/10 bg-gradient-to-br from-card/90 via-card/75 to-secondary/30 p-3.5 xl:p-4 backdrop-blur-2xl shadow-[var(--shadow-glass)] lg:col-span-5 min-h-0">
-              <div className="flex items-center justify-between pb-2 border-b border-border/30">
-                <div className="flex items-center gap-2">
-                  <span className="grid h-6 w-6 place-items-center rounded-lg bg-primary/15 text-primary">
-                    <Target className="h-3.5 w-3.5" />
-                  </span>
-                  <h2 className="text-xs xl:text-sm font-bold text-foreground">
-                    Defense Readiness
-                  </h2>
-                </div>
+          {/* Desktop Right Group (Cohort/Status) */}
+          <div
+            className="hidden lg:flex items-center gap-[12px] ml-auto anim-slide-right"
+            style={{ animationDelay: "600ms" }}
+          >
+            <Sparkles className="w-[15px] h-[15px] text-white" strokeWidth={1.5} />
+            <span className="font-manrope text-white text-[13px] leading-[15.6px]">
+              BTECH.CS // 2026
+            </span>
+            <span className="font-manrope text-[#AFDDFF] text-[13px] leading-[15.6px]">
+              [ CONNECTED ]
+            </span>
+            <span className="font-manrope text-white text-[13px] leading-[15.6px] ml-[20px]">
+              STATUS:
+            </span>
+            <span className="bg-[#AFDDFF] rounded-[3px] px-[5px] py-[2px] font-manrope text-black text-[13px] leading-[15.6px] font-medium">
+              DEFENSE_READY
+            </span>
+          </div>
+
+          {/* Mobile Hamburger Toggle Button */}
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-label="Toggle menu"
+            className="lg:hidden ml-auto relative w-[40px] h-[40px] flex items-center justify-center anim-fade-in cursor-pointer bg-transparent border-0"
+            style={{ animationDelay: "400ms" }}
+          >
+            <span
+              className={`absolute transition-all duration-300 ease-[cubic-bezier(0.76,0,0.24,1)] ${
+                menuOpen ? "opacity-0 rotate-90 scale-50" : "opacity-100 rotate-0 scale-100"
+              }`}
+            >
+              <Menu className="w-[22px] h-[22px] text-white" strokeWidth={1.5} />
+            </span>
+            <span
+              className={`absolute transition-all duration-300 ease-[cubic-bezier(0.76,0,0.24,1)] ${
+                menuOpen ? "opacity-100 rotate-0 scale-100" : "opacity-0 -rotate-90 scale-50"
+              }`}
+            >
+              <X className="w-[22px] h-[22px] text-white" strokeWidth={1.5} />
+            </span>
+          </button>
+        </nav>
+
+        {/* Mobile Menu Overlay */}
+        <div
+          className={`fixed inset-0 z-50 lg:hidden transition-all duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] ${
+            menuOpen ? "visible" : "invisible pointer-events-none"
+          }`}
+        >
+          <div
+            onClick={() => setMenuOpen(false)}
+            className={`absolute inset-0 bg-black/90 backdrop-blur-md transition-opacity duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] ${
+              menuOpen ? "opacity-100" : "opacity-0"
+            }`}
+          />
+          <div
+            className={`relative h-full flex flex-col px-5 pt-24 pb-10 transition-all duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] ${
+              menuOpen ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4"
+            }`}
+          >
+            <button
+              onClick={() => setMenuOpen(false)}
+              aria-label="Close menu"
+              className="absolute top-5 right-5 w-[40px] h-[40px] flex items-center justify-center cursor-pointer bg-transparent border-0"
+            >
+              <X className="w-[22px] h-[22px] text-white" strokeWidth={1.5} />
+            </button>
+
+            {/* Mobile Nav Links */}
+            <div className="flex flex-col gap-8">
+              {navLinks.map((item, i) => (
                 <Link
-                  to="/readiness"
-                  className="text-[10.5px] font-semibold text-primary hover:underline flex items-center gap-0.5"
+                  key={item.number}
+                  to={item.href}
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-3 no-underline transition-all duration-500 ease-[cubic-bezier(0.76,0,0.24,1)]"
+                  style={{
+                    transitionDelay: menuOpen ? `${150 + i * 75}ms` : "0ms",
+                    transform: menuOpen ? "translateX(0)" : "translateX(-24px)",
+                    opacity: menuOpen ? 1 : 0,
+                  }}
                 >
-                  <span>Full Report</span>
-                  <ChevronRight className="h-3 w-3" />
+                  <span className="font-manrope text-[#AFDDFF]/80 text-[14px] leading-[1]">
+                    {item.number}.
+                  </span>
+                  <span className="font-manrope text-white text-[28px] leading-[1.2] tracking-tight">
+                    {item.label}
+                  </span>
                 </Link>
-              </div>
+              ))}
+            </div>
 
-              {/* Gauge + Status + Mini Breakdown */}
-              <div className="grid grid-cols-[auto_1fr] items-center gap-4 my-auto py-1">
-                <div className="relative shrink-0">
-                  <ReadinessGauge score={readinessScore} size={88} strokeWidth={8} />
-                </div>
-                <div className="flex flex-col gap-2 min-w-0">
-                  <div>
-                    <span className="inline-block rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">
-                      {readinessLabel}
-                    </span>
-                    <p className="text-[11px] text-muted-foreground mt-1 line-clamp-1">
-                      {readiness?.actions?.[0]?.text ??
-                        "Cross-questioning practice recommended on your core project modules."}
-                    </p>
-                  </div>
-
-                  {/* 2 Mini Progress Bars */}
-                  <div className="flex flex-col gap-1.5">
-                    {components.slice(0, 2).map((c) => {
-                      const score = Math.round(c.score);
-                      return (
-                        <div key={c.key}>
-                          <div className="flex items-center justify-between text-[10px] font-semibold text-foreground">
-                            <span>{c.label}</span>
-                            <span className="text-primary">{score}%</span>
-                          </div>
-                          <div className="mt-0.5 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
-                            <div
-                              className="h-full rounded-full bg-primary transition-all duration-500"
-                              style={{ width: `${score}%` }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-
-              {/* Instant CTA Button */}
-              <button
-                onClick={() => handleQuickDrill()}
-                disabled={isStartingQuickViva !== null}
-                className="mt-1 flex items-center justify-center gap-2 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground shadow-2xs hover:scale-[1.01] active:scale-[0.98] transition-transform disabled:opacity-50 cursor-pointer"
-              >
-                <Play className="h-3.5 w-3.5 fill-current" />
-                <span>
-                  {isStartingQuickViva ? "Launching Viva..." : "Launch Defense Simulation"}
+            {/* Mobile Bottom Status Block */}
+            <div
+              className="mt-auto pt-10 border-t border-white/10 transition-all duration-500 ease-[cubic-bezier(0.76,0,0.24,1)]"
+              style={{
+                transitionDelay: menuOpen ? "450ms" : "0ms",
+                transform: menuOpen ? "translateY(0)" : "translateY(16px)",
+                opacity: menuOpen ? 1 : 0,
+              }}
+            >
+              <div className="flex items-center gap-[10px] mb-3">
+                <Sparkles className="w-[15px] h-[15px] text-white" strokeWidth={1.5} />
+                <span className="font-manrope text-white text-[13px] leading-[15.6px]">
+                  BTECH.CS // 2026
                 </span>
-              </button>
-            </div>
-
-            {/* AI Action Launchpad (7 cols, 3 cards) */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:col-span-7 min-h-0 items-stretch">
-              {/* Card 1: AI Mock Viva (Canyon #DF6D41) */}
-              <Link
-                to="/ai-viva/new"
-                className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 backdrop-blur-2xl shadow-[var(--shadow-glass)] transition-all hover:-translate-y-0.5 hover:border-[#DF6D41]/60 hover:shadow-[var(--shadow-glass-hover)]"
-              >
-                <div>
-                  <div className="flex items-center justify-between">
-                    <div className="grid h-9 w-9 place-items-center rounded-xl bg-[#DF6D41]/15 text-[#DF6D41] group-hover:scale-105 transition-transform">
-                      <BrainCircuit className="h-4.5 w-4.5" />
-                    </div>
-                    <span className="rounded-full bg-[#DF6D41]/10 border border-[#DF6D41]/20 px-2 py-0.5 text-[10px] font-bold text-[#DF6D41]">
-                      {vivaStats?.total_sessions ?? dashStats?.viva_sessions ?? 0} Vivas
-                    </span>
-                  </div>
-                  <h3 className="mt-2.5 text-xs xl:text-sm font-bold text-foreground group-hover:text-[#DF6D41] transition-colors">
-                    AI Mock Viva
-                  </h3>
-                  <p className="mt-1 text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
-                    Practice oral defense with Strict, Balanced, or Friendly AI professors.
-                  </p>
-                </div>
-                <div className="mt-2 flex items-center gap-1 text-[11px] font-bold text-[#DF6D41]">
-                  <span>Start Mock Session</span>
-                  <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </Link>
-
-              {/* Card 2: Slide & Presentation (Morning Sky #8DA6CC) */}
-              <Link
-                to="/ai-presentation"
-                className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 backdrop-blur-2xl shadow-[var(--shadow-glass)] transition-all hover:-translate-y-0.5 hover:border-[#8DA6CC]/60 hover:shadow-[var(--shadow-glass-hover)]"
-              >
-                <div>
-                  <div className="flex items-center justify-between">
-                    <div className="grid h-9 w-9 place-items-center rounded-xl bg-[#8DA6CC]/20 text-[#8DA6CC] group-hover:scale-105 transition-transform">
-                      <MonitorSmartphone className="h-4.5 w-4.5" />
-                    </div>
-                    <span className="rounded-full bg-[#8DA6CC]/15 border border-[#8DA6CC]/25 px-2 py-0.5 text-[10px] font-bold text-[#8DA6CC]">
-                      {dashStats?.presentation_sessions ?? 0} Pitches
-                    </span>
-                  </div>
-                  <h3 className="mt-2.5 text-xs xl:text-sm font-bold text-foreground group-hover:text-[#8DA6CC] transition-colors">
-                    Presentation Mock
-                  </h3>
-                  <p className="mt-1 text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
-                    Upload slides, practice project demos, and get anticipated questions.
-                  </p>
-                </div>
-                <div className="mt-2 flex items-center gap-1 text-[11px] font-bold text-[#8DA6CC]">
-                  <span>Open Presentation Hub</span>
-                  <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </Link>
-
-              {/* Card 3: Live Voice Coach (Olive Grove #AAA648) */}
-              <Link
-                to="/advanced/sentiment-analysis"
-                className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 backdrop-blur-2xl shadow-[var(--shadow-glass)] transition-all hover:-translate-y-0.5 hover:border-[#AAA648]/60 hover:shadow-[var(--shadow-glass-hover)]"
-              >
-                <div>
-                  <div className="flex items-center justify-between">
-                    <div className="grid h-9 w-9 place-items-center rounded-xl bg-[#AAA648]/20 text-[#AAA648] group-hover:scale-105 transition-transform">
-                      <Video className="h-4.5 w-4.5" />
-                    </div>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[#AAA648]/15 border border-[#AAA648]/25 px-2 py-0.5 text-[10px] font-bold text-[#AAA648]">
-                      <span className="h-1.5 w-1.5 rounded-full bg-[#AAA648] animate-ping" />
-                      Live Voice
-                    </span>
-                  </div>
-                  <h3 className="mt-2.5 text-xs xl:text-sm font-bold text-foreground group-hover:text-[#AAA648] transition-colors">
-                    Live Defense Coach
-                  </h3>
-                  <p className="mt-1 text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
-                    Real-time speech analytics, pace (WPM), clarity, and filler ratio.
-                  </p>
-                </div>
-                <div className="mt-2 flex items-center gap-1 text-[11px] font-bold text-[#AAA648]">
-                  <span>Enter Live Coach</span>
-                  <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </Link>
-            </div>
-          </div>
-
-          {/* Row 2: 3-Column Core Workstation (Projects, Recent Vivas, Weakness Radar) */}
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-12 shrink-0 lg:flex-1 lg:min-h-0 items-stretch">
-            {/* Col 1: Active Projects (4 cols) */}
-            <div className="flex flex-col justify-between rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 xl:p-4 backdrop-blur-2xl shadow-[var(--shadow-glass)] lg:col-span-4 min-h-0">
-              <div className="flex items-center justify-between pb-2 border-b border-border/30">
-                <div className="flex items-center gap-2">
-                  <span className="grid h-6 w-6 place-items-center rounded-lg bg-[#8DA6CC]/20 text-[#8DA6CC]">
-                    <FolderKanban className="h-3.5 w-3.5" />
-                  </span>
-                  <h3 className="text-xs xl:text-sm font-bold text-foreground">Active Projects</h3>
-                </div>
-                <Link
-                  to="/projects"
-                  className="text-[10.5px] font-semibold text-muted-foreground hover:text-[#8DA6CC] transition-colors"
-                >
-                  View All ({allProjects.length})
-                </Link>
+                <span className="font-manrope text-[#AFDDFF] text-[13px] leading-[15.6px]">
+                  [ CONNECTED ]
+                </span>
               </div>
-
-              <div className="flex flex-col gap-2 my-auto py-1 min-h-0 overflow-y-auto">
-                {activeProjects.length === 0 ? (
-                  <div className="py-4 text-center">
-                    <p className="text-xs font-semibold text-foreground">No projects yet</p>
-                    <Link
-                      to="/projects/new"
-                      className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[#DF6D41]"
-                    >
-                      <Plus className="h-3 w-3" /> Create Project
-                    </Link>
-                  </div>
-                ) : (
-                  activeProjects.slice(0, 2).map((project) => {
-                    const id = String(project.id);
-                    const title = String(project.title ?? "Untitled Project");
-                    const progress = Number(project.progress ?? 35);
-                    const projectType = String(project.project_type ?? "Major");
-
-                    return (
-                      <div
-                        key={id}
-                        className="flex items-center justify-between gap-2.5 rounded-xl border border-border/30 bg-background/50 p-2.5 transition-all hover:bg-background/80"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#8DA6CC]/15 font-bold text-xs text-[#8DA6CC]">
-                            {title.charAt(0).toUpperCase()}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <Link
-                                to="/projects/$id"
-                                params={{ id }}
-                                className="truncate text-xs font-bold text-foreground hover:text-[#8DA6CC] transition-colors"
-                              >
-                                {title}
-                              </Link>
-                              <span className="rounded bg-secondary/80 px-1 py-0.2 text-[9px] font-medium text-muted-foreground">
-                                {projectType}
-                              </span>
-                            </div>
-                            <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
-                              <div className="h-1 w-16 overflow-hidden rounded-full bg-secondary">
-                                <div
-                                  className="h-full rounded-full bg-primary"
-                                  style={{ width: `${progress}%` }}
-                                />
-                              </div>
-                              <span>{progress}%</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <button
-                          onClick={() => handleQuickDrill(undefined, id)}
-                          disabled={isStartingQuickViva === id}
-                          className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-secondary px-2.5 py-1 text-[11px] font-semibold text-foreground hover:bg-[#DF6D41] hover:text-white transition-colors cursor-pointer"
-                        >
-                          <BrainCircuit className="h-3 w-3" />
-                          <span>Defend</span>
-                        </button>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-
-            {/* Col 2: Recent Viva Defense Sessions (4 cols) */}
-            <div className="flex flex-col justify-between rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 xl:p-4 backdrop-blur-2xl shadow-[var(--shadow-glass)] lg:col-span-4 min-h-0">
-              <div className="flex items-center justify-between pb-2 border-b border-border/30">
-                <div className="flex items-center gap-2">
-                  <span className="grid h-6 w-6 place-items-center rounded-lg bg-[#AAA648]/20 text-[#AAA648]">
-                    <Clock className="h-3.5 w-3.5" />
-                  </span>
-                  <h3 className="text-xs xl:text-sm font-bold text-foreground">Recent Sessions</h3>
-                </div>
-                <Link
-                  to="/ai-viva"
-                  className="text-[10.5px] font-semibold text-muted-foreground hover:text-[#AAA648] transition-colors"
-                >
-                  History
-                </Link>
-              </div>
-
-              <div className="flex flex-col gap-2 my-auto py-1 min-h-0 overflow-y-auto">
-                {recentSessions.length === 0 ? (
-                  <div className="py-4 text-center">
-                    <p className="text-xs font-semibold text-foreground">No sessions completed</p>
-                    <Link
-                      to="/ai-viva/new"
-                      className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[#DF6D41]"
-                    >
-                      <Play className="h-3 w-3 fill-current" /> Start First Viva
-                    </Link>
-                  </div>
-                ) : (
-                  recentSessions.slice(0, 2).map((session) => {
-                    const id = String(session.id);
-                    const subject = String(session.subject ?? "Technical Viva");
-                    const score = session.score != null ? Math.round(Number(session.score)) : null;
-                    const persona = String(session.persona ?? "Balanced");
-
-                    return (
-                      <div
-                        key={id}
-                        className="flex items-center justify-between gap-2.5 rounded-xl border border-border/30 bg-background/50 p-2.5 transition-all hover:bg-background/80"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#AAA648]/15 text-[#AAA648] font-bold">
-                            <BrainCircuit className="h-4 w-4" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="truncate text-xs font-bold text-foreground">{subject}</p>
-                            <p className="text-[10px] text-muted-foreground mt-0.5">
-                              Examiner: {persona}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 shrink-0">
-                          {score != null ? (
-                            <span
-                              className={`rounded-md px-2 py-0.5 text-[10.5px] font-bold ${
-                                score >= 75
-                                  ? "bg-[#AAA648]/20 text-[#AAA648]"
-                                  : "bg-[#DF6D41]/15 text-[#DF6D41]"
-                              }`}
-                            >
-                              {score}%
-                            </span>
-                          ) : null}
-                          <Link
-                            to="/ai-viva/session/$id"
-                            params={{ id }}
-                            className="rounded-lg bg-secondary px-2 py-1 text-[10.5px] font-semibold text-foreground hover:bg-secondary/90 transition-colors"
-                          >
-                            Review
-                          </Link>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-
-            {/* Col 3: Weakness Radar & Instant Drills (4 cols) */}
-            <div className="flex flex-col justify-between rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 xl:p-4 backdrop-blur-2xl shadow-[var(--shadow-glass)] lg:col-span-4 min-h-0">
-              <div className="flex items-center justify-between pb-2 border-b border-border/30">
-                <div className="flex items-center gap-2">
-                  <span className="grid h-6 w-6 place-items-center rounded-lg bg-[#DF6D41]/15 text-[#DF6D41]">
-                    <AlertCircle className="h-3.5 w-3.5" />
-                  </span>
-                  <h3 className="text-xs xl:text-sm font-bold text-foreground">Weakness Radar</h3>
-                </div>
-                <Link
-                  to="/weakness-heatmap"
-                  className="text-[10.5px] font-semibold text-muted-foreground hover:text-[#DF6D41] transition-colors"
-                >
-                  Heatmap
-                </Link>
-              </div>
-
-              <div className="flex flex-col gap-2 my-auto py-1 min-h-0 overflow-y-auto">
-                {weakTopics.slice(0, 2).map((item, idx) => {
-                  const topicName = typeof item === "string" ? item : item.topic;
-                  const avgScore =
-                    typeof item === "object" && item.avg_score ? Math.round(item.avg_score) : 55;
-
-                  return (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between gap-2.5 rounded-xl border border-border/30 bg-background/50 p-2.5 transition-all hover:bg-background/80"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-xs font-bold text-foreground">{topicName}</p>
-                        <p className="text-[10px] font-semibold text-[#DF6D41] mt-0.5">
-                          Avg: {avgScore}% · High Priority
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => handleQuickDrill(topicName)}
-                        disabled={isStartingQuickViva === topicName}
-                        className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-[#DF6D41]/15 px-2.5 py-1 text-[11px] font-bold text-[#DF6D41] hover:bg-[#DF6D41] hover:text-white transition-all cursor-pointer disabled:opacity-50"
-                      >
-                        <Play className="h-2.5 w-2.5 fill-current" />
-                        <span>{isStartingQuickViva === topicName ? "..." : "Drill"}</span>
-                      </button>
-                    </div>
-                  );
-                })}
+              <div className="flex items-center gap-[8px]">
+                <span className="font-manrope text-white text-[13px] leading-[15.6px]">
+                  STATUS:
+                </span>
+                <span className="bg-[#AFDDFF] rounded-[3px] px-[5px] py-[2px] font-manrope text-black text-[13px] leading-[15.6px] font-medium">
+                  DEFENSE_READY
+                </span>
               </div>
             </div>
           </div>
         </div>
-      )}
-    </AppShell>
+
+        {/* Main H1 Headline */}
+        <h1
+          className="font-graphik text-white font-normal leading-[1em] absolute anim-fade-up text-[32px] sm:text-[48px] md:text-[68px] top-[140px] sm:top-[160px] md:top-[178px] left-5 md:left-[35px] max-w-[300px] sm:max-w-[420px] md:max-w-[554px] z-20"
+          style={{ animationDelay: "400ms" }}
+        >
+          Intelligent Viva. Absolute Readiness.
+        </h1>
+
+        {/* Grid Lines + Plus Intersections */}
+        <div className="absolute inset-0 pointer-events-none">
+          {/* Vertical Grid Lines */}
+          {verticalGridPositions.map((left, i) => (
+            <div
+              key={`v-${i}`}
+              className="absolute top-0 h-full w-px bg-white/[0.04] anim-grid-v"
+              style={{ left, animationDelay: `${600 + i * 100}ms` }}
+            />
+          ))}
+
+          {/* Horizontal Grid Lines */}
+          {horizontalGridPositions.map((top, i) => (
+            <div
+              key={`h-${i}`}
+              className="absolute left-0 w-full h-px bg-white/[0.04] anim-grid-h"
+              style={{ top, animationDelay: `${800 + i * 150}ms` }}
+            />
+          ))}
+
+          {/* 8 Plus Marks at Intersections */}
+          {horizontalGridPositions.map((top, hi) =>
+            verticalGridPositions.map((left, vi) => (
+              <div
+                key={`p-${hi}-${vi}`}
+                className="absolute anim-scale-in"
+                style={{
+                  top,
+                  left,
+                  animationDelay: `${1000 + (hi * 4 + vi) * 80}ms`,
+                }}
+              >
+                <div className="absolute w-[10px] h-px bg-white/70 -translate-x-1/2 -translate-y-1/2" />
+                <div className="absolute w-px h-[10px] bg-white/70 -translate-x-1/2 -translate-y-1/2" />
+              </div>
+            )),
+          )}
+        </div>
+
+        {/* Central Nodes (Squares + Labels + SVG Elbow Connectors) */}
+        <div className="absolute inset-0 pointer-events-none hidden md:block z-10">
+          {/* Connector Lines */}
+          {connectorLines.map((line, idx) => (
+            <svg
+              key={`line-${idx}`}
+              className="absolute inset-0 w-full h-full pointer-events-none anim-fade-in"
+              style={{ animationDelay: `${line.delay}ms` }}
+            >
+              <line
+                x1={line.x1}
+                y1={line.y1}
+                x2={line.x2}
+                y2={line.y2}
+                stroke="rgba(255,255,255,0.25)"
+                strokeWidth="1"
+                vectorEffect="non-scaling-stroke"
+              />
+            </svg>
+          ))}
+
+          {/* Node 1: CORE VIVA ENGINE */}
+          <div
+            className="absolute top-[27%] left-[60%] w-[80px] h-[80px] lg:w-[100px] lg:h-[100px] border border-white/80 anim-scale-in"
+            style={{ animationDelay: "1500ms" }}
+          />
+          <div
+            className="absolute top-[11%] left-[26%] anim-slide-left"
+            style={{ animationDelay: "1100ms" }}
+          >
+            <span className="font-manrope text-white text-[13px] leading-[15.6px] whitespace-nowrap">
+              [ VIVA_ENGINE ]
+            </span>
+            <p className="font-manrope text-white/50 text-[11px] leading-[14px] mt-[4px] max-w-[160px]">
+              Adaptive Gemini voice agent evaluating technical depth and architecture.
+            </p>
+          </div>
+
+          {/* Node 2: READINESS DRS */}
+          <div
+            className="absolute top-[58%] left-[32%] w-[80px] h-[80px] lg:w-[100px] lg:h-[100px] border border-white/80 anim-scale-in"
+            style={{ animationDelay: "1800ms" }}
+          />
+          <div
+            className="absolute top-[76%] left-[3%] anim-slide-left"
+            style={{ animationDelay: "1400ms" }}
+          >
+            <span className="font-manrope text-white text-[13px] leading-[15.6px] whitespace-nowrap">
+              [ READINESS_DRS ]
+            </span>
+            <p className="font-manrope text-white/50 text-[11px] leading-[14px] mt-[4px] max-w-[160px]">
+              Dynamic readiness score synthesizing weakness heatmaps and peer percentiles.
+            </p>
+          </div>
+
+          {/* Node 3: LIVE MULTIMODAL DEFENSE */}
+          <div
+            className="absolute top-[63%] left-[50%] w-[80px] h-[80px] lg:w-[100px] lg:h-[100px] border border-white/80 anim-scale-in"
+            style={{ animationDelay: "2100ms" }}
+          />
+          <div
+            className="absolute top-[50%] left-[78%] anim-slide-right"
+            style={{ animationDelay: "1700ms" }}
+          >
+            <span className="font-manrope text-white text-[13px] leading-[15.6px] whitespace-nowrap">
+              [ LIVE_MULTIMODAL ]
+            </span>
+            <p className="font-manrope text-white/50 text-[11px] leading-[14px] mt-[4px] max-w-[180px]">
+              Real-time presentation defense with slide vision and latency-free voice sync.
+            </p>
+          </div>
+        </div>
+
+        {/* Bottom Row: CTA Button (Left) & Chamfered Info Card (Right) */}
+        <div className="absolute bottom-5 md:bottom-[35px] left-5 md:left-[35px] right-5 md:right-[35px] flex flex-col md:flex-row items-start md:items-end justify-between gap-5 md:gap-0 z-20">
+          {/* CTA Button */}
+          <Link
+            to="/ai-viva/new"
+            className="bg-[#AFDDFF] px-[16px] md:px-[20px] py-[10px] md:py-[12px] flex items-center gap-[10px] hover:bg-[#c8e8ff] transition-colors anim-fade-up no-underline cursor-pointer"
+            style={{ animationDelay: "900ms" }}
+          >
+            <span className="text-black text-[16px] leading-none">&#10022;</span>
+            <span className="font-manrope text-black text-[12px] md:text-[13px] leading-[15.6px] uppercase tracking-wide font-medium">
+              LAUNCH MOCK VIVA
+            </span>
+          </Link>
+
+          {/* Right Chamfered Info Card */}
+          <div
+            className="relative max-w-[280px] hidden sm:block anim-slide-right"
+            style={{ animationDelay: "1100ms" }}
+          >
+            {/* Top Badge */}
+            <div className="font-manrope text-black text-[13px] leading-[15.6px] bg-[#AFDDFF] px-[6px] py-[2px] inline-block mb-[10px] font-medium">
+              NOT JUST MOCKS — AN ECOSYSTEM
+            </div>
+
+            {/* Chamfered Card Body */}
+            <div className="relative p-[20px]">
+              <svg
+                className="absolute inset-0 w-full h-full pointer-events-none"
+                viewBox="0 0 280 168"
+                preserveAspectRatio="none"
+              >
+                <polygon
+                  points="0.5,0.5 279.5,0.5 279.5,167.5 30,167.5 0.5,137.5"
+                  fill="none"
+                  stroke="#AFDDFF"
+                  strokeWidth="1"
+                  vectorEffect="non-scaling-stroke"
+                />
+              </svg>
+              <p className="relative font-manrope text-white text-[13px] leading-[18px] mb-[18px]">
+                Engineers the future of academic defense with Gemini-powered live viva
+                simulations, slide intelligence, and real-time student readiness metrics.
+              </p>
+              <Link
+                to="/readiness"
+                className="relative font-manrope text-[#AFDDFF] text-[13px] leading-[15.6px] cursor-pointer hover:underline block font-medium no-underline"
+              >
+                VIEW_READINESS_METRICS
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }

@@ -36,7 +36,7 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  { to: "/", icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/ai-viva", icon: BrainCircuit, label: "Mock Viva" },
   { to: "/ai-presentation", icon: MonitorSmartphone, label: "Presentation" },
   { to: "/pitch-drill", icon: Timer, label: "Pitch Drill" },
@@ -337,7 +337,7 @@ function MobileNav({ onOpenMenu }: { onOpenMenu: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isActive = (to: string) => (to === "/" ? pathname === "/" : pathname.startsWith(to));
   const mobileNav = [
-    { to: "/", icon: LayoutDashboard, label: "Home" },
+    { to: "/dashboard", icon: LayoutDashboard, label: "Home" },
     { to: "/ai-viva", icon: BrainCircuit, label: "Viva" },
     { to: "/ai-presentation", icon: MonitorSmartphone, label: "Slides" },
     { to: "/advanced/sentiment-analysis", icon: Video, label: "Coach" },
