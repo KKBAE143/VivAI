@@ -196,7 +196,7 @@ function Teams() {
                         <span>
                           {members.length} member{members.length === 1 ? "" : "s"}
                         </span>
-                        {t.invite_code && (
+                        {Boolean(t.invite_code) && (
                           <span className="font-mono text-[10px] bg-secondary px-1.5 py-0.5 rounded font-semibold text-foreground">
                             {String(t.invite_code)}
                           </span>

@@ -723,13 +723,13 @@ function CoachReport({ sessionId, onDone }: { sessionId: string; onDone: () => v
           </div>
         </div>
 
-        {session?.feedback_summary && (
-          <div className="rounded-2xl border border-white/10 bg-card/85 p-5 backdrop-blur-2xl shadow-[var(--shadow-glass)]">
-            <h3 className="text-xs sm:text-sm font-bold text-white uppercase tracking-wider font-mono">
-              [ AI_COACH_SUMMARY ]
+        {Boolean(session?.feedback_summary) && (
+          <div className="apple-glass-card p-5">
+            <h3 className="text-xs sm:text-sm font-bold text-white uppercase tracking-wider font-graphik">
+              AI COACH SUMMARY
             </h3>
             <p className="mt-2 text-xs sm:text-sm leading-relaxed text-white/80">
-              {String(session.feedback_summary)}
+              {String(session?.feedback_summary)}
             </p>
           </div>
         )}

@@ -187,10 +187,10 @@ export default function Dashboard() {
         />
       ) : (
         <div className="flex h-full lg:max-h-full min-h-0 w-full max-w-[1550px] mx-auto flex-col justify-between gap-3 lg:gap-3.5 lg:overflow-hidden overflow-y-auto font-manrope">
-          {/* Top Bar / Integrated Cyber Header */}
-          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2.5 sm:gap-3 rounded-2xl border border-white/10 bg-card/85 px-3.5 sm:px-4 py-2.5 backdrop-blur-2xl shadow-[var(--shadow-glass)]">
+          {/* Top Bar / Integrated Apple VisionOS Header */}
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2.5 sm:gap-3 apple-glass-card rounded-[22px] px-3.5 sm:px-4 py-2.5">
             <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-              <div className="grid h-9 w-9 sm:h-10 sm:w-10 shrink-0 place-items-center rounded-xl bg-[#AFDDFF] text-sm font-black text-black shadow-[0_0_12px_rgba(175,221,255,0.35)]">
+              <div className="grid h-9 w-9 sm:h-10 sm:w-10 shrink-0 place-items-center rounded-2xl bg-gradient-to-b from-[#dcf0ff] to-[#AFDDFF] text-sm font-black text-black shadow-[0_0_16px_rgba(175,221,255,0.4),inset_0_1px_1px_rgba(255,255,255,0.8)]">
                 {firstName.charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0">
@@ -198,8 +198,8 @@ export default function Dashboard() {
                   <h1 className="truncate font-graphik text-sm font-bold text-white sm:text-base tracking-wide">
                     Welcome back, {firstName}
                   </h1>
-                  <span className="inline-block select-none text-[10px] sm:text-xs text-[#AFDDFF] bg-[#AFDDFF]/15 px-1.5 py-0.5 rounded font-mono">
-                    [ ONLINE ]
+                  <span className="apple-pill-badge py-0.5 px-2 text-[10px]">
+                    ONLINE
                   </span>
                 </div>
                 <p className="hidden truncate text-[11px] text-white/50 sm:block">
@@ -214,11 +214,11 @@ export default function Dashboard() {
             <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               {/* Gamification Pills */}
               <div className="hidden md:flex items-center gap-2">
-                <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-white/80 backdrop-blur-sm">
+                <div className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-white/80 backdrop-blur-md shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]">
                   <Flame className="h-3.5 w-3.5 text-amber-400 fill-amber-400/20" />
                   <span>{streak}d streak</span>
                 </div>
-                <div className="flex items-center gap-1.5 rounded-full border border-[#AFDDFF]/25 bg-[#AFDDFF]/10 px-2.5 py-1 text-[11px] font-bold text-[#AFDDFF] backdrop-blur-sm">
+                <div className="apple-pill-badge">
                   <Star className="h-3.5 w-3.5 text-[#AFDDFF] fill-[#AFDDFF]/20" />
                   <span>
                     Lvl {level} · {xp} XP
@@ -234,14 +234,14 @@ export default function Dashboard() {
                   placeholder="Search..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-full border border-white/10 bg-white/5 py-1.5 pl-7 pr-2.5 text-xs text-white placeholder:text-white/40 backdrop-blur-md focus:border-[#AFDDFF] focus:outline-none focus:ring-1 focus:ring-[#AFDDFF] shadow-2xs transition-all"
+                  className="w-full rounded-full border border-white/15 bg-white/5 py-1.5 pl-7 pr-2.5 text-xs text-white placeholder:text-white/40 backdrop-blur-md focus:border-[#AFDDFF] focus:outline-none focus:ring-1 focus:ring-[#AFDDFF] shadow-[inset_0_1px_1px_rgba(0,0,0,0.4)] transition-all"
                 />
               </div>
 
               {/* New Project CTA */}
               <Link
                 to="/projects/new"
-                className="inline-flex min-h-[36px] items-center gap-1 rounded-full bg-[#AFDDFF] px-3 py-1.5 text-xs font-bold text-black shadow-[0_0_12px_rgba(175,221,255,0.3)] hover:bg-[#c8e8ff] active:scale-95 transition-all no-underline"
+                className="apple-glass-btn-primary px-3 py-1.5 text-xs font-bold sm:inline-flex no-underline"
               >
                 <Plus className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">New Project</span>
@@ -252,19 +252,19 @@ export default function Dashboard() {
           {/* Row 1: Split Hero (Readiness Station on left + AI Action Launchpad on right) */}
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-12 shrink-0 lg:flex-1 lg:min-h-0 items-stretch">
             {/* Defense Readiness Station (5 cols) */}
-            <div className="relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-card/85 p-3.5 xl:p-4 backdrop-blur-2xl shadow-[var(--shadow-glass)] lg:col-span-5 min-h-0">
+            <div className="relative flex flex-col justify-between overflow-hidden apple-glass-card p-4 lg:col-span-5 min-h-0">
               <div className="flex items-center justify-between pb-2 border-b border-white/10">
                 <div className="flex items-center gap-2">
-                  <span className="grid h-6 w-6 place-items-center rounded-lg bg-[#AFDDFF]/15 text-[#AFDDFF]">
-                    <Target className="h-3.5 w-3.5" />
+                  <span className="grid h-7 w-7 place-items-center rounded-xl bg-gradient-to-b from-[#dcf0ff] to-[#AFDDFF] text-black shadow-xs">
+                    <Target className="h-4 w-4" />
                   </span>
                   <h2 className="font-graphik text-xs xl:text-sm font-bold text-white tracking-wide">
-                    [ READINESS_DRS ]
+                    DEFENSE READINESS
                   </h2>
                 </div>
                 <Link
                   to="/readiness"
-                  className="text-[10.5px] font-semibold text-[#AFDDFF] hover:underline flex items-center gap-0.5 no-underline"
+                  className="text-[11px] font-bold text-[#AFDDFF] hover:underline flex items-center gap-0.5 no-underline"
                 >
                   <span>Full Report</span>
                   <ChevronRight className="h-3 w-3" />
@@ -274,11 +274,11 @@ export default function Dashboard() {
               {/* Gauge + Status + Mini Breakdown */}
               <div className="flex flex-col xs:grid xs:grid-cols-[auto_1fr] items-center gap-3.5 sm:gap-4 my-auto py-2">
                 <div className="relative shrink-0">
-                  <ReadinessGauge score={readinessScore} size={88} strokeWidth={8} />
+                  <ReadinessGauge score={readinessScore} size={92} strokeWidth={9} />
                 </div>
                 <div className="flex flex-col gap-2 w-full min-w-0">
                   <div>
-                    <span className="inline-block rounded-[3px] bg-[#AFDDFF] px-2 py-0.5 text-[10px] font-bold text-black uppercase tracking-wider">
+                    <span className="apple-pill-badge py-0.5 px-2 text-[10px] uppercase tracking-wider">
                       {readinessLabel}
                     </span>
                     <p className="text-[11px] text-white/60 mt-1 line-clamp-2 xs:line-clamp-1">
@@ -297,9 +297,9 @@ export default function Dashboard() {
                             <span>{c.label}</span>
                             <span className="text-[#AFDDFF]">{score}%</span>
                           </div>
-                          <div className="mt-0.5 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+                          <div className="mt-0.5 h-1.5 w-full overflow-hidden rounded-full bg-white/10 shadow-[inset_0_1px_1px_rgba(0,0,0,0.5)]">
                             <div
-                              className="h-full rounded-full bg-[#AFDDFF] transition-all duration-500 shadow-[0_0_8px_rgba(175,221,255,0.4)]"
+                              className="h-full rounded-full bg-gradient-to-r from-[#7CE4BA] to-[#AFDDFF] transition-all duration-500 shadow-[0_0_8px_rgba(175,221,255,0.4)]"
                               style={{ width: `${score}%` }}
                             />
                           </div>
@@ -310,11 +310,11 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Instant CTA Button matching Homepage CTA */}
+              {/* Instant CTA Button matching Apple Primary Glass */}
               <button
                 onClick={() => handleQuickDrill()}
                 disabled={isStartingQuickViva !== null}
-                className="mt-2 flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-[#AFDDFF] px-3 py-2.5 text-xs font-bold text-black shadow-[0_0_14px_rgba(175,221,255,0.25)] hover:bg-[#c8e8ff] active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer uppercase tracking-wider"
+                className="mt-2 apple-glass-btn-primary flex min-h-[44px] items-center justify-center gap-2 px-3 py-2.5 text-xs uppercase tracking-wider"
               >
                 <span className="text-black text-[14px] leading-none">&#10022;</span>
                 <span>
@@ -328,19 +328,19 @@ export default function Dashboard() {
               {/* Card 1: AI Mock Viva */}
               <Link
                 to="/ai-viva/new"
-                className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-card/85 p-3.5 backdrop-blur-2xl shadow-[var(--shadow-glass)] transition-all hover:-translate-y-0.5 hover:border-[#AFDDFF]/50 hover:shadow-[0_0_20px_rgba(175,221,255,0.15)] no-underline"
+                className="group relative flex flex-col justify-between overflow-hidden apple-glass-card apple-glass-card-hover p-4 no-underline"
               >
                 <div>
                   <div className="flex items-center justify-between">
-                    <div className="grid h-9 w-9 place-items-center rounded-xl bg-[#AFDDFF]/15 text-[#AFDDFF] group-hover:scale-105 transition-transform">
-                      <BrainCircuit className="h-4.5 w-4.5" />
+                    <div className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-b from-[#dcf0ff] to-[#AFDDFF] text-black shadow-[0_0_12px_rgba(175,221,255,0.35)] group-hover:scale-105 transition-transform">
+                      <BrainCircuit className="h-5 w-5" />
                     </div>
-                    <span className="rounded-full bg-[#AFDDFF]/10 border border-[#AFDDFF]/20 px-2 py-0.5 text-[10px] font-bold text-[#AFDDFF]">
+                    <span className="apple-pill-badge text-[10px]">
                       {vivaStats?.total_sessions ?? dashStats?.viva_sessions ?? 0} Vivas
                     </span>
                   </div>
-                  <h3 className="mt-2.5 text-xs xl:text-sm font-bold text-white group-hover:text-[#AFDDFF] transition-colors">
-                    [ VIVA_ENGINE ]
+                  <h3 className="mt-3 text-xs xl:text-sm font-bold text-white group-hover:text-[#AFDDFF] transition-colors">
+                    AI Mock Viva
                   </h3>
                   <p className="mt-1 text-[11px] text-white/50 line-clamp-2 leading-relaxed">
                     Practice oral defense with Strict, Balanced, or Friendly AI professors.
@@ -355,19 +355,19 @@ export default function Dashboard() {
               {/* Card 2: Slide & Presentation */}
               <Link
                 to="/ai-presentation"
-                className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-card/85 p-3.5 backdrop-blur-2xl shadow-[var(--shadow-glass)] transition-all hover:-translate-y-0.5 hover:border-[#8DA6CC]/60 hover:shadow-[0_0_20px_rgba(141,166,204,0.15)] no-underline"
+                className="group relative flex flex-col justify-between overflow-hidden apple-glass-card apple-glass-card-hover p-4 no-underline"
               >
                 <div>
                   <div className="flex items-center justify-between">
-                    <div className="grid h-9 w-9 place-items-center rounded-xl bg-[#8DA6CC]/20 text-[#8DA6CC] group-hover:scale-105 transition-transform">
-                      <MonitorSmartphone className="h-4.5 w-4.5" />
+                    <div className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-b from-[#c0d4f4] to-[#8DA6CC] text-black shadow-[0_0_12px_rgba(141,166,204,0.35)] group-hover:scale-105 transition-transform">
+                      <MonitorSmartphone className="h-5 w-5" />
                     </div>
-                    <span className="rounded-full bg-[#8DA6CC]/15 border border-[#8DA6CC]/25 px-2 py-0.5 text-[10px] font-bold text-[#8DA6CC]">
+                    <span className="rounded-full bg-[#8DA6CC]/15 border border-[#8DA6CC]/30 px-2 py-0.5 text-[10px] font-bold text-[#8DA6CC] shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]">
                       {dashStats?.presentation_sessions ?? 0} Pitches
                     </span>
                   </div>
-                  <h3 className="mt-2.5 text-xs xl:text-sm font-bold text-white group-hover:text-[#8DA6CC] transition-colors">
-                    [ PRESENTATION_AI ]
+                  <h3 className="mt-3 text-xs xl:text-sm font-bold text-white group-hover:text-[#8DA6CC] transition-colors">
+                    Slide Deck Mock
                   </h3>
                   <p className="mt-1 text-[11px] text-white/50 line-clamp-2 leading-relaxed">
                     Upload slides, practice project demos, and get anticipated questions.
@@ -382,20 +382,20 @@ export default function Dashboard() {
               {/* Card 3: Live Voice Coach */}
               <Link
                 to="/advanced/sentiment-analysis"
-                className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-card/85 p-3.5 backdrop-blur-2xl shadow-[var(--shadow-glass)] transition-all hover:-translate-y-0.5 hover:border-[#7CE4BA]/60 hover:shadow-[0_0_20px_rgba(124,228,186,0.15)] no-underline"
+                className="group relative flex flex-col justify-between overflow-hidden apple-glass-card apple-glass-card-hover p-4 no-underline"
               >
                 <div>
                   <div className="flex items-center justify-between">
-                    <div className="grid h-9 w-9 place-items-center rounded-xl bg-[#7CE4BA]/20 text-[#7CE4BA] group-hover:scale-105 transition-transform">
-                      <Video className="h-4.5 w-4.5" />
+                    <div className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-b from-[#d4f8e8] to-[#7CE4BA] text-black shadow-[0_0_12px_rgba(124,228,186,0.35)] group-hover:scale-105 transition-transform">
+                      <Video className="h-5 w-5" />
                     </div>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[#7CE4BA]/15 border border-[#7CE4BA]/25 px-2 py-0.5 text-[10px] font-bold text-[#7CE4BA]">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#7CE4BA]/15 border border-[#7CE4BA]/30 px-2 py-0.5 text-[10px] font-bold text-[#7CE4BA] shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]">
                       <span className="h-1.5 w-1.5 rounded-full bg-[#7CE4BA] animate-ping" />
                       Live Voice
                     </span>
                   </div>
-                  <h3 className="mt-2.5 text-xs xl:text-sm font-bold text-white group-hover:text-[#7CE4BA] transition-colors">
-                    [ LIVE_COACH ]
+                  <h3 className="mt-3 text-xs xl:text-sm font-bold text-white group-hover:text-[#7CE4BA] transition-colors">
+                    Speech Coach
                   </h3>
                   <p className="mt-1 text-[11px] text-white/50 line-clamp-2 leading-relaxed">
                     Real-time speech analytics, pace (WPM), clarity, and filler ratio.
@@ -412,19 +412,19 @@ export default function Dashboard() {
           {/* Row 2: 3-Column Core Workstation (Projects, Recent Vivas, Weakness Radar) */}
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-12 shrink-0 lg:flex-1 lg:min-h-0 items-stretch">
             {/* Col 1: Active Projects (4 cols) */}
-            <div className="flex flex-col justify-between rounded-2xl border border-white/10 bg-card/85 p-3.5 xl:p-4 backdrop-blur-2xl shadow-[var(--shadow-glass)] lg:col-span-4 min-h-0">
+            <div className="flex flex-col justify-between apple-glass-card p-4 lg:col-span-4 min-h-0">
               <div className="flex items-center justify-between pb-2 border-b border-white/10">
                 <div className="flex items-center gap-2">
                   <span className="grid h-6 w-6 place-items-center rounded-lg bg-[#8DA6CC]/20 text-[#8DA6CC]">
                     <FolderKanban className="h-3.5 w-3.5" />
                   </span>
                   <h3 className="font-graphik text-xs xl:text-sm font-bold text-white tracking-wide">
-                    [ ACTIVE_PROJECTS ]
+                    ACTIVE PROJECTS
                   </h3>
                 </div>
                 <Link
                   to="/projects"
-                  className="text-[10.5px] font-semibold text-white/50 hover:text-[#8DA6CC] transition-colors no-underline"
+                  className="text-[11px] font-semibold text-white/50 hover:text-[#8DA6CC] transition-colors no-underline"
                 >
                   View All ({allProjects.length})
                 </Link>
@@ -451,10 +451,10 @@ export default function Dashboard() {
                     return (
                       <div
                         key={id}
-                        className="flex items-center justify-between gap-2.5 rounded-xl border border-white/10 bg-white/5 p-2.5 transition-all hover:bg-white/10"
+                        className="flex items-center justify-between gap-2.5 rounded-2xl border border-white/12 bg-white/5 p-2.5 transition-all hover:bg-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#8DA6CC]/15 font-bold text-xs text-[#8DA6CC]">
+                          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-gradient-to-b from-[#c0d4f4] to-[#8DA6CC] font-bold text-xs text-black shadow-xs">
                             {title.charAt(0).toUpperCase()}
                           </div>
                           <div className="min-w-0">
@@ -466,12 +466,12 @@ export default function Dashboard() {
                               >
                                 {title}
                               </Link>
-                              <span className="rounded bg-white/10 px-1 py-0.2 text-[9px] font-medium text-white/60 font-mono">
+                              <span className="rounded-full bg-white/10 px-1.5 py-0.2 text-[9px] font-medium text-white/70 font-mono">
                                 {projectType}
                               </span>
                             </div>
                             <div className="mt-1 flex items-center gap-2 text-[10px] text-white/50">
-                              <div className="h-1 w-16 overflow-hidden rounded-full bg-white/10">
+                              <div className="h-1.5 w-16 overflow-hidden rounded-full bg-white/10 shadow-[inset_0_1px_1px_rgba(0,0,0,0.5)]">
                                 <div
                                   className="h-full rounded-full bg-[#AFDDFF]"
                                   style={{ width: `${progress}%` }}
@@ -485,7 +485,7 @@ export default function Dashboard() {
                         <button
                           onClick={() => handleQuickDrill(undefined, id)}
                           disabled={isStartingQuickViva === id}
-                          className="shrink-0 min-h-[38px] inline-flex items-center gap-1.5 rounded-lg bg-[#AFDDFF]/15 border border-[#AFDDFF]/30 px-3 py-1.5 text-[11px] font-bold text-[#AFDDFF] hover:bg-[#AFDDFF] hover:text-black active:scale-95 transition-all cursor-pointer"
+                          className="shrink-0 apple-glass-btn-secondary px-3 py-1.5 text-[11px] font-bold inline-flex items-center gap-1.5 cursor-pointer"
                         >
                           <BrainCircuit className="h-3.5 w-3.5" />
                           <span>Defend</span>
@@ -498,19 +498,19 @@ export default function Dashboard() {
             </div>
 
             {/* Col 2: Recent Viva Defense Sessions (4 cols) */}
-            <div className="flex flex-col justify-between rounded-2xl border border-white/10 bg-card/85 p-3.5 xl:p-4 backdrop-blur-2xl shadow-[var(--shadow-glass)] lg:col-span-4 min-h-0">
+            <div className="flex flex-col justify-between apple-glass-card p-4 lg:col-span-4 min-h-0">
               <div className="flex items-center justify-between pb-2 border-b border-white/10">
                 <div className="flex items-center gap-2">
                   <span className="grid h-6 w-6 place-items-center rounded-lg bg-[#AFDDFF]/15 text-[#AFDDFF]">
                     <Clock className="h-3.5 w-3.5" />
                   </span>
                   <h3 className="font-graphik text-xs xl:text-sm font-bold text-white tracking-wide">
-                    [ RECENT_SESSIONS ]
+                    RECENT SESSIONS
                   </h3>
                 </div>
                 <Link
                   to="/ai-viva"
-                  className="text-[10.5px] font-semibold text-white/50 hover:text-[#AFDDFF] transition-colors no-underline"
+                  className="text-[11px] font-semibold text-white/50 hover:text-[#AFDDFF] transition-colors no-underline"
                 >
                   History
                 </Link>
@@ -522,7 +522,7 @@ export default function Dashboard() {
                     <p className="text-xs font-semibold text-white">No sessions completed</p>
                     <Link
                       to="/ai-viva/new"
-                      className="mt-2 inline-flex min-h-[38px] items-center gap-1.5 rounded-xl bg-[#AFDDFF] px-3.5 py-2 text-xs font-bold text-black no-underline shadow-xs"
+                      className="mt-2 apple-glass-btn-primary inline-flex min-h-[38px] items-center gap-1.5 px-3.5 py-2 text-xs font-bold no-underline"
                     >
                       <Play className="h-3.5 w-3.5 fill-current" /> Start First Viva
                     </Link>
@@ -537,10 +537,10 @@ export default function Dashboard() {
                     return (
                       <div
                         key={id}
-                        className="flex items-center justify-between gap-2.5 rounded-xl border border-white/10 bg-white/5 p-2.5 transition-all hover:bg-white/10"
+                        className="flex items-center justify-between gap-2.5 rounded-2xl border border-white/12 bg-white/5 p-2.5 transition-all hover:bg-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#AFDDFF]/15 text-[#AFDDFF] font-bold">
+                          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-gradient-to-b from-[#dcf0ff] to-[#AFDDFF] text-black font-bold shadow-xs">
                             <BrainCircuit className="h-4 w-4" />
                           </div>
                           <div className="min-w-0">
@@ -554,10 +554,10 @@ export default function Dashboard() {
                         <div className="flex items-center gap-2 shrink-0">
                           {score != null ? (
                             <span
-                              className={`rounded-md px-2 py-0.5 text-[10.5px] font-bold ${
+                              className={`rounded-full px-2 py-0.5 text-[10.5px] font-bold ${
                                 score >= 75
-                                  ? "bg-[#7CE4BA]/20 text-[#7CE4BA]"
-                                  : "bg-[#AFDDFF]/15 text-[#AFDDFF]"
+                                  ? "bg-[#7CE4BA]/20 text-[#7CE4BA] border border-[#7CE4BA]/30"
+                                  : "bg-[#AFDDFF]/15 text-[#AFDDFF] border border-[#AFDDFF]/30"
                               }`}
                             >
                               {score}%
@@ -566,7 +566,7 @@ export default function Dashboard() {
                           <Link
                             to="/ai-viva/session/$id"
                             params={{ id }}
-                            className="min-h-[38px] inline-flex items-center justify-center rounded-lg bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-white/20 active:scale-95 transition-all no-underline"
+                            className="apple-glass-btn-secondary px-3 py-1.5 text-[11px] font-semibold no-underline"
                           >
                             Review
                           </Link>
@@ -579,21 +579,21 @@ export default function Dashboard() {
             </div>
 
             {/* Col 3: Weakness Radar & Instant Drills (4 cols) */}
-            <div className="flex flex-col justify-between rounded-2xl border border-white/10 bg-card/85 p-3.5 xl:p-4 backdrop-blur-2xl shadow-[var(--shadow-glass)] lg:col-span-4 min-h-0">
+            <div className="flex flex-col justify-between apple-glass-card p-4 lg:col-span-4 min-h-0">
               <div className="flex items-center justify-between pb-2 border-b border-white/10">
                 <div className="flex items-center gap-2">
                   <span className="grid h-6 w-6 place-items-center rounded-lg bg-[#FF6B6B]/15 text-[#FF6B6B]">
                     <AlertCircle className="h-3.5 w-3.5" />
                   </span>
                   <h3 className="font-graphik text-xs xl:text-sm font-bold text-white tracking-wide">
-                    [ WEAKNESS_RADAR ]
+                    WEAKNESS RADAR
                   </h3>
                 </div>
                 <Link
-                  to="/weakness-heatmap"
-                  className="text-[10.5px] font-semibold text-white/50 hover:text-[#AFDDFF] transition-colors no-underline"
+                  to="/advanced/sentiment-analysis"
+                  className="text-[11px] font-semibold text-white/50 hover:text-[#AFDDFF] transition-colors no-underline"
                 >
-                  Heatmap
+                  Analytics
                 </Link>
               </div>
 
@@ -606,7 +606,7 @@ export default function Dashboard() {
                   return (
                     <div
                       key={idx}
-                      className="flex items-center justify-between gap-2.5 rounded-xl border border-white/10 bg-white/5 p-2.5 transition-all hover:bg-white/10"
+                      className="flex items-center justify-between gap-2.5 rounded-2xl border border-white/12 bg-white/5 p-2.5 transition-all hover:bg-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]"
                     >
                       <div className="min-w-0">
                         <p className="truncate text-xs font-bold text-white">{topicName}</p>
@@ -617,7 +617,7 @@ export default function Dashboard() {
                       <button
                         onClick={() => handleQuickDrill(topicName)}
                         disabled={isStartingQuickViva === topicName}
-                        className="shrink-0 min-h-[38px] inline-flex items-center gap-1.5 rounded-lg bg-[#AFDDFF]/15 border border-[#AFDDFF]/30 px-3 py-1.5 text-[11px] font-bold text-[#AFDDFF] hover:bg-[#AFDDFF] hover:text-black active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                        className="shrink-0 apple-glass-btn-primary px-3 py-1.5 text-[11px] font-bold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                       >
                         <Play className="h-3 w-3 fill-current" />
                         <span>{isStartingQuickViva === topicName ? "..." : "Drill"}</span>

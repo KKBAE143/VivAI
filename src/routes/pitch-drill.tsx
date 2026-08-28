@@ -173,38 +173,40 @@ function PitchDrillPage() {
   return (
     <AppShell fitViewport hideTopBar>
       <div className="flex flex-col gap-3 lg:gap-3.5 h-full lg:overflow-hidden overflow-y-auto font-manrope">
-        {/* Integrated Header */}
-        <div className="flex flex-wrap items-center justify-between gap-2.5">
+        {/* Header with Segmented Mode Switcher */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white font-graphik">
                 90-Second Pitch Drill
               </h1>
-              <span className="text-[10px] sm:text-xs text-[#AFDDFF] bg-[#AFDDFF]/15 px-2 py-0.5 rounded font-mono">
-                [ ELEVATOR_PITCH ]
+              <span className="apple-pill-badge py-0.5 px-2 text-[10px]">
+                ELEVATOR PITCH
               </span>
             </div>
             <p className="text-xs text-white/50 mt-0.5">
-              Examiners judge your first 90 seconds. Practice a crisp pitch: problem, approach, tech, impact.
+              Practice sharp, timed project pitches. Choose live conversational AI coaching or a timed solo drill.
             </p>
           </div>
-          <div className="inline-flex rounded-xl border border-white/10 bg-black/60 p-1 text-xs font-semibold">
+
+          {/* Apple Segmented Control */}
+          <div className="apple-segmented-track flex items-center p-1 text-xs font-semibold">
             <button
               onClick={() => setMode("live")}
-              className={`inline-flex min-h-[36px] items-center gap-1.5 rounded-lg px-3.5 py-1.5 transition-all cursor-pointer ${
+              className={`inline-flex min-h-[34px] items-center gap-1.5 rounded-xl px-4 py-1.5 transition-all duration-200 cursor-pointer select-none active:scale-95 ${
                 mode === "live"
-                  ? "bg-[#AFDDFF] text-black shadow-[0_0_12px_rgba(175,221,255,0.3)] font-bold"
-                  : "text-white/60 hover:text-white"
+                  ? "apple-glass-btn-primary text-black font-bold"
+                  : "text-white/70 hover:text-white"
               }`}
             >
               <Radio className="h-3.5 w-3.5" /> Live AI Coach
             </button>
             <button
               onClick={() => setMode("classic")}
-              className={`inline-flex min-h-[36px] items-center gap-1.5 rounded-lg px-3.5 py-1.5 transition-all cursor-pointer ${
+              className={`inline-flex min-h-[34px] items-center gap-1.5 rounded-xl px-4 py-1.5 transition-all duration-200 cursor-pointer select-none active:scale-95 ${
                 mode === "classic"
-                  ? "bg-[#AFDDFF] text-black shadow-[0_0_12px_rgba(175,221,255,0.3)] font-bold"
-                  : "text-white/60 hover:text-white"
+                  ? "apple-glass-btn-primary text-black font-bold"
+                  : "text-white/70 hover:text-white"
               }`}
             >
               <Clock className="h-3.5 w-3.5" /> Timed Drill
@@ -214,8 +216,8 @@ function PitchDrillPage() {
 
         {mode === "live" && (
           <div className="grid flex-1 min-h-0 gap-3 lg:grid-cols-[minmax(0,1fr)_360px]">
-            <div className="flex flex-col items-center justify-center gap-3 p-6 text-center rounded-2xl border border-white/10 bg-card/85 backdrop-blur-2xl shadow-[var(--shadow-glass)]">
-              <div className="grid h-16 w-16 place-items-center rounded-2xl bg-[#AFDDFF]/15 text-[#AFDDFF] shadow-[0_0_20px_rgba(175,221,255,0.2)]">
+            <div className="flex flex-col items-center justify-center gap-3 p-6 text-center apple-glass-card">
+              <div className="grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-b from-[#dcf0ff] to-[#AFDDFF] text-black shadow-[0_0_24px_rgba(175,221,255,0.4)]">
                 <Radio className="h-8 w-8 animate-pulse" />
               </div>
               <div>
@@ -229,7 +231,7 @@ function PitchDrillPage() {
               <button
                 onClick={() => void startLivePitch()}
                 disabled={livePhase === "starting"}
-                className="mt-2 inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-[#AFDDFF] px-6 py-2.5 text-xs sm:text-sm font-bold text-black shadow-[0_0_16px_rgba(175,221,255,0.3)] hover:bg-[#c8e8ff] active:scale-95 disabled:opacity-50 transition-all cursor-pointer uppercase tracking-wider"
+                className="mt-2 apple-glass-btn-primary inline-flex min-h-[44px] items-center gap-2 px-6 py-2.5 text-xs sm:text-sm font-bold uppercase tracking-wider cursor-pointer"
               >
                 {livePhase === "starting" ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -242,11 +244,11 @@ function PitchDrillPage() {
             </div>
 
             <div className="space-y-3 flex flex-col">
-              <div className="p-4 rounded-2xl border border-white/10 bg-card/85 backdrop-blur-2xl shadow-[var(--shadow-glass)] flex-1 flex flex-col justify-between">
+              <div className="p-4 apple-glass-card flex-1 flex flex-col justify-between">
                 <div>
                   {/* Language Selector Section */}
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-white/50 font-mono mb-1.5">
-                    [ SPOKEN_LANGUAGE ]
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-white/60 font-graphik mb-1.5">
+                    SPOKEN LANGUAGE
                   </label>
                   <div className="flex flex-wrap gap-1.5 mb-3">
                     {POPULAR_LANGUAGES.map((l) => (
@@ -254,10 +256,10 @@ function PitchDrillPage() {
                         key={l}
                         type="button"
                         onClick={() => setLanguage(l)}
-                        className={`min-h-[28px] px-2.5 py-0.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer active:scale-95 ${
+                        className={`min-h-[28px] px-2.5 py-0.5 rounded-xl text-[11px] font-bold transition-all cursor-pointer active:scale-95 ${
                           language === l
-                            ? "bg-[#AFDDFF] text-black shadow-[0_0_10px_rgba(175,221,255,0.3)]"
-                            : "border border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+                            ? "bg-[#AFDDFF] text-black shadow-[0_0_12px_rgba(175,221,255,0.35)]"
+                            : "border border-white/12 bg-white/5 text-white/70 hover:bg-white/10"
                         }`}
                       >
                         {l}
@@ -265,15 +267,15 @@ function PitchDrillPage() {
                     ))}
                   </div>
 
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-white/50 font-mono">
-                    [ PROJECT_GROUNDING ]
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-white/60 font-graphik">
+                    PROJECT GROUNDING
                   </label>
                   <div className="mt-1.5">
                     <Select
                       value={projectId || "none"}
                       onValueChange={(v) => setProjectId(v === "none" ? "" : v)}
                     >
-                      <SelectTrigger className="w-full min-h-[38px] rounded-lg border border-white/10 bg-black/60 px-3 py-2 text-xs font-bold text-white focus:border-[#AFDDFF]">
+                      <SelectTrigger className="w-full min-h-[38px] rounded-xl border border-white/15 bg-black/60 px-3 py-2 text-xs font-bold text-white focus:border-[#AFDDFF]">
                         <SelectValue placeholder="General pitch" />
                       </SelectTrigger>
                       <SelectContent>
@@ -287,15 +289,15 @@ function PitchDrillPage() {
                     </Select>
                   </div>
 
-                  <label className="mt-3 block text-[10px] font-bold uppercase tracking-wider text-white/50 font-mono">
-                    [ PITCH_TOPIC ]
+                  <label className="mt-3 block text-[10px] font-bold uppercase tracking-wider text-white/60 font-graphik">
+                    PITCH TOPIC
                   </label>
                   <textarea
                     value={topic}
                     onChange={(e) => setTopic(e.target.value)}
                     rows={3}
                     placeholder="e.g. An AI study-planner app for engineering students preparing for placements."
-                    className="mt-1.5 w-full resize-none rounded-lg border border-white/10 bg-black/60 px-3 py-2 text-xs text-white leading-relaxed placeholder:text-white/40 focus:border-[#AFDDFF] focus:outline-none"
+                    className="mt-1.5 w-full resize-none rounded-xl border border-white/15 bg-black/60 px-3 py-2 text-xs text-white leading-relaxed placeholder:text-white/40 focus:border-[#AFDDFF] focus:outline-none shadow-[inset_0_1px_1px_rgba(0,0,0,0.5)]"
                   />
                 </div>
 
@@ -309,7 +311,7 @@ function PitchDrillPage() {
 
         {mode === "classic" && (
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-            <div className="flex flex-col items-center justify-center gap-6 py-8 rounded-2xl border border-white/10 bg-card/85 backdrop-blur-2xl shadow-[var(--shadow-glass)]">
+            <div className="flex flex-col items-center justify-center gap-6 py-8 apple-glass-card">
               <div className="relative grid h-48 w-48 place-items-center">
                 <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90">
                   <circle
@@ -323,7 +325,7 @@ function PitchDrillPage() {
                     cx="60"
                     cy="60"
                     r="52"
-                    className={`fill-none ${overtime ? "stroke-rose-400" : "stroke-[#AFDDFF]"} transition-all`}
+                    className={`fill-none ${overtime ? "stroke-[#FF453A]" : "stroke-[#AFDDFF]"} transition-all drop-shadow-[0_0_8px_rgba(175,221,255,0.4)]`}
                     strokeWidth="10"
                     strokeLinecap="round"
                     strokeDasharray={`${2 * Math.PI * 52}`}
@@ -333,7 +335,7 @@ function PitchDrillPage() {
                 <div className="absolute text-center">
                   <div
                     className={`text-4xl font-bold tabular-nums font-graphik ${
-                      overtime ? "text-rose-400" : "text-white"
+                      overtime ? "text-[#FF453A]" : "text-white"
                     }`}
                   >
                     {formatTime(elapsed)}
@@ -353,7 +355,7 @@ function PitchDrillPage() {
                   <button
                     onClick={start}
                     disabled={!speech.supported}
-                    className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-[#AFDDFF] px-6 py-2.5 text-xs sm:text-sm font-bold text-black shadow-[0_0_14px_rgba(175,221,255,0.3)] hover:bg-[#c8e8ff] active:scale-95 disabled:opacity-50 cursor-pointer uppercase tracking-wider"
+                    className="apple-glass-btn-primary inline-flex min-h-[44px] items-center gap-2 px-6 py-2.5 text-xs sm:text-sm font-bold uppercase tracking-wider cursor-pointer"
                   >
                     <Play className="h-4 w-4 fill-current" /> Start Pitch
                   </button>

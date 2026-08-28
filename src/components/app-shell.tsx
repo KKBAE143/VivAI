@@ -131,22 +131,27 @@ function Sidebar({ fitViewport = false }: { fitViewport?: boolean }) {
 
   return (
     <aside
-      className={`hidden w-[205px] xl:w-[220px] shrink-0 flex-col justify-between overflow-y-auto rounded-2xl bg-card/85 backdrop-blur-2xl border border-white/10 p-3 shadow-[var(--shadow-glass)] lg:flex ${
-        fitViewport ? "h-full max-h-full sticky top-0" : "sticky top-5 h-[calc(100vh-2.5rem)]"
+      className={`hidden w-[210px] xl:w-[228px] shrink-0 flex-col justify-between overflow-y-auto apple-glass-card p-3 lg:flex ${
+        fitViewport ? "h-full max-h-full sticky top-0" : "sticky top-4 h-[calc(100vh-2rem)]"
       }`}
     >
       <div className="flex flex-col gap-3.5">
-        {/* Brand Logo matching Homepage */}
-        <Link to="/" aria-label="Home" className="flex items-center gap-2.5 px-2 pt-1 no-underline group">
-          <div className="h-7 w-7 rounded-lg bg-[#AFDDFF] flex items-center justify-center text-black font-black text-xs shadow-[0_0_12px_rgba(175,221,255,0.4)]">
+        {/* Apple VisionOS Brand Header */}
+        <Link to="/" aria-label="Home" className="flex items-center gap-2.5 px-2 pt-1 no-underline group select-none">
+          <div className="h-8 w-8 rounded-xl bg-gradient-to-b from-[#dcf0ff] to-[#AFDDFF] flex items-center justify-center text-black font-black text-sm shadow-[0_0_16px_rgba(175,221,255,0.45),inset_0_1px_1px_rgba(255,255,255,0.8)] transition-transform group-hover:scale-105">
             V
           </div>
-          <span className="font-graphik text-sm font-bold tracking-wider text-white group-hover:text-[#AFDDFF] transition-colors">
-            VIVAI // CORE
-          </span>
+          <div className="flex flex-col">
+            <span className="font-graphik text-sm font-bold tracking-wider text-white group-hover:text-[#AFDDFF] transition-colors leading-tight">
+              VIVAI
+            </span>
+            <span className="text-[10px] font-mono text-white/40 tracking-tight leading-none">
+              AI COMPANION
+            </span>
+          </div>
         </Link>
 
-        {/* Navigation Items with Ice Blue Highlight */}
+        {/* Navigation Items with Apple Squircle Pills */}
         <nav className="flex flex-col gap-1 font-manrope">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -155,20 +160,26 @@ function Sidebar({ fitViewport = false }: { fitViewport?: boolean }) {
               <Link
                 key={item.to}
                 to={item.to}
-                className={`group relative flex items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition-all no-underline ${
+                className={`group relative flex items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition-all duration-200 no-underline select-none active:scale-[0.98] ${
                   active
-                    ? "bg-[#AFDDFF] text-black font-bold shadow-[0_0_16px_rgba(175,221,255,0.25)]"
-                    : "text-white/60 hover:bg-white/5 hover:text-white"
+                    ? "bg-[#AFDDFF] text-black font-bold shadow-[0_0_20px_rgba(175,221,255,0.3),inset_0_1px_1px_rgba(255,255,255,0.9)]"
+                    : "text-white/70 hover:bg-white/8 hover:text-white"
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <Icon className={`h-4 w-4 shrink-0 ${active ? "text-black" : "text-white/70 group-hover:text-[#AFDDFF] transition-colors"}`} />
+                  <Icon
+                    className={`h-4 w-4 shrink-0 transition-colors ${
+                      active ? "text-black" : "text-white/70 group-hover:text-[#AFDDFF]"
+                    }`}
+                  />
                   <span>{item.label}</span>
                 </div>
                 {item.badge && (
                   <span
-                    className={`grid h-4 min-w-[16px] place-items-center rounded-full px-1 text-[9px] font-bold ${
-                      active ? "bg-black text-[#AFDDFF]" : "bg-[#AFDDFF]/20 text-[#AFDDFF]"
+                    className={`grid h-4 min-w-[16px] place-items-center rounded-full px-1 text-[9px] font-black ${
+                      active
+                        ? "bg-black text-[#AFDDFF]"
+                        : "bg-[#AFDDFF]/20 text-[#AFDDFF] border border-[#AFDDFF]/30"
                     }`}
                   >
                     {item.badge}
@@ -185,7 +196,7 @@ function Sidebar({ fitViewport = false }: { fitViewport?: boolean }) {
                 className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium transition-all no-underline ${
                   isActive("/faculty")
                     ? "bg-[#AFDDFF] text-black font-bold shadow-[0_0_16px_rgba(175,221,255,0.25)]"
-                    : "text-white/60 hover:bg-white/5 hover:text-white"
+                    : "text-white/70 hover:bg-white/8 hover:text-white"
                 }`}
               >
                 <ClipboardCheck className="h-4 w-4 shrink-0" />
@@ -196,7 +207,7 @@ function Sidebar({ fitViewport = false }: { fitViewport?: boolean }) {
                 className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium transition-all no-underline ${
                   isActive("/admin")
                     ? "bg-[#AFDDFF] text-black font-bold shadow-[0_0_16px_rgba(175,221,255,0.25)]"
-                    : "text-white/60 hover:bg-white/5 hover:text-white"
+                    : "text-white/70 hover:bg-white/8 hover:text-white"
                 }`}
               >
                 <Building2 className="h-4 w-4 shrink-0" />
@@ -209,15 +220,15 @@ function Sidebar({ fitViewport = false }: { fitViewport?: boolean }) {
 
       {/* Bottom Area: Promo Card + Sign Out */}
       <div className="flex flex-col gap-3 font-manrope">
-        {/* Obsidian Glass Promo Card with Ice Blue Accent */}
-        <div className="relative overflow-hidden rounded-xl bg-[#AFDDFF]/8 p-3 border border-[#AFDDFF]/20 shadow-xs">
+        {/* Apple Frosted Promo Card */}
+        <div className="relative overflow-hidden rounded-2xl bg-white/5 p-3 border border-white/15 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]">
           <div className="flex items-start justify-between">
-            <div className="grid h-7 w-7 place-items-center rounded-lg bg-[#AFDDFF]/15 text-[#AFDDFF]">
+            <div className="grid h-7 w-7 place-items-center rounded-xl bg-[#AFDDFF]/20 text-[#AFDDFF] border border-[#AFDDFF]/30">
               <Sparkles className="h-3.5 w-3.5" />
             </div>
             <Link
               to="/ai-viva/new"
-              className="grid h-6 w-6 place-items-center rounded-full bg-[#AFDDFF] text-black shadow-xs hover:scale-105 transition-transform no-underline"
+              className="grid h-6 w-6 place-items-center rounded-full bg-[#AFDDFF] text-black shadow-xs hover:scale-110 active:scale-95 transition-transform no-underline"
             >
               <ArrowUpRight className="h-3 w-3" />
             </Link>
@@ -234,7 +245,7 @@ function Sidebar({ fitViewport = false }: { fitViewport?: boolean }) {
             logout();
             navigate({ to: "/login" });
           }}
-          className="flex items-center gap-2.5 rounded-xl px-3 py-1.5 text-xs font-medium text-white/50 transition-all hover:bg-white/5 hover:text-white cursor-pointer"
+          className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-white/60 transition-all hover:bg-white/8 hover:text-white cursor-pointer active:scale-95"
         >
           <LogOut className="h-3.5 w-3.5" />
           <span>Sign out</span>
@@ -248,16 +259,16 @@ function WideTopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const title = pageTitle(pathname);
   return (
-    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-white/10 bg-card/85 px-3 sm:px-5 backdrop-blur-2xl shadow-[var(--shadow-glass)]">
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-white/15 bg-black/60 px-3 sm:px-5 backdrop-blur-2xl shadow-[0_4px_24px_rgba(0,0,0,0.6)]">
       <button
         onClick={onOpenMenu}
         aria-label="Open menu"
-        className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 active:scale-95 transition-all lg:hidden cursor-pointer"
+        className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/5 border border-white/15 text-white hover:bg-white/10 active:scale-95 transition-all lg:hidden cursor-pointer"
       >
         <Menu className="h-5 w-5 text-white" />
       </button>
       <Link to="/" aria-label="Home" className="hidden h-9 w-9 shrink-0 place-items-center sm:grid group">
-        <div className="h-8 w-8 rounded-lg bg-[#AFDDFF] flex items-center justify-center text-black font-black text-xs shadow-[0_0_12px_rgba(175,221,255,0.4)]">
+        <div className="h-8 w-8 rounded-xl bg-gradient-to-b from-[#dcf0ff] to-[#AFDDFF] flex items-center justify-center text-black font-black text-xs shadow-[0_0_12px_rgba(175,221,255,0.4)]">
           V
         </div>
       </Link>
@@ -269,7 +280,7 @@ function WideTopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
       </div>
       <Link
         to="/dashboard"
-        className="hidden rounded-xl border border-white/10 bg-white/5 px-3.5 py-2 text-xs font-semibold text-white/70 hover:text-white hover:bg-white/10 sm:inline-flex no-underline transition-colors"
+        className="hidden apple-glass-btn-secondary px-3.5 py-1.5 text-xs font-semibold sm:inline-flex no-underline transition-colors"
       >
         Dashboard
       </Link>
@@ -292,17 +303,17 @@ function TopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
   const title = pageTitle(pathname);
 
   return (
-    <header className="flex flex-wrap items-center justify-between gap-2.5 rounded-2xl bg-card/85 backdrop-blur-2xl border border-white/10 p-2.5 sm:p-3 shadow-[var(--shadow-glass)]">
+    <header className="flex flex-wrap items-center justify-between gap-2.5 apple-glass-card rounded-[20px] p-2.5 sm:p-3">
       <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
         <button
           onClick={onOpenMenu}
           aria-label="Open menu"
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 active:scale-95 transition-all lg:hidden cursor-pointer"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/5 border border-white/15 text-white hover:bg-white/10 active:scale-95 transition-all lg:hidden cursor-pointer"
         >
           <Menu className="h-5 w-5 text-white" />
         </button>
         <div className="hidden h-9 w-9 shrink-0 place-items-center sm:grid lg:hidden">
-          <div className="h-8 w-8 rounded-lg bg-[#AFDDFF] flex items-center justify-center text-black font-black text-xs shadow-[0_0_12px_rgba(175,221,255,0.4)]">
+          <div className="h-8 w-8 rounded-xl bg-gradient-to-b from-[#dcf0ff] to-[#AFDDFF] flex items-center justify-center text-black font-black text-xs shadow-[0_0_12px_rgba(175,221,255,0.4)]">
             V
           </div>
         </div>
@@ -314,9 +325,9 @@ function TopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
         <ThemeToggle />
         <Link
           to="/profile"
-          className="flex h-11 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-medium hover:bg-white/10 transition-colors no-underline text-white active:scale-95"
+          className="flex h-11 items-center gap-2 rounded-full border border-white/15 bg-white/5 px-2.5 py-1 text-xs font-medium hover:bg-white/10 transition-colors no-underline text-white active:scale-95 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]"
         >
-          <span className="grid h-7 w-7 place-items-center rounded-full bg-[#AFDDFF] text-[11px] font-bold text-black shadow-xs">
+          <span className="grid h-7 w-7 place-items-center rounded-full bg-gradient-to-b from-[#dcf0ff] to-[#AFDDFF] text-[11px] font-bold text-black shadow-xs">
             {initials}
           </span>
           <span className="hidden max-w-[120px] truncate sm:inline font-semibold">{fullName}</span>
@@ -569,15 +580,15 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
   return (
     <div className="fixed inset-0 z-50 flex lg:hidden">
       <div
-        className="fixed inset-0 bg-black/80 backdrop-blur-md transition-opacity"
+        className="fixed inset-0 bg-black/80 backdrop-blur-xl transition-opacity"
         onClick={onClose}
       />
-      <div className="relative flex w-full max-w-xs flex-1 flex-col justify-between bg-[#0A0E16]/95 backdrop-blur-3xl border-r border-white/10 p-5 shadow-2xl overflow-y-auto">
+      <div className="relative flex w-full max-w-xs flex-1 flex-col justify-between bg-[#0A0E16]/90 backdrop-blur-3xl border-r border-white/15 rounded-r-[28px] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.2)] overflow-y-auto">
         <div>
           {/* Header */}
           <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/10">
             <div className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-lg bg-[#AFDDFF] flex items-center justify-center text-black font-black text-xs shadow-[0_0_12px_rgba(175,221,255,0.4)]">
+              <div className="h-8 w-8 rounded-xl bg-gradient-to-b from-[#dcf0ff] to-[#AFDDFF] flex items-center justify-center text-black font-black text-xs shadow-[0_0_12px_rgba(175,221,255,0.4)]">
                 V
               </div>
               <div>
@@ -588,7 +599,7 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
             <button
               onClick={onClose}
               aria-label="Close drawer"
-              className="grid h-11 w-11 min-h-[44px] min-w-[44px] place-items-center rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
+              className="grid h-10 w-10 place-items-center rounded-xl bg-white/5 border border-white/15 text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
             >
               <X className="h-5 w-5" />
             </button>
@@ -604,10 +615,10 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
                   key={item.to}
                   to={item.to}
                   onClick={onClose}
-                  className={`flex min-h-[48px] items-center justify-between rounded-xl px-3.5 py-3 text-xs font-semibold transition-all no-underline active:scale-[0.98] ${
+                  className={`flex min-h-[48px] items-center justify-between rounded-xl px-3.5 py-3 text-xs font-semibold transition-all duration-200 no-underline active:scale-[0.98] ${
                     active
-                      ? "bg-[#AFDDFF] text-black font-bold shadow-[0_0_16px_rgba(175,221,255,0.3)]"
-                      : "text-white/60 hover:bg-white/5 hover:text-white"
+                      ? "bg-[#AFDDFF] text-black font-bold shadow-[0_0_20px_rgba(175,221,255,0.3),inset_0_1px_1px_rgba(255,255,255,0.9)]"
+                      : "text-white/70 hover:bg-white/8 hover:text-white"
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -616,8 +627,8 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
                   </div>
                   {item.badge && (
                     <span
-                      className={`grid h-5 min-w-[20px] place-items-center rounded-full px-1.5 text-[10px] font-bold ${
-                        active ? "bg-black text-[#AFDDFF]" : "bg-[#AFDDFF]/20 text-[#AFDDFF]"
+                      className={`grid h-5 min-w-[20px] place-items-center rounded-full px-1.5 text-[10px] font-black ${
+                        active ? "bg-black text-[#AFDDFF]" : "bg-[#AFDDFF]/20 text-[#AFDDFF] border border-[#AFDDFF]/30"
                       }`}
                     >
                       {item.badge}

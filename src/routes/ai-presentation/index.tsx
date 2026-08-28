@@ -73,8 +73,8 @@ function AIPresentation() {
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white font-graphik">
                 AI Presentation Mock
               </h1>
-              <span className="text-[10px] sm:text-xs text-[#8DA6CC] bg-[#8DA6CC]/15 px-2 py-0.5 rounded font-mono">
-                [ SLIDE_DEFENSE ]
+              <span className="apple-pill-badge py-0.5 px-2 text-[10px]">
+                SLIDE DEFENSE
               </span>
             </div>
             <p className="text-xs text-white/50 mt-0.5">
@@ -85,11 +85,11 @@ function AIPresentation() {
 
         {/* Top Section */}
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-12 shrink-0">
-          <div className="lg:col-span-5 rounded-2xl border border-white/10 bg-card/85 p-4 sm:p-5 backdrop-blur-2xl shadow-[var(--shadow-glass)] flex flex-col justify-between">
+          <div className="lg:col-span-5 apple-glass-card p-4 sm:p-5 flex flex-col justify-between">
             <div>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#8DA6CC]/15 border border-[#8DA6CC]/30 px-2.5 py-1 text-[11px] font-mono font-bold text-[#8DA6CC]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#8DA6CC] animate-pulse" />
-                LIVE_SCREEN_REVIEW
+              <span className="apple-pill-badge text-[11px]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#AFDDFF] animate-pulse" />
+                LIVE SCREEN REVIEW
               </span>
               <h2 className="mt-3 text-lg sm:text-xl font-bold tracking-tight text-white font-graphik">
                 Defend like it's the real review
@@ -102,7 +102,7 @@ function AIPresentation() {
               <button
                 disabled={createSession.isPending}
                 onClick={() => void begin()}
-                className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-[#AFDDFF] px-5 py-2.5 text-xs sm:text-sm font-bold text-black shadow-[0_0_14px_rgba(175,221,255,0.25)] hover:bg-[#c8e8ff] active:scale-95 transition-all cursor-pointer uppercase tracking-wider"
+                className="apple-glass-btn-primary inline-flex min-h-[44px] items-center justify-center gap-2 px-5 py-2 text-xs sm:text-sm cursor-pointer uppercase tracking-wider"
               >
                 <Play className="h-4 w-4 fill-current" />{" "}
                 {createSession.isPending ? "Starting…" : "Start Session"}
@@ -110,19 +110,19 @@ function AIPresentation() {
             </div>
           </div>
 
-          <div className="lg:col-span-7 rounded-2xl border border-white/10 bg-card/85 p-4 sm:p-5 backdrop-blur-2xl shadow-[var(--shadow-glass)] flex flex-col justify-between">
+          <div className="lg:col-span-7 apple-glass-card p-4 sm:p-5 flex flex-col justify-between">
             <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-white/50 font-mono">
-                [ SESSION_SETUP ]
+              <h3 className="text-xs font-bold uppercase tracking-wider text-white/60 font-graphik">
+                SESSION SETUP
               </h3>
               <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <div className="rounded-xl border border-white/10 bg-white/5 p-2.5">
+                <div className="rounded-2xl border border-white/12 bg-white/5 p-2.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]">
                   <span className="block text-[10px] text-white/50 font-medium mb-1">Project</span>
                   <Select
                     value={projectId || "none"}
                     onValueChange={(v) => setProjectId(v === "none" ? "" : v)}
                   >
-                    <SelectTrigger className="w-full min-h-[36px] rounded-lg bg-black/60 border border-white/10 px-2 py-1 text-xs font-bold text-white focus:border-[#AFDDFF]">
+                    <SelectTrigger className="w-full min-h-[36px] rounded-xl bg-black/60 border border-white/15 px-2 py-1 text-xs font-bold text-white focus:border-[#AFDDFF]">
                       <SelectValue placeholder="No project" />
                     </SelectTrigger>
                     <SelectContent>
@@ -135,10 +135,10 @@ function AIPresentation() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="rounded-xl border border-white/10 bg-white/5 p-2.5">
+                <div className="rounded-2xl border border-white/12 bg-white/5 p-2.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]">
                   <span className="block text-[10px] text-white/50 font-medium mb-1">Type</span>
                   <Select value={type} onValueChange={(v) => setType(v as typeof type)}>
-                    <SelectTrigger className="w-full min-h-[36px] rounded-lg bg-black/60 border border-white/10 px-2 py-1 text-xs font-bold text-white focus:border-[#AFDDFF]">
+                    <SelectTrigger className="w-full min-h-[36px] rounded-xl bg-black/60 border border-white/15 px-2 py-1 text-xs font-bold text-white focus:border-[#AFDDFF]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -150,10 +150,10 @@ function AIPresentation() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="rounded-xl border border-white/10 bg-white/5 p-2.5">
+                <div className="rounded-2xl border border-white/12 bg-white/5 p-2.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]">
                   <span className="block text-[10px] text-white/50 font-medium mb-1">Duration</span>
                   <Select value={String(duration)} onValueChange={(v) => setDuration(Number(v))}>
-                    <SelectTrigger className="w-full min-h-[36px] rounded-lg bg-black/60 border border-white/10 px-2 py-1 text-xs font-bold text-white focus:border-[#AFDDFF]">
+                    <SelectTrigger className="w-full min-h-[36px] rounded-xl bg-black/60 border border-white/15 px-2 py-1 text-xs font-bold text-white focus:border-[#AFDDFF]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -165,10 +165,10 @@ function AIPresentation() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="rounded-xl border border-white/10 bg-white/5 p-2.5">
+                <div className="rounded-2xl border border-white/12 bg-white/5 p-2.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]">
                   <span className="block text-[10px] text-white/50 font-medium mb-1">Language</span>
                   <Select value={language} onValueChange={setLanguage}>
-                    <SelectTrigger className="w-full min-h-[36px] rounded-lg bg-black/60 border border-white/10 px-2 py-1 text-xs font-bold text-white focus:border-[#AFDDFF]">
+                    <SelectTrigger className="w-full min-h-[36px] rounded-xl bg-black/60 border border-white/15 px-2 py-1 text-xs font-bold text-white focus:border-[#AFDDFF]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -181,7 +181,7 @@ function AIPresentation() {
                   </Select>
                 </div>
               </div>
-              <div className="mt-2.5 rounded-xl border border-white/10 bg-white/5 p-2.5">
+              <div className="mt-2.5 rounded-2xl border border-white/12 bg-white/5 p-2.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]">
                 <label className="block text-[10px] text-white/50 font-medium">
                   Topic / focus (optional)
                 </label>
@@ -190,7 +190,7 @@ function AIPresentation() {
                   placeholder="e.g. Distributed Consensus Engine Architecture or Sprint 4 Demo"
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
-                  className="mt-1 w-full min-h-[36px] rounded-lg border border-white/10 bg-black/60 px-3 py-1.5 text-xs text-white placeholder:text-white/40 focus:border-[#AFDDFF] focus:outline-none"
+                  className="mt-1 w-full min-h-[36px] rounded-xl border border-white/15 bg-black/60 px-3 py-1.5 text-xs text-white placeholder:text-white/40 focus:border-[#AFDDFF] focus:outline-none shadow-[inset_0_1px_1px_rgba(0,0,0,0.5)]"
                 />
               </div>
             </div>
@@ -198,7 +198,7 @@ function AIPresentation() {
             <button
               disabled={createSession.isPending}
               onClick={() => void begin()}
-              className="mt-3 min-h-[44px] w-full rounded-xl bg-[#AFDDFF] py-2.5 text-xs sm:text-sm font-bold text-black shadow-[0_0_14px_rgba(175,221,255,0.25)] hover:bg-[#c8e8ff] active:scale-[0.98] transition-all cursor-pointer uppercase tracking-wider"
+              className="mt-3 apple-glass-btn-primary min-h-[44px] w-full py-2.5 text-xs sm:text-sm font-bold uppercase tracking-wider cursor-pointer"
             >
               {createSession.isPending ? "Starting…" : "Begin Presentation"}
             </button>
@@ -206,14 +206,14 @@ function AIPresentation() {
         </div>
 
         {/* Past Sessions */}
-        <div className="rounded-2xl border border-white/10 bg-card/85 p-4 sm:p-5 backdrop-blur-2xl shadow-[var(--shadow-glass)] flex-1 flex flex-col justify-between min-h-0">
+        <div className="apple-glass-card p-4 sm:p-5 flex-1 flex flex-col justify-between min-h-0">
           <div>
             <div className="flex items-center justify-between pb-2 border-b border-white/10">
               <h3 className="text-sm font-bold text-white font-graphik tracking-wide">
-                [ PAST_SESSIONS ]
+                PAST SESSIONS
               </h3>
               {allSessions.length > 0 && (
-                <span className="text-[11px] font-mono text-white/60 bg-white/10 px-2 py-0.5 rounded">
+                <span className="apple-pill-badge py-0.5 px-2 text-[10px]">
                   {allSessions.length} total
                 </span>
               )}
@@ -245,7 +245,7 @@ function AIPresentation() {
                       key={String(s.id)}
                       to="/ai-presentation/session/$id"
                       params={{ id: String(s.id) }}
-                      className="group block rounded-xl border border-white/10 bg-white/5 p-3.5 transition-all hover:border-[#8DA6CC]/50 hover:bg-white/10 no-underline"
+                      className="group block apple-glass-card apple-glass-card-hover p-3.5 no-underline"
                     >
                       <div className="flex items-center justify-between">
                         <div className="grid h-8 w-8 place-items-center rounded-lg bg-[#8DA6CC]/20 text-[#8DA6CC]">

@@ -387,3 +387,111 @@
   opacity: 0.95;
 }
 
+/* ==========================================================================
+   Apple VisionOS / iOS Liquid Glass Design System Core
+   ========================================================================== */
+
+/* Apple Squircle Glass Surfaces */
+.apple-glass-card {
+  background: radial-gradient(135% 120% at 50% 0%, rgba(255, 255, 255, 0.11) 0%, rgba(20, 26, 38, 0.78) 40%, rgba(10, 14, 22, 0.92) 100%);
+  backdrop-filter: blur(32px) saturate(210%);
+  -webkit-backdrop-filter: blur(32px) saturate(210%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 24px;
+  box-shadow:
+    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -1px 1px 0 rgba(0, 0, 0, 0.5),
+    0 16px 40px -4px rgba(0, 0, 0, 0.75),
+    0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+.apple-glass-card-hover {
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.28s ease;
+}
+
+.apple-glass-card-hover:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow:
+    inset 0 1px 2px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -1px 1px 0 rgba(0, 0, 0, 0.5),
+    0 22px 50px -4px rgba(0, 0, 0, 0.85),
+    0 0 25px rgba(175, 221, 255, 0.12);
+}
+
+/* Apple Tactile Glass Buttons */
+.apple-glass-btn-primary {
+  background: linear-gradient(180deg, #cde9ff 0%, #afddff 100%);
+  color: #000000;
+  font-weight: 700;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.9),
+    0 0 22px rgba(175, 221, 255, 0.4),
+    0 4px 14px rgba(0, 0, 0, 0.45);
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.25), box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.apple-glass-btn-primary:hover {
+  background: linear-gradient(180deg, #dcf0ff 0%, #c4e5ff 100%);
+  box-shadow:
+    inset 0 1px 2px 0 rgba(255, 255, 255, 1),
+    0 0 28px rgba(175, 221, 255, 0.55),
+    0 6px 18px rgba(0, 0, 0, 0.5);
+}
+
+.apple-glass-btn-primary:active {
+  transform: scale(0.96);
+}
+
+.apple-glass-btn-secondary {
+  background: rgba(255, 255, 255, 0.07);
+  color: #ffffff;
+  font-weight: 600;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow:
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.3),
+    0 4px 12px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.25), background 0.2s ease, border-color 0.2s ease;
+}
+
+.apple-glass-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.apple-glass-btn-secondary:active {
+  transform: scale(0.96);
+}
+
+/* iOS Segmented Control Track */
+.apple-segmented-track {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 3px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+/* Apple Translucent Pill Badge */
+.apple-pill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 9999px;
+  background: rgba(175, 221, 255, 0.12);
+  border: 1px solid rgba(175, 221, 255, 0.28);
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #afddff;
+  backdrop-filter: blur(16px);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.25), 0 0 12px rgba(175, 221, 255, 0.15);
+}
+
