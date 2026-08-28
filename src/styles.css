@@ -66,113 +66,120 @@
 
 :root {
   --radius: 1rem;
-  /* Flash White (#EFEFEF) crisp, ultra-clean modern light background */
-  --background: oklch(0.952 0.003 215);
-  /* Deep Dark Slate (#1E363D) high-contrast editorial text */
-  --foreground: oklch(0.24 0.04 215);
-  /* Translucent frosted glass card surface on Flash White */
-  --card: oklch(1 0 0 / 0.82);
-  --card-foreground: oklch(0.24 0.04 215);
+  /* Warm Buttercream-kissed airy background (#FAF7F2) */
+  --background: oklch(0.972 0.012 85);
+  /* Deep Espresso Slate (#1E1B18) high-contrast editorial text */
+  --foreground: oklch(0.24 0.03 50);
+  /* Translucent frosted glass card surface */
+  --card: oklch(1 0 0 / 0.85);
+  --card-foreground: oklch(0.24 0.03 50);
   --popover: oklch(1 0 0 / 0.95);
-  --popover-foreground: oklch(0.24 0.04 215);
-  /* Orange (#E9631A) signature radiant CTA & brand punch */
-  --primary: oklch(0.638 0.198 44.5);
+  --popover-foreground: oklch(0.24 0.03 50);
+  /* Canyon (#DF6D41) signature radiant CTA & brand punch */
+  --primary: oklch(0.63 0.16 43);
   --primary-foreground: oklch(0.99 0 0);
-  --primary-soft: oklch(0.638 0.198 44.5 / 0.14);
-  /* Slate-tinted secondary surface (#E1E7E8) */
-  --secondary: oklch(0.9 0.015 215 / 0.75);
-  --secondary-foreground: oklch(0.31 0.05 215);
-  --muted: oklch(0.91 0.008 215 / 0.7);
-  /* Dark Slate (#315762) muted typography */
-  --muted-foreground: oklch(0.46 0.035 215);
-  /* Orange (#E9631A) soft highlight accent */
-  --accent: oklch(0.638 0.198 44.5 / 0.12);
-  --accent-foreground: oklch(0.638 0.198 44.5);
+  --primary-soft: oklch(0.63 0.16 43 / 0.14);
+  /* Soft Buttercream (#F7D89A) tinted secondary surface */
+  --secondary: oklch(0.93 0.025 85 / 0.8);
+  --secondary-foreground: oklch(0.32 0.04 50);
+  --muted: oklch(0.94 0.01 85 / 0.7);
+  /* Morning Sky (#8DA6CC) muted typography */
+  --muted-foreground: oklch(0.48 0.03 60);
+  /* Buttercream (#F7D89A) soft highlight accent */
+  --accent: oklch(0.89 0.085 85 / 0.55);
+  --accent-foreground: oklch(0.42 0.08 45);
   --destructive: oklch(0.6 0.22 25);
   --destructive-foreground: oklch(0.99 0 0);
-  --success: oklch(0.68 0.16 150);
-  --warning: oklch(0.638 0.198 44.5);
-  --border: oklch(0.82 0.02 215 / 0.65);
-  --input: oklch(0.84 0.018 215 / 0.75);
-  --ring: oklch(0.638 0.198 44.5);
-  --chart-1: oklch(0.638 0.198 44.5);
-  --chart-2: oklch(0.428 0.052 215);
-  --chart-3: oklch(0.65 0.08 215);
-  --chart-4: oklch(0.78 0.15 70);
-  --chart-5: oklch(0.6 0.22 25);
+  /* Olive Grove (#AAA648) success green */
+  --success: oklch(0.68 0.12 110);
+  /* Buttercream (#F7D89A) warning amber */
+  --warning: oklch(0.89 0.085 85);
+  /* Morning Sky (#8DA6CC) refined border */
+  --border: oklch(0.84 0.025 85 / 0.65);
+  --input: oklch(0.86 0.02 85 / 0.75);
+  --ring: oklch(0.63 0.16 43);
+  /* Palette charts */
+  --chart-1: oklch(0.63 0.16 43); /* Canyon #DF6D41 */
+  --chart-2: oklch(0.7 0.065 250); /* Morning Sky #8DA6CC */
+  --chart-3: oklch(0.68 0.12 110); /* Olive Grove #AAA648 */
+  --chart-4: oklch(0.89 0.085 85); /* Buttercream #F7D89A */
+  --chart-5: oklch(0.58 0.18 35);
   --sidebar: oklch(1 0 0 / 0.88);
-  --sidebar-foreground: oklch(0.46 0.035 215);
-  --sidebar-primary: oklch(0.638 0.198 44.5);
+  --sidebar-foreground: oklch(0.48 0.03 60);
+  --sidebar-primary: oklch(0.63 0.16 43);
   --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.89 0.015 215 / 0.8);
-  --sidebar-accent-foreground: oklch(0.24 0.04 215);
-  --sidebar-border: oklch(0.82 0.02 215 / 0.45);
-  --sidebar-ring: oklch(0.638 0.198 44.5);
+  --sidebar-accent: oklch(0.93 0.025 85 / 0.8);
+  --sidebar-accent-foreground: oklch(0.24 0.03 50);
+  --sidebar-border: oklch(0.84 0.025 85 / 0.45);
+  --sidebar-ring: oklch(0.63 0.16 43);
   /* Apple specular glass dual-layer shadow with top lip reflection */
   --shadow-card:
-    0 4px 20px -2px oklch(0.24 0.04 215 / 0.06), 0 1px 3px 0 oklch(0.24 0.04 215 / 0.03),
+    0 4px 20px -2px oklch(0.24 0.03 50 / 0.06), 0 1px 3px 0 oklch(0.24 0.03 50 / 0.03),
     inset 0 1px 1px 0 oklch(1 0 0 / 0.9);
   --shadow-glass:
-    0 8px 32px -4px oklch(0.24 0.04 215 / 0.08), 0 2px 8px -1px oklch(0.24 0.04 215 / 0.04),
+    0 8px 32px -4px oklch(0.24 0.03 50 / 0.08), 0 2px 8px -1px oklch(0.24 0.03 50 / 0.04),
     inset 0 1px 1.5px 0 oklch(1 0 0 / 0.95);
   --shadow-glass-hover:
-    0 14px 40px -4px oklch(0.24 0.04 215 / 0.12), 0 4px 12px -2px oklch(0.24 0.04 215 / 0.06),
+    0 14px 40px -4px oklch(0.24 0.03 50 / 0.12), 0 4px 12px -2px oklch(0.24 0.03 50 / 0.06),
     inset 0 1px 2px 0 oklch(1 0 0 / 1);
 }
 
 .dark {
-  /* Deep Dark Slate (#172A2F / #315762 family) rich dark background */
-  --background: oklch(0.25 0.038 215);
-  /* Flash White (#EFEFEF) luminous high-contrast text */
-  --foreground: oklch(0.952 0.003 215);
-  /* Frosted Dark Slate (#315762) glass card surface */
-  --card: oklch(0.31 0.045 215 / 0.75);
-  --card-foreground: oklch(0.952 0.003 215);
-  --popover: oklch(0.28 0.042 215 / 0.92);
-  --popover-foreground: oklch(0.952 0.003 215);
-  /* Orange (#E9631A) signature radiant CTA */
-  --primary: oklch(0.638 0.198 44.5);
+  /* Deep Canyon Night / Rich Espresso (#1A1715) dark background */
+  --background: oklch(0.2 0.025 50);
+  /* Luminous Buttercream (#F7D89A) high-contrast text */
+  --foreground: oklch(0.95 0.015 85);
+  /* Frosted Dark Slate-Espresso glass card surface */
+  --card: oklch(0.26 0.025 50 / 0.78);
+  --card-foreground: oklch(0.95 0.015 85);
+  --popover: oklch(0.24 0.025 50 / 0.92);
+  --popover-foreground: oklch(0.95 0.015 85);
+  /* Canyon (#DF6D41) radiant CTA */
+  --primary: oklch(0.63 0.16 43);
   --primary-foreground: oklch(0.99 0 0);
-  --primary-soft: oklch(0.638 0.198 44.5 / 0.2);
-  /* Dark Slate secondary surface */
-  --secondary: oklch(0.35 0.045 215 / 0.7);
-  --secondary-foreground: oklch(0.952 0.003 215);
-  --muted: oklch(0.28 0.035 215 / 0.7);
-  /* Light Slate (#8DAEB7) muted text */
-  --muted-foreground: oklch(0.72 0.025 215);
-  /* Orange (#E9631A) highlight glow */
-  --accent: oklch(0.638 0.198 44.5 / 0.2);
-  --accent-foreground: oklch(0.638 0.198 44.5);
+  --primary-soft: oklch(0.63 0.16 43 / 0.2);
+  /* Secondary dark card surface */
+  --secondary: oklch(0.3 0.03 50 / 0.7);
+  --secondary-foreground: oklch(0.95 0.015 85);
+  --muted: oklch(0.24 0.02 50 / 0.7);
+  /* Morning Sky (#8DA6CC) muted text */
+  --muted-foreground: oklch(0.72 0.035 250);
+  /* Canyon (#DF6D41) highlight glow */
+  --accent: oklch(0.63 0.16 43 / 0.2);
+  --accent-foreground: oklch(0.63 0.16 43);
   --destructive: oklch(0.65 0.22 25);
   --destructive-foreground: oklch(0.99 0 0);
-  --success: oklch(0.72 0.16 150);
-  --warning: oklch(0.638 0.198 44.5);
-  --border: oklch(0.72 0.025 215 / 0.2);
-  --input: oklch(0.72 0.025 215 / 0.25);
-  --ring: oklch(0.638 0.198 44.5);
-  --chart-1: oklch(0.638 0.198 44.5);
-  --chart-2: oklch(0.428 0.052 215);
-  --chart-3: oklch(0.55 0.06 215);
-  --chart-4: oklch(0.75 0.14 60);
-  --chart-5: oklch(0.68 0.2 25);
-  --sidebar: oklch(0.22 0.035 215 / 0.85);
-  --sidebar-foreground: oklch(0.72 0.025 215);
-  --sidebar-primary: oklch(0.638 0.198 44.5);
+  /* Olive Grove (#AAA648) success green */
+  --success: oklch(0.68 0.12 110);
+  /* Buttercream (#F7D89A) warning amber */
+  --warning: oklch(0.89 0.085 85);
+  /* Morning Sky (#8DA6CC) frosted border */
+  --border: oklch(0.7 0.065 250 / 0.2);
+  --input: oklch(0.7 0.065 250 / 0.24);
+  --ring: oklch(0.63 0.16 43);
+  --chart-1: oklch(0.63 0.16 43); /* Canyon #DF6D41 */
+  --chart-2: oklch(0.7 0.065 250); /* Morning Sky #8DA6CC */
+  --chart-3: oklch(0.68 0.12 110); /* Olive Grove #AAA648 */
+  --chart-4: oklch(0.89 0.085 85); /* Buttercream #F7D89A */
+  --chart-5: oklch(0.65 0.22 25);
+  --sidebar: oklch(0.18 0.025 50 / 0.88);
+  --sidebar-foreground: oklch(0.72 0.035 250);
+  --sidebar-primary: oklch(0.63 0.16 43);
   --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.31 0.045 215 / 0.75);
-  --sidebar-accent-foreground: oklch(0.952 0.003 215);
-  --sidebar-border: oklch(0.72 0.025 215 / 0.16);
-  --sidebar-ring: oklch(0.638 0.198 44.5);
+  --sidebar-accent: oklch(0.28 0.025 50 / 0.75);
+  --sidebar-accent-foreground: oklch(0.95 0.015 85);
+  --sidebar-border: oklch(0.7 0.065 250 / 0.16);
+  --sidebar-ring: oklch(0.63 0.16 43);
   /* Apple specular dark glass dual-layer shadow */
   --shadow-card:
-    0 8px 32px -4px oklch(0 0 0 / 0.45), 0 2px 6px 0 oklch(0 0 0 / 0.25),
+    0 8px 32px -4px oklch(0 0 0 / 0.5), 0 2px 6px 0 oklch(0 0 0 / 0.28),
     inset 0 1px 1px 0 oklch(1 0 0 / 0.12);
   --shadow-glass:
-    0 12px 40px -6px oklch(0 0 0 / 0.6), 0 4px 12px 0 oklch(0 0 0 / 0.35),
+    0 12px 40px -6px oklch(0 0 0 / 0.65), 0 4px 12px 0 oklch(0 0 0 / 0.38),
     inset 0 1px 1.5px 0 oklch(1 0 0 / 0.16);
   --shadow-glass-hover:
-    0 18px 50px -6px oklch(0 0 0 / 0.75), 0 6px 18px 0 oklch(0 0 0 / 0.45),
-    inset 0 1px 2px 0 oklch(0.638 0.198 44.5 / 0.35);
+    0 18px 50px -6px oklch(0 0 0 / 0.8), 0 6px 18px 0 oklch(0 0 0 / 0.48),
+    inset 0 1px 2px 0 oklch(0.63 0.16 43 / 0.4);
 }
 
 @layer base {

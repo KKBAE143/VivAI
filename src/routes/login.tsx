@@ -22,7 +22,7 @@ export const Route = createFileRoute("/login")({
 
 function GreekMeanderFrieze() {
   return (
-    <div className="w-full flex items-center justify-center overflow-hidden opacity-60 text-[#E9631A] pb-3 border-b border-[#E9631A]/20">
+    <div className="w-full flex items-center justify-center overflow-hidden opacity-70 text-[#DF6D41] pb-3 border-b border-[#DF6D41]/20">
       <svg
         className="w-full h-3 max-w-[320px]"
         viewBox="0 0 320 12"
@@ -52,48 +52,30 @@ function Login() {
   }, [token, navigate]);
 
   const handleSubmit = async () => {
-    setLoading(true);
     setError("");
+    setLoading(true);
     try {
-      const res = await api<{ access_token: string; refresh_token?: string | null }>(
-        "/api/auth/login",
-        {
-          body: { email, password },
-        },
-      );
-      login(res.access_token, res.refresh_token ?? null);
-      try {
-        const status = await api<{
-          complete: boolean;
-          role?: string;
-          pending_approval?: boolean;
-        }>("/api/onboarding/status");
-        if (!status.complete) {
-          navigate({ to: "/onboarding" });
-        } else if (status.role === "admin") {
-          navigate({ to: "/admin" });
-        } else if (status.role === "faculty") {
-          navigate({ to: "/faculty" });
-        } else {
-          navigate({ to: "/" });
-        }
-      } catch {
-        navigate({ to: "/" });
-      }
+      await login(email, password);
+      navigate({ to: "/" });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Login failed");
+      setError(e instanceof Error ? e.message : "Failed to sign in");
     } finally {
       setLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
-    setLoading(true);
     setError("");
+    setLoading(true);
     try {
-      const callbackUrl = window.location.origin + "/";
-      const res = await api<{ url: string; code_verifier?: string }>(
-        "/api/auth/oauth/google?redirect_to=" + encodeURIComponent(callbackUrl),
+      const res = await api<{ url?: string; code_verifier?: string }>(
+        "/api/auth/oauth/google/url",
+        {
+          method: "POST",
+          body: {
+            redirect_to: `${window.location.origin}/login`,
+          },
+        },
       );
       if (res.url) {
         if (res.code_verifier) {
@@ -111,15 +93,15 @@ function Login() {
 
   return (
     <div
-      className="relative min-h-screen w-full bg-[#0E1B1F] bg-cover bg-center bg-no-repeat flex items-center justify-center p-4 sm:p-6 lg:p-12 overflow-x-hidden"
+      className="relative min-h-screen w-full bg-[#1A1715] bg-cover bg-center bg-no-repeat flex items-center justify-center p-4 sm:p-6 lg:p-12 overflow-x-hidden"
       style={{ backgroundImage: `url(${loginBg})` }}
     >
       <div className="relative z-10 w-full max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14 items-center">
         {/* Left Column: Medallion & Welcome */}
         <div className="flex flex-col items-center text-center">
-          {/* Circular Orange & Dark Slate Medallion Logo */}
-          <div className="relative w-56 h-56 sm:w-72 sm:h-72 md:w-88 md:h-88 rounded-full p-1.5 bg-gradient-to-b from-[#E9631A] via-[#FF8C42] to-[#E9631A] shadow-[0_0_50px_rgba(233,99,26,0.35),0_20px_50px_rgba(0,0,0,0.95)]">
-            <div className="w-full h-full rounded-full overflow-hidden border-2 border-[#EFEFEF]/80 bg-black">
+          {/* Circular Canyon & Buttercream Medallion Logo */}
+          <div className="relative w-56 h-56 sm:w-72 sm:h-72 md:w-88 md:h-88 rounded-full p-1.5 bg-gradient-to-b from-[#DF6D41] via-[#F7D89A] to-[#DF6D41] shadow-[0_0_50px_rgba(223,109,65,0.35),0_20px_50px_rgba(0,0,0,0.95)]">
+            <div className="w-full h-full rounded-full overflow-hidden border-2 border-[#F7D89A]/80 bg-black">
               <img
                 src={logoImg}
                 alt="VivAI Logo"
@@ -130,40 +112,40 @@ function Login() {
 
           {/* Classical Welcome Header */}
           <div className="mt-8 flex items-center justify-center gap-3">
-            <span className="text-[#E9631A] text-lg select-none">❧</span>
-            <div className="h-px w-10 bg-gradient-to-r from-transparent via-[#E9631A] to-transparent" />
-            <h2 className="font-serif text-2xl sm:text-3xl font-bold tracking-[0.25em] text-[#EFEFEF] uppercase drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]">
+            <span className="text-[#DF6D41] text-lg select-none">❧</span>
+            <div className="h-px w-10 bg-gradient-to-r from-transparent via-[#DF6D41] to-transparent" />
+            <h2 className="font-serif text-2xl sm:text-3xl font-bold tracking-[0.25em] text-[#F7D89A] uppercase drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]">
               WELCOME
             </h2>
-            <div className="h-px w-10 bg-gradient-to-r from-transparent via-[#E9631A] to-transparent" />
-            <span className="text-[#E9631A] text-lg select-none">☙</span>
+            <div className="h-px w-10 bg-gradient-to-r from-transparent via-[#DF6D41] to-transparent" />
+            <span className="text-[#DF6D41] text-lg select-none">☙</span>
           </div>
 
-          <p className="mt-3 text-sm sm:text-base text-[#D0D7D9] tracking-wide max-w-sm drop-shadow-md">
+          <p className="mt-3 text-sm sm:text-base text-[#E5DCD3] tracking-wide max-w-sm drop-shadow-md">
             Enter the realm of academic excellence and build something legendary.
           </p>
         </div>
 
         {/* Right Column: Architectural Tablet Card */}
         <div className="w-full max-w-md mx-auto">
-          <div className="relative rounded-[26px] sm:rounded-[30px] border-2 border-[#E9631A]/50 bg-[#16292D]/90 backdrop-blur-2xl p-6 sm:p-8 shadow-[0_25px_70px_rgba(0,0,0,0.95),0_0_35px_rgba(233,99,26,0.18),inset_0_1px_2px_rgba(239,239,239,0.35)]">
+          <div className="relative rounded-[26px] sm:rounded-[30px] border-2 border-[#DF6D41]/50 bg-[#1C1917]/90 backdrop-blur-2xl p-6 sm:p-8 shadow-[0_25px_70px_rgba(0,0,0,0.95),0_0_35px_rgba(223,109,65,0.18),inset_0_1px_2px_rgba(247,216,154,0.35)]">
             {/* Top Greek Key Frieze Motif */}
             <GreekMeanderFrieze />
 
             {/* Title */}
             <div className="text-center pt-3 pb-6">
               <div className="flex items-center justify-center gap-2.5">
-                <span className="text-[#E9631A] text-sm select-none">❧</span>
-                <h1 className="font-serif text-xl sm:text-2xl font-bold tracking-[0.2em] text-[#EFEFEF] uppercase drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+                <span className="text-[#DF6D41] text-sm select-none">❧</span>
+                <h1 className="font-serif text-xl sm:text-2xl font-bold tracking-[0.2em] text-[#F7D89A] uppercase drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
                   SIGN IN
                 </h1>
-                <span className="text-[#E9631A] text-sm select-none">☙</span>
+                <span className="text-[#DF6D41] text-sm select-none">☙</span>
               </div>
               {/* Ornate motif line */}
               <div className="mt-2 flex items-center justify-center gap-2">
-                <div className="h-px w-12 bg-gradient-to-r from-transparent to-[#E9631A]/60" />
-                <span className="text-[#E9631A] text-xs select-none">❖</span>
-                <div className="h-px w-12 bg-gradient-to-l from-transparent to-[#E9631A]/60" />
+                <div className="h-px w-12 bg-gradient-to-r from-transparent to-[#DF6D41]/60" />
+                <span className="text-[#DF6D41] text-xs select-none">❖</span>
+                <div className="h-px w-12 bg-gradient-to-l from-transparent to-[#DF6D41]/60" />
               </div>
             </div>
 
@@ -176,8 +158,8 @@ function Login() {
             >
               {/* Email Field */}
               <div>
-                <label className="text-[11px] font-bold tracking-[0.18em] text-[#EFEFEF] uppercase flex items-center gap-2 mb-1.5">
-                  <Mail className="h-3.5 w-3.5 text-[#E9631A]" />
+                <label className="text-[11px] font-bold tracking-[0.18em] text-[#F7D89A] uppercase flex items-center gap-2 mb-1.5">
+                  <Mail className="h-3.5 w-3.5 text-[#DF6D41]" />
                   E-MAIL
                 </label>
                 <div className="relative">
@@ -187,15 +169,15 @@ function Login() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full rounded-xl border border-[#315762] bg-[#0E1B1F]/90 px-4 py-2.5 text-sm text-[#EFEFEF] placeholder-[#7E9DA6]/50 focus:border-[#E9631A] focus:outline-none focus:ring-1 focus:ring-[#E9631A] focus:shadow-[0_0_15px_rgba(233,99,26,0.3)] transition-all"
+                    className="w-full rounded-xl border border-[#8DA6CC]/40 bg-[#12100E]/90 px-4 py-2.5 text-sm text-[#F7D89A] placeholder-[#8DA6CC]/50 focus:border-[#DF6D41] focus:outline-none focus:ring-1 focus:ring-[#DF6D41] focus:shadow-[0_0_15px_rgba(223,109,65,0.3)] transition-all"
                   />
                 </div>
               </div>
 
               {/* Password Field */}
               <div>
-                <label className="text-[11px] font-bold tracking-[0.18em] text-[#EFEFEF] uppercase flex items-center gap-2 mb-1.5">
-                  <Lock className="h-3.5 w-3.5 text-[#E9631A]" />
+                <label className="text-[11px] font-bold tracking-[0.18em] text-[#F7D89A] uppercase flex items-center gap-2 mb-1.5">
+                  <Lock className="h-3.5 w-3.5 text-[#DF6D41]" />
                   PASSWORD
                 </label>
                 <div className="relative">
@@ -205,12 +187,12 @@ function Login() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="w-full rounded-xl border border-[#315762] bg-[#0E1B1F]/90 px-4 py-2.5 pr-11 text-sm text-[#EFEFEF] placeholder-[#7E9DA6]/50 focus:border-[#E9631A] focus:outline-none focus:ring-1 focus:ring-[#E9631A] focus:shadow-[0_0_15px_rgba(233,99,26,0.3)] transition-all"
+                    className="w-full rounded-xl border border-[#8DA6CC]/40 bg-[#12100E]/90 px-4 py-2.5 pr-11 text-sm text-[#F7D89A] placeholder-[#8DA6CC]/50 focus:border-[#DF6D41] focus:outline-none focus:ring-1 focus:ring-[#DF6D41] focus:shadow-[0_0_15px_rgba(223,109,65,0.3)] transition-all"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#E9631A]/80 hover:text-[#FFA568] transition-colors"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#DF6D41]/80 hover:text-[#F7D89A] transition-colors"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -218,16 +200,16 @@ function Login() {
               </div>
 
               <div className="flex items-center justify-between text-xs pt-1">
-                <label className="flex items-center gap-2 text-[#D0D7D9]/80 cursor-pointer">
+                <label className="flex items-center gap-2 text-[#E5DCD3]/80 cursor-pointer">
                   <input
                     type="checkbox"
-                    className="h-3.5 w-3.5 rounded border-[#315762] bg-[#0E1B1F] accent-[#E9631A]"
+                    className="h-3.5 w-3.5 rounded border-[#8DA6CC]/50 bg-[#12100E] accent-[#DF6D41]"
                   />
                   Remember me
                 </label>
                 <Link
                   to="/forgot-password"
-                  className="font-medium text-[#E9631A] hover:text-[#FFA568] hover:underline"
+                  className="font-medium text-[#DF6D41] hover:text-[#F7D89A] hover:underline"
                 >
                   Forgot password?
                 </Link>
@@ -239,11 +221,11 @@ function Login() {
                 </div>
               )}
 
-              {/* Radiant Orange Chiseled Button */}
+              {/* Radiant Canyon Chiseled Button */}
               <button
                 type="submit"
                 disabled={loading}
-                className="relative mt-5 block w-full rounded-xl bg-gradient-to-r from-[#D35400] via-[#E9631A] to-[#D35400] hover:from-[#E9631A] hover:via-[#FF7A29] hover:to-[#E9631A] px-4 py-3.5 text-center text-sm font-bold tracking-[0.2em] text-[#FFFFFF] uppercase shadow-[0_6px_25px_rgba(233,99,26,0.45)] border border-[#FFA568]/70 transition-all duration-300 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                className="relative mt-5 block w-full rounded-xl bg-gradient-to-r from-[#C2552B] via-[#DF6D41] to-[#C2552B] hover:from-[#DF6D41] hover:via-[#E88056] hover:to-[#DF6D41] px-4 py-3.5 text-center text-sm font-bold tracking-[0.2em] text-[#FFFFFF] uppercase shadow-[0_6px_25px_rgba(223,109,65,0.45)] border border-[#F7D89A]/70 transition-all duration-300 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
               >
                 <span className="flex items-center justify-center gap-2">
                   <span className="text-xs select-none">❧</span>
@@ -255,11 +237,11 @@ function Login() {
 
             {/* Divider OR */}
             <div className="my-5 flex items-center gap-3">
-              <div className="h-px flex-1 bg-gradient-to-r from-transparent to-[#E9631A]/40" />
-              <span className="text-[10px] font-bold tracking-[0.25em] text-[#EFEFEF]/70 uppercase">
+              <div className="h-px flex-1 bg-gradient-to-r from-transparent to-[#DF6D41]/40" />
+              <span className="text-[10px] font-bold tracking-[0.25em] text-[#F7D89A]/70 uppercase">
                 OR
               </span>
-              <div className="h-px flex-1 bg-gradient-to-l from-transparent to-[#E9631A]/40" />
+              <div className="h-px flex-1 bg-gradient-to-l from-transparent to-[#DF6D41]/40" />
             </div>
 
             {/* Google Login Button */}
@@ -267,17 +249,17 @@ function Login() {
               type="button"
               onClick={handleGoogleLogin}
               disabled={loading}
-              className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-[#315762] bg-[#0E1B1F]/80 px-4 py-2.5 text-xs font-semibold tracking-wider text-[#EFEFEF] hover:bg-[#1A2F35] hover:border-[#E9631A]/60 transition-all shadow-sm disabled:opacity-50 cursor-pointer"
+              className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-[#8DA6CC]/40 bg-[#12100E]/80 px-4 py-2.5 text-xs font-semibold tracking-wider text-[#F7D89A] hover:bg-[#24201E] hover:border-[#DF6D41]/60 transition-all shadow-sm disabled:opacity-50 cursor-pointer"
             >
               <GoogleG /> Continue with Google
             </button>
 
             {/* Footer switch */}
-            <p className="mt-6 text-center text-xs text-[#D0D7D9]">
+            <p className="mt-6 text-center text-xs text-[#E5DCD3]">
               Don't have an account?{" "}
               <Link
                 to="/signup"
-                className="font-semibold text-[#E9631A] underline underline-offset-4 hover:text-[#FFA568] transition-colors ml-1"
+                className="font-semibold text-[#DF6D41] underline underline-offset-4 hover:text-[#F7D89A] transition-colors ml-1"
               >
                 Sign up
               </Link>

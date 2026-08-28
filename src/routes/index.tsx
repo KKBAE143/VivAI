@@ -190,7 +190,7 @@ export default function Dashboard() {
           {/* Top Bar / Integrated Header (Compact) */}
           <div className="flex shrink-0 items-center justify-between gap-3 rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 px-4 py-2.5 backdrop-blur-2xl shadow-[var(--shadow-glass)]">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-tr from-primary to-[#FF7A29] text-sm font-black text-primary-foreground shadow-xs">
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-tr from-primary to-[#F7D89A] text-sm font-black text-primary-foreground shadow-xs">
                 {firstName.charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0">

@@ -89,9 +89,9 @@ export function AppShell({
     >
       {/* Atmospheric ambient light mesh */}
       <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-        <div className="absolute -top-40 right-[-10%] h-[550px] w-[550px] rounded-full bg-primary/10 blur-[130px] dark:bg-primary/15" />
-        <div className="absolute top-[35%] -left-32 h-[500px] w-[500px] rounded-full bg-[oklch(0.428_0.052_215/0.12)] blur-[140px] dark:bg-[oklch(0.35_0.045_215/0.4)]" />
-        <div className="absolute -bottom-40 right-[20%] h-[600px] w-[600px] rounded-full bg-primary/8 blur-[150px] dark:bg-primary/10" />
+        <div className="absolute -top-40 right-[-10%] h-[550px] w-[550px] rounded-full bg-primary/12 blur-[130px] dark:bg-primary/18" />
+        <div className="absolute top-[35%] -left-32 h-[500px] w-[500px] rounded-full bg-[oklch(0.70_0.065_250/0.14)] blur-[140px] dark:bg-[oklch(0.70_0.065_250/0.16)]" />
+        <div className="absolute -bottom-40 right-[20%] h-[600px] w-[600px] rounded-full bg-[oklch(0.89_0.085_85/0.12)] blur-[150px] dark:bg-[oklch(0.89_0.085_85/0.10)]" />
       </div>
       <div
         className={`relative z-10 flex w-full gap-3 sm:gap-4 lg:gap-4 p-2.5 sm:p-3.5 lg:p-3.5 ${
