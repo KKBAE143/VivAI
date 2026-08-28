@@ -207,29 +207,29 @@ function CommunicationCoach() {
         <div className="flex flex-wrap items-center justify-between gap-3 shrink-0">
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white font-graphik">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground font-graphik">
                 AI Communication Coach
               </h1>
-              <span className="text-[10px] sm:text-xs text-[#AFDDFF] bg-[#AFDDFF]/15 px-2 py-0.5 rounded font-mono">
-                [ VISION_&_VOICE ]
+              <span className="apple-pill-badge py-0.5 px-2 text-[10px]">
+                VISION & VOICE
               </span>
             </div>
-            <p className="text-xs text-white/50 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               Pick a role-play scenario and practice live with real-time camera, eye contact & vocal pacing feedback.
             </p>
           </div>
 
           <div className="flex items-center gap-2.5">
             {/* Quick Header Language Switcher */}
-            <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 backdrop-blur-xl">
-              <Languages className="h-4 w-4 text-[#AFDDFF]" />
+            <div className="flex items-center gap-1.5 rounded-xl border border-border bg-black/5 dark:bg-white/5 px-3 py-1.5 backdrop-blur-xl">
+              <Languages className="h-4 w-4 text-primary" />
               <select
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
-                className="bg-transparent text-xs font-bold text-white focus:outline-none cursor-pointer"
+                className="bg-transparent text-xs font-bold text-foreground focus:outline-none cursor-pointer"
               >
                 {LIVE_LANGUAGES.map((l) => (
-                  <option key={l} value={l} className="bg-[#0A0E16] text-white">
+                  <option key={l} value={l} className="bg-card text-foreground">
                     {l}
                   </option>
                 ))}
@@ -239,7 +239,7 @@ function CommunicationCoach() {
             <button
               onClick={() => scenario && handleSelectScenario(scenario)}
               disabled={starting || !scenario}
-              className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-[#AFDDFF] px-5 py-2.5 text-xs sm:text-sm font-bold text-black shadow-[0_0_15px_rgba(175,221,255,0.25)] hover:bg-[#c8e8ff] active:scale-95 disabled:opacity-50 transition-all cursor-pointer uppercase tracking-wider"
+              className="apple-glass-btn-primary inline-flex min-h-[44px] items-center gap-2 px-5 py-2.5 text-xs sm:text-sm font-bold uppercase tracking-wider cursor-pointer disabled:opacity-50"
             >
               {starting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -252,23 +252,23 @@ function CommunicationCoach() {
         </div>
 
         {/* Main Content Area */}
-        <div className="rounded-2xl border border-white/10 bg-card/85 p-4 sm:p-5 backdrop-blur-2xl shadow-[var(--shadow-glass)] flex-1 flex flex-col justify-between min-h-0 relative">
+        <div className="apple-glass-card p-4 sm:p-5 flex-1 flex flex-col justify-between min-h-0 relative">
           <div className="overflow-y-auto pr-1 flex-1 pb-24 sm:pb-20">
             {/* Search & Category Filter Bar */}
-            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between pb-3 border-b border-white/10">
+            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between pb-3 border-b border-border">
               <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
                   type="text"
                   placeholder="Search scenarios (e.g. HR Interview, Salary, Pitch, Viva)..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full min-h-[38px] rounded-xl border border-white/10 bg-black/60 pl-9 pr-3 py-1.5 text-xs text-white placeholder:text-white/40 focus:border-[#AFDDFF] focus:outline-none"
+                  className="w-full min-h-[38px] rounded-xl border border-border bg-card pl-9 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none shadow-xs"
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
@@ -283,8 +283,8 @@ function CommunicationCoach() {
                     onClick={() => setSelectedCategory(cat)}
                     className={`min-h-[32px] shrink-0 rounded-lg px-3 py-1 text-xs font-bold transition-all cursor-pointer active:scale-95 ${
                       selectedCategory === cat
-                        ? "bg-[#AFDDFF] text-black shadow-[0_0_10px_rgba(175,221,255,0.25)]"
-                        : "border border-white/10 bg-white/5 text-white/60 hover:text-white hover:bg-white/10"
+                        ? "bg-primary text-primary-foreground shadow-xs"
+                        : "border border-border bg-black/5 dark:bg-white/5 text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     {cat}
@@ -295,18 +295,18 @@ function CommunicationCoach() {
 
             {scenariosQuery.isLoading ? (
               <div className="py-16 flex flex-col items-center justify-center gap-3 text-center">
-                <Loader2 className="h-6 w-6 animate-spin text-[#AFDDFF]" />
-                <span className="text-xs text-white/60 font-mono">Loading communication scenarios catalog…</span>
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <span className="text-xs text-muted-foreground font-mono">Loading communication scenarios catalog…</span>
               </div>
             ) : filteredScenarios.length === 0 ? (
-              <div className="py-16 text-center text-white/50">
+              <div className="py-16 text-center text-muted-foreground">
                 <p className="text-sm font-semibold">No scenarios match your search.</p>
                 <button
                   onClick={() => {
                     setSearchQuery("");
                     setSelectedCategory("All");
                   }}
-                  className="mt-2 text-xs text-[#AFDDFF] hover:underline cursor-pointer"
+                  className="mt-2 text-xs text-primary hover:underline cursor-pointer"
                 >
                   Clear filters
                 </button>
@@ -316,10 +316,10 @@ function CommunicationCoach() {
                 {Object.entries(scenarioGroups).map(([category, items]) => (
                   <section key={category}>
                     <div className="flex items-center justify-between mb-2.5">
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-white/50 font-mono">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground font-mono">
                         [ {category} ]
                       </h4>
-                      <span className="text-[10px] text-white/40 font-mono">{items.length} options</span>
+                      <span className="text-[10px] text-muted-foreground font-mono">{items.length} options</span>
                     </div>
 
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -331,8 +331,8 @@ function CommunicationCoach() {
                             onClick={() => handleSelectScenario(item)}
                             className={`group relative flex flex-col justify-between rounded-2xl border p-4 text-left transition-all cursor-pointer active:scale-[0.98] ${
                               active
-                                ? "border-[#AFDDFF] bg-[#AFDDFF]/10 shadow-[0_0_20px_rgba(175,221,255,0.15)] ring-1 ring-[#AFDDFF]/30"
-                                : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10"
+                                ? "border-primary bg-primary/10 shadow-sm ring-1 ring-primary/30"
+                                : "border-border bg-card hover:border-primary/40 hover:bg-black/5 dark:hover:bg-white/5"
                             }`}
                           >
                             <div>
@@ -340,8 +340,8 @@ function CommunicationCoach() {
                                 <span
                                   className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl transition-colors ${
                                     active
-                                      ? "bg-[#AFDDFF] text-black shadow-[0_0_12px_rgba(175,221,255,0.4)]"
-                                      : "bg-white/10 text-white/70 group-hover:text-[#AFDDFF] group-hover:bg-[#AFDDFF]/15"
+                                      ? "bg-primary text-primary-foreground shadow-xs"
+                                      : "bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground"
                                   }`}
                                 >
                                   <ScenarioIcon scenario={item} className="h-5 w-5" />
@@ -349,36 +349,36 @@ function CommunicationCoach() {
 
                                 <div className="flex items-center gap-1.5">
                                   {item.default_duration_min && (
-                                    <span className="rounded-md border border-white/10 bg-black/40 px-2 py-0.5 text-[10px] font-mono text-white/60">
+                                    <span className="rounded-md border border-border bg-black/5 dark:bg-black/40 px-2 py-0.5 text-[10px] font-mono text-muted-foreground">
                                       {item.default_duration_min}m
                                     </span>
                                   )}
                                   {active && (
-                                    <span className="rounded-md bg-[#AFDDFF]/20 text-[#AFDDFF] px-2 py-0.5 text-[10px] font-mono font-bold">
+                                    <span className="rounded-md bg-primary/20 text-primary px-2 py-0.5 text-[10px] font-mono font-bold">
                                       SELECTED
                                     </span>
                                   )}
                                 </div>
                               </div>
 
-                              <div className="mt-3 font-bold text-sm text-white font-graphik group-hover:text-[#AFDDFF] transition-colors">
+                              <div className="mt-3 font-bold text-sm text-foreground font-graphik group-hover:text-primary transition-colors">
                                 {item.label}
                               </div>
-                              <p className="mt-1 text-xs text-white/60 line-clamp-2 leading-relaxed">
+                              <p className="mt-1 text-xs text-muted-foreground line-clamp-2 leading-relaxed">
                                 {item.description}
                               </p>
                             </div>
 
                             {/* Direct Launch Strip */}
-                            <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between">
-                              <span className="text-[11px] font-mono text-white/40 group-hover:text-white/70 transition-colors flex items-center gap-1">
-                                <Camera className="h-3 w-3 text-[#AFDDFF]" /> AI Camera Feedback
+                            <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
+                              <span className="text-[11px] font-mono text-muted-foreground group-hover:text-foreground transition-colors flex items-center gap-1">
+                                <Camera className="h-3 w-3 text-primary" /> AI Camera Feedback
                               </span>
                               <span
                                 className={`text-xs font-bold px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 ${
                                   active
-                                    ? "bg-[#AFDDFF] text-black"
-                                    : "text-[#AFDDFF] bg-[#AFDDFF]/10 group-hover:bg-[#AFDDFF] group-hover:text-black"
+                                    ? "bg-primary text-primary-foreground"
+                                    : "text-primary bg-primary/10 group-hover:bg-primary group-hover:text-primary-foreground"
                                 }`}
                               >
                                 Configure & Start →

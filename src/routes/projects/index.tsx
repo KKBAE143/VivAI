@@ -64,17 +64,17 @@ function Projects() {
           </div>
           <Link
             to="/projects/new"
-            className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-xs sm:text-sm font-semibold text-primary-foreground transition-transform active:scale-95 shadow-sm hover:opacity-95"
+            className="apple-glass-btn-primary px-3.5 py-2 text-xs sm:text-sm font-bold no-underline"
           >
             <Plus className="h-4 w-4" /> New Project
           </Link>
         </div>
 
         {/* Main Content Card */}
-        <Card className="p-4 sm:p-5 flex-1 flex flex-col justify-between min-h-0">
+        <div className="apple-glass-card p-4 sm:p-5 flex-1 flex flex-col justify-between min-h-0">
           <div>
             <div className="flex flex-wrap items-center justify-between gap-2.5">
-              <div className="flex items-center gap-1 rounded-full bg-secondary p-0.5">
+              <div className="apple-segmented-track p-1">
                 {FILTERS.map((t) => (
                   <button
                     key={t}
@@ -82,9 +82,9 @@ function Projects() {
                       setFilter(t);
                       setPage(1);
                     }}
-                    className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                    className={`rounded-full px-3 py-1 text-xs font-semibold transition-all cursor-pointer ${
                       filter === t
-                        ? "bg-foreground text-background"
+                        ? "bg-primary text-primary-foreground shadow-xs"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
@@ -93,7 +93,7 @@ function Projects() {
                 ))}
               </div>
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-xs">
+                <div className="flex items-center gap-1.5 rounded-full border border-border bg-black/5 dark:bg-white/5 px-3 py-1 text-xs">
                   <Search className="h-3.5 w-3.5 text-muted-foreground" />
                   <input
                     placeholder="Search projects…"
@@ -102,7 +102,7 @@ function Projects() {
                       setSearch(e.target.value);
                       setPage(1);
                     }}
-                    className="w-36 bg-transparent focus:outline-none text-xs"
+                    className="w-36 bg-transparent focus:outline-none text-xs text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
               </div>
@@ -234,7 +234,7 @@ function Projects() {
               className="mt-2 pt-2"
             />
           )}
-        </Card>
+        </div>
       </div>
     </AppShell>
   );

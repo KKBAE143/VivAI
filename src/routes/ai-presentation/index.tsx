@@ -70,14 +70,14 @@ function AIPresentation() {
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white font-graphik">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground font-graphik">
                 AI Presentation Mock
               </h1>
               <span className="apple-pill-badge py-0.5 px-2 text-[10px]">
                 SLIDE DEFENSE
               </span>
             </div>
-            <p className="text-xs text-white/50 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               Present to AI faculty, share your screen, and get instant real-time defense feedback.
             </p>
           </div>
@@ -88,14 +88,14 @@ function AIPresentation() {
           <div className="lg:col-span-5 apple-glass-card p-4 sm:p-5 flex flex-col justify-between">
             <div>
               <span className="apple-pill-badge text-[11px]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#AFDDFF] animate-pulse" />
+                <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
                 LIVE SCREEN REVIEW
               </span>
-              <h2 className="mt-3 text-lg sm:text-xl font-bold tracking-tight text-white font-graphik">
+              <h2 className="mt-3 text-lg sm:text-xl font-bold tracking-tight text-foreground font-graphik">
                 Defend like it's the real review
               </h2>
-              <p className="mt-1 text-xs sm:text-sm text-white/60 leading-relaxed">
-                Share your screen, present your slides in <strong className="text-[#AFDDFF]">{language}</strong>, and AI faculty asks follow-ups, scores clarity, and flags missing topics.
+              <p className="mt-1 text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                Share your screen, present your slides in <strong className="text-primary">{language}</strong>, and AI faculty asks follow-ups, scores clarity, and flags missing topics.
               </p>
             </div>
             <div className="mt-4 flex flex-wrap gap-2.5">
@@ -112,17 +112,17 @@ function AIPresentation() {
 
           <div className="lg:col-span-7 apple-glass-card p-4 sm:p-5 flex flex-col justify-between">
             <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-white/60 font-graphik">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground font-graphik">
                 SESSION SETUP
               </h3>
               <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <div className="rounded-2xl border border-white/12 bg-white/5 p-2.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]">
-                  <span className="block text-[10px] text-white/50 font-medium mb-1">Project</span>
+                <div className="rounded-2xl border border-border bg-black/5 dark:bg-white/5 p-2.5 shadow-xs">
+                  <span className="block text-[10px] text-muted-foreground font-medium mb-1">Project</span>
                   <Select
                     value={projectId || "none"}
                     onValueChange={(v) => setProjectId(v === "none" ? "" : v)}
                   >
-                    <SelectTrigger className="w-full min-h-[36px] rounded-xl bg-black/60 border border-white/15 px-2 py-1 text-xs font-bold text-white focus:border-[#AFDDFF]">
+                    <SelectTrigger className="w-full min-h-[36px] rounded-xl bg-card border border-border px-2 py-1 text-xs font-bold text-foreground focus:border-primary">
                       <SelectValue placeholder="No project" />
                     </SelectTrigger>
                     <SelectContent>
@@ -135,10 +135,10 @@ function AIPresentation() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="rounded-2xl border border-white/12 bg-white/5 p-2.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]">
-                  <span className="block text-[10px] text-white/50 font-medium mb-1">Type</span>
+                <div className="rounded-2xl border border-border bg-black/5 dark:bg-white/5 p-2.5 shadow-xs">
+                  <span className="block text-[10px] text-muted-foreground font-medium mb-1">Type</span>
                   <Select value={type} onValueChange={(v) => setType(v as typeof type)}>
-                    <SelectTrigger className="w-full min-h-[36px] rounded-xl bg-black/60 border border-white/15 px-2 py-1 text-xs font-bold text-white focus:border-[#AFDDFF]">
+                    <SelectTrigger className="w-full min-h-[36px] rounded-xl bg-card border border-border px-2 py-1 text-xs font-bold text-foreground focus:border-primary">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -150,10 +150,10 @@ function AIPresentation() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="rounded-2xl border border-white/12 bg-white/5 p-2.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]">
-                  <span className="block text-[10px] text-white/50 font-medium mb-1">Duration</span>
+                <div className="rounded-2xl border border-border bg-black/5 dark:bg-white/5 p-2.5 shadow-xs">
+                  <span className="block text-[10px] text-muted-foreground font-medium mb-1">Duration</span>
                   <Select value={String(duration)} onValueChange={(v) => setDuration(Number(v))}>
-                    <SelectTrigger className="w-full min-h-[36px] rounded-xl bg-black/60 border border-white/15 px-2 py-1 text-xs font-bold text-white focus:border-[#AFDDFF]">
+                    <SelectTrigger className="w-full min-h-[36px] rounded-xl bg-card border border-border px-2 py-1 text-xs font-bold text-foreground focus:border-primary">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -165,10 +165,10 @@ function AIPresentation() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="rounded-2xl border border-white/12 bg-white/5 p-2.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]">
-                  <span className="block text-[10px] text-white/50 font-medium mb-1">Language</span>
+                <div className="rounded-2xl border border-border bg-black/5 dark:bg-white/5 p-2.5 shadow-xs">
+                  <span className="block text-[10px] text-muted-foreground font-medium mb-1">Language</span>
                   <Select value={language} onValueChange={setLanguage}>
-                    <SelectTrigger className="w-full min-h-[36px] rounded-xl bg-black/60 border border-white/15 px-2 py-1 text-xs font-bold text-white focus:border-[#AFDDFF]">
+                    <SelectTrigger className="w-full min-h-[36px] rounded-xl bg-card border border-border px-2 py-1 text-xs font-bold text-foreground focus:border-primary">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -181,8 +181,8 @@ function AIPresentation() {
                   </Select>
                 </div>
               </div>
-              <div className="mt-2.5 rounded-2xl border border-white/12 bg-white/5 p-2.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]">
-                <label className="block text-[10px] text-white/50 font-medium">
+              <div className="mt-2.5 rounded-2xl border border-border bg-black/5 dark:bg-white/5 p-2.5 shadow-xs">
+                <label className="block text-[10px] text-muted-foreground font-medium">
                   Topic / focus (optional)
                 </label>
                 <input
@@ -190,11 +190,11 @@ function AIPresentation() {
                   placeholder="e.g. Distributed Consensus Engine Architecture or Sprint 4 Demo"
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
-                  className="mt-1 w-full min-h-[36px] rounded-xl border border-white/15 bg-black/60 px-3 py-1.5 text-xs text-white placeholder:text-white/40 focus:border-[#AFDDFF] focus:outline-none shadow-[inset_0_1px_1px_rgba(0,0,0,0.5)]"
+                  className="mt-1 w-full min-h-[36px] rounded-xl border border-border bg-card px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none shadow-xs"
                 />
               </div>
             </div>
-            {error && <p className="mt-1.5 text-xs text-rose-400 font-mono">{error}</p>}
+            {error && <p className="mt-1.5 text-xs text-rose-500 font-mono">{error}</p>}
             <button
               disabled={createSession.isPending}
               onClick={() => void begin()}
@@ -208,8 +208,8 @@ function AIPresentation() {
         {/* Past Sessions */}
         <div className="apple-glass-card p-4 sm:p-5 flex-1 flex flex-col justify-between min-h-0">
           <div>
-            <div className="flex items-center justify-between pb-2 border-b border-white/10">
-              <h3 className="text-sm font-bold text-white font-graphik tracking-wide">
+            <div className="flex items-center justify-between pb-2 border-b border-border">
+              <h3 className="text-sm font-bold text-foreground font-graphik tracking-wide">
                 PAST SESSIONS
               </h3>
               {allSessions.length > 0 && (
@@ -219,7 +219,7 @@ function AIPresentation() {
               )}
             </div>
             {sessionsQuery.isLoading ? (
-              <p className="mt-3 text-xs text-white/50">Loading sessions…</p>
+              <p className="mt-3 text-xs text-muted-foreground">Loading sessions…</p>
             ) : sessionsQuery.error ? (
               <ErrorState
                 message={
@@ -248,32 +248,32 @@ function AIPresentation() {
                       className="group block apple-glass-card apple-glass-card-hover p-3.5 no-underline"
                     >
                       <div className="flex items-center justify-between">
-                        <div className="grid h-8 w-8 place-items-center rounded-lg bg-[#8DA6CC]/20 text-[#8DA6CC]">
+                        <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary/15 text-primary">
                           <MonitorSmartphone className="h-4 w-4" />
                         </div>
-                        <ChevronRight className="h-4 w-4 text-white/40 group-hover:translate-x-1 group-hover:text-white transition-all" />
+                        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 group-hover:text-primary transition-all" />
                       </div>
-                      <div className="mt-2.5 font-bold text-xs sm:text-sm text-white truncate font-graphik">
+                      <div className="mt-2.5 font-bold text-xs sm:text-sm text-foreground truncate font-graphik">
                         {String(s.session_type ?? "Presentation")}
                       </div>
-                      <div className="mt-0.5 text-[10px] text-white/50">
+                      <div className="mt-0.5 text-[10px] text-muted-foreground">
                         {String(s.created_at ?? "").slice(0, 10)} · {String(s.duration_minutes ?? "—")} min
                       </div>
-                      <div className="mt-2.5 flex items-center justify-between pt-2 border-t border-white/10">
+                      <div className="mt-2.5 flex items-center justify-between pt-2 border-t border-border">
                         {score !== null ? (
                           <span
                             className={`rounded-md px-2 py-0.5 text-[10.5px] font-bold ${
-                              score >= 80 ? "bg-[#7CE4BA]/20 text-[#7CE4BA]" : "bg-[#8DA6CC]/20 text-[#8DA6CC]"
+                              score >= 80 ? "bg-emerald-500/15 text-emerald-600 dark:text-[#7CE4BA]" : "bg-primary/15 text-primary"
                             }`}
                           >
                             {score}%
                           </span>
                         ) : (
-                          <span className="rounded-md bg-white/10 px-2 py-0.5 text-[10.5px] font-medium text-white/60">
+                          <span className="rounded-md bg-muted px-2 py-0.5 text-[10.5px] font-medium text-muted-foreground">
                             {status}
                           </span>
                         )}
-                        <span className="text-[11px] font-bold text-[#8DA6CC] group-hover:underline">
+                        <span className="text-[11px] font-bold text-primary group-hover:underline">
                           {completed ? "Review" : status === "In Progress" ? "Resume" : "Open"}
                         </span>
                       </div>

@@ -90,16 +90,16 @@ export function AppShell({
   }
   return (
     <div
-      className={`relative bg-background overflow-x-hidden font-manrope ${
+      className={`relative bg-background text-foreground overflow-x-hidden font-manrope transition-colors duration-200 ${
         fitViewport ? "min-h-screen lg:h-screen lg:max-h-screen lg:overflow-hidden" : "min-h-screen"
       }`}
     >
       {/* Atmospheric ambient light mesh with ice-blue and obsidian depth */}
       <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-        <div className="absolute -top-40 right-[-10%] h-[550px] w-[550px] rounded-full bg-[#AFDDFF]/10 blur-[140px]" />
-        <div className="absolute top-[30%] -left-32 h-[500px] w-[500px] rounded-full bg-[#8DA6CC]/8 blur-[150px]" />
-        <div className="absolute top-[60%] -right-20 h-[450px] w-[450px] rounded-full bg-[#7CE4BA]/6 blur-[140px]" />
-        <div className="absolute -bottom-40 left-[15%] h-[600px] w-[600px] rounded-full bg-[#AFDDFF]/8 blur-[160px]" />
+        <div className="absolute -top-40 right-[-10%] h-[550px] w-[550px] rounded-full bg-blue-500/10 dark:bg-[#AFDDFF]/10 blur-[140px]" />
+        <div className="absolute top-[30%] -left-32 h-[500px] w-[500px] rounded-full bg-indigo-500/8 dark:bg-[#8DA6CC]/8 blur-[150px]" />
+        <div className="absolute top-[60%] -right-20 h-[450px] w-[450px] rounded-full bg-emerald-500/8 dark:bg-[#7CE4BA]/6 blur-[140px]" />
+        <div className="absolute -bottom-40 left-[15%] h-[600px] w-[600px] rounded-full bg-sky-500/10 dark:bg-[#AFDDFF]/8 blur-[160px]" />
       </div>
       <div
         className={`relative z-10 flex w-full gap-3 sm:gap-4 lg:gap-4 p-2.5 sm:p-3.5 lg:p-3.5 ${
@@ -142,14 +142,14 @@ function Sidebar({ fitViewport = false }: { fitViewport?: boolean }) {
       <div className="flex flex-col gap-3.5">
         {/* Apple VisionOS Brand Header */}
         <Link to="/" aria-label="Home" className="flex items-center gap-2.5 px-2 pt-1 no-underline group select-none">
-          <div className="h-8 w-8 rounded-xl bg-gradient-to-b from-[#dcf0ff] to-[#AFDDFF] flex items-center justify-center text-black font-black text-sm shadow-[0_0_16px_rgba(175,221,255,0.45),inset_0_1px_1px_rgba(255,255,255,0.8)] transition-transform group-hover:scale-105">
+          <div className="h-8 w-8 rounded-xl bg-gradient-to-b from-[#0071e3] to-[#005bb5] dark:from-[#dcf0ff] dark:to-[#AFDDFF] flex items-center justify-center text-white dark:text-black font-black text-sm shadow-[0_2px_10px_rgba(0,113,227,0.3)] dark:shadow-[0_0_16px_rgba(175,221,255,0.45)] transition-transform group-hover:scale-105">
             V
           </div>
           <div className="flex flex-col">
-            <span className="font-graphik text-sm font-bold tracking-wider text-white group-hover:text-[#AFDDFF] transition-colors leading-tight">
+            <span className="font-graphik text-sm font-bold tracking-wider text-foreground group-hover:text-primary transition-colors leading-tight">
               VIVAI
             </span>
-            <span className="text-[10px] font-mono text-white/40 tracking-tight leading-none">
+            <span className="text-[10px] font-mono text-muted-foreground tracking-tight leading-none">
               AI COMPANION
             </span>
           </div>
@@ -166,14 +166,16 @@ function Sidebar({ fitViewport = false }: { fitViewport?: boolean }) {
                 to={item.to}
                 className={`group relative flex items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition-all duration-200 no-underline select-none active:scale-[0.98] ${
                   active
-                    ? "bg-[#AFDDFF] text-black font-bold shadow-[0_0_20px_rgba(175,221,255,0.3),inset_0_1px_1px_rgba(255,255,255,0.9)]"
-                    : "text-white/70 hover:bg-white/8 hover:text-white"
+                    ? "bg-[#0071e3] text-white shadow-[0_4px_12px_rgba(0,113,227,0.35)] dark:bg-[#AFDDFF] dark:text-black font-bold dark:shadow-[0_0_20px_rgba(175,221,255,0.3),inset_0_1px_1px_rgba(255,255,255,0.9)]"
+                    : "text-foreground/75 hover:bg-black/5 dark:hover:bg-white/8 hover:text-foreground"
                 }`}
               >
                 <div className="flex items-center gap-2.5">
                   <Icon
                     className={`h-4 w-4 shrink-0 transition-colors ${
-                      active ? "text-black" : "text-white/70 group-hover:text-[#AFDDFF]"
+                      active
+                        ? "text-white dark:text-black"
+                        : "text-muted-foreground group-hover:text-primary"
                     }`}
                   />
                   <span>{item.label}</span>
@@ -182,8 +184,8 @@ function Sidebar({ fitViewport = false }: { fitViewport?: boolean }) {
                   <span
                     className={`grid h-4 min-w-[16px] place-items-center rounded-full px-1 text-[9px] font-black ${
                       active
-                        ? "bg-black text-[#AFDDFF]"
-                        : "bg-[#AFDDFF]/20 text-[#AFDDFF] border border-[#AFDDFF]/30"
+                        ? "bg-white text-[#0071e3] dark:bg-black dark:text-[#AFDDFF]"
+                        : "bg-primary/15 text-primary border border-primary/25"
                     }`}
                   >
                     {item.badge}
@@ -194,13 +196,13 @@ function Sidebar({ fitViewport = false }: { fitViewport?: boolean }) {
           })}
 
           {isAdmin && (
-            <div className="mt-2 pt-2 border-t border-white/10 flex flex-col gap-1">
+            <div className="mt-2 pt-2 border-t border-border flex flex-col gap-1">
               <Link
                 to="/faculty"
                 className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium transition-all no-underline ${
                   isActive("/faculty")
-                    ? "bg-[#AFDDFF] text-black font-bold shadow-[0_0_16px_rgba(175,221,255,0.25)]"
-                    : "text-white/70 hover:bg-white/8 hover:text-white"
+                    ? "bg-[#0071e3] text-white shadow-md dark:bg-[#AFDDFF] dark:text-black font-bold dark:shadow-[0_0_16px_rgba(175,221,255,0.25)]"
+                    : "text-foreground/75 hover:bg-black/5 dark:hover:bg-white/8 hover:text-foreground"
                 }`}
               >
                 <ClipboardCheck className="h-4 w-4 shrink-0" />
@@ -210,8 +212,8 @@ function Sidebar({ fitViewport = false }: { fitViewport?: boolean }) {
                 to="/admin"
                 className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium transition-all no-underline ${
                   isActive("/admin")
-                    ? "bg-[#AFDDFF] text-black font-bold shadow-[0_0_16px_rgba(175,221,255,0.25)]"
-                    : "text-white/70 hover:bg-white/8 hover:text-white"
+                    ? "bg-[#0071e3] text-white shadow-md dark:bg-[#AFDDFF] dark:text-black font-bold dark:shadow-[0_0_16px_rgba(175,221,255,0.25)]"
+                    : "text-foreground/75 hover:bg-black/5 dark:hover:bg-white/8 hover:text-foreground"
                 }`}
               >
                 <Building2 className="h-4 w-4 shrink-0" />
@@ -225,20 +227,20 @@ function Sidebar({ fitViewport = false }: { fitViewport?: boolean }) {
       {/* Bottom Area: Promo Card + Sign Out */}
       <div className="flex flex-col gap-3 font-manrope">
         {/* Apple Frosted Promo Card */}
-        <div className="relative overflow-hidden rounded-2xl bg-white/5 p-3 border border-white/15 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]">
+        <div className="relative overflow-hidden rounded-2xl bg-black/5 dark:bg-white/5 p-3 border border-border shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">
           <div className="flex items-start justify-between">
-            <div className="grid h-7 w-7 place-items-center rounded-xl bg-[#AFDDFF]/20 text-[#AFDDFF] border border-[#AFDDFF]/30">
+            <div className="grid h-7 w-7 place-items-center rounded-xl bg-primary/15 text-primary border border-primary/25">
               <Sparkles className="h-3.5 w-3.5" />
             </div>
             <Link
               to="/ai-viva/new"
-              className="grid h-6 w-6 place-items-center rounded-full bg-[#AFDDFF] text-black shadow-xs hover:scale-110 active:scale-95 transition-transform no-underline"
+              className="grid h-6 w-6 place-items-center rounded-full bg-primary text-primary-foreground dark:bg-[#AFDDFF] dark:text-black shadow-xs hover:scale-110 active:scale-95 transition-transform no-underline"
             >
               <ArrowUpRight className="h-3 w-3" />
             </Link>
           </div>
-          <p className="mt-2 text-xs font-bold text-white">AI Viva Coach</p>
-          <p className="text-[10px] text-white/50 leading-tight">
+          <p className="mt-2 text-xs font-bold text-foreground">AI Viva Coach</p>
+          <p className="text-[10px] text-muted-foreground leading-tight">
             Oral defense simulations
           </p>
         </div>
@@ -249,7 +251,7 @@ function Sidebar({ fitViewport = false }: { fitViewport?: boolean }) {
             logout();
             navigate({ to: "/login" });
           }}
-          className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-white/60 transition-all hover:bg-white/8 hover:text-white cursor-pointer active:scale-95"
+          className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-muted-foreground transition-all hover:bg-black/5 dark:hover:bg-white/8 hover:text-foreground cursor-pointer active:scale-95"
         >
           <LogOut className="h-3.5 w-3.5" />
           <span>Sign out</span>
@@ -263,22 +265,22 @@ function WideTopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const title = pageTitle(pathname);
   return (
-    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-white/15 bg-black/60 px-3 sm:px-5 backdrop-blur-2xl shadow-[0_4px_24px_rgba(0,0,0,0.6)]">
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-border bg-background/80 px-3 sm:px-5 backdrop-blur-2xl shadow-xs">
       <button
         onClick={onOpenMenu}
         aria-label="Open menu"
-        className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/5 border border-white/15 text-white hover:bg-white/10 active:scale-95 transition-all lg:hidden cursor-pointer"
+        className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-card border border-border text-foreground hover:bg-muted active:scale-95 transition-all lg:hidden cursor-pointer"
       >
-        <Menu className="h-5 w-5 text-white" />
+        <Menu className="h-5 w-5 text-foreground" />
       </button>
       <Link to="/" aria-label="Home" className="hidden h-9 w-9 shrink-0 place-items-center sm:grid group">
-        <div className="h-8 w-8 rounded-xl bg-gradient-to-b from-[#dcf0ff] to-[#AFDDFF] flex items-center justify-center text-black font-black text-xs shadow-[0_0_12px_rgba(175,221,255,0.4)]">
+        <div className="h-8 w-8 rounded-xl bg-gradient-to-b from-[#0071e3] to-[#005bb5] dark:from-[#dcf0ff] dark:to-[#AFDDFF] flex items-center justify-center text-white dark:text-black font-black text-xs shadow-xs">
           V
         </div>
       </Link>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm sm:text-base font-bold font-graphik text-white tracking-wide">{title}</p>
-        <p className="hidden truncate text-[11px] text-white/50 sm:block">
+        <p className="truncate text-sm sm:text-base font-bold font-graphik text-foreground tracking-wide">{title}</p>
+        <p className="hidden truncate text-[11px] text-muted-foreground sm:block">
           Full workspace · sidebar hidden for maximum focus
         </p>
       </div>
@@ -312,26 +314,26 @@ function TopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
         <button
           onClick={onOpenMenu}
           aria-label="Open menu"
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/5 border border-white/15 text-white hover:bg-white/10 active:scale-95 transition-all lg:hidden cursor-pointer"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-black/5 dark:bg-white/5 border border-border text-foreground hover:bg-black/10 dark:hover:bg-white/10 active:scale-95 transition-all lg:hidden cursor-pointer"
         >
-          <Menu className="h-5 w-5 text-white" />
+          <Menu className="h-5 w-5 text-foreground" />
         </button>
         <div className="hidden h-9 w-9 shrink-0 place-items-center sm:grid lg:hidden">
-          <div className="h-8 w-8 rounded-xl bg-gradient-to-b from-[#dcf0ff] to-[#AFDDFF] flex items-center justify-center text-black font-black text-xs shadow-[0_0_12px_rgba(175,221,255,0.4)]">
+          <div className="h-8 w-8 rounded-xl bg-gradient-to-b from-[#0071e3] to-[#005bb5] dark:from-[#dcf0ff] dark:to-[#AFDDFF] flex items-center justify-center text-white dark:text-black font-black text-xs shadow-xs">
             V
           </div>
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm sm:text-base font-bold font-graphik text-white tracking-wide">{title}</p>
+          <p className="truncate text-sm sm:text-base font-bold font-graphik text-foreground tracking-wide">{title}</p>
         </div>
       </div>
       <div className="flex items-center gap-2 sm:gap-2.5">
         <ThemeToggle />
         <Link
           to="/profile"
-          className="flex h-11 items-center gap-2 rounded-full border border-white/15 bg-white/5 px-2.5 py-1 text-xs font-medium hover:bg-white/10 transition-colors no-underline text-white active:scale-95 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]"
+          className="flex h-11 items-center gap-2 rounded-full border border-border bg-black/5 dark:bg-white/5 px-2.5 py-1 text-xs font-medium hover:bg-black/10 dark:hover:bg-white/10 transition-colors no-underline text-foreground active:scale-95 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]"
         >
-          <span className="grid h-7 w-7 place-items-center rounded-full bg-gradient-to-b from-[#dcf0ff] to-[#AFDDFF] text-[11px] font-bold text-black shadow-xs">
+          <span className="grid h-7 w-7 place-items-center rounded-full bg-gradient-to-b from-[#0071e3] to-[#005bb5] dark:from-[#dcf0ff] dark:to-[#AFDDFF] text-[11px] font-bold text-white dark:text-black shadow-xs">
             {initials}
           </span>
           <span className="hidden max-w-[120px] truncate sm:inline font-semibold">{fullName}</span>
@@ -479,7 +481,7 @@ function MobileNav({ onOpenMenu }: { onOpenMenu?: () => void }) {
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
-      className="fixed inset-x-3 bottom-3 sm:bottom-4 z-40 mx-auto flex max-w-[420px] items-center justify-between rounded-full bg-[#080b11]/90 p-1.5 backdrop-blur-2xl border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.85),inset_0_1px_1.5px_rgba(255,255,255,0.25)] lg:hidden pb-[max(0.4rem,env(safe-area-inset-bottom))] touch-none select-none"
+      className="fixed inset-x-3 bottom-3 sm:bottom-4 z-40 mx-auto flex max-w-[420px] items-center justify-between rounded-full bg-white/80 dark:bg-[#080b11]/90 p-1.5 backdrop-blur-2xl border border-black/10 dark:border-white/15 shadow-[0_16px_40px_rgba(0,0,0,0.12),inset_0_1px_1.5px_rgba(255,255,255,0.9)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.85),inset_0_1px_1.5px_rgba(255,255,255,0.25)] lg:hidden pb-[max(0.4rem,env(safe-area-inset-bottom))] touch-none select-none"
     >
       {/* 3D Dynamic Glossy Glass Bubble / Lens with Spring Glide and Elastic Drag Squish */}
       <div
@@ -490,21 +492,21 @@ function MobileNav({ onOpenMenu }: { onOpenMenu?: () => void }) {
           width: `${lensStyle.width}px`,
           height: `${lensStyle.height}px`,
           background:
-            "radial-gradient(120% 120% at 50% 0%, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.08) 45%, rgba(0, 0, 0, 0.45) 100%)",
+            "radial-gradient(120% 120% at 50% 0%, rgba(255, 255, 255, 0.95) 0%, rgba(240, 246, 255, 0.85) 100%)",
           backdropFilter: "blur(20px) saturate(200%)",
           WebkitBackdropFilter: "blur(20px) saturate(200%)",
-          border: "1px solid rgba(255, 255, 255, 0.4)",
+          border: "1px solid rgba(0, 113, 227, 0.25)",
           boxShadow:
-            "inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.95), inset 0 3px 6px 0 rgba(175, 221, 255, 0.45), inset 0 -2px 3px 0 rgba(255, 120, 200, 0.3), 0 8px 24px -2px rgba(0, 0, 0, 0.7), 0 2px 8px rgba(0, 0, 0, 0.4)",
+            "inset 0 1.5px 2px 0 rgba(255, 255, 255, 1), 0 4px 14px rgba(0, 113, 227, 0.15)",
           transform: isDragging ? "scale(1.08, 0.94)" : "scale(1)",
           transition: isDragging
             ? "transform 0.12s ease-out"
             : "left 0.38s cubic-bezier(0.175, 0.885, 0.32, 1.25), width 0.3s ease, transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.25)",
         }}
       >
-        {/* Prismatic Rainbow Rim Reflection */}
+        {/* Prismatic Rainbow Rim Reflection for dark mode */}
         <div
-          className="absolute -inset-[1px] rounded-full pointer-events-none opacity-90"
+          className="absolute -inset-[1px] rounded-full pointer-events-none opacity-0 dark:opacity-90 transition-opacity"
           style={{
             padding: "1px",
             background:
@@ -537,8 +539,8 @@ function MobileNav({ onOpenMenu }: { onOpenMenu?: () => void }) {
                 <Menu
                   className={`transition-all duration-200 ${
                     active
-                      ? "h-5 w-5 text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] scale-105 stroke-[2.2]"
-                      : "h-5 w-5 text-white/60 hover:text-white stroke-[1.8]"
+                      ? "h-5 w-5 text-[#0071e3] dark:text-white drop-shadow-[0_0_10px_rgba(0,113,227,0.4)] dark:drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] scale-105 stroke-[2.2]"
+                      : "h-5 w-5 text-foreground/60 hover:text-foreground stroke-[1.8]"
                   }`}
                 />
 
@@ -551,7 +553,7 @@ function MobileNav({ onOpenMenu }: { onOpenMenu?: () => void }) {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 3, scale: 0.9 }}
                       transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-                      className="mt-0.5 text-[10px] font-bold tracking-tight text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.6)] leading-none font-graphik"
+                      className="mt-0.5 text-[10px] font-bold tracking-tight text-[#0071e3] dark:text-white drop-shadow-xs leading-none font-graphik"
                     >
                       {item.label}
                     </motion.span>
@@ -579,12 +581,12 @@ function MobileNav({ onOpenMenu }: { onOpenMenu?: () => void }) {
                 <Icon
                   className={`transition-all duration-200 ${
                     active
-                      ? "h-5 w-5 text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] scale-105 stroke-[2.2]"
-                      : "h-5 w-5 text-white/60 hover:text-white stroke-[1.8]"
+                      ? "h-5 w-5 text-[#0071e3] dark:text-white drop-shadow-[0_0_10px_rgba(0,113,227,0.4)] dark:drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] scale-105 stroke-[2.2]"
+                      : "h-5 w-5 text-foreground/60 hover:text-foreground stroke-[1.8]"
                   }`}
                 />
                 {item.badge && !active && (
-                  <span className="absolute -top-1.5 -right-2 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-[#AFDDFF] px-1 text-[8px] font-black text-black shadow-[0_0_8px_rgba(175,221,255,0.6)]">
+                  <span className="absolute -top-1.5 -right-2 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-[#0071e3] dark:bg-[#AFDDFF] px-1 text-[8px] font-black text-white dark:text-black shadow-xs">
                     {item.badge}
                   </span>
                 )}
@@ -599,7 +601,7 @@ function MobileNav({ onOpenMenu }: { onOpenMenu?: () => void }) {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 3, scale: 0.9 }}
                     transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-                    className="mt-0.5 text-[10px] font-bold tracking-tight text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.6)] leading-none font-graphik"
+                    className="mt-0.5 text-[10px] font-bold tracking-tight text-[#0071e3] dark:text-white drop-shadow-xs leading-none font-graphik"
                   >
                     {item.label}
                   </motion.span>
@@ -626,28 +628,28 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
   return (
     <div className="fixed inset-0 z-50 flex lg:hidden">
       <div
-        className="fixed inset-0 bg-black/80 backdrop-blur-xl transition-opacity"
+        className="fixed inset-0 bg-black/60 backdrop-blur-xl transition-opacity"
         onClick={onClose}
       />
-      <div className="relative flex w-full max-w-xs flex-1 flex-col justify-between bg-[#0A0E16]/90 backdrop-blur-3xl border-r border-white/15 rounded-r-[28px] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.2)] overflow-y-auto">
+      <div className="relative flex w-full max-w-xs flex-1 flex-col justify-between bg-white/95 dark:bg-[#0A0E16]/95 backdrop-blur-3xl border-r border-border rounded-r-[28px] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.3)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.9)] overflow-y-auto">
         <div>
           {/* Header */}
-          <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/10">
+          <div className="flex items-center justify-between mb-6 pb-4 border-b border-border">
             <div className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-xl bg-gradient-to-b from-[#dcf0ff] to-[#AFDDFF] flex items-center justify-center text-black font-black text-xs shadow-[0_0_12px_rgba(175,221,255,0.4)]">
+              <div className="h-8 w-8 rounded-xl bg-gradient-to-b from-[#0071e3] to-[#005bb5] dark:from-[#dcf0ff] dark:to-[#AFDDFF] flex items-center justify-center text-white dark:text-black font-black text-xs shadow-xs">
                 V
               </div>
               <div>
-                <span className="font-graphik text-sm font-bold tracking-wider text-white">VIVAI // CORE</span>
-                <p className="text-[10px] text-white/40 font-mono">[ BTECH.CS // 2026 ]</p>
+                <span className="font-graphik text-sm font-bold tracking-wider text-foreground">VIVAI // CORE</span>
+                <p className="text-[10px] text-muted-foreground font-mono">[ BTECH.CS // 2026 ]</p>
               </div>
             </div>
             <button
               onClick={onClose}
               aria-label="Close drawer"
-              className="grid h-10 w-10 place-items-center rounded-xl bg-white/5 border border-white/15 text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
+              className="grid h-10 w-10 place-items-center rounded-xl bg-card border border-border text-foreground hover:bg-muted active:scale-95 transition-all cursor-pointer"
             >
-              <X className="h-5 w-5" />
+              <X className="h-5 w-5 text-foreground" />
             </button>
           </div>
 
@@ -663,18 +665,20 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
                   onClick={onClose}
                   className={`flex min-h-[48px] items-center justify-between rounded-xl px-3.5 py-3 text-xs font-semibold transition-all duration-200 no-underline active:scale-[0.98] ${
                     active
-                      ? "bg-[#AFDDFF] text-black font-bold shadow-[0_0_20px_rgba(175,221,255,0.3),inset_0_1px_1px_rgba(255,255,255,0.9)]"
-                      : "text-white/70 hover:bg-white/8 hover:text-white"
+                      ? "bg-[#0071e3] text-white shadow-md dark:bg-[#AFDDFF] dark:text-black font-bold dark:shadow-[0_0_20px_rgba(175,221,255,0.3)]"
+                      : "text-foreground/75 hover:bg-muted hover:text-foreground"
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <Icon className={`h-4 w-4 shrink-0 ${active ? "text-black" : "text-white/70"}`} />
+                    <Icon className={`h-4 w-4 shrink-0 ${active ? "text-white dark:text-black" : "text-muted-foreground"}`} />
                     <span className="text-sm">{item.label}</span>
                   </div>
                   {item.badge && (
                     <span
                       className={`grid h-5 min-w-[20px] place-items-center rounded-full px-1.5 text-[10px] font-black ${
-                        active ? "bg-black text-[#AFDDFF]" : "bg-[#AFDDFF]/20 text-[#AFDDFF] border border-[#AFDDFF]/30"
+                        active
+                          ? "bg-white text-[#0071e3] dark:bg-black dark:text-[#AFDDFF]"
+                          : "bg-primary/15 text-primary border border-primary/25"
                       }`}
                     >
                       {item.badge}
@@ -685,14 +689,14 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
             })}
 
             {isAdmin && (
-              <div className="mt-3 pt-3 border-t border-white/10 flex flex-col gap-1.5">
+              <div className="mt-3 pt-3 border-t border-border flex flex-col gap-1.5">
                 <Link
                   to="/faculty"
                   onClick={onClose}
                   className={`flex min-h-[48px] items-center gap-3 rounded-xl px-3.5 py-3 text-xs font-semibold transition-all no-underline active:scale-[0.98] ${
                     isActive("/faculty")
-                      ? "bg-[#AFDDFF] text-black font-bold shadow-[0_0_16px_rgba(175,221,255,0.3)]"
-                      : "text-white/60 hover:bg-white/5 hover:text-white"
+                      ? "bg-[#0071e3] text-white shadow-md dark:bg-[#AFDDFF] dark:text-black font-bold dark:shadow-[0_0_16px_rgba(175,221,255,0.3)]"
+                      : "text-foreground/75 hover:bg-muted hover:text-foreground"
                   }`}
                 >
                   <ClipboardCheck className="h-4 w-4 shrink-0" />
@@ -703,8 +707,8 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
                   onClick={onClose}
                   className={`flex min-h-[48px] items-center gap-3 rounded-xl px-3.5 py-3 text-xs font-semibold transition-all no-underline active:scale-[0.98] ${
                     isActive("/admin")
-                      ? "bg-[#AFDDFF] text-black font-bold shadow-[0_0_16px_rgba(175,221,255,0.3)]"
-                      : "text-white/60 hover:bg-white/5 hover:text-white"
+                      ? "bg-[#0071e3] text-white shadow-md dark:bg-[#AFDDFF] dark:text-black font-bold dark:shadow-[0_0_16px_rgba(175,221,255,0.3)]"
+                      : "text-foreground/75 hover:bg-muted hover:text-foreground"
                   }`}
                 >
                   <Building2 className="h-4 w-4 shrink-0" />
@@ -716,14 +720,14 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
         </div>
 
         {/* Drawer Footer */}
-        <div className="pt-4 border-t border-white/10">
+        <div className="pt-4 border-t border-border">
           <button
             onClick={() => {
               onClose();
               logout();
               navigate({ to: "/login" });
             }}
-            className="flex min-h-[48px] w-full items-center gap-3 rounded-xl px-3.5 py-3 text-xs font-medium text-white/50 hover:bg-white/5 hover:text-white transition-all cursor-pointer"
+            className="flex min-h-[48px] w-full items-center gap-3 rounded-xl px-3.5 py-3 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all cursor-pointer"
           >
             <LogOut className="h-4 w-4" />
             <span className="text-sm">Sign out</span>
@@ -740,9 +744,13 @@ function ThemeToggle() {
     <button
       onClick={toggle}
       aria-label="Toggle theme"
-      className="grid h-11 w-11 min-h-[44px] min-w-[44px] place-items-center rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
+      className="grid h-11 w-11 min-h-[44px] min-w-[44px] place-items-center rounded-full border border-border bg-black/5 dark:bg-white/5 text-foreground hover:bg-black/10 dark:hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
     >
-      {theme === "dark" ? <Sun className="h-4 w-4 text-white" /> : <Moon className="h-4 w-4 text-white" />}
+      {theme === "dark" ? (
+        <Sun className="h-4 w-4 text-amber-300 drop-shadow-[0_0_8px_rgba(253,224,71,0.5)]" />
+      ) : (
+        <Moon className="h-4 w-4 text-foreground" />
+      )}
     </button>
   );
 }

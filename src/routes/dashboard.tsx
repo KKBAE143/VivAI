@@ -190,19 +190,19 @@ export default function Dashboard() {
           {/* Top Bar / Integrated Apple VisionOS Header */}
           <div className="flex shrink-0 flex-wrap items-center justify-between gap-2.5 sm:gap-3 apple-glass-card rounded-[22px] px-3.5 sm:px-4 py-2.5">
             <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-              <div className="grid h-9 w-9 sm:h-10 sm:w-10 shrink-0 place-items-center rounded-2xl bg-gradient-to-b from-[#dcf0ff] to-[#AFDDFF] text-sm font-black text-black shadow-[0_0_16px_rgba(175,221,255,0.4),inset_0_1px_1px_rgba(255,255,255,0.8)]">
+              <div className="grid h-9 w-9 sm:h-10 sm:w-10 shrink-0 place-items-center rounded-2xl bg-gradient-to-b from-[#0071e3] to-[#005bb5] dark:from-[#dcf0ff] dark:to-[#AFDDFF] text-sm font-black text-white dark:text-black shadow-xs">
                 {firstName.charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <h1 className="truncate font-graphik text-sm font-bold text-white sm:text-base tracking-wide">
+                  <h1 className="truncate font-graphik text-sm font-bold text-foreground sm:text-base tracking-wide">
                     Welcome back, {firstName}
                   </h1>
                   <span className="apple-pill-badge py-0.5 px-2 text-[10px]">
                     ONLINE
                   </span>
                 </div>
-                <p className="hidden truncate text-[11px] text-white/50 sm:block">
+                <p className="hidden truncate text-[11px] text-muted-foreground sm:block">
                   {readinessScore >= 75
                     ? "Ready for oral defense · Keep drilling technical depth"
                     : "Target identified weak topics today to elevate defense score"}
@@ -214,12 +214,12 @@ export default function Dashboard() {
             <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               {/* Gamification Pills */}
               <div className="hidden md:flex items-center gap-2">
-                <div className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-white/80 backdrop-blur-md shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]">
-                  <Flame className="h-3.5 w-3.5 text-amber-400 fill-amber-400/20" />
+                <div className="flex items-center gap-1.5 rounded-full border border-border bg-black/5 dark:bg-white/5 px-2.5 py-1 text-[11px] font-medium text-foreground backdrop-blur-md">
+                  <Flame className="h-3.5 w-3.5 text-amber-500 fill-amber-500/20" />
                   <span>{streak}d streak</span>
                 </div>
                 <div className="apple-pill-badge">
-                  <Star className="h-3.5 w-3.5 text-[#AFDDFF] fill-[#AFDDFF]/20" />
+                  <Star className="h-3.5 w-3.5 text-primary fill-primary/20" />
                   <span>
                     Lvl {level} · {xp} XP
                   </span>
@@ -228,13 +228,13 @@ export default function Dashboard() {
 
               {/* Search */}
               <div className="relative w-28 xs:w-36 sm:w-48">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/40" />
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                 <input
                   type="text"
                   placeholder="Search..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-full border border-white/15 bg-white/5 py-1.5 pl-7 pr-2.5 text-xs text-white placeholder:text-white/40 backdrop-blur-md focus:border-[#AFDDFF] focus:outline-none focus:ring-1 focus:ring-[#AFDDFF] shadow-[inset_0_1px_1px_rgba(0,0,0,0.4)] transition-all"
+                  className="w-full rounded-full border border-border bg-black/5 dark:bg-white/5 py-1.5 pl-7 pr-2.5 text-xs text-foreground placeholder:text-muted-foreground backdrop-blur-md focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all"
                 />
               </div>
 
@@ -253,18 +253,18 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-12 shrink-0 lg:flex-1 lg:min-h-0 items-stretch">
             {/* Defense Readiness Station (5 cols) */}
             <div className="relative flex flex-col justify-between overflow-hidden apple-glass-card p-4 lg:col-span-5 min-h-0">
-              <div className="flex items-center justify-between pb-2 border-b border-white/10">
+              <div className="flex items-center justify-between pb-2 border-b border-border">
                 <div className="flex items-center gap-2">
-                  <span className="grid h-7 w-7 place-items-center rounded-xl bg-gradient-to-b from-[#dcf0ff] to-[#AFDDFF] text-black shadow-xs">
+                  <span className="grid h-7 w-7 place-items-center rounded-xl bg-gradient-to-b from-[#0071e3] to-[#005bb5] dark:from-[#dcf0ff] dark:to-[#AFDDFF] text-white dark:text-black shadow-xs">
                     <Target className="h-4 w-4" />
                   </span>
-                  <h2 className="font-graphik text-xs xl:text-sm font-bold text-white tracking-wide">
+                  <h2 className="font-graphik text-xs xl:text-sm font-bold text-foreground tracking-wide">
                     DEFENSE READINESS
                   </h2>
                 </div>
                 <Link
                   to="/readiness"
-                  className="text-[11px] font-bold text-[#AFDDFF] hover:underline flex items-center gap-0.5 no-underline"
+                  className="text-[11px] font-bold text-primary hover:underline flex items-center gap-0.5 no-underline"
                 >
                   <span>Full Report</span>
                   <ChevronRight className="h-3 w-3" />
@@ -281,7 +281,7 @@ export default function Dashboard() {
                     <span className="apple-pill-badge py-0.5 px-2 text-[10px] uppercase tracking-wider">
                       {readinessLabel}
                     </span>
-                    <p className="text-[11px] text-white/60 mt-1 line-clamp-2 xs:line-clamp-1">
+                    <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 xs:line-clamp-1">
                       {readiness?.actions?.[0]?.text ??
                         "Cross-questioning practice recommended on your core project modules."}
                     </p>
@@ -293,13 +293,13 @@ export default function Dashboard() {
                       const score = Math.round(c.score);
                       return (
                         <div key={c.key}>
-                          <div className="flex items-center justify-between text-[10px] font-semibold text-white/80">
+                          <div className="flex items-center justify-between text-[10px] font-semibold text-foreground/80">
                             <span>{c.label}</span>
-                            <span className="text-[#AFDDFF]">{score}%</span>
+                            <span className="text-primary font-bold">{score}%</span>
                           </div>
-                          <div className="mt-0.5 h-1.5 w-full overflow-hidden rounded-full bg-white/10 shadow-[inset_0_1px_1px_rgba(0,0,0,0.5)]">
+                          <div className="mt-0.5 h-1.5 w-full overflow-hidden rounded-full bg-black/10 dark:bg-white/10 shadow-[inset_0_1px_1px_rgba(0,0,0,0.2)]">
                             <div
-                              className="h-full rounded-full bg-gradient-to-r from-[#7CE4BA] to-[#AFDDFF] transition-all duration-500 shadow-[0_0_8px_rgba(175,221,255,0.4)]"
+                              className="h-full rounded-full bg-gradient-to-r from-[#34c759] to-[#0071e3] dark:from-[#7CE4BA] dark:to-[#AFDDFF] transition-all duration-500 shadow-xs"
                               style={{ width: `${score}%` }}
                             />
                           </div>
@@ -314,9 +314,9 @@ export default function Dashboard() {
               <button
                 onClick={() => handleQuickDrill()}
                 disabled={isStartingQuickViva !== null}
-                className="mt-2 apple-glass-btn-primary flex min-h-[44px] items-center justify-center gap-2 px-3 py-2.5 text-xs uppercase tracking-wider"
+                className="mt-2 apple-glass-btn-primary flex min-h-[44px] items-center justify-center gap-2 px-3 py-2.5 text-xs uppercase tracking-wider cursor-pointer"
               >
-                <span className="text-black text-[14px] leading-none">&#10022;</span>
+                <span className="text-[14px] leading-none">&#10022;</span>
                 <span>
                   {isStartingQuickViva ? "Launching Viva..." : "Launch Defense Simulation"}
                 </span>
@@ -332,21 +332,21 @@ export default function Dashboard() {
               >
                 <div>
                   <div className="flex items-center justify-between">
-                    <div className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-b from-[#dcf0ff] to-[#AFDDFF] text-black shadow-[0_0_12px_rgba(175,221,255,0.35)] group-hover:scale-105 transition-transform">
+                    <div className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-b from-[#0071e3] to-[#005bb5] dark:from-[#dcf0ff] dark:to-[#AFDDFF] text-white dark:text-black shadow-xs group-hover:scale-105 transition-transform">
                       <BrainCircuit className="h-5 w-5" />
                     </div>
                     <span className="apple-pill-badge text-[10px]">
                       {vivaStats?.total_sessions ?? dashStats?.viva_sessions ?? 0} Vivas
                     </span>
                   </div>
-                  <h3 className="mt-3 text-xs xl:text-sm font-bold text-white group-hover:text-[#AFDDFF] transition-colors">
+                  <h3 className="mt-3 text-xs xl:text-sm font-bold text-foreground group-hover:text-primary transition-colors">
                     AI Mock Viva
                   </h3>
-                  <p className="mt-1 text-[11px] text-white/50 line-clamp-2 leading-relaxed">
+                  <p className="mt-1 text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
                     Practice oral defense with Strict, Balanced, or Friendly AI professors.
                   </p>
                 </div>
-                <div className="mt-2 flex items-center gap-1 text-[11px] font-bold text-[#AFDDFF]">
+                <div className="mt-2 flex items-center gap-1 text-[11px] font-bold text-primary">
                   <span>Start Mock Session</span>
                   <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
                 </div>
@@ -359,21 +359,21 @@ export default function Dashboard() {
               >
                 <div>
                   <div className="flex items-center justify-between">
-                    <div className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-b from-[#c0d4f4] to-[#8DA6CC] text-black shadow-[0_0_12px_rgba(141,166,204,0.35)] group-hover:scale-105 transition-transform">
+                    <div className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-b from-[#5856d6] to-[#af52de] dark:from-[#c0d4f4] dark:to-[#8DA6CC] text-white dark:text-black shadow-xs group-hover:scale-105 transition-transform">
                       <MonitorSmartphone className="h-5 w-5" />
                     </div>
-                    <span className="rounded-full bg-[#8DA6CC]/15 border border-[#8DA6CC]/30 px-2 py-0.5 text-[10px] font-bold text-[#8DA6CC] shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]">
+                    <span className="rounded-full bg-primary/10 border border-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary">
                       {dashStats?.presentation_sessions ?? 0} Pitches
                     </span>
                   </div>
-                  <h3 className="mt-3 text-xs xl:text-sm font-bold text-white group-hover:text-[#8DA6CC] transition-colors">
+                  <h3 className="mt-3 text-xs xl:text-sm font-bold text-foreground group-hover:text-primary transition-colors">
                     Slide Deck Mock
                   </h3>
-                  <p className="mt-1 text-[11px] text-white/50 line-clamp-2 leading-relaxed">
+                  <p className="mt-1 text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
                     Upload slides, practice project demos, and get anticipated questions.
                   </p>
                 </div>
-                <div className="mt-2 flex items-center gap-1 text-[11px] font-bold text-[#8DA6CC]">
+                <div className="mt-2 flex items-center gap-1 text-[11px] font-bold text-primary">
                   <span>Open Presentation Hub</span>
                   <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
                 </div>
@@ -386,22 +386,22 @@ export default function Dashboard() {
               >
                 <div>
                   <div className="flex items-center justify-between">
-                    <div className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-b from-[#d4f8e8] to-[#7CE4BA] text-black shadow-[0_0_12px_rgba(124,228,186,0.35)] group-hover:scale-105 transition-transform">
+                    <div className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-b from-[#34c759] to-[#30b0c7] dark:from-[#d4f8e8] dark:to-[#7CE4BA] text-white dark:text-black shadow-xs group-hover:scale-105 transition-transform">
                       <Video className="h-5 w-5" />
                     </div>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[#7CE4BA]/15 border border-[#7CE4BA]/30 px-2 py-0.5 text-[10px] font-bold text-[#7CE4BA] shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]">
-                      <span className="h-1.5 w-1.5 rounded-full bg-[#7CE4BA] animate-ping" />
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-[#7CE4BA]">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-[#7CE4BA] animate-ping" />
                       Live Voice
                     </span>
                   </div>
-                  <h3 className="mt-3 text-xs xl:text-sm font-bold text-white group-hover:text-[#7CE4BA] transition-colors">
+                  <h3 className="mt-3 text-xs xl:text-sm font-bold text-foreground group-hover:text-emerald-600 dark:group-hover:text-[#7CE4BA] transition-colors">
                     Speech Coach
                   </h3>
-                  <p className="mt-1 text-[11px] text-white/50 line-clamp-2 leading-relaxed">
+                  <p className="mt-1 text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
                     Real-time speech analytics, pace (WPM), clarity, and filler ratio.
                   </p>
                 </div>
-                <div className="mt-2 flex items-center gap-1 text-[11px] font-bold text-[#7CE4BA]">
+                <div className="mt-2 flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-[#7CE4BA]">
                   <span>Enter Live Coach</span>
                   <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
                 </div>
@@ -413,18 +413,18 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-12 shrink-0 lg:flex-1 lg:min-h-0 items-stretch">
             {/* Col 1: Active Projects (4 cols) */}
             <div className="flex flex-col justify-between apple-glass-card p-4 lg:col-span-4 min-h-0">
-              <div className="flex items-center justify-between pb-2 border-b border-white/10">
+              <div className="flex items-center justify-between pb-2 border-b border-border">
                 <div className="flex items-center gap-2">
-                  <span className="grid h-6 w-6 place-items-center rounded-lg bg-[#8DA6CC]/20 text-[#8DA6CC]">
+                  <span className="grid h-6 w-6 place-items-center rounded-lg bg-primary/15 text-primary">
                     <FolderKanban className="h-3.5 w-3.5" />
                   </span>
-                  <h3 className="font-graphik text-xs xl:text-sm font-bold text-white tracking-wide">
+                  <h3 className="font-graphik text-xs xl:text-sm font-bold text-foreground tracking-wide">
                     ACTIVE PROJECTS
                   </h3>
                 </div>
                 <Link
                   to="/projects"
-                  className="text-[11px] font-semibold text-white/50 hover:text-[#8DA6CC] transition-colors no-underline"
+                  className="text-[11px] font-semibold text-muted-foreground hover:text-primary transition-colors no-underline"
                 >
                   View All ({allProjects.length})
                 </Link>
@@ -433,10 +433,10 @@ export default function Dashboard() {
               <div className="flex flex-col gap-2 my-auto py-1 min-h-0 overflow-y-auto">
                 {activeProjects.length === 0 ? (
                   <div className="py-4 text-center">
-                    <p className="text-xs font-semibold text-white">No projects yet</p>
+                    <p className="text-xs font-semibold text-foreground">No projects yet</p>
                     <Link
                       to="/projects/new"
-                      className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[#AFDDFF] no-underline"
+                      className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-primary no-underline"
                     >
                       <Plus className="h-3 w-3" /> Create Project
                     </Link>
@@ -451,10 +451,10 @@ export default function Dashboard() {
                     return (
                       <div
                         key={id}
-                        className="flex items-center justify-between gap-2.5 rounded-2xl border border-white/12 bg-white/5 p-2.5 transition-all hover:bg-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]"
+                        className="flex items-center justify-between gap-2.5 rounded-2xl border border-border bg-black/5 dark:bg-white/5 p-2.5 transition-all hover:bg-black/8 dark:hover:bg-white/10"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-gradient-to-b from-[#c0d4f4] to-[#8DA6CC] font-bold text-xs text-black shadow-xs">
+                          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-gradient-to-b from-[#0071e3] to-[#005bb5] dark:from-[#c0d4f4] dark:to-[#8DA6CC] font-bold text-xs text-white dark:text-black shadow-xs">
                             {title.charAt(0).toUpperCase()}
                           </div>
                           <div className="min-w-0">
@@ -462,18 +462,18 @@ export default function Dashboard() {
                               <Link
                                 to="/projects/$id"
                                 params={{ id }}
-                                className="truncate text-xs font-bold text-white hover:text-[#AFDDFF] transition-colors no-underline"
+                                className="truncate text-xs font-bold text-foreground hover:text-primary transition-colors no-underline"
                               >
                                 {title}
                               </Link>
-                              <span className="rounded-full bg-white/10 px-1.5 py-0.2 text-[9px] font-medium text-white/70 font-mono">
+                              <span className="rounded-full bg-muted px-1.5 py-0.2 text-[9px] font-medium text-muted-foreground font-mono">
                                 {projectType}
                               </span>
                             </div>
-                            <div className="mt-1 flex items-center gap-2 text-[10px] text-white/50">
-                              <div className="h-1.5 w-16 overflow-hidden rounded-full bg-white/10 shadow-[inset_0_1px_1px_rgba(0,0,0,0.5)]">
+                            <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
+                              <div className="h-1.5 w-16 overflow-hidden rounded-full bg-black/10 dark:bg-white/10 shadow-xs">
                                 <div
-                                  className="h-full rounded-full bg-[#AFDDFF]"
+                                  className="h-full rounded-full bg-primary"
                                   style={{ width: `${progress}%` }}
                                 />
                               </div>
@@ -499,18 +499,18 @@ export default function Dashboard() {
 
             {/* Col 2: Recent Viva Defense Sessions (4 cols) */}
             <div className="flex flex-col justify-between apple-glass-card p-4 lg:col-span-4 min-h-0">
-              <div className="flex items-center justify-between pb-2 border-b border-white/10">
+              <div className="flex items-center justify-between pb-2 border-b border-border">
                 <div className="flex items-center gap-2">
-                  <span className="grid h-6 w-6 place-items-center rounded-lg bg-[#AFDDFF]/15 text-[#AFDDFF]">
+                  <span className="grid h-6 w-6 place-items-center rounded-lg bg-primary/15 text-primary">
                     <Clock className="h-3.5 w-3.5" />
                   </span>
-                  <h3 className="font-graphik text-xs xl:text-sm font-bold text-white tracking-wide">
+                  <h3 className="font-graphik text-xs xl:text-sm font-bold text-foreground tracking-wide">
                     RECENT SESSIONS
                   </h3>
                 </div>
                 <Link
                   to="/ai-viva"
-                  className="text-[11px] font-semibold text-white/50 hover:text-[#AFDDFF] transition-colors no-underline"
+                  className="text-[11px] font-semibold text-muted-foreground hover:text-primary transition-colors no-underline"
                 >
                   History
                 </Link>
@@ -519,7 +519,7 @@ export default function Dashboard() {
               <div className="flex flex-col gap-2 my-auto py-1 min-h-0 overflow-y-auto">
                 {recentSessions.length === 0 ? (
                   <div className="py-4 text-center">
-                    <p className="text-xs font-semibold text-white">No sessions completed</p>
+                    <p className="text-xs font-semibold text-foreground">No sessions completed</p>
                     <Link
                       to="/ai-viva/new"
                       className="mt-2 apple-glass-btn-primary inline-flex min-h-[38px] items-center gap-1.5 px-3.5 py-2 text-xs font-bold no-underline"
@@ -537,15 +537,15 @@ export default function Dashboard() {
                     return (
                       <div
                         key={id}
-                        className="flex items-center justify-between gap-2.5 rounded-2xl border border-white/12 bg-white/5 p-2.5 transition-all hover:bg-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]"
+                        className="flex items-center justify-between gap-2.5 rounded-2xl border border-border bg-black/5 dark:bg-white/5 p-2.5 transition-all hover:bg-black/8 dark:hover:bg-white/10"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-gradient-to-b from-[#dcf0ff] to-[#AFDDFF] text-black font-bold shadow-xs">
+                          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-gradient-to-b from-[#0071e3] to-[#005bb5] dark:from-[#dcf0ff] dark:to-[#AFDDFF] text-white dark:text-black font-bold shadow-xs">
                             <BrainCircuit className="h-4 w-4" />
                           </div>
                           <div className="min-w-0">
-                            <p className="truncate text-xs font-bold text-white">{subject}</p>
-                            <p className="text-[10px] text-white/50 mt-0.5">
+                            <p className="truncate text-xs font-bold text-foreground">{subject}</p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">
                               Examiner: {persona}
                             </p>
                           </div>
@@ -556,8 +556,8 @@ export default function Dashboard() {
                             <span
                               className={`rounded-full px-2 py-0.5 text-[10.5px] font-bold ${
                                 score >= 75
-                                  ? "bg-[#7CE4BA]/20 text-[#7CE4BA] border border-[#7CE4BA]/30"
-                                  : "bg-[#AFDDFF]/15 text-[#AFDDFF] border border-[#AFDDFF]/30"
+                                  ? "bg-emerald-500/15 text-emerald-600 dark:text-[#7CE4BA] border border-emerald-500/30"
+                                  : "bg-primary/15 text-primary border border-primary/30"
                               }`}
                             >
                               {score}%
@@ -580,18 +580,18 @@ export default function Dashboard() {
 
             {/* Col 3: Weakness Radar & Instant Drills (4 cols) */}
             <div className="flex flex-col justify-between apple-glass-card p-4 lg:col-span-4 min-h-0">
-              <div className="flex items-center justify-between pb-2 border-b border-white/10">
+              <div className="flex items-center justify-between pb-2 border-b border-border">
                 <div className="flex items-center gap-2">
-                  <span className="grid h-6 w-6 place-items-center rounded-lg bg-[#FF6B6B]/15 text-[#FF6B6B]">
+                  <span className="grid h-6 w-6 place-items-center rounded-lg bg-rose-500/15 text-rose-500">
                     <AlertCircle className="h-3.5 w-3.5" />
                   </span>
-                  <h3 className="font-graphik text-xs xl:text-sm font-bold text-white tracking-wide">
+                  <h3 className="font-graphik text-xs xl:text-sm font-bold text-foreground tracking-wide">
                     WEAKNESS RADAR
                   </h3>
                 </div>
                 <Link
                   to="/advanced/sentiment-analysis"
-                  className="text-[11px] font-semibold text-white/50 hover:text-[#AFDDFF] transition-colors no-underline"
+                  className="text-[11px] font-semibold text-muted-foreground hover:text-primary transition-colors no-underline"
                 >
                   Analytics
                 </Link>
@@ -606,11 +606,11 @@ export default function Dashboard() {
                   return (
                     <div
                       key={idx}
-                      className="flex items-center justify-between gap-2.5 rounded-2xl border border-white/12 bg-white/5 p-2.5 transition-all hover:bg-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]"
+                      className="flex items-center justify-between gap-2.5 rounded-2xl border border-border bg-black/5 dark:bg-white/5 p-2.5 transition-all hover:bg-black/8 dark:hover:bg-white/10"
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-xs font-bold text-white">{topicName}</p>
-                        <p className="text-[10px] font-semibold text-[#AFDDFF] mt-0.5">
+                        <p className="truncate text-xs font-bold text-foreground">{topicName}</p>
+                        <p className="text-[10px] font-semibold text-primary mt-0.5">
                           Avg: {avgScore}% · High Priority
                         </p>
                       </div>
