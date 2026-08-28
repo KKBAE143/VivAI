@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Mic, BookOpen, FolderKanban, BrainCircuit, Sparkles, Check } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "@/components/app-shell";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRequireAuth } from "@/lib/auth-context";
 import { useCreateVivaSession, useProjects } from "@/lib/hooks";
 import { usePersonaCatalog } from "@/lib/hooks-features";
@@ -211,18 +212,24 @@ function NewViva() {
 
               {isProjectViva ? (
                 <div>
-                  <select
-                    value={projectId}
-                    onChange={(e) => setProjectId(e.target.value)}
-                    className="w-full min-h-[42px] rounded-xl border border-white/15 bg-black/60 px-3.5 py-2 text-xs sm:text-sm text-white focus:border-[#AFDDFF] focus:outline-none"
+                  <Select
+                    value={projectId || "placeholder"}
+                    onValueChange={(v) => setProjectId(v === "placeholder" ? "" : v)}
                   >
-                    <option value="" className="bg-[#0A0E16] text-white">Select your project to defend…</option>
-                    {(projects ?? []).map((p) => (
-                      <option key={String(p.id)} value={String(p.id)} className="bg-[#0A0E16] text-white">
-                        {String(p.title)}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-full min-h-[42px] rounded-xl border border-white/15 bg-black/60 px-3.5 py-2 text-xs sm:text-sm text-white focus:border-[#AFDDFF]">
+                      <SelectValue placeholder="Select your project to defend…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="placeholder">
+                        Select your project to defend…
+                      </SelectItem>
+                      {(projects ?? []).map((p) => (
+                        <SelectItem key={String(p.id)} value={String(p.id)}>
+                          {String(p.title)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <div className="mt-1.5 flex items-center justify-between text-[11px]">
                     {(projects ?? []).length === 0 ? (
                       <p className="text-white/50">

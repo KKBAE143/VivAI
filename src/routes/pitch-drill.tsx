@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 
 import { AppShell, Card, PageHeader, Badge } from "@/components/app-shell";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRequireAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import { LIVE_LANGUAGES } from "@/lib/languages";
@@ -267,18 +268,24 @@ function PitchDrillPage() {
                   <label className="text-[10px] font-bold uppercase tracking-wider text-white/50 font-mono">
                     [ PROJECT_GROUNDING ]
                   </label>
-                  <select
-                    value={projectId}
-                    onChange={(e) => setProjectId(e.target.value)}
-                    className="mt-1.5 w-full min-h-[38px] rounded-lg border border-white/10 bg-black/60 px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-[#AFDDFF]"
-                  >
-                    <option value="" className="bg-[#0A0E16] text-white">General pitch</option>
-                    {(projects.data ?? []).map((p) => (
-                      <option key={String(p.id)} value={String(p.id)} className="bg-[#0A0E16] text-white">
-                        {String(p.title)}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="mt-1.5">
+                    <Select
+                      value={projectId || "none"}
+                      onValueChange={(v) => setProjectId(v === "none" ? "" : v)}
+                    >
+                      <SelectTrigger className="w-full min-h-[38px] rounded-lg border border-white/10 bg-black/60 px-3 py-2 text-xs font-bold text-white focus:border-[#AFDDFF]">
+                        <SelectValue placeholder="General pitch" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">General pitch</SelectItem>
+                        {(projects.data ?? []).map((p) => (
+                          <SelectItem key={String(p.id)} value={String(p.id)}>
+                            {String(p.title)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
                   <label className="mt-3 block text-[10px] font-bold uppercase tracking-wider text-white/50 font-mono">
                     [ PITCH_TOPIC ]
@@ -395,19 +402,25 @@ function PitchDrillPage() {
                 <label className="text-xs font-bold uppercase tracking-wider text-white/50 font-mono">
                   [ PROJECT_OPTIONAL ]
                 </label>
-                <select
-                  value={projectId}
-                  onChange={(e) => setProjectId(e.target.value)}
-                  disabled={phase !== "idle"}
-                  className="mt-2 w-full min-h-[38px] rounded-xl border border-white/10 bg-black/60 px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-[#AFDDFF]"
-                >
-                  <option value="" className="bg-[#0A0E16] text-white">General pitch</option>
-                  {(projects.data ?? []).map((p) => (
-                    <option key={String(p.id)} value={String(p.id)} className="bg-[#0A0E16] text-white">
-                      {String(p.title)}
-                    </option>
-                  ))}
-                </select>
+                <div className="mt-2">
+                  <Select
+                    value={projectId || "none"}
+                    onValueChange={(v) => setProjectId(v === "none" ? "" : v)}
+                    disabled={phase !== "idle"}
+                  >
+                    <SelectTrigger className="w-full min-h-[38px] rounded-xl border border-white/10 bg-black/60 px-3 py-2 text-xs font-bold text-white focus:border-[#AFDDFF]">
+                      <SelectValue placeholder="General pitch" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">General pitch</SelectItem>
+                      {(projects.data ?? []).map((p) => (
+                        <SelectItem key={String(p.id)} value={String(p.id)}>
+                          {String(p.title)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <p className="mt-3 text-xs text-white/50 leading-relaxed">
                   Aim to cover: <span className="font-bold text-white">problem, approach, tech, impact</span> — all within 90 seconds.
                 </p>

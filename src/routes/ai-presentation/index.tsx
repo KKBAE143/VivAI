@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { MonitorSmartphone, Play, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { AppShell, Card, PageHeader, Badge } from "@/components/app-shell";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DataPagination } from "@/components/data-pagination";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
@@ -116,59 +117,68 @@ function AIPresentation() {
               </h3>
               <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <div className="rounded-xl border border-white/10 bg-white/5 p-2.5">
-                  <span className="block text-[10px] text-white/50 font-medium">Project</span>
-                  <select
-                    value={projectId}
-                    onChange={(e) => setProjectId(e.target.value)}
-                    className="mt-1 w-full min-h-[36px] rounded-lg bg-black/60 border border-white/10 px-2 py-1 text-xs font-bold text-white focus:outline-none focus:border-[#AFDDFF] truncate"
+                  <span className="block text-[10px] text-white/50 font-medium mb-1">Project</span>
+                  <Select
+                    value={projectId || "none"}
+                    onValueChange={(v) => setProjectId(v === "none" ? "" : v)}
                   >
-                    <option value="" className="bg-[#0A0E16] text-white">No project</option>
-                    {(projects ?? []).map((p) => (
-                      <option key={String(p.id)} value={String(p.id)} className="bg-[#0A0E16] text-white">
-                        {String(p.title)}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-full min-h-[36px] rounded-lg bg-black/60 border border-white/10 px-2 py-1 text-xs font-bold text-white focus:border-[#AFDDFF]">
+                      <SelectValue placeholder="No project" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No project</SelectItem>
+                      {(projects ?? []).map((p) => (
+                        <SelectItem key={String(p.id)} value={String(p.id)}>
+                          {String(p.title)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-white/5 p-2.5">
-                  <span className="block text-[10px] text-white/50 font-medium">Type</span>
-                  <select
-                    value={type}
-                    onChange={(e) => setType(e.target.value)}
-                    className="mt-1 w-full min-h-[36px] rounded-lg bg-black/60 border border-white/10 px-2 py-1 text-xs font-bold text-white focus:outline-none focus:border-[#AFDDFF]"
-                  >
-                    {SESSION_TYPES.map((t) => (
-                      <option key={t} className="bg-[#0A0E16] text-white">{t}</option>
-                    ))}
-                  </select>
+                  <span className="block text-[10px] text-white/50 font-medium mb-1">Type</span>
+                  <Select value={type} onValueChange={(v) => setType(v as typeof type)}>
+                    <SelectTrigger className="w-full min-h-[36px] rounded-lg bg-black/60 border border-white/10 px-2 py-1 text-xs font-bold text-white focus:border-[#AFDDFF]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SESSION_TYPES.map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {t}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-white/5 p-2.5">
-                  <span className="block text-[10px] text-white/50 font-medium">Duration</span>
-                  <select
-                    value={duration}
-                    onChange={(e) => setDuration(Number(e.target.value))}
-                    className="mt-1 w-full min-h-[36px] rounded-lg bg-black/60 border border-white/10 px-2 py-1 text-xs font-bold text-white focus:outline-none focus:border-[#AFDDFF]"
-                  >
-                    {DURATIONS.map((d) => (
-                      <option key={d} value={d} className="bg-[#0A0E16] text-white">
-                        {d} mins
-                      </option>
-                    ))}
-                  </select>
+                  <span className="block text-[10px] text-white/50 font-medium mb-1">Duration</span>
+                  <Select value={String(duration)} onValueChange={(v) => setDuration(Number(v))}>
+                    <SelectTrigger className="w-full min-h-[36px] rounded-lg bg-black/60 border border-white/10 px-2 py-1 text-xs font-bold text-white focus:border-[#AFDDFF]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DURATIONS.map((d) => (
+                        <SelectItem key={d} value={String(d)}>
+                          {d} mins
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-white/5 p-2.5">
-                  <span className="block text-[10px] text-white/50 font-medium">Language</span>
-                  <select
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
-                    className="mt-1 w-full min-h-[36px] rounded-lg bg-black/60 border border-white/10 px-2 py-1 text-xs font-bold text-white focus:outline-none focus:border-[#AFDDFF]"
-                  >
-                    {LIVE_LANGUAGES.map((l) => (
-                      <option key={l} value={l} className="bg-[#0A0E16] text-white">
-                        {l}
-                      </option>
-                    ))}
-                  </select>
+                  <span className="block text-[10px] text-white/50 font-medium mb-1">Language</span>
+                  <Select value={language} onValueChange={setLanguage}>
+                    <SelectTrigger className="w-full min-h-[36px] rounded-lg bg-black/60 border border-white/10 px-2 py-1 text-xs font-bold text-white focus:border-[#AFDDFF]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LIVE_LANGUAGES.map((l) => (
+                        <SelectItem key={l} value={l}>
+                          {l}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="mt-2.5 rounded-xl border border-white/10 bg-white/5 p-2.5">

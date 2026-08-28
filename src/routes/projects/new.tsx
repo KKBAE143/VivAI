@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Check } from "lucide-react";
 import { useState } from "react";
 import { AppShell, Card, PageHeader } from "@/components/app-shell";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRequireAuth } from "@/lib/auth-context";
 import { useCreateProject } from "@/lib/hooks";
 
@@ -136,15 +137,18 @@ function NewProject() {
           </Field>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Subject / Course">
-              <select
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm"
-              >
-                {SUBJECTS.map((s) => (
-                  <option key={s}>{s}</option>
-                ))}
-              </select>
+              <Select value={subject} onValueChange={setSubject}>
+                <SelectTrigger className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SUBJECTS.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
             <Field label="Expected Technologies">
               <input

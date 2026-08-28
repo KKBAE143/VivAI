@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { AppShell, Card, Badge } from "@/components/app-shell";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ErrorState } from "@/components/error-state";
 import { ProjectDetailSkeleton } from "@/components/loading-skeleton";
 import { ModalShell } from "@/components/modal-shell";
@@ -341,16 +342,18 @@ function TasksBoard({
             placeholder="Task title…"
             className="min-w-[12rem] flex-1 rounded-xl border border-border bg-card px-3 py-2 text-sm focus:border-primary focus:outline-none"
           />
-          <select
-            value={priority}
-            onChange={(e) => setPriority(e.target.value)}
-            className="rounded-xl border border-border bg-card px-3 py-2 text-sm"
-            aria-label="Priority"
-          >
-            <option value="low">Low</option>
-            <option value="med">Medium</option>
-            <option value="high">High</option>
-          </select>
+          <div className="w-28">
+            <Select value={priority} onValueChange={setPriority}>
+              <SelectTrigger className="rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="low">Low</SelectItem>
+                <SelectItem value="med">Medium</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <input
             type="date"
             value={dueDate}
@@ -358,19 +361,24 @@ function TasksBoard({
             className="rounded-xl border border-border bg-card px-3 py-2 text-sm"
             aria-label="Due date"
           />
-          <select
-            value={assigneeId}
-            onChange={(e) => setAssigneeId(e.target.value)}
-            className="rounded-xl border border-border bg-card px-3 py-2 text-sm"
-            aria-label="Assignee"
-          >
-            <option value="">Unassigned</option>
-            {teamMembers.map((m) => (
-              <option key={String(m.profile_id)} value={String(m.profile_id)}>
-                {String((m.profiles as ApiRecord | undefined)?.full_name ?? "Member")}
-              </option>
-            ))}
-          </select>
+          <div className="min-w-[10rem]">
+            <Select
+              value={assigneeId || "none"}
+              onValueChange={(v) => setAssigneeId(v === "none" ? "" : v)}
+            >
+              <SelectTrigger className="rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                <SelectValue placeholder="Unassigned" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Unassigned</SelectItem>
+                {teamMembers.map((m) => (
+                  <SelectItem key={String(m.profile_id)} value={String(m.profile_id)}>
+                    {String((m.profiles as ApiRecord | undefined)?.full_name ?? "Member")}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <button
             disabled={createTask.isPending || !title.trim()}
             onClick={() => void addTask()}
@@ -449,40 +457,45 @@ function EditTaskModal({
       />
       <div className="mt-3 flex gap-2">
         <div className="flex-1">
-          <label className="block text-xs font-medium text-muted-foreground">Priority</label>
-          <select
-            value={priority}
-            onChange={(e) => setPriority(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm"
-          >
-            <option value="low">Low</option>
-            <option value="med">Medium</option>
-            <option value="high">High</option>
-          </select>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Priority</label>
+          <Select value={priority} onValueChange={setPriority}>
+            <SelectTrigger className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="low">Low</SelectItem>
+              <SelectItem value="med">Medium</SelectItem>
+              <SelectItem value="high">High</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex-1">
-          <label className="block text-xs font-medium text-muted-foreground">Due date</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Due date</label>
           <input
             type="date"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm"
+            className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm"
           />
         </div>
       </div>
-      <label className="mt-3 block text-xs font-medium text-muted-foreground">Assignee</label>
-      <select
-        value={assigneeId}
-        onChange={(e) => setAssigneeId(e.target.value)}
-        className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm"
+      <label className="mt-3 block text-xs font-medium text-muted-foreground mb-1">Assignee</label>
+      <Select
+        value={assigneeId || "none"}
+        onValueChange={(v) => setAssigneeId(v === "none" ? "" : v)}
       >
-        <option value="">Unassigned</option>
-        {teamMembers.map((m) => (
-          <option key={String(m.profile_id)} value={String(m.profile_id)}>
-            {String((m.profiles as ApiRecord | undefined)?.full_name ?? "Member")}
-          </option>
-        ))}
-      </select>
+        <SelectTrigger className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+          <SelectValue placeholder="Unassigned" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="none">Unassigned</SelectItem>
+          {teamMembers.map((m) => (
+            <SelectItem key={String(m.profile_id)} value={String(m.profile_id)}>
+              {String((m.profiles as ApiRecord | undefined)?.full_name ?? "Member")}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       <button
         disabled={updateTask.isPending || !title.trim()}
         onClick={() => void save()}
@@ -542,16 +555,17 @@ function EditProjectModal({ project, onClose }: { project: ApiRecord; onClose: (
           />
         </div>
         <div className="flex-1">
-          <label className="block text-xs font-medium text-muted-foreground">Status</label>
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm"
-          >
-            <option>In Progress</option>
-            <option>Completed</option>
-            <option>On Hold</option>
-          </select>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Status</label>
+          <Select value={status} onValueChange={setStatus}>
+            <SelectTrigger className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="In Progress">In Progress</SelectItem>
+              <SelectItem value="Completed">Completed</SelectItem>
+              <SelectItem value="On Hold">On Hold</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
       <label className="mt-3 block text-xs font-medium text-muted-foreground">Deadline</label>
