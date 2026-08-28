@@ -1,11 +1,13 @@
 """Auth + onboarding routes (Supabase Auth backed)."""
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from supabase import create_client
 from supabase_auth.helpers import generate_pkce_verifier, generate_pkce_challenge
 
 from core.config import get_settings
 from core.database import get_supabase
 from core.deps import get_current_user
+from core.logging import get_logger
 from models.schemas import (
     ForgotPasswordRequest,
     LoginRequest,
@@ -17,6 +19,8 @@ from models.schemas import (
 )
 from services import onboarding_service
 
+logger = get_logger("auth")
+
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 onboarding_router = APIRouter(prefix="/api/onboarding", tags=["onboarding"])
 
@@ -26,19 +30,36 @@ def _auth_client():
     return create_client(s.supabase_url, s.supabase_anon_key or s.supabase_service_role_key)
 
 
+class _GoogleOAuthUrlRequest(BaseModel):
+    redirect_to: str = "http://localhost:8080/"
+
+
+def _get_google_oauth_url(redirect_to: str) -> dict:
+    """Shared logic for generating a Google OAuth redirect URL."""
+    client = _auth_client()
+    res = client.auth.sign_in_with_oauth({
+        "provider": "google",
+        "options": {
+            "redirect_to": redirect_to
+        }
+    })
+    storage_key = client.auth._storage_key
+    verifier = client.auth._storage.get_item(f"{storage_key}-code-verifier")
+    return {"url": res.url, "code_verifier": verifier}
+
+
 @router.get("/oauth/google")
 def oauth_google(redirect_to: str = "http://localhost:8080/"):
     try:
-        client = _auth_client()
-        res = client.auth.sign_in_with_oauth({
-            "provider": "google",
-            "options": {
-                "redirect_to": redirect_to
-            }
-        })
-        storage_key = client.auth._storage_key
-        verifier = client.auth._storage.get_item(f"{storage_key}-code-verifier")
-        return {"url": res.url, "code_verifier": verifier}
+        return _get_google_oauth_url(redirect_to)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"OAuth failed: {exc}")
+
+
+@router.post("/oauth/google/url")
+def oauth_google_url(body: _GoogleOAuthUrlRequest):
+    try:
+        return _get_google_oauth_url(body.redirect_to)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"OAuth failed: {exc}")
 
@@ -74,15 +95,25 @@ def signup(body: SignupRequest):
         raise HTTPException(status_code=400, detail=f"Signup failed: {exc}")
     if res.user is None:
         raise HTTPException(status_code=400, detail="Signup failed")
-    get_supabase().table("profiles").upsert(
-        {
-            "id": res.user.id,
-            "full_name": body.name,
-            "college_name": body.college,
-            "year": body.year,
-            "branch": body.branch,
-        }
-    ).execute()
+    # The profile row may fail to insert if the auth user hasn't fully
+    # propagated yet (FK to auth.users) or if a trigger already created it.
+    # This is non-fatal: get_current_user lazily creates missing profiles.
+    try:
+        get_supabase().table("profiles").upsert(
+            {
+                "id": res.user.id,
+                "full_name": body.name,
+                "college_name": body.college,
+                "year": body.year,
+                "branch": body.branch,
+            }
+        ).execute()
+    except Exception as exc:
+        logger.warning(
+            "profile upsert after signup failed (will be created on first login)",
+            exc_info=True,
+            extra={"event": "signup_profile_upsert_failed", "user_id": res.user.id},
+        )
     token = res.session.access_token if res.session else None
     refresh = res.session.refresh_token if res.session else None
     return {
