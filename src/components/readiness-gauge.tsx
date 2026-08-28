@@ -39,7 +39,7 @@ export function ReadinessGauge({
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="var(--color-secondary)"
+          stroke="rgba(255, 255, 255, 0.08)"
           strokeWidth={strokeWidth}
         />
         <circle
@@ -47,19 +47,22 @@ export function ReadinessGauge({
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke={color}
+          stroke={clamped >= 60 ? "#AFDDFF" : color}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={offset}
-          style={{ transition: "stroke-dashoffset 700ms ease" }}
+          style={{
+            transition: "stroke-dashoffset 700ms ease",
+            filter: "drop-shadow(0 0 6px rgba(175, 221, 255, 0.4))",
+          }}
         />
       </svg>
       <div className="absolute inset-0 grid place-items-center text-center">
         <div>
-          <div className="text-3xl font-bold tracking-tight text-foreground">{clamped}</div>
+          <div className="font-graphik text-2xl sm:text-3xl font-bold tracking-tight text-white">{clamped}</div>
           {label && (
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <div className="font-manrope text-[10px] font-semibold uppercase tracking-wider text-[#AFDDFF]/80">
               {label}
             </div>
           )}

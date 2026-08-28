@@ -87,12 +87,12 @@ export function AppShell({
         fitViewport ? "min-h-screen lg:h-screen lg:max-h-screen lg:overflow-hidden" : "min-h-screen"
       }`}
     >
-      {/* Atmospheric ambient light mesh using exact 4-color swatch */}
+      {/* Atmospheric ambient light mesh with ice-blue and obsidian depth */}
       <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-        <div className="absolute -top-40 right-[-10%] h-[550px] w-[550px] rounded-full bg-[#DF6D41]/14 blur-[130px] dark:bg-[#DF6D41]/18" />
-        <div className="absolute top-[30%] -left-32 h-[500px] w-[500px] rounded-full bg-[#8DA6CC]/16 blur-[140px] dark:bg-[#8DA6CC]/18" />
-        <div className="absolute top-[60%] -right-20 h-[450px] w-[450px] rounded-full bg-[#AAA648]/12 blur-[130px] dark:bg-[#AAA648]/15" />
-        <div className="absolute -bottom-40 left-[15%] h-[600px] w-[600px] rounded-full bg-[#F7D89A]/15 blur-[150px] dark:bg-[#F7D89A]/12" />
+        <div className="absolute -top-40 right-[-10%] h-[550px] w-[550px] rounded-full bg-[#AFDDFF]/10 blur-[140px]" />
+        <div className="absolute top-[30%] -left-32 h-[500px] w-[500px] rounded-full bg-[#8DA6CC]/8 blur-[150px]" />
+        <div className="absolute top-[60%] -right-20 h-[450px] w-[450px] rounded-full bg-[#7CE4BA]/6 blur-[140px]" />
+        <div className="absolute -bottom-40 left-[15%] h-[600px] w-[600px] rounded-full bg-[#AFDDFF]/8 blur-[160px]" />
       </div>
       <div
         className={`relative z-10 flex w-full gap-3 sm:gap-4 lg:gap-4 p-2.5 sm:p-3.5 lg:p-3.5 ${
@@ -103,7 +103,7 @@ export function AppShell({
         <main
           className={`min-w-0 flex-1 pb-20 lg:pb-0 ${
             fitViewport
-              ? "lg:h-full lg:max-h-full lg:overflow-hidden flex flex-col space-y-0"
+              ? "lg:h-full lg:max-full lg:overflow-hidden flex flex-col space-y-0"
               : "space-y-4"
           }`}
         >
@@ -123,28 +123,28 @@ function Sidebar({ fitViewport = false }: { fitViewport?: boolean }) {
   const { logout } = useAuth();
   const { data: profile } = useProfile();
   const navigate = useNavigate();
-  const isActive = (to: string) => (to === "/" ? pathname === "/" : pathname.startsWith(to));
+  const isActive = (to: string) => (to === "/" ? pathname === "/" || pathname === "/dashboard" : pathname.startsWith(to));
   const isAdmin = profile?.role === "admin" || profile?.role === "faculty";
 
   return (
     <aside
-      className={`hidden w-[205px] xl:w-[215px] shrink-0 flex-col justify-between overflow-y-auto rounded-3xl bg-card/85 backdrop-blur-2xl border border-white/40 dark:border-white/10 p-3 shadow-[var(--shadow-glass)] lg:flex ${
+      className={`hidden w-[205px] xl:w-[220px] shrink-0 flex-col justify-between overflow-y-auto rounded-2xl bg-card/85 backdrop-blur-2xl border border-white/10 p-3 shadow-[var(--shadow-glass)] lg:flex ${
         fitViewport ? "h-full max-h-full sticky top-0" : "sticky top-5 h-[calc(100vh-2.5rem)]"
       }`}
     >
       <div className="flex flex-col gap-3.5">
-        {/* Brand Logo */}
-        <Link to="/" aria-label="Home" className="flex items-center gap-2.5 px-2 pt-0.5">
-          <img
-            src="/logo.jpeg"
-            alt="VivAI Logo"
-            className="h-8 w-8 shrink-0 rounded-xl object-cover shadow-sm ring-1 ring-border/40"
-          />
-          <span className="text-base font-bold tracking-tight text-foreground">VivAI</span>
+        {/* Brand Logo matching Homepage */}
+        <Link to="/" aria-label="Home" className="flex items-center gap-2.5 px-2 pt-1 no-underline group">
+          <div className="h-7 w-7 rounded-lg bg-[#AFDDFF] flex items-center justify-center text-black font-black text-xs shadow-[0_0_12px_rgba(175,221,255,0.4)]">
+            V
+          </div>
+          <span className="font-graphik text-sm font-bold tracking-wider text-white group-hover:text-[#AFDDFF] transition-colors">
+            VIVAI // CORE
+          </span>
         </Link>
 
-        {/* Clean Flat Navigation Items matching ref */}
-        <nav className="flex flex-col gap-1">
+        {/* Navigation Items with Ice Blue Highlight */}
+        <nav className="flex flex-col gap-1 font-manrope">
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.to);
@@ -152,20 +152,20 @@ function Sidebar({ fitViewport = false }: { fitViewport?: boolean }) {
               <Link
                 key={item.to}
                 to={item.to}
-                className={`group relative flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition-all ${
+                className={`group relative flex items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition-all no-underline ${
                   active
-                    ? "bg-primary text-primary-foreground shadow-xs"
-                    : "text-muted-foreground hover:bg-secondary/70 hover:text-foreground"
+                    ? "bg-[#AFDDFF] text-black font-bold shadow-[0_0_16px_rgba(175,221,255,0.25)]"
+                    : "text-white/60 hover:bg-white/5 hover:text-white"
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <Icon className="h-4 w-4 shrink-0" />
+                  <Icon className={`h-4 w-4 shrink-0 ${active ? "text-black" : "text-white/70 group-hover:text-[#AFDDFF] transition-colors"}`} />
                   <span>{item.label}</span>
                 </div>
                 {item.badge && (
                   <span
                     className={`grid h-4 min-w-[16px] place-items-center rounded-full px-1 text-[9px] font-bold ${
-                      active ? "bg-primary-foreground text-primary" : "bg-primary/20 text-primary"
+                      active ? "bg-black text-[#AFDDFF]" : "bg-[#AFDDFF]/20 text-[#AFDDFF]"
                     }`}
                   >
                     {item.badge}
@@ -176,13 +176,13 @@ function Sidebar({ fitViewport = false }: { fitViewport?: boolean }) {
           })}
 
           {isAdmin && (
-            <div className="mt-2 pt-2 border-t border-border/40 flex flex-col gap-1">
+            <div className="mt-2 pt-2 border-t border-white/10 flex flex-col gap-1">
               <Link
                 to="/faculty"
-                className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold transition-all ${
+                className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium transition-all no-underline ${
                   isActive("/faculty")
-                    ? "bg-primary text-primary-foreground shadow-xs"
-                    : "text-muted-foreground hover:bg-secondary/70 hover:text-foreground"
+                    ? "bg-[#AFDDFF] text-black font-bold shadow-[0_0_16px_rgba(175,221,255,0.25)]"
+                    : "text-white/60 hover:bg-white/5 hover:text-white"
                 }`}
               >
                 <ClipboardCheck className="h-4 w-4 shrink-0" />
@@ -190,10 +190,10 @@ function Sidebar({ fitViewport = false }: { fitViewport?: boolean }) {
               </Link>
               <Link
                 to="/admin"
-                className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold transition-all ${
+                className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium transition-all no-underline ${
                   isActive("/admin")
-                    ? "bg-primary text-primary-foreground shadow-xs"
-                    : "text-muted-foreground hover:bg-secondary/70 hover:text-foreground"
+                    ? "bg-[#AFDDFF] text-black font-bold shadow-[0_0_16px_rgba(175,221,255,0.25)]"
+                    : "text-white/60 hover:bg-white/5 hover:text-white"
                 }`}
               >
                 <Building2 className="h-4 w-4 shrink-0" />
@@ -205,23 +205,23 @@ function Sidebar({ fitViewport = false }: { fitViewport?: boolean }) {
       </div>
 
       {/* Bottom Area: Promo Card + Sign Out */}
-      <div className="flex flex-col gap-3">
-        {/* Rounded Promo/Download Card with Canyon & Buttercream gradient */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#DF6D41]/15 via-[#F7D89A]/10 to-transparent p-3 border border-[#8DA6CC]/30 shadow-xs">
+      <div className="flex flex-col gap-3 font-manrope">
+        {/* Obsidian Glass Promo Card with Ice Blue Accent */}
+        <div className="relative overflow-hidden rounded-xl bg-[#AFDDFF]/8 p-3 border border-[#AFDDFF]/20 shadow-xs">
           <div className="flex items-start justify-between">
-            <div className="grid h-7 w-7 place-items-center rounded-xl bg-[#DF6D41]/20 text-[#DF6D41]">
+            <div className="grid h-7 w-7 place-items-center rounded-lg bg-[#AFDDFF]/15 text-[#AFDDFF]">
               <Sparkles className="h-3.5 w-3.5" />
             </div>
             <Link
               to="/ai-viva/new"
-              className="grid h-6 w-6 place-items-center rounded-full bg-[#DF6D41] text-white shadow-xs hover:scale-105 transition-transform"
+              className="grid h-6 w-6 place-items-center rounded-full bg-[#AFDDFF] text-black shadow-xs hover:scale-105 transition-transform no-underline"
             >
               <ArrowUpRight className="h-3 w-3" />
             </Link>
           </div>
-          <p className="mt-2 text-xs font-bold text-foreground">AI Viva Coach</p>
-          <p className="text-[10px] text-muted-foreground leading-tight">
-            Practice oral defense on demand
+          <p className="mt-2 text-xs font-bold text-white">AI Viva Coach</p>
+          <p className="text-[10px] text-white/50 leading-tight">
+            Oral defense simulations
           </p>
         </div>
 
@@ -231,7 +231,7 @@ function Sidebar({ fitViewport = false }: { fitViewport?: boolean }) {
             logout();
             navigate({ to: "/login" });
           }}
-          className="flex items-center gap-2.5 rounded-xl px-3 py-1.5 text-xs font-medium text-muted-foreground transition-all hover:bg-secondary/70 hover:text-foreground"
+          className="flex items-center gap-2.5 rounded-xl px-3 py-1.5 text-xs font-medium text-white/50 transition-all hover:bg-white/5 hover:text-white cursor-pointer"
         >
           <LogOut className="h-3.5 w-3.5" />
           <span>Sign out</span>

@@ -107,60 +107,59 @@ function Signup() {
   };
 
   return (
-    <div
-      className="relative min-h-screen w-full bg-[#1A1715] bg-cover bg-center bg-no-repeat flex items-center justify-center p-4 sm:p-6 lg:p-12 overflow-x-hidden"
-      style={{ backgroundImage: `url(${loginBg})` }}
-    >
+    <div className="relative min-h-screen w-full bg-black flex items-center justify-center p-4 sm:p-6 lg:p-12 overflow-x-hidden font-manrope">
+      {/* Ambient background mesh */}
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div className="absolute -top-40 right-[-10%] h-[550px] w-[550px] rounded-full bg-[#AFDDFF]/10 blur-[140px]" />
+        <div className="absolute top-[30%] -left-32 h-[500px] w-[500px] rounded-full bg-[#8DA6CC]/8 blur-[150px]" />
+      </div>
+
       <div className="relative z-10 w-full max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14 items-center">
         {/* Left Column: Medallion & Welcome */}
         <div className="flex flex-col items-center text-center">
-          {/* Circular Canyon & Buttercream Medallion Logo */}
-          <div className="relative w-56 h-56 sm:w-72 sm:h-72 md:w-88 md:h-88 rounded-full p-1.5 bg-gradient-to-b from-[#DF6D41] via-[#F7D89A] to-[#DF6D41] shadow-[0_0_50px_rgba(223,109,65,0.35),0_20px_50px_rgba(0,0,0,0.95)]">
-            <div className="w-full h-full rounded-full overflow-hidden border-2 border-[#F7D89A]/80 bg-black">
+          {/* Circular Ice Blue Medallion */}
+          <div className="relative w-56 h-56 sm:w-72 sm:h-72 md:w-80 md:h-80 rounded-full p-1.5 bg-gradient-to-b from-[#AFDDFF] via-[#8DA6CC] to-[#AFDDFF] shadow-[0_0_50px_rgba(175,221,255,0.35),0_20px_50px_rgba(0,0,0,0.95)]">
+            <div className="w-full h-full rounded-full overflow-hidden border-2 border-white/20 bg-black">
               <img
                 src={logoImg}
                 alt="VivAI Logo"
-                className="w-full h-full object-cover rounded-full transform scale-[1.19]"
+                className="w-full h-full object-cover rounded-full transform scale-[1.15]"
               />
             </div>
           </div>
 
-          {/* Classical Welcome Header */}
+          {/* Header */}
           <div className="mt-8 flex items-center justify-center gap-3">
-            <span className="text-[#DF6D41] text-lg select-none">❧</span>
-            <div className="h-px w-10 bg-gradient-to-r from-transparent via-[#DF6D41] to-transparent" />
-            <h2 className="font-serif text-2xl sm:text-3xl font-bold tracking-[0.25em] text-[#F7D89A] uppercase drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]">
-              WELCOME
+            <span className="text-[#AFDDFF] text-lg select-none">&#10022;</span>
+            <div className="h-px w-10 bg-gradient-to-r from-transparent via-[#AFDDFF] to-transparent" />
+            <h2 className="font-graphik text-2xl sm:text-3xl font-bold tracking-[0.2em] text-white uppercase">
+              REGISTER
             </h2>
-            <div className="h-px w-10 bg-gradient-to-r from-transparent via-[#DF6D41] to-transparent" />
-            <span className="text-[#DF6D41] text-lg select-none">☙</span>
+            <div className="h-px w-10 bg-gradient-to-r from-transparent via-[#AFDDFF] to-transparent" />
+            <span className="text-[#AFDDFF] text-lg select-none">&#10022;</span>
           </div>
 
-          <p className="mt-3 text-sm sm:text-base text-[#E5DCD3] tracking-wide max-w-sm drop-shadow-md">
-            Join our community and build something legendary.
+          <p className="mt-3 text-sm sm:text-base text-white/60 tracking-wide max-w-sm">
+            Join the academic intelligence operating system for B.Tech defense.
           </p>
         </div>
 
-        {/* Right Column: Architectural Tablet Card */}
+        {/* Right Column: Architectural Glass Card */}
         <div className="w-full max-w-md mx-auto">
-          <div className="relative rounded-[26px] sm:rounded-[30px] border-2 border-[#DF6D41]/50 bg-[#1C1917]/90 backdrop-blur-2xl p-6 sm:p-8 shadow-[0_25px_70px_rgba(0,0,0,0.95),0_0_35px_rgba(223,109,65,0.18),inset_0_1px_2px_rgba(247,216,154,0.35)]">
-            {/* Top Greek Key Frieze Motif */}
-            <GreekMeanderFrieze />
-
+          <div className="relative rounded-2xl border border-white/10 bg-card/85 backdrop-blur-2xl p-6 sm:p-8 shadow-[var(--shadow-glass)]">
             {/* Title */}
-            <div className="text-center pt-3 pb-5">
+            <div className="text-center pt-2 pb-5">
               <div className="flex items-center justify-center gap-2.5">
-                <span className="text-[#DF6D41] text-sm select-none">❧</span>
-                <h1 className="font-serif text-xl sm:text-2xl font-bold tracking-[0.2em] text-[#F7D89A] uppercase drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
-                  REGISTRATION
+                <span className="text-[#AFDDFF] text-sm select-none">&#10022;</span>
+                <h1 className="font-graphik text-xl sm:text-2xl font-bold tracking-[0.15em] text-white uppercase">
+                  CREATE ACCOUNT
                 </h1>
-                <span className="text-[#DF6D41] text-sm select-none">☙</span>
+                <span className="text-[#AFDDFF] text-sm select-none">&#10022;</span>
               </div>
-              {/* Ornate motif line */}
               <div className="mt-2 flex items-center justify-center gap-2">
-                <div className="h-px w-12 bg-gradient-to-r from-transparent to-[#DF6D41]/60" />
-                <span className="text-[#DF6D41] text-xs select-none">❖</span>
-                <div className="h-px w-12 bg-gradient-to-l from-transparent to-[#DF6D41]/60" />
+                <div className="h-px w-12 bg-gradient-to-r from-transparent to-[#AFDDFF]/60" />
+                <span className="text-[#AFDDFF] text-xs font-mono select-none">[ COHORT ]</span>
+                <div className="h-px w-12 bg-gradient-to-l from-transparent to-[#AFDDFF]/60" />
               </div>
             </div>
 
@@ -173,8 +172,8 @@ function Signup() {
             >
               {/* Email Field */}
               <div>
-                <label className="text-[11px] font-bold tracking-[0.18em] text-[#F7D89A] uppercase flex items-center gap-2 mb-1">
-                  <Mail className="h-3.5 w-3.5 text-[#DF6D41]" />
+                <label className="text-[11px] font-bold tracking-[0.15em] text-white/80 uppercase flex items-center gap-2 mb-1">
+                  <Mail className="h-3.5 w-3.5 text-[#AFDDFF]" />
                   E-MAIL
                 </label>
                 <input
@@ -183,14 +182,14 @@ function Signup() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full rounded-xl border border-[#8DA6CC]/40 bg-[#12100E]/90 px-4 py-2.5 text-sm text-[#F7D89A] placeholder-[#8DA6CC]/50 focus:border-[#DF6D41] focus:outline-none focus:ring-1 focus:ring-[#DF6D41] focus:shadow-[0_0_15px_rgba(223,109,65,0.3)] transition-all"
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/40 focus:border-[#AFDDFF] focus:outline-none focus:ring-1 focus:ring-[#AFDDFF] shadow-2xs transition-all"
                 />
               </div>
 
               {/* Full Name Field */}
               <div>
-                <label className="text-[11px] font-bold tracking-[0.18em] text-[#F7D89A] uppercase flex items-center gap-2 mb-1">
-                  <User className="h-3.5 w-3.5 text-[#DF6D41]" />
+                <label className="text-[11px] font-bold tracking-[0.15em] text-white/80 uppercase flex items-center gap-2 mb-1">
+                  <User className="h-3.5 w-3.5 text-[#AFDDFF]" />
                   FULL NAME
                 </label>
                 <input
@@ -199,14 +198,14 @@ function Signup() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
-                  className="w-full rounded-xl border border-[#8DA6CC]/40 bg-[#12100E]/90 px-4 py-2.5 text-sm text-[#F7D89A] placeholder-[#8DA6CC]/50 focus:border-[#DF6D41] focus:outline-none focus:ring-1 focus:ring-[#DF6D41] focus:shadow-[0_0_15px_rgba(223,109,65,0.3)] transition-all"
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/40 focus:border-[#AFDDFF] focus:outline-none focus:ring-1 focus:ring-[#AFDDFF] shadow-2xs transition-all"
                 />
               </div>
 
               {/* Password Field */}
               <div>
-                <label className="text-[11px] font-bold tracking-[0.18em] text-[#F7D89A] uppercase flex items-center gap-2 mb-1">
-                  <Lock className="h-3.5 w-3.5 text-[#DF6D41]" />
+                <label className="text-[11px] font-bold tracking-[0.15em] text-white/80 uppercase flex items-center gap-2 mb-1">
+                  <Lock className="h-3.5 w-3.5 text-[#AFDDFF]" />
                   PASSWORD
                 </label>
                 <div className="relative">
@@ -216,27 +215,26 @@ function Signup() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="w-full rounded-xl border border-[#8DA6CC]/40 bg-[#12100E]/90 px-4 py-2.5 pr-11 text-sm text-[#F7D89A] placeholder-[#8DA6CC]/50 focus:border-[#DF6D41] focus:outline-none focus:ring-1 focus:ring-[#DF6D41] focus:shadow-[0_0_15px_rgba(223,109,65,0.3)] transition-all"
+                    className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 pr-11 text-sm text-white placeholder:text-white/40 focus:border-[#AFDDFF] focus:outline-none focus:ring-1 focus:ring-[#AFDDFF] shadow-2xs transition-all"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#DF6D41]/80 hover:text-[#F7D89A] transition-colors"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/50 hover:text-[#AFDDFF] transition-colors"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
-                <p className="mt-1.5 text-[10px] leading-relaxed text-[#E5DCD3]/70">
-                  Minimum 8 characters; must have two of the following: lower case, uppercase,
-                  numbers and symbols
+                <p className="mt-1.5 text-[10px] leading-relaxed text-white/40">
+                  Minimum 8 characters; must have two of: lower case, uppercase, numbers, symbols
                 </p>
               </div>
 
               {/* Academic details (College, Year, Branch) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
                 <div>
-                  <label className="text-[10px] font-bold tracking-[0.15em] text-[#F7D89A] uppercase flex items-center gap-1.5 mb-1">
-                    <Building className="h-3 w-3 text-[#DF6D41]" />
+                  <label className="text-[10px] font-bold tracking-[0.15em] text-white/80 uppercase flex items-center gap-1.5 mb-1">
+                    <Building className="h-3 w-3 text-[#AFDDFF]" />
                     COLLEGE
                   </label>
                   <input
@@ -244,19 +242,19 @@ function Signup() {
                     placeholder="College Name"
                     value={college}
                     onChange={(e) => setCollege(e.target.value)}
-                    className="w-full rounded-xl border border-[#8DA6CC]/40 bg-[#12100E]/90 px-3 py-2 text-xs text-[#F7D89A] placeholder-[#8DA6CC]/50 focus:border-[#DF6D41] focus:outline-none transition-all"
+                    className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white placeholder:text-white/40 focus:border-[#AFDDFF] focus:outline-none transition-all"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-[10px] font-bold tracking-[0.15em] text-[#F7D89A] uppercase flex items-center gap-1 mb-1">
-                      <GraduationCap className="h-3 w-3 text-[#DF6D41]" />
+                    <label className="text-[10px] font-bold tracking-[0.15em] text-white/80 uppercase flex items-center gap-1 mb-1">
+                      <GraduationCap className="h-3 w-3 text-[#AFDDFF]" />
                       YEAR
                     </label>
                     <select
                       value={year}
                       onChange={(e) => setYear(e.target.value)}
-                      className="w-full rounded-xl border border-[#8DA6CC]/40 bg-[#12100E] px-2.5 py-2 text-xs text-[#F7D89A] focus:border-[#DF6D41] focus:outline-none transition-all"
+                      className="w-full rounded-xl border border-white/10 bg-black px-2.5 py-2 text-xs text-white focus:border-[#AFDDFF] focus:outline-none transition-all"
                     >
                       <option value="1st">1st</option>
                       <option value="2nd">2nd</option>
@@ -265,14 +263,14 @@ function Signup() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold tracking-[0.15em] text-[#F7D89A] uppercase flex items-center gap-1 mb-1">
-                      <BookOpen className="h-3 w-3 text-[#DF6D41]" />
+                    <label className="text-[10px] font-bold tracking-[0.15em] text-white/80 uppercase flex items-center gap-1 mb-1">
+                      <BookOpen className="h-3 w-3 text-[#AFDDFF]" />
                       BRANCH
                     </label>
                     <select
                       value={branch}
                       onChange={(e) => setBranch(e.target.value)}
-                      className="w-full rounded-xl border border-[#8DA6CC]/40 bg-[#12100E] px-2.5 py-2 text-xs text-[#F7D89A] focus:border-[#DF6D41] focus:outline-none transition-all"
+                      className="w-full rounded-xl border border-white/10 bg-black px-2.5 py-2 text-xs text-white focus:border-[#AFDDFF] focus:outline-none transition-all"
                     >
                       <option value="CSE">CSE</option>
                       <option value="ECE">ECE</option>
@@ -287,19 +285,19 @@ function Signup() {
               </div>
 
               {/* Consent check */}
-              <div className="rounded-xl border border-[#8DA6CC]/30 bg-[#12100E]/60 p-2.5 space-y-2 mt-1">
+              <div className="rounded-xl border border-white/10 bg-white/5 p-2.5 space-y-2 mt-1">
                 <label className="flex cursor-pointer items-start gap-2.5">
                   <input
                     type="checkbox"
                     checked={agreedToConsent}
                     onChange={(e) => setAgreedToConsent(e.target.checked)}
-                    className="mt-0.5 h-3.5 w-3.5 rounded border-[#8DA6CC]/50 bg-[#12100E] accent-[#DF6D41]"
+                    className="mt-0.5 h-3.5 w-3.5 rounded border-white/20 bg-white/5 accent-[#AFDDFF]"
                   />
-                  <span className="text-[11px] text-[#E5DCD3]/90 leading-tight">
+                  <span className="text-[11px] text-white/80 leading-tight">
                     I agree to the{" "}
                     <Link
                       to="/terms"
-                      className="font-semibold text-[#DF6D41] underline hover:text-[#F7D89A]"
+                      className="font-semibold text-[#AFDDFF] underline hover:text-[#c8e8ff]"
                       target="_blank"
                     >
                       Terms
@@ -307,7 +305,7 @@ function Signup() {
                     and{" "}
                     <Link
                       to="/privacy"
-                      className="font-semibold text-[#DF6D41] underline hover:text-[#F7D89A]"
+                      className="font-semibold text-[#AFDDFF] underline hover:text-[#c8e8ff]"
                       target="_blank"
                     >
                       Privacy Policy
@@ -319,9 +317,9 @@ function Signup() {
                     type="checkbox"
                     checked={isMinor}
                     onChange={(e) => setIsMinor(e.target.checked)}
-                    className="mt-0.5 h-3.5 w-3.5 rounded border-[#8DA6CC]/50 bg-[#12100E] accent-[#DF6D41]"
+                    className="mt-0.5 h-3.5 w-3.5 rounded border-white/20 bg-white/5 accent-[#AFDDFF]"
                   />
-                  <span className="text-[11px] text-[#E5DCD3]/80">I am under 18 years old</span>
+                  <span className="text-[11px] text-white/70">I am under 18 years old</span>
                 </label>
                 {isMinor && (
                   <div className="space-y-2">
@@ -330,8 +328,8 @@ function Signup() {
                       clicking a link sent to their email.
                     </p>
                     <div>
-                      <label className="text-[10px] font-bold tracking-[0.15em] text-[#F7D89A] uppercase flex items-center gap-1.5 mb-1">
-                        <Mail className="h-3 w-3 text-[#DF6D41]" />
+                      <label className="text-[10px] font-bold tracking-[0.15em] text-white/80 uppercase flex items-center gap-1.5 mb-1">
+                        <Mail className="h-3 w-3 text-[#AFDDFF]" />
                         PARENT / GUARDIAN EMAIL
                       </label>
                       <input
@@ -340,7 +338,7 @@ function Signup() {
                         value={parentEmail}
                         onChange={(e) => setParentEmail(e.target.value)}
                         required={isMinor}
-                        className="w-full rounded-xl border border-[#8DA6CC]/40 bg-[#12100E]/90 px-3 py-2 text-xs text-[#F7D89A] placeholder-[#8DA6CC]/50 focus:border-[#DF6D41] focus:outline-none transition-all"
+                        className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white placeholder:text-white/40 focus:border-[#AFDDFF] focus:outline-none transition-all"
                       />
                     </div>
                   </div>
@@ -358,35 +356,35 @@ function Signup() {
                 </div>
               )}
 
-              {/* Radiant Canyon Chiseled Button */}
+              {/* Ice Blue Chiseled Button */}
               <button
                 type="submit"
                 disabled={loading}
-                className="relative mt-4 block w-full rounded-xl bg-gradient-to-r from-[#C2552B] via-[#DF6D41] to-[#C2552B] hover:from-[#DF6D41] hover:via-[#E88056] hover:to-[#DF6D41] px-4 py-3.5 text-center text-sm font-bold tracking-[0.2em] text-[#FFFFFF] uppercase shadow-[0_6px_25px_rgba(223,109,65,0.45)] border border-[#F7D89A]/70 transition-all duration-300 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                className="relative mt-4 block w-full rounded-xl bg-[#AFDDFF] hover:bg-[#c8e8ff] px-4 py-3.5 text-center text-sm font-bold tracking-[0.15em] text-black uppercase shadow-[0_0_20px_rgba(175,221,255,0.3)] transition-all duration-300 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
               >
                 <span className="flex items-center justify-center gap-2">
-                  <span className="text-xs select-none">❧</span>
+                  <span className="text-xs select-none">&#10022;</span>
                   <span>{loading ? "CREATING ACCOUNT…" : "SIGN UP"}</span>
-                  <span className="text-xs select-none">☙</span>
+                  <span className="text-xs select-none">&#10022;</span>
                 </span>
               </button>
             </form>
 
             {/* Divider OR */}
             <div className="my-4 flex items-center gap-3">
-              <div className="h-px flex-1 bg-gradient-to-r from-transparent to-[#DF6D41]/40" />
-              <span className="text-[10px] font-bold tracking-[0.25em] text-[#F7D89A]/70 uppercase">
+              <div className="h-px flex-1 bg-gradient-to-r from-transparent to-white/20" />
+              <span className="text-[10px] font-bold tracking-[0.25em] text-white/40 uppercase">
                 OR
               </span>
-              <div className="h-px flex-1 bg-gradient-to-l from-transparent to-[#DF6D41]/40" />
+              <div className="h-px flex-1 bg-gradient-to-l from-transparent to-white/20" />
             </div>
 
             {/* Footer switch */}
-            <p className="mt-4 text-center text-xs text-[#E5DCD3]">
+            <p className="mt-4 text-center text-xs text-white/60">
               Already have an account?{" "}
               <Link
                 to="/login"
-                className="font-semibold text-[#DF6D41] underline underline-offset-4 hover:text-[#F7D89A] transition-colors ml-1"
+                className="font-semibold text-[#AFDDFF] underline underline-offset-4 hover:text-[#c8e8ff] transition-colors ml-1"
               >
                 Log in
               </Link>

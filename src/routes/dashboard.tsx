@@ -186,24 +186,26 @@ export default function Dashboard() {
           }}
         />
       ) : (
-        <div className="flex h-full max-h-full min-h-0 w-full max-w-[1550px] mx-auto flex-col justify-between gap-3 lg:gap-3.5 overflow-hidden">
-          {/* Top Bar / Integrated Header (Compact) */}
-          <div className="flex shrink-0 items-center justify-between gap-3 rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 px-4 py-2.5 backdrop-blur-2xl shadow-[var(--shadow-glass)]">
+        <div className="flex h-full max-h-full min-h-0 w-full max-w-[1550px] mx-auto flex-col justify-between gap-3 lg:gap-3.5 overflow-hidden font-manrope">
+          {/* Top Bar / Integrated Cyber Header */}
+          <div className="flex shrink-0 items-center justify-between gap-3 rounded-2xl border border-white/10 bg-card/85 px-4 py-2.5 backdrop-blur-2xl shadow-[var(--shadow-glass)]">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-tr from-primary to-[#F7D89A] text-sm font-black text-primary-foreground shadow-xs">
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#AFDDFF] text-sm font-black text-black shadow-[0_0_12px_rgba(175,221,255,0.35)]">
                 {firstName.charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <h1 className="truncate text-sm font-bold text-foreground sm:text-base">
+                  <h1 className="truncate font-graphik text-sm font-bold text-white sm:text-base tracking-wide">
                     Welcome back, {firstName}
                   </h1>
-                  <span className="inline-block select-none text-sm">👋</span>
+                  <span className="inline-block select-none text-xs text-[#AFDDFF] bg-[#AFDDFF]/15 px-1.5 py-0.5 rounded font-mono">
+                    [ ONLINE ]
+                  </span>
                 </div>
-                <p className="hidden truncate text-[11px] text-muted-foreground sm:block">
+                <p className="hidden truncate text-[11px] text-white/50 sm:block">
                   {readinessScore >= 75
-                    ? "Ready for defense · Keep sharpening technical delivery"
-                    : "Focus on identified weak topics today to boost readiness"}
+                    ? "Ready for oral defense · Keep drilling technical depth"
+                    : "Target identified weak topics today to elevate defense score"}
                 </p>
               </div>
             </div>
@@ -212,12 +214,12 @@ export default function Dashboard() {
             <div className="flex items-center gap-2 shrink-0">
               {/* Gamification Pills */}
               <div className="hidden sm:flex items-center gap-2">
-                <div className="flex items-center gap-1.5 rounded-full border border-border/40 bg-background/60 px-2.5 py-1 text-[11px] font-bold text-foreground backdrop-blur-sm">
-                  <Flame className="h-3.5 w-3.5 text-orange-500 fill-orange-500/20" />
+                <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-white/80 backdrop-blur-sm">
+                  <Flame className="h-3.5 w-3.5 text-amber-400 fill-amber-400/20" />
                   <span>{streak}d streak</span>
                 </div>
-                <div className="flex items-center gap-1.5 rounded-full border border-border/40 bg-background/60 px-2.5 py-1 text-[11px] font-bold text-foreground backdrop-blur-sm">
-                  <Star className="h-3.5 w-3.5 text-primary fill-primary/20" />
+                <div className="flex items-center gap-1.5 rounded-full border border-[#AFDDFF]/25 bg-[#AFDDFF]/10 px-2.5 py-1 text-[11px] font-bold text-[#AFDDFF] backdrop-blur-sm">
+                  <Star className="h-3.5 w-3.5 text-[#AFDDFF] fill-[#AFDDFF]/20" />
                   <span>
                     Lvl {level} · {xp} XP
                   </span>
@@ -226,13 +228,13 @@ export default function Dashboard() {
 
               {/* Search */}
               <div className="relative w-36 sm:w-48">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/40" />
                 <input
                   type="text"
-                  placeholder="Search..."
+                  placeholder="Search workspace..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-full border border-border/60 bg-background/80 py-1 pl-7 pr-2.5 text-xs text-foreground placeholder:text-muted-foreground/70 backdrop-blur-md focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs transition-all"
+                  className="w-full rounded-full border border-white/10 bg-white/5 py-1 pl-7 pr-2.5 text-xs text-white placeholder:text-white/40 backdrop-blur-md focus:border-[#AFDDFF] focus:outline-none focus:ring-1 focus:ring-[#AFDDFF] shadow-2xs transition-all"
                 />
               </div>
 
@@ -240,7 +242,7 @@ export default function Dashboard() {
               <button
                 onClick={toggle}
                 aria-label="Toggle theme"
-                className="grid h-8 w-8 place-items-center rounded-full border border-border/60 bg-background/80 text-muted-foreground hover:text-foreground backdrop-blur-md transition-colors shadow-2xs cursor-pointer"
+                className="grid h-8 w-8 place-items-center rounded-full border border-white/10 bg-white/5 text-white/70 hover:text-[#AFDDFF] backdrop-blur-md transition-colors shadow-2xs cursor-pointer"
               >
                 <Sparkles className="h-3.5 w-3.5" />
               </button>
@@ -248,7 +250,7 @@ export default function Dashboard() {
               {/* New Project CTA */}
               <Link
                 to="/projects/new"
-                className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground shadow-2xs hover:scale-[1.02] active:scale-[0.98] transition-transform"
+                className="inline-flex items-center gap-1 rounded-full bg-[#AFDDFF] px-3 py-1.5 text-xs font-bold text-black shadow-[0_0_12px_rgba(175,221,255,0.3)] hover:bg-[#c8e8ff] transition-all no-underline"
               >
                 <Plus className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">New Project</span>
@@ -259,19 +261,19 @@ export default function Dashboard() {
           {/* Row 1: Split Hero (Readiness Station on left + AI Action Launchpad on right) */}
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-12 shrink-0 lg:flex-1 lg:min-h-0 items-stretch">
             {/* Defense Readiness Station (5 cols) */}
-            <div className="relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/40 dark:border-white/10 bg-gradient-to-br from-card/90 via-card/75 to-secondary/30 p-3.5 xl:p-4 backdrop-blur-2xl shadow-[var(--shadow-glass)] lg:col-span-5 min-h-0">
-              <div className="flex items-center justify-between pb-2 border-b border-border/30">
+            <div className="relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-card/85 p-3.5 xl:p-4 backdrop-blur-2xl shadow-[var(--shadow-glass)] lg:col-span-5 min-h-0">
+              <div className="flex items-center justify-between pb-2 border-b border-white/10">
                 <div className="flex items-center gap-2">
-                  <span className="grid h-6 w-6 place-items-center rounded-lg bg-primary/15 text-primary">
+                  <span className="grid h-6 w-6 place-items-center rounded-lg bg-[#AFDDFF]/15 text-[#AFDDFF]">
                     <Target className="h-3.5 w-3.5" />
                   </span>
-                  <h2 className="text-xs xl:text-sm font-bold text-foreground">
-                    Defense Readiness
+                  <h2 className="font-graphik text-xs xl:text-sm font-bold text-white tracking-wide">
+                    [ READINESS_DRS ]
                   </h2>
                 </div>
                 <Link
                   to="/readiness"
-                  className="text-[10.5px] font-semibold text-primary hover:underline flex items-center gap-0.5"
+                  className="text-[10.5px] font-semibold text-[#AFDDFF] hover:underline flex items-center gap-0.5 no-underline"
                 >
                   <span>Full Report</span>
                   <ChevronRight className="h-3 w-3" />
@@ -285,10 +287,10 @@ export default function Dashboard() {
                 </div>
                 <div className="flex flex-col gap-2 min-w-0">
                   <div>
-                    <span className="inline-block rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">
+                    <span className="inline-block rounded-[3px] bg-[#AFDDFF] px-2 py-0.5 text-[10px] font-bold text-black uppercase tracking-wider">
                       {readinessLabel}
                     </span>
-                    <p className="text-[11px] text-muted-foreground mt-1 line-clamp-1">
+                    <p className="text-[11px] text-white/60 mt-1 line-clamp-1">
                       {readiness?.actions?.[0]?.text ??
                         "Cross-questioning practice recommended on your core project modules."}
                     </p>
@@ -300,13 +302,13 @@ export default function Dashboard() {
                       const score = Math.round(c.score);
                       return (
                         <div key={c.key}>
-                          <div className="flex items-center justify-between text-[10px] font-semibold text-foreground">
+                          <div className="flex items-center justify-between text-[10px] font-semibold text-white/80">
                             <span>{c.label}</span>
-                            <span className="text-primary">{score}%</span>
+                            <span className="text-[#AFDDFF]">{score}%</span>
                           </div>
-                          <div className="mt-0.5 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+                          <div className="mt-0.5 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
                             <div
-                              className="h-full rounded-full bg-primary transition-all duration-500"
+                              className="h-full rounded-full bg-[#AFDDFF] transition-all duration-500 shadow-[0_0_8px_rgba(175,221,255,0.4)]"
                               style={{ width: `${score}%` }}
                             />
                           </div>
@@ -317,13 +319,13 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Instant CTA Button */}
+              {/* Instant CTA Button matching Homepage CTA */}
               <button
                 onClick={() => handleQuickDrill()}
                 disabled={isStartingQuickViva !== null}
-                className="mt-1 flex items-center justify-center gap-2 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground shadow-2xs hover:scale-[1.01] active:scale-[0.98] transition-transform disabled:opacity-50 cursor-pointer"
+                className="mt-1 flex items-center justify-center gap-2 rounded-xl bg-[#AFDDFF] px-3 py-2 text-xs font-bold text-black shadow-[0_0_14px_rgba(175,221,255,0.25)] hover:bg-[#c8e8ff] transition-all disabled:opacity-50 cursor-pointer uppercase tracking-wider"
               >
-                <Play className="h-3.5 w-3.5 fill-current" />
+                <span className="text-black text-[14px] leading-none">&#10022;</span>
                 <span>
                   {isStartingQuickViva ? "Launching Viva..." : "Launch Defense Simulation"}
                 </span>
@@ -332,37 +334,37 @@ export default function Dashboard() {
 
             {/* AI Action Launchpad (7 cols, 3 cards) */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:col-span-7 min-h-0 items-stretch">
-              {/* Card 1: AI Mock Viva (Canyon #DF6D41) */}
+              {/* Card 1: AI Mock Viva */}
               <Link
                 to="/ai-viva/new"
-                className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 backdrop-blur-2xl shadow-[var(--shadow-glass)] transition-all hover:-translate-y-0.5 hover:border-[#DF6D41]/60 hover:shadow-[var(--shadow-glass-hover)]"
+                className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-card/85 p-3.5 backdrop-blur-2xl shadow-[var(--shadow-glass)] transition-all hover:-translate-y-0.5 hover:border-[#AFDDFF]/50 hover:shadow-[0_0_20px_rgba(175,221,255,0.15)] no-underline"
               >
                 <div>
                   <div className="flex items-center justify-between">
-                    <div className="grid h-9 w-9 place-items-center rounded-xl bg-[#DF6D41]/15 text-[#DF6D41] group-hover:scale-105 transition-transform">
+                    <div className="grid h-9 w-9 place-items-center rounded-xl bg-[#AFDDFF]/15 text-[#AFDDFF] group-hover:scale-105 transition-transform">
                       <BrainCircuit className="h-4.5 w-4.5" />
                     </div>
-                    <span className="rounded-full bg-[#DF6D41]/10 border border-[#DF6D41]/20 px-2 py-0.5 text-[10px] font-bold text-[#DF6D41]">
+                    <span className="rounded-full bg-[#AFDDFF]/10 border border-[#AFDDFF]/20 px-2 py-0.5 text-[10px] font-bold text-[#AFDDFF]">
                       {vivaStats?.total_sessions ?? dashStats?.viva_sessions ?? 0} Vivas
                     </span>
                   </div>
-                  <h3 className="mt-2.5 text-xs xl:text-sm font-bold text-foreground group-hover:text-[#DF6D41] transition-colors">
-                    AI Mock Viva
+                  <h3 className="mt-2.5 text-xs xl:text-sm font-bold text-white group-hover:text-[#AFDDFF] transition-colors">
+                    [ VIVA_ENGINE ]
                   </h3>
-                  <p className="mt-1 text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
+                  <p className="mt-1 text-[11px] text-white/50 line-clamp-2 leading-relaxed">
                     Practice oral defense with Strict, Balanced, or Friendly AI professors.
                   </p>
                 </div>
-                <div className="mt-2 flex items-center gap-1 text-[11px] font-bold text-[#DF6D41]">
+                <div className="mt-2 flex items-center gap-1 text-[11px] font-bold text-[#AFDDFF]">
                   <span>Start Mock Session</span>
                   <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
                 </div>
               </Link>
 
-              {/* Card 2: Slide & Presentation (Morning Sky #8DA6CC) */}
+              {/* Card 2: Slide & Presentation */}
               <Link
                 to="/ai-presentation"
-                className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 backdrop-blur-2xl shadow-[var(--shadow-glass)] transition-all hover:-translate-y-0.5 hover:border-[#8DA6CC]/60 hover:shadow-[var(--shadow-glass-hover)]"
+                className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-card/85 p-3.5 backdrop-blur-2xl shadow-[var(--shadow-glass)] transition-all hover:-translate-y-0.5 hover:border-[#8DA6CC]/60 hover:shadow-[0_0_20px_rgba(141,166,204,0.15)] no-underline"
               >
                 <div>
                   <div className="flex items-center justify-between">
@@ -373,10 +375,10 @@ export default function Dashboard() {
                       {dashStats?.presentation_sessions ?? 0} Pitches
                     </span>
                   </div>
-                  <h3 className="mt-2.5 text-xs xl:text-sm font-bold text-foreground group-hover:text-[#8DA6CC] transition-colors">
-                    Presentation Mock
+                  <h3 className="mt-2.5 text-xs xl:text-sm font-bold text-white group-hover:text-[#8DA6CC] transition-colors">
+                    [ PRESENTATION_AI ]
                   </h3>
-                  <p className="mt-1 text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
+                  <p className="mt-1 text-[11px] text-white/50 line-clamp-2 leading-relaxed">
                     Upload slides, practice project demos, and get anticipated questions.
                   </p>
                 </div>
@@ -386,29 +388,29 @@ export default function Dashboard() {
                 </div>
               </Link>
 
-              {/* Card 3: Live Voice Coach (Olive Grove #AAA648) */}
+              {/* Card 3: Live Voice Coach */}
               <Link
                 to="/advanced/sentiment-analysis"
-                className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 backdrop-blur-2xl shadow-[var(--shadow-glass)] transition-all hover:-translate-y-0.5 hover:border-[#AAA648]/60 hover:shadow-[var(--shadow-glass-hover)]"
+                className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-card/85 p-3.5 backdrop-blur-2xl shadow-[var(--shadow-glass)] transition-all hover:-translate-y-0.5 hover:border-[#7CE4BA]/60 hover:shadow-[0_0_20px_rgba(124,228,186,0.15)] no-underline"
               >
                 <div>
                   <div className="flex items-center justify-between">
-                    <div className="grid h-9 w-9 place-items-center rounded-xl bg-[#AAA648]/20 text-[#AAA648] group-hover:scale-105 transition-transform">
+                    <div className="grid h-9 w-9 place-items-center rounded-xl bg-[#7CE4BA]/20 text-[#7CE4BA] group-hover:scale-105 transition-transform">
                       <Video className="h-4.5 w-4.5" />
                     </div>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[#AAA648]/15 border border-[#AAA648]/25 px-2 py-0.5 text-[10px] font-bold text-[#AAA648]">
-                      <span className="h-1.5 w-1.5 rounded-full bg-[#AAA648] animate-ping" />
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#7CE4BA]/15 border border-[#7CE4BA]/25 px-2 py-0.5 text-[10px] font-bold text-[#7CE4BA]">
+                      <span className="h-1.5 w-1.5 rounded-full bg-[#7CE4BA] animate-ping" />
                       Live Voice
                     </span>
                   </div>
-                  <h3 className="mt-2.5 text-xs xl:text-sm font-bold text-foreground group-hover:text-[#AAA648] transition-colors">
-                    Live Defense Coach
+                  <h3 className="mt-2.5 text-xs xl:text-sm font-bold text-white group-hover:text-[#7CE4BA] transition-colors">
+                    [ LIVE_COACH ]
                   </h3>
-                  <p className="mt-1 text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
+                  <p className="mt-1 text-[11px] text-white/50 line-clamp-2 leading-relaxed">
                     Real-time speech analytics, pace (WPM), clarity, and filler ratio.
                   </p>
                 </div>
-                <div className="mt-2 flex items-center gap-1 text-[11px] font-bold text-[#AAA648]">
+                <div className="mt-2 flex items-center gap-1 text-[11px] font-bold text-[#7CE4BA]">
                   <span>Enter Live Coach</span>
                   <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
                 </div>
@@ -419,17 +421,19 @@ export default function Dashboard() {
           {/* Row 2: 3-Column Core Workstation (Projects, Recent Vivas, Weakness Radar) */}
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-12 shrink-0 lg:flex-1 lg:min-h-0 items-stretch">
             {/* Col 1: Active Projects (4 cols) */}
-            <div className="flex flex-col justify-between rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 xl:p-4 backdrop-blur-2xl shadow-[var(--shadow-glass)] lg:col-span-4 min-h-0">
-              <div className="flex items-center justify-between pb-2 border-b border-border/30">
+            <div className="flex flex-col justify-between rounded-2xl border border-white/10 bg-card/85 p-3.5 xl:p-4 backdrop-blur-2xl shadow-[var(--shadow-glass)] lg:col-span-4 min-h-0">
+              <div className="flex items-center justify-between pb-2 border-b border-white/10">
                 <div className="flex items-center gap-2">
                   <span className="grid h-6 w-6 place-items-center rounded-lg bg-[#8DA6CC]/20 text-[#8DA6CC]">
                     <FolderKanban className="h-3.5 w-3.5" />
                   </span>
-                  <h3 className="text-xs xl:text-sm font-bold text-foreground">Active Projects</h3>
+                  <h3 className="font-graphik text-xs xl:text-sm font-bold text-white tracking-wide">
+                    [ ACTIVE_PROJECTS ]
+                  </h3>
                 </div>
                 <Link
                   to="/projects"
-                  className="text-[10.5px] font-semibold text-muted-foreground hover:text-[#8DA6CC] transition-colors"
+                  className="text-[10.5px] font-semibold text-white/50 hover:text-[#8DA6CC] transition-colors no-underline"
                 >
                   View All ({allProjects.length})
                 </Link>
@@ -438,10 +442,10 @@ export default function Dashboard() {
               <div className="flex flex-col gap-2 my-auto py-1 min-h-0 overflow-y-auto">
                 {activeProjects.length === 0 ? (
                   <div className="py-4 text-center">
-                    <p className="text-xs font-semibold text-foreground">No projects yet</p>
+                    <p className="text-xs font-semibold text-white">No projects yet</p>
                     <Link
                       to="/projects/new"
-                      className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[#DF6D41]"
+                      className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[#AFDDFF] no-underline"
                     >
                       <Plus className="h-3 w-3" /> Create Project
                     </Link>
@@ -456,7 +460,7 @@ export default function Dashboard() {
                     return (
                       <div
                         key={id}
-                        className="flex items-center justify-between gap-2.5 rounded-xl border border-border/30 bg-background/50 p-2.5 transition-all hover:bg-background/80"
+                        className="flex items-center justify-between gap-2.5 rounded-xl border border-white/10 bg-white/5 p-2.5 transition-all hover:bg-white/10"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#8DA6CC]/15 font-bold text-xs text-[#8DA6CC]">
@@ -467,18 +471,18 @@ export default function Dashboard() {
                               <Link
                                 to="/projects/$id"
                                 params={{ id }}
-                                className="truncate text-xs font-bold text-foreground hover:text-[#8DA6CC] transition-colors"
+                                className="truncate text-xs font-bold text-white hover:text-[#AFDDFF] transition-colors no-underline"
                               >
                                 {title}
                               </Link>
-                              <span className="rounded bg-secondary/80 px-1 py-0.2 text-[9px] font-medium text-muted-foreground">
+                              <span className="rounded bg-white/10 px-1 py-0.2 text-[9px] font-medium text-white/60 font-mono">
                                 {projectType}
                               </span>
                             </div>
-                            <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
-                              <div className="h-1 w-16 overflow-hidden rounded-full bg-secondary">
+                            <div className="mt-1 flex items-center gap-2 text-[10px] text-white/50">
+                              <div className="h-1 w-16 overflow-hidden rounded-full bg-white/10">
                                 <div
-                                  className="h-full rounded-full bg-primary"
+                                  className="h-full rounded-full bg-[#AFDDFF]"
                                   style={{ width: `${progress}%` }}
                                 />
                               </div>
@@ -490,7 +494,7 @@ export default function Dashboard() {
                         <button
                           onClick={() => handleQuickDrill(undefined, id)}
                           disabled={isStartingQuickViva === id}
-                          className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-secondary px-2.5 py-1 text-[11px] font-semibold text-foreground hover:bg-[#DF6D41] hover:text-white transition-colors cursor-pointer"
+                          className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-[#AFDDFF]/15 border border-[#AFDDFF]/30 px-2.5 py-1 text-[11px] font-bold text-[#AFDDFF] hover:bg-[#AFDDFF] hover:text-black transition-colors cursor-pointer"
                         >
                           <BrainCircuit className="h-3 w-3" />
                           <span>Defend</span>
@@ -503,17 +507,19 @@ export default function Dashboard() {
             </div>
 
             {/* Col 2: Recent Viva Defense Sessions (4 cols) */}
-            <div className="flex flex-col justify-between rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 xl:p-4 backdrop-blur-2xl shadow-[var(--shadow-glass)] lg:col-span-4 min-h-0">
-              <div className="flex items-center justify-between pb-2 border-b border-border/30">
+            <div className="flex flex-col justify-between rounded-2xl border border-white/10 bg-card/85 p-3.5 xl:p-4 backdrop-blur-2xl shadow-[var(--shadow-glass)] lg:col-span-4 min-h-0">
+              <div className="flex items-center justify-between pb-2 border-b border-white/10">
                 <div className="flex items-center gap-2">
-                  <span className="grid h-6 w-6 place-items-center rounded-lg bg-[#AAA648]/20 text-[#AAA648]">
+                  <span className="grid h-6 w-6 place-items-center rounded-lg bg-[#AFDDFF]/15 text-[#AFDDFF]">
                     <Clock className="h-3.5 w-3.5" />
                   </span>
-                  <h3 className="text-xs xl:text-sm font-bold text-foreground">Recent Sessions</h3>
+                  <h3 className="font-graphik text-xs xl:text-sm font-bold text-white tracking-wide">
+                    [ RECENT_SESSIONS ]
+                  </h3>
                 </div>
                 <Link
                   to="/ai-viva"
-                  className="text-[10.5px] font-semibold text-muted-foreground hover:text-[#AAA648] transition-colors"
+                  className="text-[10.5px] font-semibold text-white/50 hover:text-[#AFDDFF] transition-colors no-underline"
                 >
                   History
                 </Link>
@@ -522,10 +528,10 @@ export default function Dashboard() {
               <div className="flex flex-col gap-2 my-auto py-1 min-h-0 overflow-y-auto">
                 {recentSessions.length === 0 ? (
                   <div className="py-4 text-center">
-                    <p className="text-xs font-semibold text-foreground">No sessions completed</p>
+                    <p className="text-xs font-semibold text-white">No sessions completed</p>
                     <Link
                       to="/ai-viva/new"
-                      className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[#DF6D41]"
+                      className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[#AFDDFF] no-underline"
                     >
                       <Play className="h-3 w-3 fill-current" /> Start First Viva
                     </Link>
@@ -540,15 +546,15 @@ export default function Dashboard() {
                     return (
                       <div
                         key={id}
-                        className="flex items-center justify-between gap-2.5 rounded-xl border border-border/30 bg-background/50 p-2.5 transition-all hover:bg-background/80"
+                        className="flex items-center justify-between gap-2.5 rounded-xl border border-white/10 bg-white/5 p-2.5 transition-all hover:bg-white/10"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#AAA648]/15 text-[#AAA648] font-bold">
+                          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#AFDDFF]/15 text-[#AFDDFF] font-bold">
                             <BrainCircuit className="h-4 w-4" />
                           </div>
                           <div className="min-w-0">
-                            <p className="truncate text-xs font-bold text-foreground">{subject}</p>
-                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                            <p className="truncate text-xs font-bold text-white">{subject}</p>
+                            <p className="text-[10px] text-white/50 mt-0.5">
                               Examiner: {persona}
                             </p>
                           </div>
@@ -559,8 +565,8 @@ export default function Dashboard() {
                             <span
                               className={`rounded-md px-2 py-0.5 text-[10.5px] font-bold ${
                                 score >= 75
-                                  ? "bg-[#AAA648]/20 text-[#AAA648]"
-                                  : "bg-[#DF6D41]/15 text-[#DF6D41]"
+                                  ? "bg-[#7CE4BA]/20 text-[#7CE4BA]"
+                                  : "bg-[#AFDDFF]/15 text-[#AFDDFF]"
                               }`}
                             >
                               {score}%
@@ -569,7 +575,7 @@ export default function Dashboard() {
                           <Link
                             to="/ai-viva/session/$id"
                             params={{ id }}
-                            className="rounded-lg bg-secondary px-2 py-1 text-[10.5px] font-semibold text-foreground hover:bg-secondary/90 transition-colors"
+                            className="rounded-lg bg-white/10 px-2 py-1 text-[10.5px] font-semibold text-white hover:bg-white/20 transition-colors no-underline"
                           >
                             Review
                           </Link>
@@ -582,17 +588,19 @@ export default function Dashboard() {
             </div>
 
             {/* Col 3: Weakness Radar & Instant Drills (4 cols) */}
-            <div className="flex flex-col justify-between rounded-2xl border border-white/40 dark:border-white/10 bg-card/85 p-3.5 xl:p-4 backdrop-blur-2xl shadow-[var(--shadow-glass)] lg:col-span-4 min-h-0">
-              <div className="flex items-center justify-between pb-2 border-b border-border/30">
+            <div className="flex flex-col justify-between rounded-2xl border border-white/10 bg-card/85 p-3.5 xl:p-4 backdrop-blur-2xl shadow-[var(--shadow-glass)] lg:col-span-4 min-h-0">
+              <div className="flex items-center justify-between pb-2 border-b border-white/10">
                 <div className="flex items-center gap-2">
-                  <span className="grid h-6 w-6 place-items-center rounded-lg bg-[#DF6D41]/15 text-[#DF6D41]">
+                  <span className="grid h-6 w-6 place-items-center rounded-lg bg-[#FF6B6B]/15 text-[#FF6B6B]">
                     <AlertCircle className="h-3.5 w-3.5" />
                   </span>
-                  <h3 className="text-xs xl:text-sm font-bold text-foreground">Weakness Radar</h3>
+                  <h3 className="font-graphik text-xs xl:text-sm font-bold text-white tracking-wide">
+                    [ WEAKNESS_RADAR ]
+                  </h3>
                 </div>
                 <Link
                   to="/weakness-heatmap"
-                  className="text-[10.5px] font-semibold text-muted-foreground hover:text-[#DF6D41] transition-colors"
+                  className="text-[10.5px] font-semibold text-white/50 hover:text-[#AFDDFF] transition-colors no-underline"
                 >
                   Heatmap
                 </Link>
@@ -607,18 +615,18 @@ export default function Dashboard() {
                   return (
                     <div
                       key={idx}
-                      className="flex items-center justify-between gap-2.5 rounded-xl border border-border/30 bg-background/50 p-2.5 transition-all hover:bg-background/80"
+                      className="flex items-center justify-between gap-2.5 rounded-xl border border-white/10 bg-white/5 p-2.5 transition-all hover:bg-white/10"
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-xs font-bold text-foreground">{topicName}</p>
-                        <p className="text-[10px] font-semibold text-[#DF6D41] mt-0.5">
+                        <p className="truncate text-xs font-bold text-white">{topicName}</p>
+                        <p className="text-[10px] font-semibold text-[#AFDDFF] mt-0.5">
                           Avg: {avgScore}% · High Priority
                         </p>
                       </div>
                       <button
                         onClick={() => handleQuickDrill(topicName)}
                         disabled={isStartingQuickViva === topicName}
-                        className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-[#DF6D41]/15 px-2.5 py-1 text-[11px] font-bold text-[#DF6D41] hover:bg-[#DF6D41] hover:text-white transition-all cursor-pointer disabled:opacity-50"
+                        className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-[#AFDDFF]/15 border border-[#AFDDFF]/30 px-2.5 py-1 text-[11px] font-bold text-[#AFDDFF] hover:bg-[#AFDDFF] hover:text-black transition-all cursor-pointer disabled:opacity-50"
                       >
                         <Play className="h-2.5 w-2.5 fill-current" />
                         <span>{isStartingQuickViva === topicName ? "..." : "Drill"}</span>

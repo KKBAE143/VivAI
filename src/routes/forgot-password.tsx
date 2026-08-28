@@ -47,38 +47,33 @@ function ForgotPassword() {
   };
 
   return (
-    <div
-      className="relative min-h-screen w-full bg-[#1A1715] bg-cover bg-center bg-no-repeat flex items-center justify-center p-4 sm:p-6 lg:p-12 overflow-x-hidden"
-      style={{ backgroundImage: `url(${loginBg})` }}
-    >
-      {/* Dark vignette overlay */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/75"
-      />
+    <div className="relative min-h-screen w-full bg-black flex items-center justify-center p-4 sm:p-6 lg:p-12 overflow-x-hidden font-manrope">
+      {/* Ambient background mesh */}
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div className="absolute -top-40 right-[-10%] h-[550px] w-[550px] rounded-full bg-[#AFDDFF]/10 blur-[140px]" />
+        <div className="absolute top-[30%] -left-32 h-[500px] w-[500px] rounded-full bg-[#8DA6CC]/8 blur-[150px]" />
+      </div>
 
       <div className="relative z-10 w-full max-w-md mx-auto">
-        <div className="relative rounded-[26px] sm:rounded-[30px] border-2 border-[#DF6D41]/50 bg-[#1C1917]/90 backdrop-blur-2xl p-6 sm:p-8 shadow-[0_25px_70px_rgba(0,0,0,0.95),0_0_35px_rgba(223,109,65,0.18),inset_0_1px_2px_rgba(247,216,154,0.35)]">
+        <div className="relative rounded-2xl border border-white/10 bg-card/85 backdrop-blur-2xl p-6 sm:p-8 shadow-[var(--shadow-glass)]">
           {/* Logo medallion chip */}
           <div className="flex justify-center mb-3">
-            <div className="w-16 h-16 rounded-full p-1 bg-gradient-to-b from-[#DF6D41] via-[#F7D89A] to-[#DF6D41] shadow-[0_0_20px_rgba(223,109,65,0.3)]">
-              <div className="w-full h-full rounded-full overflow-hidden border border-[#F7D89A]/70 bg-black/60">
+            <div className="w-16 h-16 rounded-full p-1 bg-gradient-to-b from-[#AFDDFF] via-[#8DA6CC] to-[#AFDDFF] shadow-[0_0_20px_rgba(175,221,255,0.3)]">
+              <div className="w-full h-full rounded-full overflow-hidden border border-white/20 bg-black">
                 <img src={logoImg} alt="VivAI" className="w-full h-full object-cover" />
               </div>
             </div>
           </div>
 
-          <GreekMeanderFrieze />
-
-          <div className="text-center pt-3 pb-6">
+          <div className="text-center pt-2 pb-6">
             <div className="flex items-center justify-center gap-2.5">
-              <span className="text-[#DF6D41] text-sm select-none">❧</span>
-              <h1 className="font-serif text-xl sm:text-2xl font-bold tracking-[0.2em] text-[#F7D89A] uppercase drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+              <span className="text-[#AFDDFF] text-sm select-none">&#10022;</span>
+              <h1 className="font-graphik text-xl sm:text-2xl font-bold tracking-[0.15em] text-white uppercase">
                 RECOVERY
               </h1>
-              <span className="text-[#DF6D41] text-sm select-none">☙</span>
+              <span className="text-[#AFDDFF] text-sm select-none">&#10022;</span>
             </div>
-            <p className="mt-2 text-xs text-[#E5DCD3]">
+            <p className="mt-2 text-xs text-white/60">
               Enter your email to receive a secure recovery key.
             </p>
           </div>
@@ -86,7 +81,7 @@ function ForgotPassword() {
           {sent ? (
             <div className="rounded-xl border border-success/40 bg-success/15 p-4 text-center text-xs text-success space-y-2">
               <p className="font-semibold">Recovery link dispatched.</p>
-              <p className="text-[11px] text-[#E5DCD3]">
+              <p className="text-[11px] text-white/70">
                 If an account exists for {email}, instructions are on their way.
               </p>
             </div>
@@ -99,8 +94,8 @@ function ForgotPassword() {
               }}
             >
               <div>
-                <label className="text-[11px] font-bold tracking-[0.18em] text-[#F7D89A] uppercase flex items-center gap-2 mb-1.5">
-                  <Mail className="h-3.5 w-3.5 text-[#DF6D41]" />
+                <label className="text-[11px] font-bold tracking-[0.15em] text-white/80 uppercase flex items-center gap-2 mb-1.5">
+                  <Mail className="h-3.5 w-3.5 text-[#AFDDFF]" />
                   E-MAIL
                 </label>
                 <input
@@ -109,7 +104,7 @@ function ForgotPassword() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full rounded-xl border border-[#8DA6CC]/40 bg-[#12100E]/90 px-4 py-2.5 text-sm text-[#F7D89A] placeholder-[#8DA6CC]/50 focus:border-[#DF6D41] focus:outline-none focus:ring-1 focus:ring-[#DF6D41] transition-all"
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/40 focus:border-[#AFDDFF] focus:outline-none focus:ring-1 focus:ring-[#AFDDFF] transition-all"
                 />
               </div>
 
@@ -122,7 +117,7 @@ function ForgotPassword() {
               <button
                 type="submit"
                 disabled={loading || !email}
-                className="relative mt-4 block w-full rounded-xl bg-gradient-to-r from-[#C2552B] via-[#DF6D41] to-[#C2552B] hover:from-[#DF6D41] hover:via-[#E88056] hover:to-[#DF6D41] px-4 py-3.5 text-center text-sm font-bold tracking-[0.2em] text-[#FFFFFF] uppercase shadow-[0_6px_25px_rgba(223,109,65,0.45)] border border-[#F7D89A]/70 transition-all duration-300 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                className="relative mt-4 block w-full rounded-xl bg-[#AFDDFF] hover:bg-[#c8e8ff] px-4 py-3.5 text-center text-sm font-bold tracking-[0.15em] text-black uppercase shadow-[0_0_20px_rgba(175,221,255,0.3)] transition-all duration-300 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
               >
                 {loading ? "SENDING…" : "SEND RESET LINK"}
               </button>
@@ -132,7 +127,7 @@ function ForgotPassword() {
           <div className="mt-6 text-center">
             <Link
               to="/login"
-              className="inline-flex items-center gap-2 text-xs font-semibold text-[#DF6D41] hover:text-[#F7D89A] transition-colors"
+              className="inline-flex items-center gap-2 text-xs font-semibold text-[#AFDDFF] hover:text-[#c8e8ff] transition-colors"
             >
               <ArrowLeft className="h-3.5 w-3.5" /> Back to sign in
             </Link>
