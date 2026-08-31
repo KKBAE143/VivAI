@@ -18,6 +18,7 @@ os.environ.setdefault("SUPABASE_URL", "http://localhost")
 os.environ.setdefault("SUPABASE_SERVICE_ROLE_KEY", "test-service-role")
 os.environ.setdefault("SUPABASE_ANON_KEY", "test-anon")
 os.environ.setdefault("GEMINI_API_KEY", "test-gemini")
+os.environ.setdefault("PRESENTATION_WORKER_ENABLED", "false")
 # Diagnostics capture writes into <repo>/diagnostics/. Tests deliberately raise
 # exceptions, so leaving it on would fill the developer's real sink with
 # synthetic failures and make a genuine report unreadable. Tests that exercise

@@ -277,6 +277,6 @@ Write-Host "  - Double-click  start-app.bat   (or run  .\start-app.ps1)"
 Write-Host "  - Frontend: http://localhost:8080   Backend API docs: http://localhost:8000/docs"
 Write-Host ""
 Write-Host "Optional: run the DB schema + migrations (backend\supabase_schema.sql," -ForegroundColor DarkGray
-Write-Host "backend\migrations\001-006) in your Supabase SQL editor." -ForegroundColor DarkGray
+Write-Host "backend\migrations\001-009) in your Supabase SQL editor." -ForegroundColor DarkGray
 Write-Host ""
 Read-Host "Press Enter to exit"

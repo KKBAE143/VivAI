@@ -9,5 +9,5 @@ REM ============================================================
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0start-app.ps1"
 
 echo.
-echo Launcher finished. The two server windows keep running.
+echo Launcher finished. The backend and frontend windows keep running.
 pause

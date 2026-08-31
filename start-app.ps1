@@ -3,10 +3,10 @@
     -------------------------------------------------------------------
     - Frees ONLY the ports this app needs (frontend 8080, backend 8000).
       It never touches any other process/port.
-    - Sets up the Python backend venv + installs deps (first run only).
+    - Sets up the Python backend venv + installs dependencies.
     - Installs frontend deps with Bun (first run only).
-    - Launches the backend (FastAPI/uvicorn) and frontend (Vite) each in
-      their own window, then opens the site in your browser.
+    - Launches the backend and frontend in their own windows, then opens the
+      site in your browser. The backend handles presentation extraction.
 
     HOW TO RUN
       * Easiest: double-click  start-app.bat  (recommended).
@@ -184,11 +184,11 @@ if (-not (Test-Path (Join-Path $Root "node_modules"))) {
 }
 Write-Host ""
 
-# --- 5. Launch both servers in their own windows ----------------------------
+# --- 5. Launch the API and frontend -----------------------------------------
 Write-Host "[5/5] Starting servers..." -ForegroundColor Cyan
 
-# One id per launch, shared by BOTH windows, so a browser error and the backend
-# error behind it can be tied to the same run in the diagnostics report.
+# One id per launch, shared by both windows, so related errors can be tied to
+# the same run in the diagnostics report.
 $RunId = "run-" + (Get-Date -Format "yyyyMMdd-HHmmss")
 
 $backendCmd = "Set-Location '$BackendDir'; " +
@@ -215,6 +215,6 @@ Start-Sleep -Seconds 6
 Start-Process "http://localhost:$FrontendPort"
 
 Write-Host ""
-Write-Host "Done. Two server windows are running." -ForegroundColor Cyan
-Write-Host "Close those windows (or press Ctrl+C in them) to stop the servers." -ForegroundColor DarkGray
+Write-Host "Done. Two app windows are running." -ForegroundColor Cyan
+Write-Host "Close those windows (or press Ctrl+C in them) to stop the app." -ForegroundColor DarkGray
 Write-Host ""

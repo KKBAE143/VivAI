@@ -18,19 +18,7 @@ services:
         value: https://vivai-psi.vercel.app,https://viv-ai-one.vercel.app
       - key: STORAGE_BUCKET
         value: uploads
-  - type: worker
-    name: collegepro-presentation-worker
-    runtime: docker
-    dockerfilePath: backend/Dockerfile.worker
-    dockerContext: .
-    envVars:
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_SERVICE_ROLE_KEY
-        sync: false
-      - key: GEMINI_API_KEY
-        sync: false
-      - key: STORAGE_BUCKET
-        value: uploads
       - key: PRESENTATION_WORKER_POLL_SECONDS
         value: "8"
+      - key: PRESENTATION_WORKER_ENABLED
+        value: "true"

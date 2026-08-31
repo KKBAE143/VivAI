@@ -7,6 +7,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+import threading
 import time
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -454,8 +455,9 @@ class IngestionWorker:
             self._retry_or_fail(material, "processing failed after automatic retries; retry the material")
             LOG.exception("presentation material processing error id=%s", material.get("id"))
 
-    def run(self) -> None:
-        while True:
+    def run(self, stop_event: threading.Event | None = None) -> None:
+        stop_event = stop_event or threading.Event()
+        while not stop_event.is_set():
             try:
                 material = self.claim()
                 if material:
@@ -463,7 +465,7 @@ class IngestionWorker:
                     continue
             except Exception:
                 LOG.exception("presentation worker polling error")
-            time.sleep(POLL_SECONDS)
+            stop_event.wait(POLL_SECONDS)
 
 
 def main() -> None:

@@ -200,6 +200,18 @@ function AIPresentation() {
                   <p className="mt-2 text-xs capitalize">
                     Processing status: <strong>{String(selectedMaterial.status)}</strong>
                   </p>
+                  {selectedMaterial.status === "queued" && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Waiting for the extraction worker. Processing continues in the background,
+                      so you can leave this page and return later.
+                    </p>
+                  )}
+                  {selectedMaterial.status === "processing" && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Extracting slide text, notes, and previews. This can take a few minutes for a
+                      large deck.
+                    </p>
+                  )}
                   {warnings.length > 0 && (
                     <ul className="mt-3 space-y-1 text-xs text-warning">
                       {warnings.slice(0, 4).map((warning) => (

@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     gemini_live_voice: str = "Puck"
     storage_bucket: str = "uploads"
     cors_origins: str = "http://localhost:8080,http://localhost:5173"
+    # Presentation ingestion runs inside the existing API process by default,
+    # so hosts do not need a second service or Docker container.
+    presentation_worker_enabled: bool = True
 
     # --- Live-session behavior flags / tunables (REVIEW v2 / R7) ---
     # Optional long-session re-anchor nudge (speculative; enable only if drift
