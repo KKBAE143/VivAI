@@ -1,10 +1,11 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useRequireAuth } from "@/lib/auth-context";
-import { usePresentationSession } from "@/lib/hooks";
+import { useCreatePresentation, usePresentationSession } from "@/lib/hooks";
 import { LiveSessionRunner } from "@/components/live/live-session-runner";
 import { SessionReport } from "@/components/reports/session-report";
 import type { SessionReport as SessionReportData } from "@/lib/types";
+import type { ApiRecord } from "@/lib/hooks";
 
 export const Route = createFileRoute("/ai-presentation/session/$id")({
   head: () => ({ meta: [{ title: "Live Presentation Session — VivAI" }] }),
@@ -35,7 +36,9 @@ interface QaEntry {
 function PresentationSession() {
   useRequireAuth();
   const { id } = Route.useParams();
+  const navigate = useNavigate();
   const { data: session, isLoading, refetch } = usePresentationSession(id);
+  const createFocused = useCreatePresentation();
   const [justEnded, setJustEnded] = useState(false);
 
   const title = String(session?.session_type ?? "Presentation");
@@ -58,6 +61,28 @@ function PresentationSession() {
   const examQuestions = qa.filter((x) => x.kind === "exam_q");
   const answeredExam = examQuestions.filter((x) => x.answered);
   const report = session?.report as SessionReportData | null | undefined;
+  const material = session?.material as ApiRecord | null | undefined;
+  const isCoach = Boolean(session?.material_id);
+  const deckReport = ((report as unknown as ApiRecord | undefined)?.deck_report ??
+    (state.report as unknown as ApiRecord | undefined)?.deck_report) as ApiRecord | undefined;
+
+  const practiceWeakAreas = async () => {
+    const focusUnits = Array.isArray(deckReport?.focus_unit_ids)
+      ? deckReport.focus_unit_ids.map(String)
+      : [];
+    const next = await createFocused.mutateAsync({
+      material_id: session?.material_id,
+      project_id: projectId,
+      training_mode: "practice",
+      difficulty: session?.difficulty ?? "intermediate",
+      scenario_id: session?.scenario_id ?? "project_defense",
+      language,
+      duration_minutes: session?.duration_minutes ?? 10,
+      focus_unit_ids: focusUnits.length ? focusUnits : null,
+      session_type: "Presentation Coach",
+    });
+    await navigate({ to: "/ai-presentation/session/$id", params: { id: String(next.id) } });
+  };
 
   const isCompleted = session?.status === "Completed" || justEnded;
 
@@ -82,7 +107,9 @@ function PresentationSession() {
             <div>
               <div className="text-sm font-semibold">{title} Presentation — Report</div>
               <div className="text-xs text-muted-foreground">
-                {slides.length} slides · {answeredExam.length} questions
+                {isCoach
+                  ? "Material-led practice report"
+                  : `${slides.length} slides · ${answeredExam.length} questions`}
               </div>
             </div>
             <Link
@@ -95,7 +122,16 @@ function PresentationSession() {
         </header>
         <div className="mx-auto max-w-4xl space-y-6 px-4 py-8">
           {report ? (
-            <SessionReport report={report} />
+            <>
+              <SessionReport report={report} />
+              {isCoach && deckReport && (
+                <DeckReport
+                  state={deckReport}
+                  onPractice={() => void practiceWeakAreas()}
+                  pending={createFocused.isPending}
+                />
+              )}
+            </>
           ) : (
             <>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -141,7 +177,7 @@ function PresentationSession() {
                 </div>
               )}
 
-              {answeredExam.length > 0 && (
+              {!isCoach && answeredExam.length > 0 && (
                 <div className="space-y-3">
                   <h3 className="text-sm font-semibold">Examiner Q&amp;A</h3>
                   {answeredExam.map((q, i) => {
@@ -180,7 +216,7 @@ function PresentationSession() {
                 </div>
               )}
 
-              {slides.length > 0 && (
+              {!isCoach && slides.length > 0 && (
                 <div className="space-y-3">
                   <h3 className="text-sm font-semibold">Slide feedback</h3>
                   {slides.map((sl, i) => {
@@ -212,19 +248,118 @@ function PresentationSession() {
   // ---------- Live real-time session ----------
   return (
     <LiveSessionRunner
-      mode="presentation"
+      mode={isCoach ? "presentation_coach" : "presentation"}
       sessionId={id}
       projectId={projectId}
       subject={subject}
       title={`${title} Presentation`}
-      subtitle="Share your screen and present — the examiner is watching live."
+      subtitle={
+        isCoach
+          ? "Work through your material with the coach."
+          : "Share your screen and present — the examiner is watching live."
+      }
       defaultLanguage={language}
-      showPersona
-      sources={["screen"]}
-      onEnded={() => {
+      showPersona={!isCoach}
+      configLocked={isCoach}
+      sources={
+        isCoach
+          ? session?.training_mode === "practice"
+            ? ["none", "camera"]
+            : ["none"]
+          : ["screen"]
+      }
+      presentationCoach={
+        isCoach && material
+          ? {
+              material,
+              units: (Array.isArray(session?.units)
+                ? session.units
+                : (material.units ?? [])) as ApiRecord[],
+            }
+          : undefined
+      }
+      onEnded={(summary) => {
+        if (summary === null) {
+          void navigate({ to: "/ai-presentation" });
+          return;
+        }
         setJustEnded(true);
         void refetch();
       }}
     />
+  );
+}
+
+function DeckReport({
+  state,
+  onPractice,
+  pending,
+}: {
+  state: ApiRecord;
+  onPractice: () => void;
+  pending: boolean;
+}) {
+  const scenarioDimensions =
+    state.scenario_dimensions && typeof state.scenario_dimensions === "object"
+      ? Object.entries(state.scenario_dimensions as ApiRecord).map(
+          ([dimension, score]) => `${dimension.replaceAll("_", " ")}: ${String(score)}%`,
+        )
+      : [];
+  const panels: [string, unknown][] = [
+    ["Scenario dimensions", scenarioDimensions],
+    ["Presenter weaknesses", state.presenter_weaknesses],
+    ["Material weaknesses", state.material_weaknesses],
+    ["Unsupported claims", state.unsupported_claims],
+    ["Numerical justification gaps", state.numerical_justification_gaps],
+    ["Unit readiness", state.unit_results],
+    ["Concepts mastered", state.concepts_mastered],
+    ["Concepts to revisit", state.concepts_needing_work],
+    ["Likely evaluator concerns", state.evaluator_concerns],
+    ["Candidate cross-unit inconsistencies", state.candidate_cross_slide_inconsistencies],
+    ["Recommended deck corrections", state.recommended_corrections],
+    ["Challenge questions", state.challenge_questions],
+    ["Communication and delivery", state.communication_delivery_feedback],
+    ["Suggested practice topics", state.suggested_practice_topics],
+  ];
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold">Deck coaching</h2>
+        <button
+          onClick={onPractice}
+          disabled={pending}
+          className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+        >
+          {pending ? "Creating…" : "Practice weak areas"}
+        </button>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        {panels.map(([title, value]) => {
+          const values = Array.isArray(value) ? value : value ? [value] : [];
+          return values.length ? (
+            <article key={title} className="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
+              <h3 className="text-sm font-semibold">{title}</h3>
+              <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                {values.map((item, i) => (
+                  <li key={i} className="rounded-lg bg-secondary p-3">
+                    {typeof item === "string"
+                      ? item
+                      : (item as ApiRecord).readiness != null
+                        ? `${String((item as ApiRecord).title ?? "Unit")}: ${String((item as ApiRecord).readiness)}% (${String((item as ApiRecord).status ?? "not covered")})`
+                        : String(
+                            (item as ApiRecord).text ??
+                              (item as ApiRecord).feedback ??
+                              (item as ApiRecord).label ??
+                              (item as ApiRecord).title ??
+                              JSON.stringify(item),
+                          )}
+                  </li>
+                ))}
+              </ul>
+            </article>
+          ) : null;
+        })}
+      </div>
+    </section>
   );
 }

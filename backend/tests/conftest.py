@@ -143,7 +143,7 @@ def live_harness(monkeypatch, fake_supabase):
     fake_supabase.preload("viva_questions", [])
     monkeypatch.setattr(live_api, "get_supabase", lambda: fake_supabase)
     monkeypatch.setattr(live_api, "user_from_token", lambda t: {"id": "u1", "name": "Asha"})
-    monkeypatch.setattr(live_api, "_project_context", lambda pid: "")
+    monkeypatch.setattr(live_api, "_project_context", lambda pid, user_id=None: "")
     monkeypatch.setattr(live_api, "log_activity", lambda *a, **k: None)
     monkeypatch.setattr(live_api.gamification_service, "award_xp", lambda *a, **k: None)
 

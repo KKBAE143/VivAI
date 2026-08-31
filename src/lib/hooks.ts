@@ -700,6 +700,64 @@ export function useCreatePresentation() {
   });
 }
 
+// ---------- Presentation Coach materials ----------
+
+export interface PresentationMaterial extends ApiRecord {
+  id: string;
+  status?: "queued" | "processing" | "ready" | "partial" | "failed" | string;
+  units?: ApiRecord[];
+}
+
+export function usePresentationMaterials() {
+  // Lightweight polling keeps queued/processing ingestion status current.
+  return useAuthedQuery<PresentationMaterial[]>(
+    ["presentation-materials"],
+    "/api/presentation/materials",
+    true,
+    {
+      refetchInterval: 3000,
+    },
+  );
+}
+
+export function usePresentationMaterial(id?: string) {
+  return useAuthedQuery<PresentationMaterial>(
+    ["presentation-material", id ?? ""],
+    `/api/presentation/materials/${id}`,
+    Boolean(id),
+    { refetchInterval: 3000 },
+  );
+}
+
+export function useCreatePresentationMaterial() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ fileId, projectId }: { fileId: string; projectId?: string | null }) =>
+      api<PresentationMaterial>("/api/presentation/materials", {
+        body: { file_id: fileId, project_id: projectId ?? null },
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["presentation-materials"] }),
+  });
+}
+
+export function useRetryPresentationMaterial() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<PresentationMaterial>(`/api/presentation/materials/${id}/retry`, { method: "POST" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["presentation-materials"] }),
+  });
+}
+
+export function useDeletePresentationMaterial() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<void>(`/api/presentation/materials/${id}`, { method: "DELETE" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["presentation-materials"] }),
+  });
+}
+
 // ---------- Generic mutation helper ----------
 
 /**

@@ -5,12 +5,19 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
-import { useLiveSession, type LiveMode, type LiveSummary } from "@/lib/useLiveSession";
+import {
+  useLiveSession,
+  type LiveMode,
+  type PresentationLiveMode,
+  type LiveSummary,
+} from "@/lib/useLiveSession";
 import { PreflightSetup, type PreflightResult, type VideoSource } from "./preflight-setup";
 import { LiveStage } from "./live-stage";
+import { PresentationCoachStage } from "./presentation-coach-stage";
+import type { ApiRecord } from "@/lib/hooks";
 
 interface LiveSessionRunnerProps {
-  mode: LiveMode;
+  mode: PresentationLiveMode;
   sessionId: string;
   projectId?: string | null;
   /** Free-text subject / topic / focus, forwarded to the live examiner. */
@@ -26,6 +33,8 @@ interface LiveSessionRunnerProps {
   configLocked?: boolean;
   /** Override the capture sources offered (defaults are mode-specific). */
   sources?: VideoSource[];
+  /** Material-led presentation coaching renders its own viewer-first stage. */
+  presentationCoach?: { material: ApiRecord; units: ApiRecord[] };
   /** Called once the live session ends (persisted). Parent shows the report. */
   onEnded: (summary: LiveSummary | null) => void;
 }
@@ -42,6 +51,7 @@ export function LiveSessionRunner({
   showPersona = false,
   configLocked = false,
   sources,
+  presentationCoach,
   onEnded,
 }: LiveSessionRunnerProps) {
   const [phase, setPhase] = useState<"setup" | "live">("setup");
@@ -175,18 +185,29 @@ export function LiveSessionRunner({
 
   return (
     <>
-      <LiveStage
-        live={live}
-        mode={mode}
-        sessionId={sessionId}
-        videoStream={videoStream}
-        title={title}
-        subtitle={subtitle}
-        onEnd={handleEnd}
-        onRetry={handleRetry}
-        onAbandon={handleAbandon}
-        onUnlockAudio={live.unlockAudio}
-      />
+      {presentationCoach ? (
+        <PresentationCoachStage
+          live={live}
+          material={presentationCoach.material}
+          units={presentationCoach.units}
+          onEnd={handleEnd}
+          onRetry={handleRetry}
+          onAbandon={handleAbandon}
+        />
+      ) : (
+        <LiveStage
+          live={live}
+          mode={mode as LiveMode}
+          sessionId={sessionId}
+          videoStream={videoStream}
+          title={title}
+          subtitle={subtitle}
+          onEnd={handleEnd}
+          onRetry={handleRetry}
+          onAbandon={handleAbandon}
+          onUnlockAudio={live.unlockAudio}
+        />
+      )}
       {ending && live.status !== "error" && live.status !== "aborted" && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-background/80 p-4 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-4 text-center">

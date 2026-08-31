@@ -38,12 +38,14 @@ from ai import (
     delivery_observer,
     integrity,
     live_service,
+    presentation_coach,
     report_service,
     turn_grader,
     vision_observer,
     viva_core,
 )
 from ai.registry import find_scenario_by_label, get_scenario
+from core.config import get_settings
 from core.database import get_supabase
 from core.deps import user_from_token
 from core.logging import get_logger
@@ -260,11 +262,29 @@ def resolve_viva_scenario_id(session_type: str | None) -> str:
 # --------------------------------------------------------------------------- #
 # Context loading
 # --------------------------------------------------------------------------- #
-def _project_context(project_id: str | None) -> str:
+def _project_context(project_id: str | None, user_id: str | None = None) -> str:
     if not project_id:
         return ""
-    res = get_supabase().table("projects").select("*").eq("id", project_id).execute()
+    query = get_supabase().table("projects").select("*").eq("id", project_id)
+    if user_id:
+        query = query.eq("owner_id", user_id)
+    res = query.execute()
     return viva_core.build_project_context(res.data[0] if res.data else None)
+
+
+def _coach_preview(unit: dict | None) -> bytes | None:
+    """Download one server-owned canonical preview without exposing its path."""
+    path = unit.get("preview_path") if isinstance(unit, dict) else None
+    if not path:
+        return None
+    try:
+        return get_supabase().storage.from_(get_settings().storage_bucket).download(path)
+    except Exception:
+        logger.warning(
+            "presentation coach preview unavailable",
+            extra={"event": "coach_preview_unavailable", "unit_ordinal": unit.get("ordinal")},
+        )
+        return None
 
 
 # --------------------------------------------------------------------------- #
@@ -284,6 +304,11 @@ class LivePersistence:
         scenario_id: str | None = None,
         video_source: str | None = None,
         persona: str = "balanced",
+        material: dict | None = None,
+        units: list[dict] | None = None,
+        coach_state: dict | None = None,
+        training_mode: str = "practice",
+        difficulty: str = "intermediate",
     ):
         self.mode = mode
         self.session_id = session_id
@@ -294,6 +319,16 @@ class LivePersistence:
         self.scenario_id = scenario_id
         self.video_source = video_source
         self.persona = persona
+        self.material = material or {}
+        self.units = units or []
+        self.training_mode = training_mode
+        self.difficulty = difficulty
+        self.coach_state = presentation_coach.normalize_state(
+            coach_state,
+            self.units,
+            training_mode=training_mode,
+            difficulty=difficulty,
+        ) if mode == "presentation_coach" else {}
         self.frames_received = 0
         # Integrity observations for this session, in order. Populated by
         # `_check_turn_integrity`; written into the session context at finalize so
@@ -305,6 +340,81 @@ class LivePersistence:
         self.observations: list[dict] = []
         self._event_buffer: list[dict] = []
         self.questions: list[dict] = []  # {question, topic, answer, score, feedback}
+
+    def coach_snapshot(self) -> dict:
+        return presentation_coach.public_state(self.coach_state, self.units)
+
+    def coach_unit(self) -> dict | None:
+        return presentation_coach.current_unit(self.units, self.coach_state)
+
+    def coach_context(self) -> str:
+        return presentation_coach.context_pack(self.material, self.units, self.coach_state)
+
+    def _commit_coach_state(self, updated: dict, *, event_kind: str, payload: dict) -> None:
+        """Persist a validated transition before exposing it to Live or the UI."""
+        previous_version = int(self.coach_state.get("version") or 1)
+        next_version = int(updated.get("version") or previous_version + 1)
+        result = (
+            get_supabase().table("presentation_sessions")
+            .update({
+                "coach_state": updated,
+                "coach_state_version": next_version,
+                "current_unit_ordinal": updated.get("current_unit"),
+            })
+            .eq("id", self.session_id)
+            .eq("profile_id", self.user_id)
+            .eq("coach_state_version", previous_version)
+            .execute()
+        )
+        if not result.data:
+            raise RuntimeError("presentation coach state changed concurrently")
+        self.coach_state = updated
+        self._buffer_event(event_kind, payload)
+
+    def on_coach_evaluation(
+        self, evaluation: dict, *, question: str, answer: str,
+    ) -> tuple[dict, bool]:
+        allowed_refs = presentation_coach.evidence(self.units)
+        evaluation = dict(evaluation)
+        evaluation["evidence_refs"] = [
+            ref for ref in evaluation.get("evidence_refs", []) if str(ref) in allowed_refs
+        ]
+        before_unit = self.coach_state.get("current_unit")
+        updated, changed_unit = presentation_coach.apply_evaluation(
+            self.coach_state, self.units, evaluation
+        )
+        recorded = dict(updated.get("recent_evaluation") or {})
+        item = {
+            "id": f"q_{len(self.questions) + 1}",
+            "question": question or "(live coaching exchange)",
+            "topic": recorded.get("concept_id"),
+            "unit_key": (self.coach_unit() or {}).get("unit_key"),
+            "answer": answer,
+            "score": recorded.get("score"),
+            "feedback": recorded.get("feedback"),
+            "evidence_refs": recorded.get("evidence_refs") or [],
+            "ts_ms": self.now_ms(),
+        }
+        self._commit_coach_state(
+            updated,
+            event_kind="coach_evaluation",
+            payload={"evaluation": recorded, "from_unit": before_unit, "to_unit": updated.get("current_unit")},
+        )
+        self.questions.append(item)
+        return recorded, changed_unit
+
+    def on_continue_anyway(self) -> tuple[dict, bool] | None:
+        result = presentation_coach.continue_anyway(self.coach_state, self.units)
+        if result is None:
+            return None
+        updated, changed_unit = result
+        evaluation = dict(updated.get("recent_evaluation") or {})
+        self._commit_coach_state(
+            updated,
+            event_kind="coach_continue_anyway",
+            payload={"evaluation": evaluation, "to_unit": updated.get("current_unit")},
+        )
+        return evaluation, changed_unit
 
     def now_ms(self) -> int:
         return max(0, round((time.monotonic() - self.started_at) * 1000))
@@ -328,7 +438,12 @@ class LivePersistence:
 
     # -- live signals ------------------------------------------------------- #
     def on_user_text(self, text: str) -> None:
-        item = {"role": "student", "text": text, "ts_ms": self.now_ms()}
+        item = {
+            "role": "student",
+            "text": text,
+            "ts_ms": self.now_ms(),
+            **({"source_class": "user_statement"} if self.mode == "presentation_coach" else {}),
+        }
         self.transcript.append(item)
         self._buffer_event("transcript_turn", item, item["ts_ms"])
         # Attach the student's words as the answer to the latest open question.
@@ -338,7 +453,12 @@ class LivePersistence:
                 break
 
     def on_ai_text(self, text: str) -> None:
-        item = {"role": "examiner", "text": text, "ts_ms": self.now_ms()}
+        item = {
+            "role": "examiner",
+            "text": text,
+            "ts_ms": self.now_ms(),
+            **({"source_class": "coach_suggestion"} if self.mode == "presentation_coach" else {}),
+        }
         self.transcript.append(item)
         self._buffer_event("transcript_turn", item, item["ts_ms"])
 
@@ -464,7 +584,7 @@ class LivePersistence:
         try:
             if self.mode == "viva":
                 sb.table("viva_sessions").update({"status": "Pending"}).eq("id", self.session_id).execute()
-            elif self.mode in ("presentation", "coach", "pitch"):
+            elif self.mode in ("presentation", "presentation_coach", "coach", "pitch"):
                 sb.table("presentation_sessions").update({"status": "Pending"}).eq("id", self.session_id).execute()
         except Exception as exc:
             logger.warning(
@@ -485,6 +605,13 @@ class LivePersistence:
         logged via tools during the conversation.
         """
         sb = get_supabase()
+        if self.mode == "presentation_coach":
+            try:
+                sb.table("presentation_sessions").update({"report_status": "pending"}).eq(
+                    "id", self.session_id
+                ).eq("profile_id", self.user_id).execute()
+            except Exception:
+                pass
 
         turns = coalesce_turns(self.transcript)
         # Defense in depth: delivery metrics are a nice-to-have section of the
@@ -507,7 +634,8 @@ class LivePersistence:
             "transcript_quality": "ok" if len(turns) >= 3 else "sparse",
         }
         scenario = get_scenario(self.scenario_id) or get_scenario({
-            "viva": "viva_defense", "presentation": "project_presentation", "pitch": "elevator_pitch", "coach": "hr_interview",
+            "viva": "viva_defense", "presentation": "project_presentation",
+            "presentation_coach": "project_presentation", "pitch": "elevator_pitch", "coach": "hr_interview",
         }.get(self.mode, "viva_defense"))
 
         analysis = {}
@@ -524,7 +652,7 @@ class LivePersistence:
             )
 
         analyzed_q = analysis.get("questions") if isinstance(analysis, dict) else None
-        if analyzed_q:
+        if analyzed_q and self.mode != "presentation_coach":
             self.questions = analyzed_q  # prefer the graded transcript Q&A
         overall = analysis.get("overall_score") if isinstance(analysis, dict) else None
         if not overall:
@@ -551,6 +679,11 @@ class LivePersistence:
                 mode=self.mode, scenario=scenario, persona=self.persona, turns=turns,
                 observations=self.observations, questions=self.questions, metrics=metrics,
                 availability=availability, duration_ms=self.now_ms(), project_context=self.project_context,
+                document_evidence=(
+                    {"units": self.units}
+                    if self.mode == "presentation_coach" else None
+                ),
+                coach_state=self.coach_state if self.mode == "presentation_coach" else None,
             )
         except Exception as exc:
             logger.warning(
@@ -560,7 +693,16 @@ class LivePersistence:
                        "turns": len(turns), "questions": len(self.questions)},
             )
             report = None
+        structured_report_ready = report is not None
         self.flush_events()
+        deck_report = None
+        if self.mode == "presentation_coach":
+            deck_report = presentation_coach.build_deck_report(
+                self.coach_state, self.units, self.material, summary
+            )
+            if isinstance(report, dict):
+                report["deck_report"] = deck_report
+            summary["deck_report"] = deck_report
         try:
             if self.mode == "viva":
                 for i, q in enumerate(self.questions, start=1):
@@ -601,7 +743,7 @@ class LivePersistence:
                              self.project_id, "viva_session", self.session_id)
                 gamification_service.award_xp(self.user_id, "viva_completed")
 
-            elif self.mode == "presentation":
+            elif self.mode in ("presentation", "presentation_coach"):
                 row = sb.table("presentation_sessions").select("topic_scores").eq("id", self.session_id).execute()
                 state = (row.data[0].get("topic_scores") if row.data else None) or {}
                 if isinstance(state, str):
@@ -650,6 +792,8 @@ class LivePersistence:
                     "transcript": turns,
                     "gaps": gap_labels[:6],
                     "weaknesses": weaknesses[:5],
+                    **({"deck_report": deck_report}
+                       if self.mode == "presentation_coach" and deck_report else {}),
                 }
                 # Dimension scores → aggregate columns when the structured report has them.
                 clarity = confidence = coverage = overall
@@ -673,6 +817,13 @@ class LivePersistence:
                     "overall_score": overall,
                     "feedback_summary": summary_text,
                     "topic_scores": state,
+                    **({"report_status": "ready" if structured_report_ready else "failed"}
+                       if self.mode == "presentation_coach" else {}),
+                    **({
+                        "coach_state": self.coach_state,
+                        "coach_state_version": self.coach_state.get("version", 1),
+                        "current_unit_ordinal": self.coach_state.get("current_unit"),
+                    } if self.mode == "presentation_coach" else {}),
                     **({"report": report} if report else {}),
                     "completed_at": datetime.now(timezone.utc).isoformat(),
                 }).eq("id", self.session_id).execute()
@@ -988,6 +1139,7 @@ _MAX_INFLIGHT_GRADINGS = 2
 
 async def _grade_turn_live(
     *, answer: str, persist, websocket: WebSocket, session_id: str, mode: str,
+    enqueue=None, end_requested: asyncio.Event | None = None,
 ) -> None:
     """Grade the exchange that just finished and push it to the live panel.
 
@@ -996,6 +1148,65 @@ async def _grade_turn_live(
     conversation, because the conversation is the product and this is a side panel.
     """
     question = last_examiner_question(persist.transcript)
+    if mode == "presentation_coach":
+        unit = persist.coach_unit()
+        if unit is None or len((answer or "").split()) < 3:
+            return
+        scenario = get_scenario(persist.scenario_id) or get_scenario("project_presentation")
+        try:
+            graded = await asyncio.to_thread(
+                presentation_coach.evaluate_turn,
+                question=question,
+                answer=answer,
+                unit=unit,
+                state=persist.coach_state,
+                scenario_label=scenario.label,
+                scenario_dimensions=[dimension.id for dimension in scenario.rubric],
+            )
+            if not graded:
+                graded = {
+                    "decision": "retry",
+                    "score": 0,
+                    "feedback": "The evaluation was unavailable. Restate the point with evidence from this unit.",
+                    "missing_points": [],
+                    "evidence_refs": [unit.get("unit_key")],
+                }
+            evaluation, changed_unit = await asyncio.to_thread(
+                persist.on_coach_evaluation,
+                graded,
+                question=question,
+                answer=answer,
+            )
+        except Exception:
+            logger.warning(
+                "presentation coach transition failed",
+                exc_info=True,
+                extra={"session_id": session_id, "mode": mode, "event": "coach_state_conflict"},
+            )
+            return
+        snapshot = persist.coach_snapshot()
+        try:
+            await websocket.send_json(
+                {"type": "coach_state", "state": snapshot, "evaluation": evaluation}
+            )
+            if changed_unit:
+                await websocket.send_json(
+                    {"type": "unit_changed", "state": snapshot, "unit": snapshot.get("unit")}
+                )
+        except Exception:
+            return
+        if enqueue is not None:
+            preview = await asyncio.to_thread(_coach_preview, persist.coach_unit())
+            if preview:
+                enqueue(("image_mime", (preview, "image/png")))
+            enqueue(("context", persist.coach_context()))
+            enqueue(("text", presentation_coach.control_message(persist.coach_state, persist.units)))
+        if snapshot.get("finished") and end_requested is not None:
+            async def finish_after_closing() -> None:
+                await asyncio.sleep(18)
+                end_requested.set()
+            asyncio.create_task(finish_after_closing())
+        return
     if not turn_grader.should_grade(question, answer):
         return
     try:
@@ -1049,8 +1260,8 @@ def _question_feedback(q: dict) -> str | None:
     return "\n\n".join(parts) or None
 
 
-async def _send_image(session, data: bytes) -> None:
-    blob = types.Blob(data=data, mime_type="image/jpeg")
+async def _send_image(session, data: bytes, mime_type: str = "image/jpeg") -> None:
+    blob = types.Blob(data=data, mime_type=mime_type)
     try:
         await session.send_realtime_input(video=blob)
     except TypeError:
@@ -1065,6 +1276,14 @@ async def _send_text(session, text: str) -> None:
             turns=types.Content(role="user", parts=[types.Part(text=text)]),
             turn_complete=True,
         )
+
+
+async def _send_context(session, text: str) -> None:
+    """Update trusted coach context without creating a standalone model turn."""
+    await session.send_client_content(
+        turns=types.Content(role="user", parts=[types.Part(text=text)]),
+        turn_complete=False,
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -1097,7 +1316,7 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
         await websocket.close(code=4401)
         return
 
-    if mode not in ("viva", "presentation", "pitch", "coach"):
+    if mode not in ("viva", "presentation", "presentation_coach", "pitch", "coach"):
         await websocket.send_json({"type": "error", "message": f"Unknown mode '{mode}'"})
         await websocket.close(code=4400)
         return
@@ -1123,6 +1342,11 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
     focus_topics: list[str] = []
     practice_questions: list[str] = []
     live_brief = ""
+    coach_material: dict | None = None
+    coach_units: list[dict] = []
+    coach_state: dict | None = None
+    training_mode = "practice"
+    difficulty = "intermediate"
     # The length the student actually chose. Read off the session row for every
     # mode: it was being stored at creation and then never read by anything, so
     # picking "5 minutes" changed nothing at all — no prompt budget, no countdown,
@@ -1171,7 +1395,7 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                 except Exception:
                     pass
             sb.table("viva_sessions").update({"status": "In Progress"}).eq("id", session_id).execute()
-        elif mode in ("presentation", "coach", "pitch"):
+        elif mode in ("presentation", "presentation_coach", "coach", "pitch"):
             # Coach and Pitch sessions reuse the presentation_sessions table
             # (session_type="Coach" / "Pitch"), giving every live mode a real,
             # persisted row to finalize a report against.
@@ -1181,9 +1405,60 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
             row = res.data[0]
             project_id = row.get("project_id") or project_id
             # Presentation/coach/pitch store their free-text topic/scenario inside topic_scores JSONB.
-            subject = ((row.get("topic_scores") or {}).get("subject")) or subject
+            topic_state = row.get("topic_scores") or {}
+            if isinstance(topic_state, str):
+                try:
+                    topic_state = json.loads(topic_state)
+                except (ValueError, TypeError):
+                    topic_state = {}
+            subject = (topic_state.get("subject") if isinstance(topic_state, dict) else None) or subject
             scenario_id = row.get("scenario_id")
             duration_minutes = row.get("duration_minutes")
+            if mode == "presentation_coach":
+                material_id = row.get("material_id")
+                if not material_id:
+                    raise ValueError("This is a legacy presentation session")
+                materials = (
+                    sb.table("presentation_materials").select("*")
+                    .eq("id", material_id).eq("profile_id", user["id"]).execute().data
+                )
+                if not materials:
+                    raise ValueError("Presentation material not found")
+                coach_material = materials[0]
+                if coach_material.get("status") not in {"ready", "partial"}:
+                    raise ValueError("Presentation material is not ready")
+                units_query = (
+                    sb.table("presentation_units").select("*")
+                    .eq("material_id", material_id)
+                )
+                if row.get("selected_unit_start") is not None:
+                    units_query = units_query.gte("ordinal", row["selected_unit_start"])
+                if row.get("selected_unit_end") is not None:
+                    units_query = units_query.lte("ordinal", row["selected_unit_end"])
+                coach_units = units_query.order("ordinal").execute().data or []
+                if not coach_units:
+                    raise ValueError("Presentation material has no usable units")
+                training_mode = row.get("training_mode") or "practice"
+                difficulty = row.get("difficulty") or "intermediate"
+                language = row.get("language") or language
+                coach_state = row.get("coach_state") or {}
+                if isinstance(coach_state, str):
+                    try:
+                        coach_state = json.loads(coach_state)
+                    except (ValueError, TypeError):
+                        coach_state = {}
+                selected_keys = {
+                    str(key) for key in (coach_state.get("selected_unit_keys") or [])
+                } if isinstance(coach_state, dict) else set()
+                if selected_keys:
+                    coach_units = [
+                        unit for unit in coach_units if str(unit.get("unit_key")) in selected_keys
+                    ]
+                    if not coach_units:
+                        raise ValueError("Presentation focus units are unavailable")
+                persona = presentation_coach.difficulty_contract(difficulty)["persona"]
+                if training_mode == "learning" or video_source != "camera":
+                    video_source = None
             sb.table("presentation_sessions").update({"status": "In Progress"}).eq("id", session_id).execute()
     except Exception as exc:
         await websocket.send_json({"type": "error", "message": f"Could not load session: {exc}"})
@@ -1201,6 +1476,7 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
     scenario = {
         "viva": get_scenario(resolve_viva_scenario_id(viva_session_type)),
         "presentation": get_scenario("project_presentation"),
+        "presentation_coach": get_scenario(scenario_id) or get_scenario("project_presentation"),
         "pitch": get_scenario("elevator_pitch"),
     }.get(mode)
     if mode == "coach":
@@ -1224,7 +1500,7 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
         budget_minutes = _FALLBACK_SESSION_MINUTES
     budget_minutes = max(0, min(120, budget_minutes))
 
-    project_context = await asyncio.to_thread(_project_context, project_id)
+    project_context = await asyncio.to_thread(_project_context, project_id, user["id"])
     # Code-aware sessions: examiner brief is the distilled knowledge pack only.
     # Never inject full source into Live (free-tier + credibility).
     if mode == "viva" and live_brief:
@@ -1236,7 +1512,17 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                 else ""
             )
         )
-    persist = LivePersistence(mode, session_id, user["id"], project_id, project_context, subject, scenario.id if scenario else None, video_source, persona)
+    persist = LivePersistence(
+        mode, session_id, user["id"], project_id, project_context, subject,
+        scenario.id if scenario else None, video_source, persona,
+        material=coach_material, units=coach_units, coach_state=coach_state,
+        training_mode=training_mode, difficulty=difficulty,
+    )
+    if mode == "presentation_coach":
+        project_context = (
+            (project_context + "\n\n") if project_context.strip() else ""
+        ) + persist.coach_context()
+        persist.project_context = project_context
 
     def make_config(handle: str | None):
         return live_service.build_config(
@@ -1250,6 +1536,8 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
             focus_topics=focus_topics or None,
             practice_questions=practice_questions or None,
             duration_minutes=budget_minutes or None,
+            training_mode=training_mode if mode == "presentation_coach" else None,
+            difficulty=difficulty if mode == "presentation_coach" else None,
             # The connection being built knows whether this session has already
             # been greeted, so the model is never instructed to open a session
             # that is already underway. A user-turn nudge could not override the
@@ -1403,6 +1691,8 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
         if turn_grader.looks_like_a_question(text):
             asked["count"] += 1
             return
+        if mode == "presentation_coach" and not persist.coach_state.get("finished"):
+            return
         if questions_asked() < planned_questions():
             # It stopped asking early — the student may still have something to
             # say, or it may simply have paused. Not our call to end it.
@@ -1414,7 +1704,8 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
         for task in list(grading_tasks):
             if task.done():
                 grading_tasks.discard(task)
-        if len(grading_tasks) >= _MAX_INFLIGHT_GRADINGS:
+        grading_limit = 1 if mode == "presentation_coach" else _MAX_INFLIGHT_GRADINGS
+        if len(grading_tasks) >= grading_limit:
             logger.info(
                 "skipping live grading — already behind",
                 extra={"session_id": session_id, "mode": mode, "event": "turn_grade_skipped",
@@ -1425,6 +1716,7 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
             _grade_turn_live(
                 answer=answer, persist=persist, websocket=websocket,
                 session_id=session_id, mode=mode,
+                enqueue=enqueue, end_requested=end_requested,
             )
         )
         grading_tasks.add(task)
@@ -1530,7 +1822,49 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                 latest_frame["at"] = time.monotonic()
                 enqueue(("image", frame))
             elif kind == "text" and payload.get("text"):
+                if mode == "presentation_coach":
+                    typed_text = str(payload["text"]).strip()
+                    if not typed_text:
+                        continue
+                    persist.on_user_text(typed_text)
+                    turn.add(typed_text)
                 enqueue(("text", payload["text"]))
+            elif kind == "continue_anyway" and mode == "presentation_coach":
+                try:
+                    transition = await asyncio.to_thread(persist.on_continue_anyway)
+                except Exception:
+                    logger.warning(
+                        "continue anyway transition failed",
+                        exc_info=True,
+                        extra={"session_id": session_id, "event": "coach_continue_conflict"},
+                    )
+                    transition = None
+                if transition is None:
+                    await websocket.send_json({
+                        "type": "coach_state",
+                        "state": persist.coach_snapshot(),
+                        "error": "Continue anyway is available after two coached retries.",
+                    })
+                    continue
+                evaluation, changed_unit = transition
+                snapshot = persist.coach_snapshot()
+                await websocket.send_json({
+                    "type": "coach_state", "state": snapshot, "evaluation": evaluation,
+                })
+                if changed_unit:
+                    await websocket.send_json({
+                        "type": "unit_changed", "state": snapshot, "unit": snapshot.get("unit"),
+                    })
+                preview = await asyncio.to_thread(_coach_preview, persist.coach_unit())
+                if preview:
+                    enqueue(("image_mime", (preview, "image/png")))
+                enqueue(("context", persist.coach_context()))
+                enqueue(("text", presentation_coach.control_message(persist.coach_state, persist.units)))
+                if snapshot.get("finished"):
+                    async def finish_after_continue() -> None:
+                        await asyncio.sleep(18)
+                        end_requested.set()
+                    asyncio.create_task(finish_after_continue())
             elif kind == "focus_lost":
                 # The student left the session window. Recorded against the turn
                 # in progress, because leaving WHILE answering is the one
@@ -1558,8 +1892,13 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                 await _send_audio(session, payload)
             elif kind == "image":
                 await _send_image(session, payload)
+            elif kind == "image_mime":
+                image, mime_type = payload
+                await _send_image(session, image, mime_type)
             elif kind == "text":
                 await _send_text(session, payload)
+            elif kind == "context":
+                await _send_context(session, payload)
 
     async def gemini_to_client(session):
         """Forward one Gemini connection's stream to the browser.
@@ -1772,6 +2111,17 @@ async def live_ws(websocket: WebSocket, mode: str, session_id: str):
                 # A reconnect landed: tell the client to drop the
                 # "reconnecting" banner and go back to live.
                 await websocket.send_json({"type": "reconnected", "resumed": not fresh})
+            if mode == "presentation_coach":
+                # Browser and Gemini receive the same authoritative unit on
+                # every connection. The persisted state is the source of truth;
+                # a client-supplied slide index is never consulted.
+                await websocket.send_json({
+                    "type": "state_snapshot", "state": persist.coach_snapshot(),
+                })
+                preview = await asyncio.to_thread(_coach_preview, persist.coach_unit())
+                if preview:
+                    await _send_image(session, preview, "image/png")
+                await _send_context(session, persist.coach_context())
             if fresh:
                 # A history-less connection needs a turn from us or the model stays
                 # mute — but WHICH turn depends on whether the student has actually

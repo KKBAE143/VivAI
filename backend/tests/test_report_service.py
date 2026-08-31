@@ -55,3 +55,22 @@ def test_build_report_echoes_the_persisted_questions_list(stub_generate_json):
         duration_ms=1000, project_context="",
     )
     assert report["questions"] == questions
+
+
+def test_build_report_accepts_only_document_references_present_in_material(stub_generate_json):
+    scenario = get_scenario("project_presentation")
+    stub_generate_json({
+        "scores": {"dimensions": [{"id": scenario.rubric[0].id, "score": 80,
+            "evidence_refs": ["unit_slide-1", "element_shape-1", "claim_problem", "unit_invented"]}]},
+        "sections": [],
+    })
+    report = build_report(
+        mode="presentation_coach", scenario=scenario, persona="balanced", turns=[], observations=[],
+        questions=[], metrics={}, availability={"audio": True, "camera": False, "screen": True},
+        duration_ms=1000, project_context="", coach_state={"current_unit": 1},
+        document_evidence={"units": [{"unit_key": "slide-1", "title": "Problem",
+            "content": {"elements": [{"id": "shape-1", "type": "text", "text": "Students wait too long."}]},
+            "analysis": {"claims": [{"id": "problem", "text": "Wait time is high."}]}}]},
+    )
+    refs = report["scores"]["dimensions"][0]["evidence_refs"]
+    assert refs == ["unit_slide-1", "element_shape-1", "claim_problem"]

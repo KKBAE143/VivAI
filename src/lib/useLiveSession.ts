@@ -13,6 +13,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { getToken, wsUrl } from "@/lib/api";
 import { captureSilent, report } from "@/diagnostics/client";
 import { startTrace, traceQuery } from "@/diagnostics/trace";
+import {
+  reducePresentationCoachState,
+  type PresentationCoachState,
+} from "@/lib/presentation-coach-state";
+export type { PresentationCoachState } from "@/lib/presentation-coach-state";
 
 /**
  * `aborted` is a session the student deliberately ended before answering
@@ -30,6 +35,8 @@ export type LiveStatus =
   | "aborted"
   | "error";
 export type LiveMode = "viva" | "presentation" | "pitch" | "coach";
+/** Kept separate so existing LiveStage mode maps remain exhaustive and unchanged. */
+export type PresentationLiveMode = LiveMode | "presentation_coach";
 
 export interface LiveCaption {
   role: "student" | "examiner";
@@ -90,7 +97,7 @@ export interface StartOptions {
 }
 
 export interface UseLiveSessionOptions {
-  mode: LiveMode;
+  mode: PresentationLiveMode;
   sessionId: string;
   language?: string;
   persona?: string;
@@ -414,6 +421,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
   const [abortMessage, setAbortMessage] = useState("");
   /** Student paused the session (mic+playback held; socket stays open). */
   const [paused, setPaused] = useState(false);
+  const [coachState, setCoachState] = useState<PresentationCoachState | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
   const captureCtxRef = useRef<AudioContext | null>(null);
@@ -698,6 +706,35 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
         return;
       }
       switch (msg.type) {
+        case "state_snapshot":
+          setCoachState((previous) =>
+            reducePresentationCoachState(previous, {
+              type: "state_snapshot",
+              state: (msg.state as PresentationCoachState) ?? null,
+            }),
+          );
+          break;
+        case "coach_state":
+          setCoachState((previous) =>
+            reducePresentationCoachState(previous, {
+              type: "coach_state",
+              state: (msg.state as PresentationCoachState) ?? null,
+              evaluation: msg.evaluation as PresentationCoachState["evaluation"],
+            }),
+          );
+          break;
+        case "unit_changed":
+          setCoachState((previous) =>
+            reducePresentationCoachState(previous, {
+              type: "unit_changed",
+              state: (msg.state as PresentationCoachState) ?? null,
+              unit:
+                msg.unit && typeof msg.unit === "object"
+                  ? (msg.unit as Record<string, unknown>)
+                  : null,
+            }),
+          );
+          break;
         case "ready": {
           setStatus("live");
           // The session's real length, straight from the server that will
@@ -1385,6 +1422,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     setDurationSec(null);
     setTimeUp(false);
     setIntegrityWarning(null);
+    setCoachState(null);
     pausedRef.current = false;
     hadActivityRef.current = false;
   }, [cleanup]);
@@ -1395,6 +1433,11 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
       ws.send(JSON.stringify({ type: "text", text }));
       setCaptions((c) => [...c, { role: "student", text, ts: Date.now() }]);
     }
+  }, []);
+
+  const continueAnyway = useCallback(() => {
+    const ws = wsRef.current;
+    if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "continue_anyway" }));
   }, []);
 
   useEffect(() => {
@@ -1433,6 +1476,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     timeUp,
     abortMessage,
     integrityWarning,
+    coachState,
     acknowledgeIntegrityWarning,
     reportFocus,
     start,
@@ -1444,6 +1488,7 @@ export function useLiveSession(opts: UseLiveSessionOptions) {
     pause,
     resume,
     pushText,
+    continueAnyway,
     unlockAudio,
   };
 }

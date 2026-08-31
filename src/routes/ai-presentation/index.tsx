@@ -1,318 +1,420 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { MonitorSmartphone, Play, ChevronRight } from "lucide-react";
-import { useState } from "react";
-import { AppShell, Card, PageHeader, Badge } from "@/components/app-shell";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { DataPagination } from "@/components/data-pagination";
+import { AlertTriangle, FileUp, Loader2, Play, RefreshCw, Trash2 } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { AppShell } from "@/components/app-shell";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
+import { MaterialImage } from "@/components/live/material-image";
 import { useRequireAuth } from "@/lib/auth-context";
-import { useCreatePresentation, usePresentations, useProjects } from "@/lib/hooks";
-
 import { LIVE_LANGUAGES } from "@/lib/languages";
+import { useScenarioCatalog } from "@/lib/hooks-features";
+import {
+  useCreatePresentation,
+  useCreatePresentationMaterial,
+  useDeletePresentationMaterial,
+  usePresentationMaterial,
+  usePresentationMaterials,
+  usePresentations,
+  useProjects,
+  useRetryPresentationMaterial,
+  useUploadFile,
+  type PresentationMaterial,
+} from "@/lib/hooks";
 
-export const Route = createFileRoute("/ai-presentation/")({
-  head: () => ({
-    meta: [
-      { title: "AI Presentation Mock — VivAI" },
-      {
-        name: "description",
-        content: "Present to AI, share your screen, and get faculty-style real-time feedback.",
-      },
-    ],
-  }),
-  component: AIPresentation,
-});
+export const Route = createFileRoute("/ai-presentation/")({ component: AIPresentation });
 
-const SESSION_TYPES = ["Mid Review", "Final Demo", "Internal"] as const;
-const DURATIONS = [5, 10, 15, 20] as const;
-const PAGE_SIZE = 3;
+const DURATIONS = [5, 10, 15, 20, 30];
+const COACH_SCENARIOS = new Set([
+  "project_defense",
+  "startup_pitch",
+  "fundraising_pitch",
+  "hackathon_judging",
+  "innovation_competition",
+  "business_plan_competition",
+  "technical_architecture_review",
+  "product_demonstration",
+  "client_presentation",
+  "research_presentation",
+  "accelerator_interview",
+  "grant_evaluation",
+]);
 
 function AIPresentation() {
   useRequireAuth();
   const navigate = useNavigate();
-  const { data: projects } = useProjects();
-  const sessionsQuery = usePresentations();
+  const projects = useProjects();
+  const sessions = usePresentations();
+  const materials = usePresentationMaterials();
+  const materialActions = {
+    upload: useUploadFile(),
+    create: useCreatePresentationMaterial(),
+    retry: useRetryPresentationMaterial(),
+    remove: useDeletePresentationMaterial(),
+  };
   const createSession = useCreatePresentation();
+  const scenarios = useScenarioCatalog();
   const [projectId, setProjectId] = useState("");
-  const [type, setType] = useState<string>(SESSION_TYPES[0]);
-  const [duration, setDuration] = useState<number>(10);
-  const [language, setLanguage] = useState<string>("English");
-  const [topic, setTopic] = useState("");
+  const [selected, setSelected] = useState("");
+  const [mode, setMode] = useState<"learning" | "practice">("learning");
+  const [difficulty, setDifficulty] = useState("beginner");
+  const [language, setLanguage] = useState("English");
+  const [duration, setDuration] = useState(10);
+  const [scenarioId, setScenarioId] = useState("project_defense");
+  const [startUnit, setStartUnit] = useState("");
+  const [endUnit, setEndUnit] = useState("");
   const [error, setError] = useState("");
-  const [page, setPage] = useState(1);
+  const materialDetail = usePresentationMaterial(selected || undefined);
+  const selectedMaterial =
+    materialDetail.data ??
+    (materials.data ?? []).find((material) => String(material.id) === selected);
+  const usable = selectedMaterial?.status === "ready" || selectedMaterial?.status === "partial";
+  const units = Array.isArray(selectedMaterial?.units) ? selectedMaterial.units : [];
+  const warnings = Array.isArray(selectedMaterial?.warnings)
+    ? selectedMaterial.warnings.map(String)
+    : [];
+  const unitCount = Number(selectedMaterial?.unit_count ?? units.length ?? 0);
 
-  const allSessions = sessionsQuery.data ?? [];
-  const totalPages = Math.max(1, Math.ceil(allSessions.length / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages);
-  const visibleSessions = allSessions.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
-
-  const begin = async () => {
+  const onUpload = async (file?: File) => {
+    if (!file) return;
     setError("");
     try {
-      const res = await createSession.mutateAsync({
-        project_id: projectId || null,
-        session_type: type,
-        duration_minutes: duration,
-        subject: topic.trim() || null,
-        language,
+      const row = await materialActions.upload.mutateAsync({
+        file,
+        projectId: projectId || undefined,
       });
-      navigate({ to: "/ai-presentation/session/$id", params: { id: String(res.id) } });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not start the session");
+      const material = await materialActions.create.mutateAsync({
+        fileId: String(row.id),
+        projectId: projectId || null,
+      });
+      setSelected(String(material.id));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Upload failed");
     }
   };
 
+  const begin = async () => {
+    if (!selectedMaterial || !usable) return;
+    setError("");
+    try {
+      const result = await createSession.mutateAsync({
+        material_id: selectedMaterial.id,
+        project_id: projectId || null,
+        training_mode: mode,
+        difficulty,
+        scenario_id: scenarioId,
+        language,
+        duration_minutes: duration,
+        selected_unit_start: startUnit ? Number(startUnit) : null,
+        selected_unit_end: endUnit ? Number(endUnit) : null,
+        session_type: "Presentation Coach",
+      });
+      await navigate({ to: "/ai-presentation/session/$id", params: { id: String(result.id) } });
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not start coach");
+    }
+  };
+
+  const availableScenarios = (scenarios.data ?? []).filter((item) => COACH_SCENARIOS.has(item.id));
   return (
-    <AppShell fitViewport hideTopBar>
-      <div className="flex flex-col gap-3 lg:gap-3.5 h-full lg:overflow-hidden overflow-y-auto font-manrope">
-        {/* Integrated Header */}
-        <div className="flex items-center justify-between">
+    <AppShell fitViewport>
+      <div className="mx-auto grid max-w-6xl gap-5 pb-8 lg:grid-cols-[1.1fr_.9fr]">
+        <section className="space-y-5">
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground font-graphik">
-                AI Presentation Mock
-              </h1>
-              <span className="apple-pill-badge py-0.5 px-2 text-[10px]">SLIDE DEFENSE</span>
-            </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Present to AI faculty, share your screen, and get instant real-time defense feedback.
+            <h1 className="text-2xl font-bold">AI Presentation Coach</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Upload once, then learn or practise against the real material slide by slide.
             </p>
           </div>
-        </div>
-
-        {/* Top Section */}
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-12 shrink-0">
-          <div className="lg:col-span-5 apple-glass-card p-4 sm:p-5 flex flex-col justify-between">
-            <div>
-              <span className="apple-pill-badge text-[11px]">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                LIVE SCREEN REVIEW
-              </span>
-              <h2 className="mt-3 text-lg sm:text-xl font-bold tracking-tight text-foreground font-graphik">
-                Defend like it's the real review
-              </h2>
-              <p className="mt-1 text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                Share your screen, present your slides in{" "}
-                <strong className="text-primary">{language}</strong>, and AI faculty asks
-                follow-ups, scores clarity, and flags missing topics.
-              </p>
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2.5">
-              <button
-                disabled={createSession.isPending}
-                onClick={() => void begin()}
-                className="apple-glass-btn-primary inline-flex min-h-[44px] items-center justify-center gap-2 px-5 py-2 text-xs sm:text-sm cursor-pointer uppercase tracking-wider"
-              >
-                <Play className="h-4 w-4 fill-current" />{" "}
-                {createSession.isPending ? "Starting…" : "Start Session"}
-              </button>
-            </div>
-          </div>
-
-          <div className="lg:col-span-7 apple-glass-card p-4 sm:p-5 flex flex-col justify-between">
-            <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground font-graphik">
-                SESSION SETUP
-              </h3>
-              <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <div className="rounded-2xl border border-border bg-black/5 dark:bg-white/5 p-2.5 shadow-xs">
-                  <span className="block text-[10px] text-muted-foreground font-medium mb-1">
-                    Project
-                  </span>
-                  <Select
-                    value={projectId || "none"}
-                    onValueChange={(v) => setProjectId(v === "none" ? "" : v)}
-                  >
-                    <SelectTrigger className="w-full min-h-[36px] rounded-xl bg-card border border-border px-2 py-1 text-xs font-bold text-foreground focus:border-primary">
-                      <SelectValue placeholder="No project" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No project</SelectItem>
-                      {(projects ?? []).map((p) => (
-                        <SelectItem key={String(p.id)} value={String(p.id)}>
-                          {String(p.title)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="rounded-2xl border border-border bg-black/5 dark:bg-white/5 p-2.5 shadow-xs">
-                  <span className="block text-[10px] text-muted-foreground font-medium mb-1">
-                    Type
-                  </span>
-                  <Select value={type} onValueChange={(v) => setType(v as typeof type)}>
-                    <SelectTrigger className="w-full min-h-[36px] rounded-xl bg-card border border-border px-2 py-1 text-xs font-bold text-foreground focus:border-primary">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {SESSION_TYPES.map((t) => (
-                        <SelectItem key={t} value={t}>
-                          {t}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="rounded-2xl border border-border bg-black/5 dark:bg-white/5 p-2.5 shadow-xs">
-                  <span className="block text-[10px] text-muted-foreground font-medium mb-1">
-                    Duration
-                  </span>
-                  <Select value={String(duration)} onValueChange={(v) => setDuration(Number(v))}>
-                    <SelectTrigger className="w-full min-h-[36px] rounded-xl bg-card border border-border px-2 py-1 text-xs font-bold text-foreground focus:border-primary">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {DURATIONS.map((d) => (
-                        <SelectItem key={d} value={String(d)}>
-                          {d} mins
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="rounded-2xl border border-border bg-black/5 dark:bg-white/5 p-2.5 shadow-xs">
-                  <span className="block text-[10px] text-muted-foreground font-medium mb-1">
-                    Language
-                  </span>
-                  <Select value={language} onValueChange={setLanguage}>
-                    <SelectTrigger className="w-full min-h-[36px] rounded-xl bg-card border border-border px-2 py-1 text-xs font-bold text-foreground focus:border-primary">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {LIVE_LANGUAGES.map((l) => (
-                        <SelectItem key={l} value={l}>
-                          {l}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="mt-2.5 rounded-2xl border border-border bg-black/5 dark:bg-white/5 p-2.5 shadow-xs">
-                <label className="block text-[10px] text-muted-foreground font-medium">
-                  Topic / focus (optional)
-                </label>
+          <div className="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="font-semibold">Your materials</h2>
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground">
+                <FileUp className="h-4 w-4" /> Upload material
                 <input
-                  type="text"
-                  placeholder="e.g. Distributed Consensus Engine Architecture or Sprint 4 Demo"
-                  value={topic}
-                  onChange={(e) => setTopic(e.target.value)}
-                  className="mt-1 w-full min-h-[36px] rounded-xl border border-border bg-card px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none shadow-xs"
+                  type="file"
+                  className="hidden"
+                  accept=".pdf,.ppt,.pptx,.doc,.docx,.txt"
+                  onChange={(event) => void onUpload(event.target.files?.[0])}
                 />
-              </div>
+              </label>
             </div>
-            {error && <p className="mt-1.5 text-xs text-rose-500 font-mono">{error}</p>}
-            <button
-              disabled={createSession.isPending}
-              onClick={() => void begin()}
-              className="mt-3 apple-glass-btn-primary min-h-[44px] w-full py-2.5 text-xs sm:text-sm font-bold uppercase tracking-wider cursor-pointer"
-            >
-              {createSession.isPending ? "Starting…" : "Begin Presentation"}
-            </button>
-          </div>
-        </div>
-
-        {/* Past Sessions */}
-        <div className="apple-glass-card p-4 sm:p-5 flex-1 flex flex-col justify-between min-h-0">
-          <div>
-            <div className="flex items-center justify-between pb-2 border-b border-border">
-              <h3 className="text-sm font-bold text-foreground font-graphik tracking-wide">
-                PAST SESSIONS
-              </h3>
-              {allSessions.length > 0 && (
-                <span className="apple-pill-badge py-0.5 px-2 text-[10px]">
-                  {allSessions.length} total
-                </span>
-              )}
-            </div>
-            {sessionsQuery.isLoading ? (
-              <p className="mt-3 text-xs text-muted-foreground">Loading sessions…</p>
-            ) : sessionsQuery.error ? (
-              <ErrorState
-                message={
-                  sessionsQuery.error instanceof Error
-                    ? sessionsQuery.error.message
-                    : "Could not load sessions"
-                }
-                onRetry={() => void sessionsQuery.refetch()}
-              />
-            ) : allSessions.length === 0 ? (
-              <EmptyState
-                title="No sessions yet"
-                description="Start your first AI presentation practice above."
-              />
+            <p className="mt-2 text-xs text-muted-foreground">
+              PPTX, PPT, PDF, DOCX, DOC, or TXT · up to 25 MB
+            </p>
+            {materials.isLoading ? (
+              <p className="mt-4 text-sm text-muted-foreground">Loading materials…</p>
             ) : (
-              <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                {visibleSessions.map((s) => {
-                  const score = s.overall_score == null ? null : Number(s.overall_score);
-                  const status = String(s.status ?? "Pending");
-                  const completed = status === "Completed";
-                  return (
-                    <Link
-                      key={String(s.id)}
-                      to="/ai-presentation/session/$id"
-                      params={{ id: String(s.id) }}
-                      className="group block apple-glass-card apple-glass-card-hover p-3.5 no-underline"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary/15 text-primary">
-                          <MonitorSmartphone className="h-4 w-4" />
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 group-hover:text-primary transition-all" />
-                      </div>
-                      <div className="mt-2.5 font-bold text-xs sm:text-sm text-foreground truncate font-graphik">
-                        {String(s.session_type ?? "Presentation")}
-                      </div>
-                      <div className="mt-0.5 text-[10px] text-muted-foreground">
-                        {String(s.created_at ?? "").slice(0, 10)} ·{" "}
-                        {String(s.duration_minutes ?? "—")} min
-                      </div>
-                      <div className="mt-2.5 flex items-center justify-between pt-2 border-t border-border">
-                        {score !== null ? (
-                          <span
-                            className={`rounded-md px-2 py-0.5 text-[10.5px] font-bold ${
-                              score >= 80
-                                ? "bg-emerald-500/15 text-emerald-600 dark:text-[#7CE4BA]"
-                                : "bg-primary/15 text-primary"
-                            }`}
-                          >
-                            {score}%
-                          </span>
-                        ) : (
-                          <span className="rounded-md bg-muted px-2 py-0.5 text-[10.5px] font-medium text-muted-foreground">
-                            {status}
-                          </span>
-                        )}
-                        <span className="text-[11px] font-bold text-primary group-hover:underline">
-                          {completed ? "Review" : status === "In Progress" ? "Resume" : "Open"}
-                        </span>
-                      </div>
-                    </Link>
-                  );
-                })}
+              <div className="mt-4 space-y-2">
+                {(materials.data ?? []).map((material) => (
+                  <MaterialRow
+                    key={material.id}
+                    material={material}
+                    selected={selected === String(material.id)}
+                    onSelect={() => setSelected(String(material.id))}
+                    onRetry={() => void materialActions.retry.mutateAsync(String(material.id))}
+                    onDelete={() => void materialActions.remove.mutateAsync(String(material.id))}
+                  />
+                ))}
+                {!materials.data?.length && (
+                  <EmptyState
+                    title="Upload presentation material"
+                    description="Processed materials remain reusable for future practice."
+                  />
+                )}
               </div>
             )}
           </div>
-          {allSessions.length > 0 && (
-            <DataPagination
-              page={safePage}
-              totalPages={totalPages}
-              totalItems={allSessions.length}
-              pageSize={PAGE_SIZE}
-              onPageChange={setPage}
-              itemName="sessions"
-              className="mt-2 pt-2"
-            />
+
+          {selectedMaterial && (
+            <div className="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
+              <div className="grid gap-4 sm:grid-cols-[180px_1fr]">
+                <div className="flex min-h-28 items-center justify-center overflow-hidden rounded-xl bg-secondary">
+                  {usable && units[0] ? (
+                    <MaterialImage
+                      materialId={String(selectedMaterial.id)}
+                      ordinal={Number(units[0].ordinal ?? 1)}
+                      thumbnail
+                      alt="First material preview"
+                      className="h-32 w-full object-contain"
+                      fallback={
+                        <span className="p-3 text-xs text-muted-foreground">
+                          Structured text preview
+                        </span>
+                      }
+                    />
+                  ) : (
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  )}
+                </div>
+                <div>
+                  <h2 className="font-semibold">
+                    {String(selectedMaterial.title ?? "Presentation material")}
+                  </h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {String(selectedMaterial.source_type ?? "file").toUpperCase()} ·{" "}
+                    {unitCount || "—"} units
+                    {unitCount
+                      ? ` · about ${Math.max(5, unitCount * 2)} minutes for full coverage`
+                      : ""}
+                  </p>
+                  <p className="mt-2 text-xs capitalize">
+                    Processing status: <strong>{String(selectedMaterial.status)}</strong>
+                  </p>
+                  {warnings.length > 0 && (
+                    <ul className="mt-3 space-y-1 text-xs text-warning">
+                      {warnings.slice(0, 4).map((warning) => (
+                        <li key={warning} className="flex gap-1.5">
+                          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                          {warning}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {selectedMaterial.processing_error ? (
+                    <p className="mt-3 text-xs text-destructive">
+                      {String(selectedMaterial.processing_error)}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            </div>
           )}
-        </div>
+
+          <div className="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
+            <h2 className="font-semibold">Past sessions</h2>
+            {sessions.error ? (
+              <ErrorState
+                message="Could not load sessions"
+                onRetry={() => void sessions.refetch()}
+              />
+            ) : (
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                {(sessions.data ?? []).slice(0, 6).map((session) => (
+                  <Link
+                    key={String(session.id)}
+                    to="/ai-presentation/session/$id"
+                    params={{ id: String(session.id) }}
+                    className="rounded-xl bg-secondary p-3 text-sm no-underline"
+                  >
+                    <div className="font-medium">
+                      {String(session.session_type ?? "Presentation")}
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {String(session.status ?? "Pending")} ·{" "}
+                      {String(session.created_at ?? "").slice(0, 10)}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)] lg:sticky lg:top-4 lg:h-fit">
+          <h2 className="font-semibold">Coach setup</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {selectedMaterial
+              ? `${selectedMaterial.status ?? "queued"} material selected`
+              : "Choose a processed material to begin."}
+          </p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <Field label="Project">
+              <select value={projectId} onChange={(event) => setProjectId(event.target.value)}>
+                <option value="">No project</option>
+                {(projects.data ?? []).map((project) => (
+                  <option key={String(project.id)} value={String(project.id)}>
+                    {String(project.title)}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Mode">
+              <select value={mode} onChange={(event) => setMode(event.target.value as typeof mode)}>
+                <option value="learning">Learning</option>
+                <option value="practice">Practice</option>
+              </select>
+            </Field>
+            <Field label="Difficulty">
+              <select value={difficulty} onChange={(event) => setDifficulty(event.target.value)}>
+                <option value="beginner">Beginner</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="advanced">Advanced</option>
+                <option value="expert">Expert Judge</option>
+              </select>
+            </Field>
+            <Field label="Language">
+              <select value={language} onChange={(event) => setLanguage(event.target.value)}>
+                {LIVE_LANGUAGES.map((item) => (
+                  <option key={item}>{item}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Duration">
+              <select
+                value={duration}
+                onChange={(event) => setDuration(Number(event.target.value))}
+              >
+                {DURATIONS.map((item) => (
+                  <option key={item} value={item}>
+                    {item} minutes
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Scenario">
+              <select value={scenarioId} onChange={(event) => setScenarioId(event.target.value)}>
+                {availableScenarios.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Start unit (optional)">
+              <input
+                type="number"
+                min="1"
+                max={unitCount || undefined}
+                value={startUnit}
+                onChange={(event) => setStartUnit(event.target.value)}
+              />
+            </Field>
+            <Field label="End unit (optional)">
+              <input
+                type="number"
+                min="1"
+                max={unitCount || undefined}
+                value={endUnit}
+                onChange={(event) => setEndUnit(event.target.value)}
+              />
+            </Field>
+          </div>
+          {mode === "learning" && (
+            <p className="mt-3 rounded-xl bg-secondary p-3 text-xs text-muted-foreground">
+              Learning uses coached retries and keeps the camera off. Continue anyway becomes
+              available after two retries.
+            </p>
+          )}
+          {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
+          <button
+            disabled={!usable || createSession.isPending}
+            onClick={() => void begin()}
+            className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+          >
+            {createSession.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Play className="h-4 w-4" />
+            )}
+            {!selectedMaterial
+              ? "Select material"
+              : !usable
+                ? "Waiting for material"
+                : "Start presentation coach"}
+          </button>
+        </section>
       </div>
     </AppShell>
+  );
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="text-xs font-medium text-muted-foreground">
+      {label}
+      <span className="mt-1 block [&_input]:w-full [&_input]:rounded-lg [&_input]:border [&_input]:border-border [&_input]:bg-background [&_input]:p-2 [&_select]:w-full [&_select]:rounded-lg [&_select]:border [&_select]:border-border [&_select]:bg-background [&_select]:p-2">
+        {children}
+      </span>
+    </label>
+  );
+}
+
+function MaterialRow({
+  material,
+  selected,
+  onSelect,
+  onRetry,
+  onDelete,
+}: {
+  material: PresentationMaterial;
+  selected: boolean;
+  onSelect: () => void;
+  onRetry: () => void;
+  onDelete: () => void;
+}) {
+  const status = String(material.status ?? "queued");
+  return (
+    <div
+      className={`flex items-center gap-3 rounded-xl border p-3 ${selected ? "border-primary bg-primary/5" : "border-border"}`}
+    >
+      <button onClick={onSelect} className="min-w-0 flex-1 text-left">
+        <p className="truncate text-sm font-medium">
+          {String(material.title ?? "Presentation material")}
+        </p>
+        <p className="mt-1 text-xs capitalize text-muted-foreground">
+          {String(material.source_type ?? "file").toUpperCase()} · {status}
+          {material.unit_count ? ` · ${String(material.unit_count)} units` : ""}
+        </p>
+      </button>
+      {(status === "queued" || status === "processing") && (
+        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+      )}
+      {status === "failed" && (
+        <button
+          onClick={onRetry}
+          aria-label="Retry processing"
+          className="rounded-lg bg-secondary p-2"
+        >
+          <RefreshCw className="h-4 w-4" />
+        </button>
+      )}
+      <button
+        onClick={onDelete}
+        aria-label="Delete material"
+        className="rounded-lg p-2 text-muted-foreground hover:text-destructive"
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
+    </div>
   );
 }

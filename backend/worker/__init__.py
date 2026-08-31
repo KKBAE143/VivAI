@@ -1,0 +1,1 @@
+"""Background material-ingestion worker."""

@@ -1,5 +1,7 @@
 """Pydantic request/response schemas for all endpoints."""
-from pydantic import BaseModel, EmailStr, Field
+from typing import Literal
+
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
 
 # ---------- Auth ----------
@@ -172,12 +174,38 @@ class AnswerSubmit(BaseModel):
 
 
 # ---------- Presentation ----------
+class PresentationMaterialCreate(BaseModel):
+    file_id: str
+    project_id: str | None = None
+    title: str | None = Field(default=None, max_length=300)
+
+
 class PresentationSessionCreate(BaseModel):
     project_id: str | None = None
-    duration_minutes: int = 10
-    session_type: str = "Project"
-    subject: str | None = None  # free-text topic / focus for the presentation
+    material_id: str | None = None
+    duration_minutes: int = Field(default=10, ge=5, le=120)
+    session_type: Literal["Project", "Presentation Coach", "Coach", "Pitch"] = "Project"
+    subject: str | None = Field(default=None, max_length=300)  # legacy free-text focus
     scenario_id: str | None = None
+    training_mode: Literal["learning", "practice"] = "practice"
+    difficulty: Literal["beginner", "intermediate", "advanced", "expert"] = "intermediate"
+    language: Literal[
+        "English", "Hindi", "Hinglish", "Telugu", "Tenglish", "Tamil", "Tanglish",
+        "Kannada", "Malayalam", "Marathi", "Bengali", "Gujarati", "Punjabi",
+    ] = "English"
+    selected_unit_start: int | None = Field(default=None, ge=1)
+    selected_unit_end: int | None = Field(default=None, ge=1)
+    focus_unit_ids: list[str] | None = Field(default=None, max_length=40)
+
+    @model_validator(mode="after")
+    def selected_unit_range_is_ordered(self):
+        if (
+            self.selected_unit_start is not None
+            and self.selected_unit_end is not None
+            and self.selected_unit_end < self.selected_unit_start
+        ):
+            raise ValueError("selected_unit_end must be greater than or equal to selected_unit_start")
+        return self
 
 
 class AskRequest(BaseModel):

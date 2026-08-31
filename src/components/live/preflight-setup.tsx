@@ -28,7 +28,7 @@ export interface PreflightResult {
 }
 
 interface PreflightSetupProps {
-  mode: "viva" | "presentation" | "pitch" | "coach" | "team_viva";
+  mode: "viva" | "presentation" | "presentation_coach" | "pitch" | "coach" | "team_viva";
   defaultLanguage?: string;
   defaultPersona?: string;
   /** Show the examiner persona picker (viva). */
@@ -50,6 +50,7 @@ interface PreflightSetupProps {
  */
 const MODE_SOURCES: Record<string, VideoSource[]> = {
   presentation: ["screen"],
+  presentation_coach: ["none", "camera"],
   viva: ["none"],
   pitch: ["none"],
   coach: ["camera"],
@@ -71,6 +72,10 @@ const MODE_COPY: Record<string, { title: string; hint: string }> = {
   presentation: {
     title: "Get ready to present",
     hint: "Share your screen and talk through your project. The AI examiner will watch live, react, and ask questions.",
+  },
+  presentation_coach: {
+    title: "Get ready for presentation coaching",
+    hint: "Your processed material stays on screen while the AI coaches you live. Screen sharing is not needed.",
   },
   viva: {
     title: "Get ready for your viva",
